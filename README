@@ -1,0 +1,45 @@
+
+Directory Organization:
+=======================
+
+Include files for external interfaces in include/
+GTest Files in external/
+Sources for Libraries in lib/
+Sources fort Tests in test/
+
+CMakeLists.txt organization
+===========================
+
+At top level:
+ - Define Project ' project() -- command ' 
+ - Set Revision and add to MG_config.h"
+   (this is generally an example of how to add '#defines' to .h files
+    use 'set' to set them in CMakeLists.txt and #define them in the config.h.in)
+
+ - Add commands to install this config file
+ 
+ - set up the include directory tree ( include for headers, external for gtest and the build dir for any generated headers)
+
+ - Recurse as appropriate into include/ lib/ test/  using add_subdirectory()
+
+ - Enable testing() and add tests for 'make test'
+
+CMakeLists.txt in the include directory:
+====================================
+  - This is just to install header files. I have an install line here (will add more)
+
+CMakeLists.txt in the lib directory
+================================
+
+  - This is to build your libraries: Currently 2 lines
+
+  i) to create the library
+     add_library(name srcs)
+
+  ii) To install the library in lib/ 
+
+   
+ CMakeLists in the test/ directory
+==================================
+
+This builds the test executable (and takes care of the icky linkings. 
