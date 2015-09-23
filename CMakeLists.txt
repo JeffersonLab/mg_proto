@@ -5,6 +5,9 @@ project (MG)
 set (MG_VERSION_MAJOR 1)
 set (MG_VERSION_MINOR 0)
 
+set (MG_DEFAULT_LOGLEVEL DEBUG CACHE STRING "Default Loglevel")
+
+
 if( QMP_DIR ) 
   set( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${QMP_DIR}")
 endif( QMP_DIR ) 
@@ -17,6 +20,7 @@ if ( ${QMP_C_FOUND} )
   include_directories(${QMP_C_INCLUDE_PATH})
   LIST(APPEND EXT_LIBS ${QMP_C_LINK_FLAGS} )
   LIST(APPEND EXT_LIBS ${QMP_C_LIBRARIES} )
+  set(QMP_COMMS 1)
 endif( ${QMP_C_FOUND} )
 
 find_package( MPI REQUIRED )
