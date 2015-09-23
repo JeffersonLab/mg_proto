@@ -1,9 +1,35 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 3.0)
 project (MG)
 
 #A Version Number
 set (MG_VERSION_MAJOR 1)
 set (MG_VERSION_MINOR 0)
+
+if( QMP_DIR ) 
+  set( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${QMP_DIR}")
+endif( QMP_DIR ) 
+# Find MPI
+find_package( MPI REQUIRED )
+
+# Find package QMP
+find_package( QMP REQUIRED )
+
+# Check for QMP
+if ( ${QMP_C_FOUND} )
+  include_directories(${QMP_C_INCLUDE_PATH})
+  LIST(APPEND EXT_LIBS ${QMP_C_LINK_FLAGS} )
+  LIST(APPEND EXT_LIBS ${QMP_C_LIBRARIES} )
+endif( ${QMP_C_FOUND} )
+
+# Deal with threads 
+find_package(Threads REQUIRED)
+if(THREADS_HAVE_PTHREAD_ARG)
+  LIST(APPEND EXT_CXXFLAGS "-pthread")
+endif()
+
+if(CMAKE_THREAD_LIBS_INIT)
+   LIST(APPEND EXT_LIBS ${CMAKE_THREAD_LIBS_INIT} )
+endif()
 
 
 # Add a config.h like file to pass some of the
@@ -30,4 +56,4 @@ add_subdirectory(lib)
 add_subdirectory(test)
 
 enable_testing()
-add_test ( TestLattice test/test_lattice )
+add_test ( NAME TestLattice COMMAND  test/test_lattice )
