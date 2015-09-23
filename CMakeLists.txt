@@ -8,8 +8,6 @@ set (MG_VERSION_MINOR 0)
 if( QMP_DIR ) 
   set( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${QMP_DIR}")
 endif( QMP_DIR ) 
-# Find MPI
-find_package( MPI REQUIRED )
 
 # Find package QMP
 find_package( QMP REQUIRED )
@@ -20,6 +18,8 @@ if ( ${QMP_C_FOUND} )
   LIST(APPEND EXT_LIBS ${QMP_C_LINK_FLAGS} )
   LIST(APPEND EXT_LIBS ${QMP_C_LIBRARIES} )
 endif( ${QMP_C_FOUND} )
+
+find_package( MPI REQUIRED )
 
 # Deal with threads 
 find_package(Threads REQUIRED)
@@ -52,6 +52,7 @@ include_directories(external)
 add_subdirectory(include)
 
 # Add the lib subdirectory to make the lib
+add_subdirectory(external)
 add_subdirectory(lib)
 add_subdirectory(test)
 
