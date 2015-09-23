@@ -33,10 +33,12 @@ namespace MGUtils {
 	 */
 	void SetLogLevel(LogLevel level)
 	{
-#pragma omp critical
+#pragma omp master
 		{
 			current_log_level = level;
 		}
+#pragma omp barrier
+
 	}
 
 	/**
@@ -78,6 +80,7 @@ namespace MGUtils {
 				va_start(args,format);
 				vprintf(format, args);
 				va_end(args);
+				printf("\n");
 			}	/* end If */
 
 			/* If the level is error than we should abort */
@@ -104,33 +107,37 @@ namespace MGUtils {
 	 */
     void MasterLog(LogLevel level, const char *format, ...)
     {
+
+#pragma omp master
+    	{
+
 #ifdef QMP_COMMS
     		if ( QMP_is_primary_node() )  {
 #endif
-#pragma omp master
-    			{
-    				if( level <= current_log_level ) {
+    			if( level <= current_log_level ) {
 
-    					printf("%s: ", log_string_array[level].c_str());
-    					va_list args;
-    					va_start(args,format);
-    					vprintf(format, args);
-    					va_end(args);
-    				}	/* end If */
+    				printf("%s: ", log_string_array[level].c_str());
+    				va_list args;
+    				va_start(args,format);
+    				vprintf(format, args);
+    				va_end(args);
+    				printf("\n");
+    			}	/* en	d If */
 
     				/* If the level is error than we should abort */
-    				if( level == ERROR ) {
+    			if( level == ERROR ) {
 #ifdef QMP_COMMS
-    					QMP_abort(1);
+    				QMP_abort(1);
 #else
-    					std::abort();
+    				std::abort();
 #endif
-    				} /* if level == ERROR */
+    			} /* if level == ERROR */
 
-    			} /* End of OMP_MASTER_REGION */
 #ifdef QMP_COMMS
     		} /* if ( QMP_is_primary_node())  */
 #endif
+    	} /* End OMP MASTER REGION */
+
     }
 
 

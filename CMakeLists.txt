@@ -62,3 +62,4 @@ add_subdirectory(test)
 
 enable_testing()
 add_test ( NAME TestLattice COMMAND  test/test_lattice )
+add_test(  NAME TestLogging COMMAND test/test_logging )
