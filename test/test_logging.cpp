@@ -2,11 +2,8 @@
 #include "utils/print_utils.h"
 #include <vector>
 #include <iostream>
+#include "test_env.h"
 
-#include "MG_config.h"
-#ifdef QMP_COMMS
-#include "qmp.h"
-#endif
 
 using namespace MGUtils; 
 
@@ -68,27 +65,7 @@ TEST(TEstLogging, LocalErrorTerminates)
 		EXPECT_DEATH( LocalLog(ERROR, "Terminate With Prejudice"), "");
 }
 
-class TestEnv : public ::testing::Environment {
-public:
 
-		TestEnv(int  *argc, char ***argv)  {
-#ifdef QMP_COMMS
-			QMP_thread_level_t prv;
-			if( QMP_init_msg_passing(argc, argv, QMP_THREAD_SINGLE, &prv) != QMP_SUCCESS ) {
-				std::cout << "Failed to initialize QMP" << std::endl;
-				std::exit(EXIT_FAILURE);
-			}
-#endif
-		}
-
-		~TestEnv()
-		{
-#ifdef QMP_COMMS
-				QMP_finalize_msg_passing();
-#endif
-		}
-
-};
 
 int main(int argc, char *argv[]) 
 {

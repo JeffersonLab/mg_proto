@@ -14,6 +14,7 @@ Lattice::Lattice(const std::vector<int>& lat_dims,
 		 const int n_color,
 		 const NodeInfo& node) : _n_color(n_color), _n_spin(n_spin)
 {
+
 	/* Copy in the Lattice Dimensions */
 	if( lat_dims.size() == n_dim ) {
 		for(int mu=0; mu < n_dim; ++mu) {
@@ -27,7 +28,7 @@ Lattice::Lattice(const std::vector<int>& lat_dims,
 
 	/* Count the number of sites */
 	_n_sites = _lat_dims[0];
-	for(int mu=1; mu < n_dim; +	+mu) {
+	for(int mu=1; mu < n_dim; ++mu) {
 		_n_sites *= _lat_dims[mu];
 	}
 
