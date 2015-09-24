@@ -20,8 +20,8 @@ namespace MGGeometry {
      *                              checkerboards etc.
      */
     Lattice(const std::vector<int>& lat_dims,
-	       const int n_spin,
-	    const int n_color, const NodeInfo& node);
+    				const int n_spin,
+					const int n_color, const NodeInfo& node);
 
     ~Lattice();
  
