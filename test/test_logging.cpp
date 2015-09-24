@@ -2,8 +2,8 @@
 #include "utils/print_utils.h"
 #include <vector>
 #include <iostream>
-#include "test_env.h"
-
+#include "MG_config.h"
+#include "qmp_test_env.h"
 
 using namespace MGUtils; 
 
@@ -69,8 +69,6 @@ TEST(TEstLogging, LocalErrorTerminates)
 
 int main(int argc, char *argv[]) 
 {
-  ::testing::InitGoogleTest(&argc, argv);
-  ::testing::Environment* const chroma_env = ::testing::AddGlobalTestEnvironment(new TestEnv(&argc,&argv));
-  return RUN_ALL_TESTS();
+	return MGTesting::TestMain(&argc, argv);
 }
 

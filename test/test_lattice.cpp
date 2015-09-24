@@ -3,7 +3,8 @@
 #include "lattice/nodeinfo.h"
 
 #include <vector>
-#include "test_env.h"
+
+#include "qmp_test_env.h"
 using namespace MGGeometry; 
 
 TEST(TestLattice, TestLatticeInitialization)
@@ -16,8 +17,6 @@ TEST(TestLattice, TestLatticeInitialization)
 
 int main(int argc, char *argv[]) 
 {
-  ::testing::InitGoogleTest(&argc, argv);
-  ::testing::Environment* const chroma_env = ::testing::AddGlobalTestEnvironment(new TestEnv(&argc,&argv));
-  return RUN_ALL_TESTS();
+	return MGTesting::TestMain(&argc, argv);
 }
 

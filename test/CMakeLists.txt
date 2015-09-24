@@ -3,8 +3,12 @@
 # and specifies linking to the 'libmg.a' library
 add_compile_options(${EXT_CXXFLAGS})
 
-add_executable(test_lattice test_lattice.cpp)
-target_link_libraries(test_lattice mg gtest_all ${EXT_LIBS})
+add_library(mg_test qmp_test_env.cpp)
+target_compile_options(mg_test PUBLIC ${EXT_CXXFLAGS})
 
-add_executable(test_logging test_logging.cpp)
-target_link_libraries(test_logging mg gtest_all ${EXT_LIBS})
+
+add_executable(test_lattice qmp_test_env.h  test_lattice.cpp)
+target_link_libraries(test_lattice mg gtest_all mg_test ${EXT_LIBS})
+
+add_executable(test_logging qmp_test_env.h test_logging.cpp)
+target_link_libraries(test_logging mg gtest_all mg_test ${EXT_LIBS})
