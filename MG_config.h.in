@@ -5,6 +5,6 @@
 #define MG_VERSION_MINOR  @MG_VERSION_MINOR@
 
 #define MG_DEFAULT_LOGLEVEL @MG_DEFAULT_LOGLEVEL@
-#define QMP_COMMS @QMP_COMMS@
 
+#cmakedefine QMP_COMMS
 #endif

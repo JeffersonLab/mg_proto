@@ -9,24 +9,28 @@ set (MG_DEFAULT_LOGLEVEL DEBUG CACHE STRING "Default Loglevel")
 
 
 if( QMP_DIR ) 
+  message(STATUS "Looking for QMP")
   set( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${QMP_DIR}")
-endif( QMP_DIR ) 
 
-# Find package QMP
-find_package( QMP REQUIRED )
+  # Find package QMP
+  find_package( QMP )
 
-# Check for QMP
-if ( ${QMP_C_FOUND} )
-  include_directories(${QMP_C_INCLUDE_PATH})
-  LIST(APPEND EXT_LIBS ${QMP_C_LINK_FLAGS} )
-  LIST(APPEND EXT_LIBS ${QMP_C_LIBRARIES} )
-  set(QMP_COMMS 1)
-endif( ${QMP_C_FOUND} )
+  # Check for QMP
+  if ( QMP_C_FOUND )
+    include_directories(${QMP_C_INCLUDE_PATH})
+    LIST(APPEND EXT_LIBS ${QMP_C_LINK_FLAGS} )
+    LIST(APPEND EXT_LIBS ${QMP_C_LIBRARIES} )
+    set( QMP_COMMS TRUE )
+  endif( QMP_C_FOUND )
+else( QMP_DIR )
+  message(STATUS "Not Looking for QMP")
+  set( QMP_COMMS FALSE )
+endif( QMP_DIR )
 
-find_package( MPI REQUIRED )
 
 # Deal with threads 
 find_package(Threads REQUIRED)
+
 if(THREADS_HAVE_PTHREAD_ARG)
   LIST(APPEND EXT_CXXFLAGS "-pthread")
 endif()
@@ -63,3 +67,4 @@ add_subdirectory(test)
 enable_testing()
 add_test ( NAME TestLattice COMMAND  test/test_lattice )
 add_test(  NAME TestLogging COMMAND test/test_logging )
+add_test(  NAME TestNodeInfo COMMAND test/test_nodeinfo )
