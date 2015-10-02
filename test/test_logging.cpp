@@ -16,7 +16,6 @@ TEST(TestLogging, TestDefaultLoglevel)
 
 TEST(TestLogging, TestLogLevelSet)
 {
-	LogLevel current = GetLogLevel();
 	SetLogLevel(DEBUG3);
 	ASSERT_EQ( GetLogLevel(), DEBUG3);
 	SetLogLevel(INFO);
