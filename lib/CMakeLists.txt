@@ -5,7 +5,7 @@ else( QMP_COMMS )
 endif( QMP_COMMS ) 
 
 
-add_library(mg lattice/lattice.cpp
+add_library(mg lattice/lattice_info.cpp
 			   lattice/nodeinfo.cpp
 			   ${NODEINFO_IMPL}
 			   utils/print_utils.cpp)

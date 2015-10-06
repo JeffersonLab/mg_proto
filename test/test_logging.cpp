@@ -3,7 +3,7 @@
 #include <vector>
 #include <iostream>
 #include "MG_config.h"
-#include "qmp_test_env.h"
+#include "test_env.h"
 
 using namespace MGUtils; 
 
@@ -41,29 +41,35 @@ TEST(TestLogging, TestLogLevelSetOpenMP)
 TEST(TestLogging, TestMasterLogLevels)
 {
 		SetLogLevel(DEBUG3);
-
+#pragma omp parallel
+{
 		MasterLog(INFO, "Info Level");
 		MasterLog(DEBUG, "Debug Level");
 		MasterLog(DEBUG2, "Debug Level2");
 		MasterLog(DEBUG3, "Debug Level3");
-
+}
 }
 
 TEST(TestLogging, TestLocalLogLevels)
 {
 		SetLogLevel(DEBUG3);
 		int int_var=1; double float_var=5.0e-8;
+#pragma omp parallel
+{
 		LocalLog(INFO, "Info Level %d %e", int_var, float_var);
 		LocalLog(DEBUG, "Debug Level");
 		LocalLog(DEBUG2, "Debug Level2");
 		LocalLog(DEBUG3, "Debug Level3");
 }
+}
 
 TEST(TEstLogging, LocalErrorTerminates)
 {
+	/* This should be in an parallel region, but that interferes with the Death Tests */
+	{
 		EXPECT_DEATH( LocalLog(ERROR, "Terminate With Prejudice"), "");
+	}
 }
-
 
 
 int main(int argc, char *argv[]) 

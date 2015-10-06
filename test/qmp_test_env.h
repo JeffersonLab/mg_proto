@@ -1,6 +1,7 @@
 #ifndef TEST_ENV_H
 #define TEST_ENV_H
 
+#include "test_env.h"
 #include "gtest/gtest.h"
 
 /** A Namespace for testing utilities */
@@ -17,7 +18,7 @@ private:
 
 };
 
-int TestMain(int *argc, char **argv);
+
 } // Namespace MGTesting
 
 #endif

@@ -22,7 +22,7 @@ namespace MGGeometry {
 
 		_num_nodes = 1;
 		_node_id = 0;
-		for(int mu=0; mu < n_dim; ++mu) {
+		for(unsigned int mu=0; mu < n_dim; ++mu) {
 			_node_dims[mu] = 1;
 			_node_coords[mu] = 1;
 			_neighbor_ids[mu][BACKWARD] = 0;

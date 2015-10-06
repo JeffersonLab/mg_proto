@@ -59,7 +59,7 @@ namespace MGGeometry {
 													_node_coords[2],
 													_node_coords[3] };
 
-						Direction dir_enum = static_cast<Direction>(dir);
+						unsigned int dir_enum = static_cast<unsigned int>(dir);
 					   	// Implement wraparounds
 						if( dir_enum == BACKWARD ) {
 							neigh_coords[mu]--;

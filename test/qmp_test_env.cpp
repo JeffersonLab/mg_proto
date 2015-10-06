@@ -68,7 +68,7 @@ namespace MGTesting {
 	int TestMain(int *argc, char **argv)
 	{
 		  ::testing::InitGoogleTest(argc, argv);
-		  ::testing::Environment* const chroma_env = ::testing::AddGlobalTestEnvironment(new MGTesting::QMPTestEnv(argc,&argv));
+		  ::testing::AddGlobalTestEnvironment(new MGTesting::QMPTestEnv(argc,&argv));
 		  return RUN_ALL_TESTS();
 	}
 

@@ -12,7 +12,7 @@
 namespace MGUtils {
 
 	/* Current Log Level */
-	static LogLevel current_log_level = MG_DEFAULT_LOGLEVEL;
+	static volatile LogLevel current_log_level = MG_DEFAULT_LOGLEVEL;
 
 	/* An array holding strings corresponding to log levels */
 	static std::string log_string_array[] = {"ERROR", "INFO", "DEBUG", "DEBUG2", "DEBUG3"};
