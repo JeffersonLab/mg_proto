@@ -8,7 +8,7 @@
  */
 
 #include "lattice/nodeinfo.h"
-
+#include "lattice/constants.h"
 #include "utils/print_utils.h"
 #include <vector>
 #include <cstdlib>
@@ -42,7 +42,7 @@ namespace MGGeometry {
 					const int *qmp_dims = QMP_get_logical_dimensions();
 					const int *qmp_coords = QMP_get_logical_coordinates();
 
-					for(int mu=0; mu < n_dim; ++mu) {
+					for(unsigned int mu=0; mu < n_dim; ++mu) {
 						_node_dims[mu] = qmp_dims[mu];
 						_node_coords[mu] = qmp_coords[mu];
 					}
@@ -51,27 +51,29 @@ namespace MGGeometry {
 				// Find the coordinates and node_id's of the neighbors
 				{
 					// Find neighbor in mu dim
-					for(int mu=0; mu < n_dim; ++mu) {
+					for(unsigned int mu=0; mu < n_dim; ++mu) {
 
-					  for(int dir = static_cast<int>(BACKWARD); dir < static_cast<int>(FORWARD); ++dir) {
-						int neigh_coords[n_dim] = { _node_coords[0],
-													_node_coords[1],
-													_node_coords[2],
-													_node_coords[3] };
+					  for(auto dir = BACKWARD; dir <= FORWARD; ++dir) {
 
-						unsigned int dir_enum = static_cast<unsigned int>(dir);
+						 // QMP Expects ints rather than unsigned ints
+						 int neigh_coords[n_dim] = { static_cast<int>(_node_coords[0]),
+													 static_cast<int>(_node_coords[1]),
+													 static_cast<int>(_node_coords[2]),
+													 static_cast<int>(_node_coords[3]) };
+
+
 					   	// Implement wraparounds
-						if( dir_enum == BACKWARD ) {
+						if( dir == BACKWARD ) {
 							neigh_coords[mu]--;
 							if( neigh_coords[mu] < 0 ) neigh_coords[mu] = _node_dims[mu]-1;
 						}
 
-						if( dir_enum == FORWARD ) {
+						if( dir  == FORWARD ) {
 							neigh_coords[mu]++;
-							if( neigh_coords[mu] >= _node_dims[mu]) neigh_coords[mu] = 0;
+							if( neigh_coords[mu] >= static_cast<int>(_node_dims[mu])) neigh_coords[mu] = 0;
 						}
 
-						_neighbor_ids[mu][dir_enum] = QMP_get_node_number_from(neigh_coords);
+						_neighbor_ids[mu][dir] =static_cast<unsigned int>(QMP_get_node_number_from(neigh_coords));
 
 					  }
 
