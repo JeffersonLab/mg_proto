@@ -1,20 +1,23 @@
-#include "qmp_test_env.h"
-#include <string>
-#include <cstdlib>
+/*
+ * initialize.cpp
+ *
+ *  Created on: Oct 13, 2015
+ *      Author: bjoo
+ */
+
 #include "MG_config.h"
 #ifdef QMP_COMMS
-#include "qmp.h"
+#include <qmp.h>
 #endif
 
+#include "utils/memory.h"
 #include "utils/print_utils.h"
-using namespace MGUtils;
+#include <string>
+#include <cstdlib>
 
-namespace MGTesting {
-
-	/** The Constructor to set up a test environment.
-	 *   Its job is essentially to set up QMP
-	 */
-	QMPTestEnv::QMPTestEnv(int  *argc, char ***argv)
+namespace MG
+{
+	void initialize(int *argc, char ***argv)
 	{
 		// Process args
 		int i=0;
@@ -55,24 +58,27 @@ namespace MGTesting {
 		MasterLog(INFO, "Declared QMP Topology: %d %d %d %d\n",
 				  proc_geometry[0], proc_geometry[1], proc_geometry[2], proc_geometry[3]);
 #endif
+		MGUtils::InitMemory();
 	}
 
-	QMPTestEnv::~QMPTestEnv() {
-		/* Tear down QMP */
+	void finalize(void)
+	{
+		MGUtils::FinalizeMemory();
 #ifdef QMP_COMMS
 		QMP_finalize_msg_passing();
 #endif
 	}
 
-	/* This is a convenience routine to setup the test environment for GTest and its layered test environments */
-	int TestMain(int *argc, char **argv)
+	void abort(void)
 	{
-		  ::testing::InitGoogleTest(argc, argv);
-		  ::testing::AddGlobalTestEnvironment(new MGTesting::QMPTestEnv(argc,&argv));
-		  return RUN_ALL_TESTS();
+		MGUtils::FinalizeMemory();
+#ifdef QMP_COMMS
+		QMP_abort(1);
+#else
+		std::abort();
+#endif
 	}
 
+
 }
-
-
 
