@@ -10,26 +10,23 @@
 namespace MGGeometry {
 
 	/*! Copy Constructor */
-	inline
-	NodeInfo::NodeInfo(const NodeInfo& i) {
-		_num_nodes = i._num_nodes;
-		_node_id = i._node_id;
+	NodeInfo::NodeInfo(const NodeInfo& i) : _num_nodes{i._num_nodes},
+			_node_id{i._node_id}, _node_dims{i._node_dims}, _node_coords{i._node_coords} {
+
 		for(unsigned int mu=0; mu < n_dim; ++mu) {
-			_node_dims[mu] = i._node_dims[mu];
-			_node_coords[mu] = i._node_coords[mu];
 			_neighbor_ids[mu][BACKWARD] = i._neighbor_ids[mu][BACKWARD];
 			_neighbor_ids[mu][FORWARD] = i._neighbor_ids[mu][FORWARD];
 		}
 	}
 
 	/*! Copy Assignment */
-	inline
-	NodeInfo& NodeInfo::operator=(const NodeInfo& i) {
+	NodeInfo& NodeInfo::operator=(const NodeInfo& i)  {
 		_num_nodes = i._num_nodes;
 		_node_id = i._node_id;
+		_node_dims= i._node_dims;
+		_node_coords= i._node_coords;
+
 		for(unsigned int mu=0; mu < n_dim; ++mu) {
-			_node_dims[mu] = i._node_dims[mu];
-			_node_coords[mu] = i._node_coords[mu];
 			_neighbor_ids[mu][BACKWARD] = i._neighbor_ids[mu][BACKWARD];
 			_neighbor_ids[mu][FORWARD] = i._neighbor_ids[mu][FORWARD];
 		}

@@ -5,10 +5,12 @@ else( QMP_COMMS )
 endif( QMP_COMMS ) 
 
 
-add_library(mg lattice/lattice_info.cpp
+add_library(mg lattice/coarsen.cpp
+			   lattice/lattice_info.cpp
 			   lattice/nodeinfo.cpp
 			   ${NODEINFO_IMPL}
-			   utils/print_utils.cpp)
+			   utils/print_utils.cpp
+			   utils/memory.cpp)
 			   
 target_compile_options(mg PUBLIC ${EXT_CXXFLAGS})
 install(TARGETS mg DESTINATION lib)

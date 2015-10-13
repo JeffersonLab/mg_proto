@@ -1,20 +1,24 @@
-/*
- * test_env.h
- *
- *  Created on: Oct 2, 2015
- *      Author: bjoo
- */
+#ifndef TEST_ENV_H
+#define TEST_ENV_H
 
-#ifndef TEST_TEST_ENV_H_
-#define TEST_TEST_ENV_H_
+#include "test_env.h"
+#include "gtest/gtest.h"
 
+/** A Namespace for testing utilities */
 namespace MGTesting {
+
+/** A Test Environment to set up QMP */
+class TestEnv : public ::testing::Environment {
+public:
+	TestEnv(int *argc, char ***argv);
+	~TestEnv();
+
+private:
+		int proc_geometry[4] = {1,1,1,1}; // Default processor geometry
+};
 
 int TestMain(int *argc, char **argv);
 
-}
+} // Namespace MGTesting
 
-
-
-
-#endif /* TEST_TEST_ENV_H_ */
+#endif

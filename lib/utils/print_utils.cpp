@@ -1,6 +1,6 @@
 #include "utils/print_utils.h"
 #include "MG_config.h"
-
+#include "utils/initialize.h"
 #include <string>
 #include <cstdlib>
 #include <cstdarg>
@@ -85,12 +85,7 @@ namespace MGUtils {
 
 			/* If the level is error than we should abort */
 			if( level == ERROR ) {
-#ifdef QMP_COMMS
-				QMP_abort(1);
-#else
-				std::abort();
-#endif
-
+				MG::abort();
 			} /* if level == ERROR */
 
 		} /* End of OMP_MASTER_REGION */
@@ -126,11 +121,7 @@ namespace MGUtils {
 
     				/* If the level is error than we should abort */
     			if( level == ERROR ) {
-#ifdef QMP_COMMS
-    				QMP_abort(1);
-#else
-    				std::abort();
-#endif
+    				MG::abort();
     			} /* if level == ERROR */
 
 #ifdef QMP_COMMS

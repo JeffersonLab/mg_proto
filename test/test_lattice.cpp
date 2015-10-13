@@ -4,6 +4,7 @@
 #include "lattice/nodeinfo.h"
 #include "lattice/indexers.h"
 #include "utils/print_utils.h"
+#include "lattice/coarsen.h"
 
 #include <vector>
 
@@ -19,7 +20,10 @@ TEST(TestLattice, TestLatticeInitialization)
   LatticeInfo lat(latdims, 4, 3,node);
 }
 
-
+TEST(TestLattice, TestLatticeInitializationConvenience)
+{
+	LatticeInfo  lattinfo({16,16,16,16}, 4, 3, NodeInfo());
+}
 
 TEST(TestLattice, TestLatticeCB)
 {
@@ -207,6 +211,40 @@ TEST(TestLattice, TestLatticeCookySurface2)
 	   ASSERT_EQ( lat_cb1.GetNumCBSurfaceSites(mu,BACKWARD,1), static_cast<unsigned int>(1));
 	   ASSERT_EQ( lat_cb1.GetNumCBSurfaceSites(mu,FORWARD,1), static_cast<unsigned int>(1));
    }
+
+}
+
+TEST(TestLattice, TestLatticeCoarseningStandardAggregation)
+{
+ LatticeInfo fine_geom({16,16,16,16}, 4, 3, NodeInfo());
+ StandardAggregation blocking({4,4,4,4});
+ unsigned int num_vec = 24;
+
+ LatticeInfo coarse_geom = CoarsenLattice(fine_geom,blocking,num_vec);
+ for(unsigned int mu=0; mu < n_dim; ++mu)
+ {
+	 ASSERT_EQ((coarse_geom.GetLatticeDimensions())[mu], static_cast<unsigned int>(4));
+ }
+ ASSERT_EQ(coarse_geom.GetNumColors(), static_cast<unsigned int>(24));
+ ASSERT_EQ(coarse_geom.GetNumSpins(), static_cast<unsigned int>(2));
+
+
+}
+
+TEST(TestLattice, TestLatticeCoarseningFullSpinAggregation)
+{
+ LatticeInfo fine_geom({16,16,16,16}, 4, 3, NodeInfo());
+ FullSpinAggregation blocking({4,4,4,4});
+ unsigned int num_vec = 24;
+
+ LatticeInfo coarse_geom = CoarsenLattice(fine_geom,blocking,num_vec);
+ for(unsigned int mu=0; mu < n_dim; ++mu)
+ {
+	 ASSERT_EQ((coarse_geom.GetLatticeDimensions())[mu], static_cast<unsigned int>(4));
+ }
+ ASSERT_EQ(coarse_geom.GetNumColors(), static_cast<unsigned int>(24));
+ ASSERT_EQ(coarse_geom.GetNumSpins(), static_cast<unsigned int>(1));
+
 
 }
 

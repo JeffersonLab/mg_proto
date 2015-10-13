@@ -13,41 +13,32 @@
 #include <algorithm>
 #include <functional>
 using namespace MGUtils;
+using namespace std;
 
 namespace MGGeometry { 
 
-LatticeInfo::LatticeInfo(const std::vector<unsigned int>& lat_dims,
-		 const unsigned int n_spin,
-		 const unsigned int n_color,
-		 const NodeInfo& node) : _n_color(n_color),
-		 _n_spin(n_spin), _node_info(node)
+LatticeInfo::LatticeInfo(
+		    const std::vector<unsigned int>& lat_origin, // Global Origin
+			const std::vector<unsigned int>& lat_dims,
+			const unsigned int n_spin,
+			const unsigned int n_color,
+			const NodeInfo& node) : _lat_origin{lat_origin}, _lat_dims{lat_dims}, _n_color{n_color},
+									_n_spin{n_spin}, _node_info{node}
 {
-	if( omp_in_parallel() ) {
-		LocalLog(ERROR, "Creating LatticeInfo within OMP region");
-	}
+	int active_level = omp_get_active_level();
 
-	/* Copy in the LatticeInfo Dimensions */
-	if( lat_dims.size() == n_dim ) {
-		for(unsigned int mu=0; mu < n_dim; ++mu) {
-			_lat_dims[mu] = lat_dims[mu];
-		}
-	}
-	else {
-		MasterLog(ERROR, "lat_dims size is different from n_dim");
-		/* This should abort */
-	}
-
+		// If multiple threads are available (active_level > 0)
+	// Then drop to a single thread
 	/* Count the number of sites */
 	_n_sites = _lat_dims[0];
 	for(unsigned int mu=1; mu < n_dim; ++mu) {
 		_n_sites *= _lat_dims[mu];
 	}
 
+
 	/* Compute the origin of the lattice */
-	const std::vector<unsigned int>& node_coords = _node_info.NodeCoords();
-	int _sum_orig_coords = 0;
+	_sum_orig_coords = 0;
 	for(unsigned int mu=0; mu < n_dim; ++mu) {
-		_lat_origin[mu] = node_coords[mu]*_lat_dims[mu];
 		_sum_orig_coords += _lat_origin[mu];
 	}
 
@@ -60,7 +51,7 @@ LatticeInfo::LatticeInfo(const std::vector<unsigned int>& lat_dims,
 	// NB: This is a kind of a histogramming operation
 	// One way to do it is to collec local histograms and
 	// Accumilate in the a critical region at the end.
-#pragma omp parallel shared(_sum_orig_coords)
+#pragma omp parallel if ( active_level < 0 )
 	{
 		unsigned int priv_n_cb_sites[2] = {0,0};
 
@@ -84,6 +75,11 @@ LatticeInfo::LatticeInfo(const std::vector<unsigned int>& lat_dims,
 
 	} //End OMP Parallel section
 
+	LatticeCartesianSiteIndexer site_indexer(_lat_dims[0],
+											 _lat_dims[1],
+											 _lat_dims[2],
+											 _lat_dims[3] );
+
 	/* Now I need info from NodeInfo, primarily my node coordinates
 	 * so that I can use the local lattice dims and the node coords
 	 * to find out the checkerboard of my origin, and/or to find my
@@ -93,15 +89,12 @@ LatticeInfo::LatticeInfo(const std::vector<unsigned int>& lat_dims,
 		_cb_sites[cb].resize(_n_cb_sites[cb] );
 	}
 
-	LatticeCartesianSiteIndexer site_indexer(_lat_dims[0],
-											 _lat_dims[1],
-											 _lat_dims[2],
-											 _lat_dims[3] );
+
 
 	int cb_fill[2] = {0,0}; // These should count where we are filling the site
 							// tables
 
-#pragma omp parallel shared(cb_fill, site_indexer)
+#pragma omp parallel shared(cb_fill, site_indexer) if (active_level < 1)
 	{
 		// Each thread can fill its own private version of the site table
 		unsigned int priv_cb_fill[2] = {0,0}; // Private progress counters
@@ -228,17 +221,18 @@ LatticeInfo::LatticeInfo(const std::vector<unsigned int>& lat_dims,
 #pragma omp critical
 		{
 			for(unsigned int dir=0; dir < n_dim; ++dir) {
-				for(unsigned int fb = static_cast<unsigned int>(BACKWARD); fb <= static_cast<unsigned int>(FORWARD); ++fb) {
+				for(unsigned int fb = BACKWARD; fb <= FORWARD; ++fb) {
 					for(unsigned int cb =0; cb < 2; ++cb) {
 						// Append private list
-						_surface_sites[dir][fb][cb].insert(_surface_sites[dir][fb][cb].end(),
-													   priv_face_sites[dir][fb][cb].begin(),
-													   priv_face_sites[dir][fb][cb].end());
+						(_surface_sites[dir][fb][cb]).insert((_surface_sites[dir][fb][cb]).end(),
+													   (priv_face_sites[dir][fb][cb]).begin(),
+													   (priv_face_sites[dir][fb][cb]).end());
 					}
 				}
 			}
 		}
 	}
+
 
 	// OK right now the site tables are unsorted I should sort them?
 	// NB: This is annoying in the sense that it is not parallel
@@ -254,7 +248,19 @@ LatticeInfo::LatticeInfo(const std::vector<unsigned int>& lat_dims,
 			}
 		}
 	}
+
 }
+
+
+LatticeInfo::LatticeInfo(const std::vector<unsigned int>& lat_dims,
+			const unsigned int n_spin,
+			const unsigned int n_color,
+			const NodeInfo& node) : LatticeInfo::LatticeInfo( ComputeOriginCoords(lat_dims,node), lat_dims, n_spin, n_color, node) {}
+
+
+LatticeInfo::LatticeInfo(const std::vector<unsigned int>& lat_dims) :
+		LatticeInfo::LatticeInfo(lat_dims, 4, 3, NodeInfo()) {}
+
 
 /** Destructor for the lattice class
  */
