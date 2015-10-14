@@ -18,14 +18,37 @@ namespace MGUtils {
 	// On future GPU, fast memory may be on package memory
 	// On Xeon Phi Fast memory may be HBM
 
+	// These simple allocators can be used to build cache
+	// abstractions
+
 	enum MemorySpace { REGULAR, FAST };
 
 	// These are totally Opaque, and can consist of anything from
 	void InitMemory(void);
 	void FinalizeMemory(void);
 
-	void *mem_allocate(std::size_t num_bytes, const MemorySpace space=REGULAR);
-	void *mem_free(void *ptr);
+	void*
+	MemoryAllocate(std::size_t num_bytes, const MemorySpace space=REGULAR);
+
+	void
+	MemoryFree(void *ptr);
+
+	std::size_t
+	GetCurrentRegularMemoryUsage(void);
+
+	std::size_t
+	GetMaxRegularMemoryUsage(void);
+
+	std::size_t
+	GetCurrentFastMemoryUsage(void);
+
+	std::size_t
+	GetMaxFastMemoryUsage(void);
+
+	std::size_t
+	GetMemoryAlignment(void);
+
+	// Should I have CopyFastToSlow and CopySlowToFast ?
 
 }
 

@@ -6,5 +6,7 @@ install (FILES lattice/aggregation.h
                lattice/nodeinfo.h
          DESTINATION include/lattice)
          
-install (FILES utils/print_utils.h DESTINATION include/utils)
+install (FILES utils/print_utils.h
+			   utils/memory.h 
+			   utils/initialize.h DESTINATION include/utils)
             

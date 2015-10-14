@@ -9,7 +9,7 @@
 #define INCLUDE_UTILS_INITIALIZE_H_
 
 namespace MG {
-	void initialize(int argc, char **argv);  // Initialize our system
+	void initialize(int *argc, char ***argv);  // Initialize our system
 	void finalize();                         // Finalize our system
 	void abort();                            // Abort the system
 };
