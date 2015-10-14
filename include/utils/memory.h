@@ -24,7 +24,7 @@ namespace MGUtils {
 	enum MemorySpace { REGULAR, FAST };
 
 	// These are totally Opaque, and can consist of anything from
-	void InitMemory(void);
+	void InitMemory(int *argc, char ***argv);
 	void FinalizeMemory(void);
 
 	void*

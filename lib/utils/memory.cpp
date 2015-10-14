@@ -133,7 +133,7 @@ namespace MGUtils {
 
 
 
-	void InitMemory(void)
+	void InitMemory(int *argc, char ***argv)
 	{
 #pragma omp master
 		{
