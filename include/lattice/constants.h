@@ -1,17 +1,34 @@
 #ifndef  CONSTANTS_H
 #define CONSTANTS_H
 
+#include <array>
 
 namespace MGGeometry { 
 
-  const unsigned int n_dim = 4; // Our lattices are four dimensional
-  const unsigned int BACKWARD=0;
-  const unsigned int FORWARD=1;
+	using IndexType = unsigned int;
+	const IndexType n_dim = 4; // Our lattices are four dimensional
 
-  const unsigned int X_DIR = 0;
-  const unsigned int Y_DIR = 1;
-  const unsigned int Z_DIR = 2;
-  const unsigned int T_DIR = 3;
+	using IndexArray = std::array< IndexType, n_dim>;
+
+  /* NB: I wanted to make these Enum-s but iterating over those cleanly is not easy */
+  const IndexType X_DIR = 0;
+  const IndexType Y_DIR = 1;
+  const IndexType Z_DIR = 2;
+  const IndexType T_DIR = 3;
+
+  const IndexType n_forw_back = 2; 	/*!< There are two dirs: one forward one back */
+  const IndexType BACKWARD=0;
+  const IndexType FORWARD=1;
+
+  // Will need these if we use non native complex numbers.
+  const IndexType	n_complex=2;         /*!<  Number of complex numbers */
+  const IndexType	RE = 0;              /*!<  Index for real part */
+  const IndexType  	IM = 1;              /*!<  Index for complex part */
+
+  const IndexType 	n_checkerboard = 2;  /*!<  Number of checkerboards */
+  const IndexType	EVEN = 0;            /*!<  Even checkerboar index */
+  const IndexType	ODD = 1;   		/*!	< Odd checkerboard index */
+
 
 }
 

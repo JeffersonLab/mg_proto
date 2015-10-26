@@ -25,17 +25,17 @@ using namespace MGGeometry;
 
 TEST(TestMockNodeinfo, MockNodeInfoCreate)
 {
-	std::vector<unsigned int> pe_dims={1,2,4,4};  // Pretend 32 nodes
-	std::vector<unsigned int> pe_coords={1,0,0,0};
+	IndexArray pe_dims={{1,2,4,4}};  // Pretend 32 nodes
+	IndexArray pe_coords={{1,0,0,0}};
 	MockNodeInfo mock_node(pe_dims, pe_coords);
 
-	ASSERT_EQ( mock_node.NumNodes(), (unsigned int)32);
-	ASSERT_EQ( mock_node.NodeID(),(unsigned int)1);
+	ASSERT_EQ( mock_node.NumNodes(), (IndexType)32);
+	ASSERT_EQ( mock_node.NodeID(),(IndexType)1);
 
-	const std::vector<unsigned int>& node_dims = mock_node.NodeDims();
-	const std::vector<unsigned int>& node_coords = mock_node.NodeCoords();
+	const IndexArray& node_dims = mock_node.NodeDims();
+	const IndexArray& node_coords = mock_node.NodeCoords();
 
-	for(unsigned int mu=0; mu < n_dim; ++mu ) {
+	for(IndexType mu=0; mu < n_dim; ++mu ) {
 		ASSERT_EQ( pe_dims[mu], node_dims[mu]);
 		ASSERT_EQ( pe_coords[mu], node_coords[mu]);
 	}

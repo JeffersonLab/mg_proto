@@ -23,31 +23,31 @@ namespace MGGeometry {
 
     /* Public methods */
     inline
-    unsigned int NumNodes() const
+    IndexType NumNodes() const
     {
     	return _num_nodes;
     }
 
 
     inline
-    unsigned int NodeID() const
+    IndexType NodeID() const
     {
     	return _node_id;
     }
 
     inline
-    const std::vector<unsigned int>& NodeDims() const
+    const IndexArray& NodeDims() const
 	{
     	return _node_dims;
 	}
 
     inline
-    const std::vector<unsigned int>& NodeCoords() const
+    const IndexArray& NodeCoords() const
     {
     	return _node_coords;
     }
 
-    unsigned int NeighborNode(unsigned int dim, unsigned int dir) const
+    IndexType NeighborNode(unsigned int dim, unsigned int dir) const
     {
     	return _neighbor_ids[dim][dir];
     }
@@ -58,11 +58,11 @@ namespace MGGeometry {
    * to be accessed a lot, so I don't want to pay Virtual Func overehad
    */
   protected:
-    unsigned int _num_nodes; 	/*!< The number of nodes */
-    unsigned int _node_id;       /*!< My own unique ID */
-    std::vector<unsigned int> _node_dims; /*!< The dimensions of the Node Grid */
-    std::vector<unsigned int> _node_coords; /*!< My own coordinates */
-    unsigned int _neighbor_ids[n_dim][2]; /*!< The ID's of my neighbor nodes */
+    IndexType _num_nodes; 	/*!< The number of nodes */
+    IndexType _node_id;       /*!< My own unique ID */
+    IndexArray _node_dims; /*!< The dimensions of the Node Grid */
+    IndexArray _node_coords; /*!< My own coordinates */
+    IndexType _neighbor_ids[n_dim][2]; /*!< The ID's of my neighbor nodes */
     
   };
 

@@ -7918,7 +7918,12 @@ const char kCurrentDirectoryString[] = ".\\";
 # endif  // GTEST_OS_WINDOWS_MOBILE
 #else
 const char kPathSeparator = '/';
+/*! FIXME: Clang complained that this was not used */
+
+#if 0
 const char kPathSeparatorString[] = "/";
+#endif
+
 const char kCurrentDirectoryString[] = "./";
 #endif  // GTEST_OS_WINDOWS
 

@@ -10,6 +10,13 @@
 
 #include <cstdlib>
 
+// FIXME: Implement a C++ Allocator using these functions
+//     Allocation Policies could include Tracking memory usage (baked into current)
+//     as well as the Memory Space
+//
+//     Kokkos does a good job of this already I bet.
+//
+
 namespace MGUtils {
 
 	// We typically have notions of slow and fast memory.

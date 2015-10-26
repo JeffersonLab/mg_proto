@@ -18,13 +18,9 @@ namespace MGGeometry {
 							   const Aggregation& blocking,
 							   unsigned int num_vec)
 	{
-		std::vector<unsigned int> coarse_dims(fine_geom.GetLatticeDimensions());
-		std::vector<unsigned int> blocking_dims(blocking.GetBlockDimensions());
+		IndexArray coarse_dims(fine_geom.GetLatticeDimensions());
+		IndexArray blocking_dims(blocking.GetBlockDimensions());
 
-		if (coarse_dims.size() != blocking_dims.size()
-				&& coarse_dims.size() != n_dim) {
-			MasterLog(ERROR, "Dimensions of lattice and blocking do not match");
-		}
 
 		// Check Divisibility
 		for (unsigned int mu = 0; mu < n_dim; ++mu) {

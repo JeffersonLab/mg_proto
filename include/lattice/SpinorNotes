@@ -1,0 +1,40 @@
+This is a discussion of spinors:
+
+i) A spinor is:
+	- a chunk of memory to hold Nc * Ns * V complex numbers or
+	  Nc * Ns * V * N complex real numbers (Template FType)
+	 (Nc, Ns, V are available in LatticeInfo)
+	 
+	- memory to hold ghost layers in a multi-node implementation
+	  Boundary sizes are available from LatticeInfo in terms of
+	  sites
+	  
+    - a data layout augments lattice info by specifying padding
+      and fundamentally defines how the index space
+         (x,y,z,t,Nc,Ns,Ncomplex) is laid out
+      
+      See section ii) about Layouts
+ 
+	NB: This Generalizes also to coarse vectors. 
+      
+      Choices here can for example be:
+      
+      	 AOS layout  Volume Ns Nc Ncomplex (fastest) 
+         SOA layout  Ns Nc Ncomplex Volume (fastest)
+         AOSOA layout  Outer Ns Nc Ncomplex Inner (fastest)
+         
+         AOSOA can have varieties on how to split a site into
+               outer and inner: e.g. QPhiX order, Peter's Grid order
+               
+         Layout needs extra information beyond lattice info:
+           - padding of dimensions (if any)
+           - 
+               
+         
+         
+Block Operations for MG:
+========================
+
+	There are occasional situations where a block form of the spinor is useful. These come in when:
+	
+

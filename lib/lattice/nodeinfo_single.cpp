@@ -17,12 +17,11 @@ namespace MGGeometry {
 
 	NodeInfo::NodeInfo(void)
 	{
-		_node_dims.resize(n_dim);
-		_node_coords.resize(n_dim);
+
 
 		_num_nodes = 1;
 		_node_id = 0;
-		for(unsigned int mu=0; mu < n_dim; ++mu) {
+		for(IndexType mu=0; mu < n_dim; ++mu) {
 			_node_dims[mu] = 1;
 			_node_coords[mu] = 0;
 			_neighbor_ids[mu][BACKWARD] = 0;

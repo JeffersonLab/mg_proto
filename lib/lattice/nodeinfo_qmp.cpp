@@ -21,8 +21,6 @@ namespace MGGeometry {
 
 	NodeInfo::NodeInfo(void)
 	{
-		_node_dims.resize(n_dim);
-		_node_coords.resize(n_dim);
 
 		if ( QMP_is_initialized() == QMP_TRUE ) {
 			// Let us not use the multiple communicator feature
@@ -42,7 +40,7 @@ namespace MGGeometry {
 					const int *qmp_dims = QMP_get_logical_dimensions();
 					const int *qmp_coords = QMP_get_logical_coordinates();
 
-					for(unsigned int mu=0; mu < n_dim; ++mu) {
+					for(IndexType mu=0; mu < n_dim; ++mu) {
 						_node_dims[mu] = qmp_dims[mu];
 						_node_coords[mu] = qmp_coords[mu];
 					}
@@ -51,7 +49,7 @@ namespace MGGeometry {
 				// Find the coordinates and node_id's of the neighbors
 				{
 					// Find neighbor in mu dim
-					for(unsigned int mu=0; mu < n_dim; ++mu) {
+					for(IndexType mu=0; mu < n_dim; ++mu) {
 
 					  for(auto dir = BACKWARD; dir <= FORWARD; ++dir) {
 
@@ -73,7 +71,7 @@ namespace MGGeometry {
 							if( neigh_coords[mu] >= static_cast<int>(_node_dims[mu])) neigh_coords[mu] = 0;
 						}
 
-						_neighbor_ids[mu][dir] =static_cast<unsigned int>(QMP_get_node_number_from(neigh_coords));
+						_neighbor_ids[mu][dir] =static_cast<IndexType>(QMP_get_node_number_from(neigh_coords));
 
 					  }
 
