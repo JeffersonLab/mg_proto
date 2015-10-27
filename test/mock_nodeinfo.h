@@ -10,6 +10,8 @@
 
 #include "lattice/constants.h"
 #include "lattice/nodeinfo.h"
+#include "utils/print_utils.h"
+
 
 namespace MGGeometry {
 
@@ -21,6 +23,10 @@ namespace MGGeometry {
 			for(IndexType mu=0; mu < n_dim; ++mu) {
 				_node_dims[mu]=pe_dims[mu];
 				_node_coords[mu]=pe_coords[mu];
+				if( _node_coords[mu] >= _node_dims[mu] ) {
+					MGUtils::MasterLog(MGUtils::ERROR,
+								"Node Coordinate has to be less than or equal to node dimension.");
+				}
 			}
 
 			_num_nodes=_node_dims[0];

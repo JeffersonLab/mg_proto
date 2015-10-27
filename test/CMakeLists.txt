@@ -21,5 +21,5 @@ target_link_libraries(test_nodeinfo mg gtest_all mg_test ${EXT_LIBS})
 add_executable(test_memory test_memory.cpp)
 target_link_libraries(test_memory mg gtest_all mg_test ${EXT_LIBS})
 
-#add_executable(test_spinor test_spinor.cpp)
-#target_link_libraries(test_spinor mg gtest_all mg_test ${EXT_LIBS})
+add_executable(test_spinor test_spinor.cpp)
+target_link_libraries(test_spinor mg gtest_all mg_test ${EXT_LIBS})

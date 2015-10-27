@@ -26,11 +26,11 @@ using namespace MGGeometry;
 TEST(TestMockNodeinfo, MockNodeInfoCreate)
 {
 	IndexArray pe_dims={{1,2,4,4}};  // Pretend 32 nodes
-	IndexArray pe_coords={{1,0,0,0}};
+	IndexArray pe_coords={{0,0,0,0}};
 	MockNodeInfo mock_node(pe_dims, pe_coords);
 
 	ASSERT_EQ( mock_node.NumNodes(), (IndexType)32);
-	ASSERT_EQ( mock_node.NodeID(),(IndexType)1);
+	ASSERT_EQ( mock_node.NodeID(),(IndexType)0);
 
 	const IndexArray& node_dims = mock_node.NodeDims();
 	const IndexArray& node_coords = mock_node.NodeCoords();

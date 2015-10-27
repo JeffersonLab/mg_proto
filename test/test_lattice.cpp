@@ -2,7 +2,7 @@
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/nodeinfo.h"
-#include "lattice/indexers.h"
+
 #include "utils/print_utils.h"
 #include "lattice/coarsen.h"
 #include "lattice/geometry_utils.h"

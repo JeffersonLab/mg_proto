@@ -1,7 +1,6 @@
 install (FILES lattice/aggregation.h
 			   lattice/coarsen.h
-			   lattice/constants.h
-			   lattice/indexers.h  
+			   lattice/constants.h 
                lattice/lattice_info.h 
                lattice/nodeinfo.h
                lattice/spinor.h

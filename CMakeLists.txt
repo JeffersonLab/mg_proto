@@ -6,7 +6,12 @@ set (MG_VERSION_MAJOR 1)
 set (MG_VERSION_MINOR 0)
 
 set (MG_DEFAULT_LOGLEVEL DEBUG CACHE STRING "Default Loglevel")
-
+if(MG_DEFAULT_ALIGNMENT)
+  message(STATUS "User specified default alignment: ${MG_DEFAULT_ALIGNMENT}")
+else(MG_DEFAULT_ALIGNMENT)
+  message(STATUS "Setting Default alignment to 64")
+  set (MG_DEFAULT_ALIGNMENT 64)
+endif(MG_DEFAULT_ALIGNMENT )
 
 if( QMP_DIR ) 
   message(STATUS "Looking for QMP")
@@ -69,3 +74,4 @@ add_test ( NAME TestLattice COMMAND  test/test_lattice )
 add_test(  NAME TestLogging COMMAND test/test_logging )
 add_test(  NAME TestNodeInfo COMMAND test/test_nodeinfo )
 add_test(  NAME TestMemory COMMAND test/test_memory )
+add_test(  NAME TestSpinor COMMAND test/test_spinor )

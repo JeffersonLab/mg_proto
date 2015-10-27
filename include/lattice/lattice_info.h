@@ -62,6 +62,12 @@ public:
 	const IndexArray& GetCBLatticeDimensions() const {
 		return _cb_lat_dims;
 	}
+
+	inline
+	const IndexArray& GetLatticeOrigin() const {
+		return _lat_origin;
+	}
+
 	inline
 	IndexType GetNumColors() const {
 		return _n_color;
