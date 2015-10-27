@@ -43,7 +43,8 @@ namespace MGGeometry {
 
 
   template<typename T,        // Type in the body
-  	  	   typename Layout,
+  	  	   template <typename T2> class Layout,  // This allows layout to templated
+		                                         // But in the General Spinor I force T2 = T
 		   const MGUtils::MemorySpace Space = MGUtils::REGULAR>
   class GeneralLatticeSpinor {
   public:
@@ -51,7 +52,7 @@ namespace MGGeometry {
 	GeneralLatticeSpinor(const GeneralLatticeSpinor<T, Layout, Space>& to_copy) :
 			_layout(to_copy._layout), _data(to_copy._data) {}
 
-	GeneralLatticeSpinor(const Layout& layout) : _layout(layout) {
+	GeneralLatticeSpinor(const Layout<T>& layout) : _layout(layout) {
 
 #pragma omp master
 		  {
@@ -100,7 +101,7 @@ namespace MGGeometry {
 	  }
   private:
 
-	  const Layout _layout;
+	  const Layout<T> _layout;
 	  T* _data;
 
   };

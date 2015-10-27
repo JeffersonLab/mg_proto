@@ -22,11 +22,11 @@ namespace MGGeometry {
 
   // Typedefs;
 #if 0
-  using LatticeSpinorF = GeneralLatticeSpinor<float,CompactCBAOSSpinorLayout<float>, MGUtils::REGULAR>;
-  using LatticeSpinorD = GeneralLatticeSpinor<double,CompactCBAOSSpinorLayout<double>, MGUtils::REGULAR>;
+  using LatticeSpinorF = GeneralLatticeSpinor<float,CompactCBAOSSpinorLayout, MGUtils::REGULAR>;
+  using LatticeSpinorD = GeneralLatticeSpinor<double,CompactCBAOSSpinorLayout, MGUtils::REGULAR>;
 #else
-  using LatticeSpinorF = GeneralLatticeSpinor<float, CBSOASpinorLayout<float>, MGUtils::REGULAR>;
-  using LatticeSpinorD = GeneralLatticeSpinor<double, CBSOASpinorLayout<double>, MGUtils::REGULAR>;
+  using LatticeSpinorF = GeneralLatticeSpinor<float, CBSOASpinorLayout, MGUtils::REGULAR>;
+  using LatticeSpinorD = GeneralLatticeSpinor<double, CBSOASpinorLayout, MGUtils::REGULAR>;
 #endif
 
 
