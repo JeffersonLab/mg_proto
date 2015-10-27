@@ -351,7 +351,7 @@ TEST(TestSpinor, TestCBSOALayout_Coords)
 
 }
 
-TEST(TestSpinor, TestCBSOALayout_CoordsCB)
+TEST(TestSpinor, TestCBSOALayout_CoordsOddNode)
 {
 	IndexArray latdims={{2,3,3,2}};
 	MockNodeInfo nodeinfo( {{2,2,1,1}}, {{0,1,0,0}});
@@ -392,134 +392,50 @@ TEST(TestSpinor, TestCBSOALayout_CoordsCB)
 	}
 
 }
-#if 0
-TEST(TestSpinor, TestCBLayout_site2)
+
+TEST(TestSpinor, TestCBSOALayoutCBAligned)
 {
-	IndexArray latdims={{4,3,3,4}};
-	LatticeInfo info_even(latdims);
-	CompactCBAOSSpinorLayout<float> float_layout(info_even);
+	IndexArray latdims={{4,3,5,2}};
+	LatticeInfo info(latdims);
+	CBSOASpinorLayout<float> float_layout(info);
+	GeneralLatticeSpinor<float, CBSOASpinorLayout<float>> my_spinor(float_layout);
 
-	IndexType n_colors = info_even.GetNumColors();
-	IndexType n_spins  = info_even.GetNumSpins();
+	IndexType n_colors = info.GetNumColors();
+	IndexType n_spins  = info.GetNumSpins();
 
-	IndexType n_cb_sites = info_even.GetNumCBSites();
-	for(IndexType cb=0; cb < n_checkerboard; ++cb ) {
-
-#pragma omp parallel for shared(n_colors, n_spins,n_cb_sites)
-		for(IndexType cbsite=0; cbsite < n_cb_sites; ++cbsite) {
-
-
-		IndexType site_index = (cbsite + cb*n_cb_sites)*n_colors*n_spins*n_complex;
-		IndexType offset_in_site = 0;
-
-		for(IndexType spin=0; spin < n_spins; ++spin) {
-			for(IndexType color=0; color < n_colors; ++color) {
-				for(IndexType reim=0; reim < n_complex; ++reim) {
-					EXPECT_EQ( float_layout.ContainerIndex(cb, cbsite, spin,color,reim),
-								site_index + offset_in_site );
-					offset_in_site++;
-				}
-			}
-		}
-
-	}
-	}
-
-}
-
-TEST(TestSpinor, TestCBLayout_Coords)
-{
-	IndexArray latdims={{4,3,3,4}};
-	LatticeInfo info_even(latdims);
-	CompactCBAOSSpinorLayout<float> float_layout(info_even);
-
-
-
-	IndexType n_colors = info_even.GetNumColors();
-	IndexType n_spins  = info_even.GetNumSpins();
-	IndexType n_cb_sites = info_even.GetNumCBSites();
-	IndexArray cb_latdims = info_even.GetCBLatticeDimensions();
-
-#pragma omp parallel for collapse(4)
-	for(IndexType t=0; t < latdims[T_DIR]; ++t) {
-		for(IndexType z=0; z < latdims[Z_DIR]; ++z) {
-			for(IndexType y=0; y < latdims[Y_DIR]; ++y) {
-				for(IndexType x=0; x < latdims[X_DIR]; ++x) {
-
-					// Site index within a checkerboard
-					IndexType site_index = CoordsToIndex({{x/2,y,z,t}}, cb_latdims);
-
-
-					IndexType cb = (x + y + z + t) &1;
-					// Add checkerbaord offset
-					site_index += cb*n_cb_sites;
-
-					// Multiply by sizeof site
-					site_index *= (n_colors*n_spins*n_complex);
-
-					IndexType offset_in_site = 0;
-					for(IndexType spin=0; spin < n_spins; ++spin) {
-						for(IndexType color=0; color < n_colors; ++color) {
-							for(IndexType reim=0; reim < n_complex; ++reim) {
-								EXPECT_EQ( float_layout.ContainerIndex({{x,y,z,t}}, spin,color,reim),
-										site_index + offset_in_site );
-								offset_in_site++;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-}
-
-TEST(TestSpinor, TestCBLayout_CoordsOddnode)
-{
-	IndexArray latdims={{2,3,3,2}};
-	MockNodeInfo nodeinfo( {{2,2,1,1}}, {{0,1,0,0}});
-	LatticeInfo info_even(latdims, 4,3, nodeinfo);
-	CompactCBAOSSpinorLayout<float> float_layout(info_even);
-
-
-
-	IndexType n_colors = info_even.GetNumColors();
-	IndexType n_spins  = info_even.GetNumSpins();
-	IndexType n_cb_sites = info_even.GetNumCBSites();
-	IndexArray cb_latdims = info_even.GetCBLatticeDimensions();
-
-	#pragma omp parallel for collapse(4)
-	for(IndexType t=0; t < latdims[T_DIR]; ++t) {
-		for(IndexType z=0; z < latdims[Z_DIR]; ++z) {
-			for(IndexType y=0; y < latdims[Y_DIR]; ++y) {
-				for(IndexType x=0; x < latdims[X_DIR]; ++x) {
-
-
-					IndexType site_index = CoordsToIndex({{x/2,y,z,t}}, cb_latdims);
-					IndexType cb = (x + y + z + t + info_even.GetCBOrigin()) &1 ;
-
-					// Add checkerbaord offset
-					site_index += cb*n_cb_sites;
-
-					// Multiply by sizeof site
-					site_index *= (n_colors*n_spins*n_complex);
-
-					IndexType offset_in_site = 0;
-					for(IndexType spin=0; spin < n_spins; ++spin) {
-						for(IndexType color=0; color < n_colors; ++color) {
-							for(IndexType reim=0; reim < n_complex; ++reim) {
-								EXPECT_EQ( float_layout.ContainerIndex({{x,y,z,t}}, spin,color,reim),
-										site_index + offset_in_site );
-								offset_in_site++;
-							}
-						}
-					}
-				}
-			}
+#pragma omp parallel for shared(n_colors, n_spins) collapse(2)
+	for(IndexType spin=0; spin < n_spins; ++spin) {
+		for(IndexType color=0; color < n_colors; ++color) {
+			float *cb0_start = &(my_spinor.Index(0,0,spin,color,RE));  // First site of cb = 0
+			float *cb1_start = &(my_spinor.Index(1,0,spin,color,RE));  // First site of cb = 1;
+			EXPECT_EQ( reinterpret_cast<unsigned long>(cb0_start) & (MG_DEFAULT_ALIGNMENT-1), 0);
+			EXPECT_EQ( reinterpret_cast<unsigned long>(cb1_start) & (MG_DEFAULT_ALIGNMENT-1), 0);
 		}
 	}
 }
-#endif
+
+TEST(TestSpinor, TestCBSOALayoutCBAlignedDouble)
+{
+	IndexArray latdims={{4,3,5,2}};
+	LatticeInfo info(latdims);
+	CBSOASpinorLayout<double> float_layout(info);
+	GeneralLatticeSpinor<double, CBSOASpinorLayout<double>> my_spinor(float_layout);
+
+	IndexType n_colors = info.GetNumColors();
+	IndexType n_spins  = info.GetNumSpins();
+
+#pragma omp parallel for shared(n_colors, n_spins) collapse(2)
+	for(IndexType spin=0; spin < n_spins; ++spin) {
+		for(IndexType color=0; color < n_colors; ++color) {
+			double *cb0_start = &(my_spinor.Index(0,0,spin,color,RE));  // First site of cb = 0
+			double *cb1_start = &(my_spinor.Index(1,0,spin,color,RE));  // First site of cb = 1;
+			EXPECT_EQ( reinterpret_cast<unsigned long>(cb0_start) & (MG_DEFAULT_ALIGNMENT-1), 0);
+			EXPECT_EQ( reinterpret_cast<unsigned long>(cb1_start) & (MG_DEFAULT_ALIGNMENT-1), 0);
+		}
+	}
+}
+
+
 
 int main(int argc, char *argv[]) 
 {

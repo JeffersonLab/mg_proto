@@ -85,6 +85,16 @@ namespace MGGeometry {
 	  }
 
 	  inline
+	  T&  Index(IndexType cb, IndexType cb_index, IndexType spin, IndexType color, IndexType reim) {
+		  return _data[ _layout.ContainerIndex(cb,cb_index,spin,color,reim) ];
+	  }
+
+	  inline
+	  const T& Index(IndexType cb, IndexType cb_index, IndexType spin, IndexType color, IndexType reim) const {
+		  return _data[ _layout.ContainerIndex(cb, cb_index, spin,color,reim) ];
+	  }
+
+	  inline
 	  const  LatticeInfo& GetLatticeInfo() const {
 		  return _layout.GetLatticeInfo();
 	  }
