@@ -49,7 +49,7 @@ TEST(TestBlockLayout, TestBlockLayoutAlignedSpinorBlocks)
 
 			IndexType block_begin = block_layout.ContainerIndex(block,cblock, blocksite, spin, color, reim);
 			IndexType byte_offset = block_begin*sizeof(float);
-			EXPECT_EQ(byte_offset % MG_DEFAULT_ALIGNMENT, 0);
+			EXPECT_EQ(byte_offset % MG_DEFAULT_ALIGNMENT, static_cast<IndexType>(0));
 		}
 	}
 }
@@ -165,9 +165,6 @@ TEST(TestBlockLayout, TestZipUnzip)
 		for(IndexType color=0; color < linfo.GetNumColors(); ++color) {
 			for(IndexType site=0; site < linfo.GetNumSites(); ++site)   {
 				for(IndexType reim=0; reim < n_complex; ++reim) {
-					IndexType value = reim+n_complex*(site+linfo.GetNumSites()*(color+linfo.GetNumColors()*spin));
-
-
 
 					EXPECT_EQ(v_out.Index(site,spin,color,reim),
 							  v_in.Index(site,spin,color,reim));
@@ -176,6 +173,66 @@ TEST(TestBlockLayout, TestZipUnzip)
 		}
 	}
 
+
+
+}
+
+TEST(TestBlockLayout, TestZipUnzipArray)
+{
+	IndexArray latdims={{4,6,6,4}};
+	IndexArray blockdims={{2,2,2,2}};
+	IndexType n_vec = 24;
+
+	LatticeInfo linfo(latdims);
+	StandardAggregation aggr(latdims, blockdims);
+
+	// Make a non-blocked layout
+	CBSOASpinorLayout<IndexType> flat_layout(linfo);
+
+
+	// Make a blocked Layout
+	BlockAggregateVectorArrayLayout<IndexType> block_layout(linfo,aggr,n_vec);
+
+	LatticeSpinorIndex v_in(flat_layout);
+	LatticeSpinorIndex v_out(flat_layout);
+	LatticeBlockSpinorArrayIndex v_block(block_layout);
+
+	// This will need to be converted to some generic fill routine:
+	for(IndexType vec=0; vec < n_vec; ++vec) {
+
+#pragma omp parallel for collapse(4)
+		for(IndexType spin=0; spin < linfo.GetNumSpins();++spin){
+			for(IndexType color=0; color < linfo.GetNumColors(); ++color) {
+				for(IndexType site=0; site < linfo.GetNumSites(); ++site)   {
+					for(IndexType reim=0; reim < n_complex; ++reim) {
+					// Hash the params
+						IndexType value = reim+n_complex*(site+linfo.GetNumSites()*(color+linfo.GetNumColors()*(spin + linfo.GetNumSpins()*vec)));
+
+
+						v_in.Index(site,spin,color,reim) = value;
+					}
+				}
+			}
+		}
+
+		zip<LatticeBlockSpinorArrayIndex,LatticeSpinorIndex>(v_block, v_in, vec);
+
+		unzip<LatticeSpinorIndex,LatticeBlockSpinorArrayIndex>(v_out, v_block,vec);
+
+#pragma omp parallel for collapse(4)
+		for(IndexType spin=0; spin < linfo.GetNumSpins();++spin){
+			for(IndexType color=0; color < linfo.GetNumColors(); ++color) {
+				for(IndexType site=0; site < linfo.GetNumSites(); ++site)   {
+					for(IndexType reim=0; reim < n_complex; ++reim) {
+
+						EXPECT_EQ(v_out.Index(site,spin,color,reim),
+								   v_in.Index(site,spin,color,reim));
+					}
+				}
+			}
+		}
+
+	} // Vec Loop
 
 
 }

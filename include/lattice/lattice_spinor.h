@@ -30,6 +30,8 @@ namespace MGGeometry {
   using LatticeSpinorD = GenericLayoutContainer<double, CBSOASpinorLayout, MGUtils::REGULAR>;
   using LatticeSpinorIndex = GenericLayoutContainer<IndexType, CBSOASpinorLayout, MGUtils::REGULAR>;
 
+
+
   using LatticeBlockSpinorF = GenericLayoutContainer<float,BlockAggregateVectorLayout, MGUtils::REGULAR>;
   using LatticeBlockSpinorIndex = GenericLayoutContainer<IndexType,BlockAggregateVectorLayout, MGUtils::REGULAR>;
   using LatticeBlocSpinorD = GenericLayoutContainer<double, BlockAggregateVectorLayout, MGUtils::REGULAR>;

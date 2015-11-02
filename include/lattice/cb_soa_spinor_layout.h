@@ -117,7 +117,7 @@ namespace MGGeometry {
  						 IndexType reim) {
 
  	  		  IndexType sum_coords = coords[0];
- 	  		  for(int mu=1; mu < n_dim; ++mu) sum_coords += coords[mu];
+ 	  		  for(IndexType mu=1; mu < n_dim; ++mu) sum_coords += coords[mu];
  	  		  IndexType cb =  (sum_coords + _info.GetCBOrigin() ) & 1;
 
  	  		  IndexArray cb_coords(coords);

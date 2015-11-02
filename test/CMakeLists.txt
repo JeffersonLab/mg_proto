@@ -26,3 +26,6 @@ target_link_libraries(test_spinor mg gtest_all mg_test ${EXT_LIBS})
 
 add_executable(test_block_layout test_block_layout.cpp)
 target_link_libraries(test_block_layout mg gtest_all mg_test ${EXT_LIBS})
+
+add_executable(test_block_blas test_block_blas.cpp)
+target_link_libraries(test_block_blas mg gtest_all mg_test ${EXT_LIBS})

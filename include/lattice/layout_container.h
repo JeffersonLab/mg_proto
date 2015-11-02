@@ -56,9 +56,7 @@ namespace MGGeometry {
 
 #pragma omp master
 		  {
-			  // Master thread allocates -- using MGUtils Allocator
-			  MasterLog(DEBUG, "Allocating %d elements", _layout.DataNumElem());
-			  MasterLog(DEBUG, "Allocating %u bytes", _layout.DataInBytes());
+			  // Master thread allocates -- using MGUtils Allocato
 			  _data = reinterpret_cast<T*>(MGUtils::MemoryAllocate(_layout.DataInBytes(),Space));
 		  }
 #pragma omp barrier

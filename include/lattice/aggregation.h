@@ -55,6 +55,9 @@ public:
 
 	}
 
+	~FullSpinAggregation() {}
+
+
 	inline
 	IndexType GetBlockVolume(void) const {
 		return _block_volume;
@@ -127,6 +130,8 @@ public:
 
 
 	}
+
+	~StandardAggregation() {}
 
 	inline
 	IndexType GetBlockVolume(void) const {

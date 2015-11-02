@@ -211,7 +211,7 @@ TEST(TestLayout, TestCBSOALayoutCreate)
 	LatticeInfo info(latdims);
 	CBSOASpinorLayout<float> float_layout(info);
 
-	ASSERT_EQ(float_layout.DataNumElem(), 3072);
+	ASSERT_EQ(float_layout.DataNumElem(), static_cast<IndexType>(3072));
 }
 
 TEST(TestLayout, TestCBSOALayoutSpinorCreate)
@@ -408,8 +408,8 @@ TEST(TestSpinor, TestCBSOALayoutCBAligned)
 		for(IndexType color=0; color < n_colors; ++color) {
 			float *cb0_start = &(my_spinor.Index(0,0,spin,color,RE));  // First site of cb = 0
 			float *cb1_start = &(my_spinor.Index(1,0,spin,color,RE));  // First site of cb = 1;
-			EXPECT_EQ( reinterpret_cast<unsigned long>(cb0_start) & (MG_DEFAULT_ALIGNMENT-1), 0);
-			EXPECT_EQ( reinterpret_cast<unsigned long>(cb1_start) & (MG_DEFAULT_ALIGNMENT-1), 0);
+			EXPECT_EQ( reinterpret_cast<unsigned long>(cb0_start) & (MG_DEFAULT_ALIGNMENT-1), static_cast<IndexType>(0));
+			EXPECT_EQ( reinterpret_cast<unsigned long>(cb1_start) & (MG_DEFAULT_ALIGNMENT-1), static_cast<IndexType>(0));
 		}
 	}
 }
@@ -429,8 +429,8 @@ TEST(TestSpinor, TestCBSOALayoutCBAlignedDouble)
 		for(IndexType color=0; color < n_colors; ++color) {
 			double *cb0_start = &(my_spinor.Index(0,0,spin,color,RE));  // First site of cb = 0
 			double *cb1_start = &(my_spinor.Index(1,0,spin,color,RE));  // First site of cb = 1;
-			EXPECT_EQ( reinterpret_cast<unsigned long>(cb0_start) & (MG_DEFAULT_ALIGNMENT-1), 0);
-			EXPECT_EQ( reinterpret_cast<unsigned long>(cb1_start) & (MG_DEFAULT_ALIGNMENT-1), 0);
+			EXPECT_EQ( reinterpret_cast<unsigned long>(cb0_start) & (MG_DEFAULT_ALIGNMENT-1), static_cast<IndexType>(0));
+			EXPECT_EQ( reinterpret_cast<unsigned long>(cb1_start) & (MG_DEFAULT_ALIGNMENT-1), static_cast<IndexType>(0));
 		}
 	}
 }
