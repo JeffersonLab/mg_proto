@@ -97,6 +97,11 @@ public:
 	IndexType GetCBOrigin(void) const {
 		return _orig_cb;
 	}
+
+	inline
+	const NodeInfo& GetNodeInfo(void) const{
+		return _node_info;
+	}
 private:
 	IndexArray _lat_origin;
 	IndexArray _lat_dims;         // The lattice dimensions (COPIED In)

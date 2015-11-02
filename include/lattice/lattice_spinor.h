@@ -16,18 +16,29 @@
 
 #include "lattice/compact_cb_aos_spinor_layout.h"
 #include "lattice/cb_soa_spinor_layout.h"
-#include "lattice/generic_spinor.h"
+#include "lattice/block_cb_soa_spinor_layout.h"
+#include "lattice/layout_container.h"
 
 namespace MGGeometry {
 
   // Typedefs;
 #if 0
-  using LatticeSpinorF = GeneralLatticeSpinor<float,CompactCBAOSSpinorLayout, MGUtils::REGULAR>;
-  using LatticeSpinorD = GeneralLatticeSpinor<double,CompactCBAOSSpinorLayout, MGUtils::REGULAR>;
+  using LatticeSpinorF = GenericLayoutContainer<float,CompactCBAOSSpinorLayout, MGUtils::REGULAR>;
+  using LatticeSpinorD = GenericLayoutContainer<double,CompactCBAOSSpinorLayout, MGUtils::REGULAR>;
 #else
-  using LatticeSpinorF = GeneralLatticeSpinor<float, CBSOASpinorLayout, MGUtils::REGULAR>;
-  using LatticeSpinorD = GeneralLatticeSpinor<double, CBSOASpinorLayout, MGUtils::REGULAR>;
-#endif
+  using LatticeSpinorF = GenericLayoutContainer<float, CBSOASpinorLayout, MGUtils::REGULAR>;
+  using LatticeSpinorD = GenericLayoutContainer<double, CBSOASpinorLayout, MGUtils::REGULAR>;
+  using LatticeSpinorIndex = GenericLayoutContainer<IndexType, CBSOASpinorLayout, MGUtils::REGULAR>;
+
+  using LatticeBlockSpinorF = GenericLayoutContainer<float,BlockAggregateVectorLayout, MGUtils::REGULAR>;
+  using LatticeBlockSpinorIndex = GenericLayoutContainer<IndexType,BlockAggregateVectorLayout, MGUtils::REGULAR>;
+  using LatticeBlocSpinorD = GenericLayoutContainer<double, BlockAggregateVectorLayout, MGUtils::REGULAR>;
+
+  using LatticeBlockSpinorArrayF = GenericLayoutContainer<float,BlockAggregateVectorArrayLayout, MGUtils::REGULAR>;
+  using LatticeBlockSpinorArrayD = GenericLayoutContainer<double,BlockAggregateVectorArrayLayout, MGUtils::REGULAR>;
+  using LatticeBlockSpinorArrayIndex = GenericLayoutContainer<IndexType,BlockAggregateVectorArrayLayout, MGUtils::REGULAR>;
+
+  #endif
 
 
 

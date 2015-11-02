@@ -156,7 +156,7 @@ namespace MGGeometry {
  	  	  }
 
    private:
- 	  	const LatticeInfo& _info;
+ 	  	const LatticeInfo _info;
  	  	IndexType _n_color;
  	  	IndexType _n_spin;
  	  	IndexType _n_sites;

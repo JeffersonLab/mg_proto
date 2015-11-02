@@ -3,8 +3,10 @@ install (FILES lattice/aggregation.h
 			   lattice/constants.h 
                lattice/lattice_info.h 
                lattice/nodeinfo.h
-               lattice/spinor.h
                lattice/geometry_utils.h
+               lattice/layout_container.h
+               lattice/cb_soa_layout.h
+               lattice/compact_cb_aos_spinor_layout.h               
          DESTINATION include/lattice)
          
 install (FILES utils/print_utils.h

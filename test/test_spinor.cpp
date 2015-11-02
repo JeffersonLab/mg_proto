@@ -24,7 +24,7 @@ TEST(TestLayout, TestCBLayoutCreate)
 	MasterLog(DEBUG, "Float layout needs %u bytes", float_layout.DataInBytes());
 	{
 		MasterLog(DEBUG, "Memory USage before alloc = %u bytes", before_alloc);
-		GeneralLatticeSpinor<float, CompactCBAOSSpinorLayout> f_spinor(float_layout);
+		GenericLayoutContainer<float, CompactCBAOSSpinorLayout> f_spinor(float_layout);
 		std::size_t after_alloc = GetCurrentRegularMemoryUsage();
 		MasterLog(DEBUG, "Memory Usage after alloc = %u bytes", after_alloc);
 
@@ -224,7 +224,7 @@ TEST(TestLayout, TestCBSOALayoutSpinorCreate)
 	MasterLog(DEBUG, "Float layout needs %u bytes", float_layout.DataInBytes());
 	{
 		MasterLog(DEBUG, "Memory USage before alloc = %u bytes", before_alloc);
-		GeneralLatticeSpinor<float, CBSOASpinorLayout > f_spinor(float_layout);
+		GenericLayoutContainer<float, CBSOASpinorLayout > f_spinor(float_layout);
 		std::size_t after_alloc = GetCurrentRegularMemoryUsage();
 		MasterLog(DEBUG, "Memory Usage after alloc = %u bytes", after_alloc);
 
@@ -398,7 +398,7 @@ TEST(TestSpinor, TestCBSOALayoutCBAligned)
 	IndexArray latdims={{4,3,5,2}};
 	LatticeInfo info(latdims);
 	CBSOASpinorLayout<float> float_layout(info);
-	GeneralLatticeSpinor<float, CBSOASpinorLayout> my_spinor(float_layout);
+	GenericLayoutContainer<float, CBSOASpinorLayout> my_spinor(float_layout);
 
 	IndexType n_colors = info.GetNumColors();
 	IndexType n_spins  = info.GetNumSpins();
@@ -419,7 +419,7 @@ TEST(TestSpinor, TestCBSOALayoutCBAlignedDouble)
 	IndexArray latdims={{4,3,5,2}};
 	LatticeInfo info(latdims);
 	CBSOASpinorLayout<double> float_layout(info);
-	GeneralLatticeSpinor<double, CBSOASpinorLayout> my_spinor(float_layout);
+	GenericLayoutContainer<double, CBSOASpinorLayout> my_spinor(float_layout);
 
 	IndexType n_colors = info.GetNumColors();
 	IndexType n_spins  = info.GetNumSpins();

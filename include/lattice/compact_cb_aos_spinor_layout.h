@@ -133,7 +133,7 @@ namespace MGGeometry {
  				  	  	  	   IndexType forw_back) const { return GhostNumElem(cb,dir,forw_back)*sizeof(T); }
 
    private:
- 	  	const LatticeInfo& _info;
+ 	  	const LatticeInfo _info;
  	  	IndexType _n_color;
  	  	IndexType _n_spin;
  	  	IndexType _n_sites;

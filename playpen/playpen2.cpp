@@ -48,14 +48,14 @@ void ConvertToBlockOrder(std::vector< BlockSpinorType >& out,
    // Assume no elegance:
    const LatticeInfo& lat_info = v_in[0].GetLatticeInfo();
 
-   unsigned int num_blocks = aggr.GetNumBlocks();
-   unsigned int num_dest_spins = aggr.GetNumAggregates();
-   unsigned int num_dest_colors = lat_info.GetNumColors();
-   unsigned int num_block_sites = aggr.GetBlockVolume();
+   IndexType num_blocks = aggr.GetNumBlocks();
+   IndexType num_dest_spins = aggr.GetNumAggregates();
+   IndexType num_dest_colors = lat_info.GetNumColors();
+   IndexType num_block_sites = aggr.GetBlockVolume();
 
-   std::vector<unsigned int>& blocks_per_dim = aggr.GetNumBlocksPerDim();
-   std::vector<unsigned int>& block_dims = aggr.GetBlockDimensions();
-   std::vector<unsigned int>& lat_dims = lat_info.GetLatticeDimensions(); // Technically this could come from a lattice info
+   IndexArray& blocks_per_dim = aggr.GetNumBlocksPerDim();
+   IndexArray& block_dims = aggr.GetBlockDimensions();
+   IndexArray& lat_dims = lat_info.GetLatticeDimensions(); // Technically this could come from a lattice info
 
 
 #pragma omp parallel for collapse(3)
@@ -65,47 +65,44 @@ void ConvertToBlockOrder(std::vector< BlockSpinorType >& out,
 
 
 					// Convert Block ID to coords of the block.
-					std::vector<unsigned int> block_coords(n_dim);
+					IndexArray block_coords(n_dim);
 					IndexToCoords(block, blocks_per_dim, block_coords);
 
 					// Compute Block Origin
-					std::vector<unsigned int> block_origin(block_coords);
+					IndexArray block_origin(block_coords);
 					for (int mu = 0; mu < n_dim; ++mu)
 						block_origin[mu] *= block_dims[mu];
 
 					// Get the spin components making up this aggregate
-					const std::vector<unsigned int>& source_spins =
+					const std::vector<IndexType>& source_spins =
 							aggr.GetSourceSpins(dst_spin);
 
-					unsigned int n_spin = source_spins.size();
+					IndexType n_spin = source_spins.size();
 
 
-					for (unsigned int s_spin = 0; s_spin < n_spin; ++s_spin) {
+					for (IndexType s_spin = 0; s_spin < n_spin; ++s_spin) {
 
 					   // If color*reim*blocksite were together it would allow a longer
 					   // inner loop for vectorization. Can I do collapse() with omp pragma simd?
 					   // However, the site access on the unblocked spinor would not be vectorizable.
 
-						for (int color = 0; color < 3; color++) {
-							for (int reim = 0; reim < 2; reim++) {
+						for (int color = 0; color < num_dest_colors; color++) {
+							for (int reim = 0; reim < n_complex; reim++) {
 
 								// Vectorizable Inner Loop
-								for (unsigned int blocksite = 0; blocksite < aggr.GetBlockVolume();
+								for (IndexType blocksite = 0; blocksite < aggr.GetBlockVolume();
 										++blocksite) {
 
 									// Turn block local site index, into node_local full index
-									std::vector<unsigned int> coords_in_block(n_dim);
+									IndexArray coords(n_dim);
 
-									IndexToCoords(blocksite, block_dims, coords_in_block);
+									IndexToCoords(blocksite, block_dims, coords);
 									for (int mu = 0; mu < n_dim; ++mu)
-										coords_in_block[mu] += block_origin[mu];
-
-									unsigned int fullsite = CoordsToIndex(coords_in_block, lat_dims);
+										coords[mu] += block_origin[mu];
 
 
-									out.Index(block, dst_spin, vec, s_spin,
-										color, reim, blocksite) =
-										v_in[vec].Index(fullsite,source_spins[s_spin],
+									out.Index(block, dst_spin, vec, blocksite, s_spin, color, reim) =
+										v_in[vec].Index(coords,source_spins[s_spin],
 												color, reim);
 								} //blocksite
 							} //reim

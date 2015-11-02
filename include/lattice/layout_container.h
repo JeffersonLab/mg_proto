@@ -5,8 +5,8 @@
  *      Author: bjoo
  */
 
-#ifndef INCLUDE_LATTICE_GENERIC_SPINOR_H_
-#define INCLUDE_LATTICE_GENERIC_SPINOR_H_
+#ifndef INCLUDE_LATTICE_LAYOUT_CONTAINER_H_
+#define INCLUDE_LATTICE_LAYOUT_CONTAINER_H_
 
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
@@ -46,13 +46,13 @@ namespace MGGeometry {
   	  	   template <typename T2> class Layout,  // This allows layout to templated
 		                                         // But in the General Spinor I force T2 = T
 		   const MGUtils::MemorySpace Space = MGUtils::REGULAR>
-  class GeneralLatticeSpinor {
+  class GenericLayoutContainer {
   public:
 
-	GeneralLatticeSpinor(const GeneralLatticeSpinor<T, Layout, Space>& to_copy) :
+	GenericLayoutContainer(const GenericLayoutContainer<T, Layout, Space>& to_copy) :
 			_layout(to_copy._layout), _data(to_copy._data) {}
 
-	GeneralLatticeSpinor(const Layout<T>& layout) : _layout(layout) {
+	GenericLayoutContainer(const Layout<T>& layout) : _layout(layout) {
 
 #pragma omp master
 		  {
@@ -66,7 +66,7 @@ namespace MGGeometry {
   	  }
 
 
-	  ~GeneralLatticeSpinor()
+	  ~GenericLayoutContainer()
 	  {
 #pragma omp master
 		  {
@@ -75,30 +75,43 @@ namespace MGGeometry {
 #pragma omp barrier
 	  }
 
+	  /** Using Variadic Template Args
+	   *  To forward the args to the layout
+	   *  NB: May need to take care of proper forwarding here using std::forward
+	   *  NB: Layout has to support ContainerIndex with the forwarded Args
+	   *      if it does not, that is a compilation error
+	   */
+	  template<typename ...Args>
 	  inline
-	  T&  Index(IndexType elem, IndexType spin, IndexType color, IndexType reim) {
-		  return _data[ _layout.ContainerIndex(elem,spin,color,reim) ];
+	  T&  Index(Args... args) {
+		  return _data[ _layout.ContainerIndex(args...) ];
 	  }
 
+	  /** Using Variadic Template Args
+	   *  To forward the args to the layout
+	   *  NB: May need to take care of proper forwarding here using std::forward
+	   *  NB: Layout has to support ContainerIndex with the forwarded Args
+	   *      if it does not, that is a compilation error
+	   */
+	  template<typename ...Args>
 	  inline
-	  const T& Index(IndexType elem, IndexType spin, IndexType color, IndexType reim) const {
-		  return _data[ _layout.ContainerIndex(elem,spin,color,reim) ];
+	  const T& Index(Args... args) const {
+		  return _data[ _layout.ContainerIndex(args...) ];
 	  }
 
-	  inline
-	  T&  Index(IndexType cb, IndexType cb_index, IndexType spin, IndexType color, IndexType reim) {
-		  return _data[ _layout.ContainerIndex(cb,cb_index,spin,color,reim) ];
-	  }
 
-	  inline
-	  const T& Index(IndexType cb, IndexType cb_index, IndexType spin, IndexType color, IndexType reim) const {
-		  return _data[ _layout.ContainerIndex(cb, cb_index, spin,color,reim) ];
-	  }
 
 	  inline
 	  const  LatticeInfo& GetLatticeInfo() const {
 		  return _layout.GetLatticeInfo();
+
 	  }
+
+	  inline
+	  const Layout<T>& GetLayout() const {
+		  return _layout;
+	  }
+
   private:
 
 	  const Layout<T> _layout;
