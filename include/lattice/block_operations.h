@@ -245,9 +245,6 @@ namespace MGGeometry {
 			}
 		}
 	} // Function
-
-
-
 }
 
 

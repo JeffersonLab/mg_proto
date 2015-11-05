@@ -1,7 +1,6 @@
 
-
-#include "lattice/lattice_info.h"
 #include "lattice/constants.h"
+#include "lattice/lattice_info.h"
 
 #include "lattice/nodeinfo.h"
 
@@ -20,9 +19,9 @@ namespace MGGeometry {
 LatticeInfo::LatticeInfo(
 		    const IndexArray& lat_origin, // Global Origin
 			const IndexArray& lat_dims,
-			const IndexType n_spin,
-			const IndexType n_color,
-			const NodeInfo& node) : _lat_origin{lat_origin}, _lat_dims{lat_dims}, _n_color{n_color},
+			 IndexType n_spin,
+			 IndexType n_color,
+			const NodeInfo& node) : _lat_origin(lat_origin), _lat_dims(lat_dims), _n_color{n_color},
 									_n_spin{n_spin}, _node_info{node}
 {
 

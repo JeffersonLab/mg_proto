@@ -169,6 +169,7 @@ TEST(TestGeometryUtils, TestCoordsToIndex)
 	ASSERT_EQ(CoordsToIndex(coords,dims1), expected);
 }
 
+#if 0
 TEST(TestGeometryUtils, TestCoordsToIndexIsInverseOfIndexToCoords)
 {
 	IndexArray  dims={{3,7,2,4}};
@@ -186,7 +187,7 @@ TEST(TestGeometryUtils, TestCoordsToIndexIsInverseOfIndexToCoords)
 
 
 }
-
+#endif
 /* I should test Lattice Info for deat
  * h when in an OMP
  * parallel region but death tests and threads dont work well.

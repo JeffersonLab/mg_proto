@@ -7,7 +7,6 @@ namespace MGGeometry {
 
 	using IndexType = unsigned int;
 	const IndexType n_dim = 4; // Our lattices are four dimensional
-
 	using IndexArray = std::array< IndexType, n_dim>;
 
   /* NB: I wanted to make these Enum-s but iterating over those cleanly is not easy */

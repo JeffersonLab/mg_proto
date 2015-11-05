@@ -119,11 +119,15 @@ TEST(TestSpinor, TestCBLayout_Coords)
 	IndexType n_cb_sites = info_even.GetNumCBSites();
 	IndexArray cb_latdims = info_even.GetCBLatticeDimensions();
 
+	IndexType tdims=latdims[T_DIR];
+	IndexType zdims=latdims[Z_DIR];
+	IndexType ydims=latdims[Y_DIR];
+	IndexType xdims=latdims[X_DIR];
 #pragma omp parallel for collapse(4)
-	for(IndexType t=0; t < latdims[T_DIR]; ++t) {
-		for(IndexType z=0; z < latdims[Z_DIR]; ++z) {
-			for(IndexType y=0; y < latdims[Y_DIR]; ++y) {
-				for(IndexType x=0; x < latdims[X_DIR]; ++x) {
+	for(IndexType t=0; t < tdims; ++t) {
+		for(IndexType z=0; z < zdims; ++z) {
+			for(IndexType y=0; y < ydims; ++y) {
+				for(IndexType x=0; x < xdims; ++x) {
 
 					// Site index within a checkerboard
 					IndexType site_index = CoordsToIndex({{x/2,y,z,t}}, cb_latdims);
@@ -167,11 +171,16 @@ TEST(TestSpinor, TestCBLayout_CoordsOddnode)
 	IndexType n_cb_sites = info_even.GetNumCBSites();
 	IndexArray cb_latdims = info_even.GetCBLatticeDimensions();
 
-	#pragma omp parallel for collapse(4)
-	for(IndexType t=0; t < latdims[T_DIR]; ++t) {
-		for(IndexType z=0; z < latdims[Z_DIR]; ++z) {
-			for(IndexType y=0; y < latdims[Y_DIR]; ++y) {
-				for(IndexType x=0; x < latdims[X_DIR]; ++x) {
+	IndexType tdims = latdims[T_DIR];
+	IndexType zdims = latdims[Z_DIR];
+	IndexType ydims = latdims[Y_DIR];
+	IndexType xdims = latdims[X_DIR];
+
+#pragma omp parallel for collapse(4)
+	for(IndexType t=0; t < tdims; ++t) {
+		for(IndexType z=0; z < zdims; ++z) {
+			for(IndexType y=0; y < ydims; ++y) {
+				for(IndexType x=0; x < xdims; ++x) {
 
 
 					IndexType site_index = CoordsToIndex({{x/2,y,z,t}}, cb_latdims);
@@ -321,13 +330,18 @@ TEST(TestSpinor, TestCBSOALayout_Coords)
 	IndexType n_spins  = info.GetNumSpins();
 	IndexArray cb_latdims = info.GetCBLatticeDimensions();
 
+	IndexType tdims = latdims[T_DIR];
+	IndexType zdims = latdims[Z_DIR];
+	IndexType ydims = latdims[Y_DIR];
+	IndexType xdims = latdims[X_DIR];
+
 #pragma omp parallel for shared(n_colors, n_spins) collapse(6)
 	for(IndexType spin=0; spin < n_spins; ++spin) {
 		for(IndexType color=0; color < n_colors; ++color) {
-			for(IndexType t=0; t < latdims[T_DIR]; ++t) {
-				for(IndexType z=0; z < latdims[Z_DIR]; ++z) {
-					for(IndexType y=0; y < latdims[Y_DIR]; ++y) {
-						for(IndexType x=0; x < latdims[X_DIR]; ++x) {
+			for(IndexType t=0; t < tdims; ++t) {
+				for(IndexType z=0; z < zdims; ++z) {
+					for(IndexType y=0; y < ydims; ++y) {
+						for(IndexType x=0; x < xdims; ++x) {
 
 							// Site index within a checkerboard
 							IndexType cbsite = CoordsToIndex({{x/2,y,z,t}}, cb_latdims);
@@ -363,13 +377,18 @@ TEST(TestSpinor, TestCBSOALayout_CoordsOddNode)
 	IndexType n_spins  = info.GetNumSpins();
 	IndexArray cb_latdims = info.GetCBLatticeDimensions();
 
+   IndexType tdims = latdims[T_DIR];
+        IndexType zdims = latdims[Z_DIR];
+        IndexType ydims = latdims[Y_DIR];
+        IndexType xdims = latdims[X_DIR];
+
 #pragma omp parallel for shared(n_colors, n_spins) collapse(6)
 	for(IndexType spin=0; spin < n_spins; ++spin) {
 		for(IndexType color=0; color < n_colors; ++color) {
-			for(IndexType t=0; t < latdims[T_DIR]; ++t) {
-				for(IndexType z=0; z < latdims[Z_DIR]; ++z) {
-					for(IndexType y=0; y < latdims[Y_DIR]; ++y) {
-						for(IndexType x=0; x < latdims[X_DIR]; ++x) {
+			for(IndexType t=0; t < tdims; ++t) {
+				for(IndexType z=0; z < zdims; ++z) {
+					for(IndexType y=0; y < ydims; ++y) {
+						for(IndexType x=0; x < xdims; ++x) {
 
 							// Site index within a checkerboard
 							IndexType cbsite = CoordsToIndex({{x/2,y,z,t}}, cb_latdims);

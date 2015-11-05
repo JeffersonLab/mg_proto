@@ -25,9 +25,9 @@ public:
 	 *  \param node     is the NodeInfo() object for the current node.
 	 */
 	LatticeInfo(const IndexArray& lat_origin,
-				const IndexArray& lat_dims,
-				const IndexType n_spin,
-				const IndexType n_color,
+	  	    const IndexArray& lat_dims,
+			IndexType n_spin,
+			IndexType n_color,
 				const NodeInfo& node);
 
 	/** DelegatingConstructor -- for when there is only one lattice block per node. Local origin assumed
@@ -40,8 +40,8 @@ public:
 	 *                              checkerboards etc.
 	 */
 	LatticeInfo(const IndexArray& lat_dims,
-				const IndexType n_spin,
-				const IndexType n_color,
+				IndexType n_spin,
+				IndexType n_color,
 				const NodeInfo& node);
 
 
