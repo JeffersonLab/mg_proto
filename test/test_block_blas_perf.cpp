@@ -9,10 +9,10 @@
 #include "mock_nodeinfo.h"
 
 #include "lattice/block_operations.h"
-#include "lattice/block_blas.h"
-
 #include <omp.h>
 #include <utility>
+
+#include "lattice/contiguous_blas.h"
 using namespace MGGeometry;
 using namespace MGUtils;
 
@@ -42,11 +42,11 @@ TEST_P(TestBLAS, SingleThreadNormSqSingle)
 	for(IndexType site=0; site < num_float;++site) {
 		data[site] = 0.25;
 	}
-	double data_norm;
+	double data_norm=0;
 
 	double time=-omp_get_wtime();
 	for(IndexType experiment =0; experiment < num_iters; ++experiment) {
-		NormSq(data_norm, data, num_float);
+		data_norm = NormSq(data, num_float);
 	}
 	time += omp_get_wtime();
 	MasterLog(INFO, "%u items %u iterations: %lf sec  %lf MB/sec",
@@ -69,11 +69,11 @@ TEST_P(TestBLAS, SingleThreadNormSqDouble)
 	for(IndexType site=0; site < num_float;++site) {
 		data[site] = 0.25;
 	}
-	double data_norm;
+	double data_norm=0;
 
 	double time=-omp_get_wtime();
 	for(IndexType experiment =0; experiment < num_iters; ++experiment) {
-		NormSq(data_norm, data, num_float);
+		data_norm = NormSq(data, num_float);
 	}
 	time += omp_get_wtime();
 	MasterLog(INFO, "%u items %u iterations: %lf sec  %lf MB/sec",
@@ -107,7 +107,7 @@ TEST_P(TestBLAS, SingleThreadInnerProdFloat)
 
 	double time=-omp_get_wtime();
 	for(IndexType experiment =0; experiment < num_iters; ++experiment) {
-		InnerProduct(data_norm, data_left, data_right, num_complex);
+		data_norm = InnerProduct( data_left, data_right, num_complex);
 	}
 	time += omp_get_wtime();
 	MasterLog(INFO, "%u items %u iterations: %lf sec  %lf MB/sec",
@@ -144,7 +144,7 @@ TEST_P(TestBLAS, SingleThreadInnerProdDouble)
 
 	double time=-omp_get_wtime();
 	for(IndexType experiment =0; experiment < num_iters; ++experiment) {
-		InnerProduct(data_norm, data_left, data_right, num_complex);
+		data_norm = InnerProduct( data_left, data_right, num_complex);
 	}
 	time += omp_get_wtime();
 	MasterLog(INFO, "%u items %u iterations: %lf sec  %lf MB/sec",
@@ -164,14 +164,16 @@ INSTANTIATE_TEST_CASE_P(NormSqTests,
 									std::make_pair<IndexType,IndexType>(17,80000000),
 									std::make_pair<IndexType,IndexType>(129,10000000),
 									std::make_pair<IndexType,IndexType>(1025,1000000),
-									std::make_pair<IndexType,IndexType>(4097,1000000),
+									std::make_pair<IndexType,IndexType>(4097,1000000)));
+
+#if 0
 									std::make_pair<IndexType,IndexType>(16385,100000),
 									std::make_pair<IndexType,IndexType>(1048577,1000),
 									std::make_pair<IndexType,IndexType>(16777217,100),
 									std::make_pair<IndexType,IndexType>(67108865,10)
                         )
 						);
-
+#endif
 
 int main(int argc, char *argv[]) 
 {

@@ -11,8 +11,11 @@
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/geometry_utils.h"
+#include "lattice/buffer.h"
+#include "lattice/layout_traits.h"
 #include "utils/memory.h"
 #include <memory>
+#include <type_traits>
 
 namespace MGGeometry {
 
@@ -30,47 +33,55 @@ namespace MGGeometry {
 // BlockSpinor needs Index(chirality_aggregate, block, leftover_spin, thin_color, reim, blocksite) -- accessor (read & write)
 // Spinor Needs Index(spin, color, reim, fullsite) -- accessor(read & write)
 
-// NB: At this level the BlockSpinor Does not need a ghost
-// The block spinor will need block: norm2(), norm() innerProduct(), add(), sub(), madd(), msub() and scale() operations
-// To perform the block orthogonalization.
-// The add, sub are trivially parallel
-// The mul, madd, msub involves manipulating complex components
-// the norm2() and norm are simple reductions
-// the innerProduct involves manipulating components
-
-
-
 
 
   template<typename T,        // Type in the body
-  	  	   template <typename T2> class Layout,  // This allows layout to templated
-		                                         // But in the General Spinor I force T2 = T
-		   const MGUtils::MemorySpace Space = MGUtils::REGULAR>
+  	  	   typename Layout>  // This allows layout to templated
   class GenericLayoutContainer {
+  private:
+
+	  const Layout _layout; // Layout
+	  std::shared_ptr<Buffer<T>> _buffer; // We have shared ownership
+	  T* _data; // Direct pointer into the data.
+
   public:
-
-	GenericLayoutContainer(const GenericLayoutContainer<T, Layout, Space>& to_copy) :
-			_layout(to_copy._layout), _data(to_copy._data) {}
-
-	GenericLayoutContainer(const Layout<T>& layout) : _layout(layout) {
-
-#pragma omp master
-		  {
-			  // Master thread allocates -- using MGUtils Allocato
-			  _data = reinterpret_cast<T*>(MGUtils::MemoryAllocate(_layout.DataInBytes(),Space));
-		  }
-#pragma omp barrier
-
-  	  }
+	  using layout_type  = Layout;
+	  using base_type    = T;
 
 
-	  ~GenericLayoutContainer()
+	  /** Copy constructor. This will shallow copy a container, by simply copying all its members */
+	  GenericLayoutContainer(const GenericLayoutContainer<T, Layout>& to_copy) :
+			 _layout(to_copy._layout), _buffer(to_copy._buffer), _data(to_copy._data) {}
+
+	  /** Allocating constructor */
+	  GenericLayoutContainer(const Layout& layout, const MGUtils::MemorySpace Space=MGUtils::REGULAR)
+	  : _layout(layout), _buffer(new Buffer<T>(layout.GetNumData(), Space)) {
+		  _data = _buffer->GetData();
+	  }
+
+#if 0
+	  /** Allocating constructor -- needs only lattice info */
+	  GenericLayoutContainer(const LatticeInfo& info, const MGUtils::MemorySpace Space=MGUtils::REGULAR)
+	  : _layout{info}, _buffer(new Buffer<T>(_layout.GetNumData(), Space)) {
+		  _data = _buffer->GetData();
+	  }
+#endif
+
+	  /* Used for creating a view over the container.
+	   * The layout now refers to the layout of the view.
+	   * We can pass an initial offset to where the view begins.
+	   * NB: This would work in the situation where we have say 'blocks' of foo, and blocks run outermost
+	   * It may not work if the blocks were to run innermost... So for recursive types only for now.
+	   *
+	   * Should this be a 'ContainerRef' to refer to a slice ?
+	   */
+	  GenericLayoutContainer(const Layout& layout, std::shared_ptr<Buffer<T>> buffer_in,
+			  	  	 	 	 IndexType initial_offset) : _layout(layout), _buffer(buffer_in), _data(buffer_in->GetData(initial_offset)) {
+	  }
+
+	  virtual ~GenericLayoutContainer()
 	  {
-#pragma omp master
-		  {
-			  MGUtils::MemoryFree(_data);
-		  }
-#pragma omp barrier
+
 	  }
 
 	  /** Using Variadic Template Args
@@ -106,18 +117,57 @@ namespace MGGeometry {
 	  }
 
 	  inline
-	  const Layout<T>& GetLayout() const {
+	  const Layout& GetLayout() const {
 		  return _layout;
 	  }
 
-  private:
+	  template<typename ...Args>
+		  GenericLayoutContainer<T,	 typename LayoutTraits<Layout>::subview_layout_type>
+		  GetSubview(Args... args)
+		  {
+			  IndexType offset = _layout.GetSubviewOffset(args...);
+			  auto subview_layout = _layout.GetSubviewLayout(args...);
+			  return GenericLayoutContainer<T,
+					  	  typename LayoutTraits<Layout>::subview_layout_type>(subview_layout,
+					  			  _buffer, offset);
 
-	  const Layout<T> _layout;
-	  T* _data;
+		  }
 
   };
 
 
+  /* Want specialized containers, where the user does not have to necessarily pass in the Layout.
+   * We'd like the layout to be mostly hidden from the user
+   */
+  template<typename T, typename Layout>
+  class LatticeLayoutContainer : public GenericLayoutContainer<T, Layout> {
+  public:
+	  LatticeLayoutContainer(const LatticeInfo& info, const MGUtils::MemorySpace Space=MGUtils::REGULAR) : GenericLayoutContainer<T,Layout>(Layout(info),Space) {}
+	  ~LatticeLayoutContainer(){}
+  };
+
+  template<typename T, typename Layout>
+  class AggregateLayoutContainer : public GenericLayoutContainer<T, Layout> {
+   public:
+ 	  AggregateLayoutContainer(const LatticeInfo& info, const Aggregation& aggr,
+ 			  	  	  	  	  const MGUtils::MemorySpace Space=MGUtils::REGULAR) : GenericLayoutContainer<T,Layout>(Layout(info,aggr),Space) {}
+
+ 	  ~AggregateLayoutContainer(){};
+   };
+
+  template<typename T, typename Layout, typename Container>
+  struct ContainerTraits {
+	  typedef void base_type;
+	  typedef void layout_type;
+	  typedef void subview_container_type;
+  };
+
+  template<typename T, typename Layout>
+  struct ContainerTraits< T, Layout, GenericLayoutContainer<T,Layout> > {
+	  typedef T base_type;
+	  typedef Layout layout_type;
+	  typedef GenericLayoutContainer<T,typename LayoutTraits<Layout>::subview_layout_type> subview_container_type;
+  };
 
 }
 

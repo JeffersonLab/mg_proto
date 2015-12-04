@@ -31,6 +31,15 @@ namespace MGGeometry {
 	}
 
 	inline
+	void  AssertEquals( const IndexType v1, const IndexType v2)
+	{
+		if ( v1 != v2 ) {
+			MGUtils::MasterLog(MGUtils::ERROR, "IndexType values are unequal %u and %u",v1,v2);
+		}
+	}
+
+
+	inline
 	void IndexToCoords(unsigned int index,
 			          const IndexArray& dims,
 				  	  IndexArray& coords)

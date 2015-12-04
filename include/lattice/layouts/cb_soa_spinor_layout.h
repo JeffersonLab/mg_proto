@@ -5,13 +5,14 @@
  *      Author: bjoo
  */
 
-#ifndef INCLUDE_LATTICE_COMPACT_CB_AOS_SPINOR_LAYOUT_H_
-#define INCLUDE_LATTICE_COMPACT_CB_AOS_SPINOR_LAYOUT_H_
+#ifndef INCLUDE_LATTICE_CB_SOA_SPINOR_LAYOUT_H_
+#define INCLUDE_LATTICE_CB_SOA_SPINOR_LAYOUT_H_
 
+#include "MG_config.h"
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/geometry_utils.h"
-
+#include "lattice/layout_traits.h"
 namespace MGGeometry {
 
   /** A Class to hold spinors
@@ -38,35 +39,56 @@ namespace MGGeometry {
 
 
 
-  /** This is a checkerboarded layout
-   *  It is still compact as it will be site major
-   *  I will always store 'checkerboard even' (followed by 'checkerboard odd')
+  /** Checkerboarded, SOA Spinor Layout
    *
-   *  The lattice info site tables are not really much use to me here.
+   *  The layout is:   spins (slowest) x colors x cb x cbsites x complex
+   *
+   * NB: For now, let me forget about padding
    *
    */
    template<typename T>
-   class CompactCBAOSSpinorLayout {
+   class CBSOASpinorLayout {
    public:
-	   	  CompactCBAOSSpinorLayout(const CompactCBAOSSpinorLayout& to_copy) :
+
+	   	  /* Copy a layout */
+	   	  CBSOASpinorLayout(const CBSOASpinorLayout& to_copy) :
 	   		  _info(to_copy._info), _n_color(to_copy._n_color),
 			  _n_spin(to_copy._n_spin), _n_sites(to_copy._n_sites),
-			  _n_cb_sites(to_copy._n_cb_sites) {
+			  _n_cb_sites(to_copy._n_cb_sites), _n_cb_sites_stride(to_copy._n_cb_sites_stride) {}
 
-
-
+	   	/* Copy assign */
+	   	  CBSOASpinorLayout operator=(const CBSOASpinorLayout& to_copy) {
+	   		  CBSOASpinorLayout ret_val(to_copy.GetLatticeInfo());
+	   		  return ret_val;
 	   	  }
 
-	   	  CompactCBAOSSpinorLayout() = delete;
 
- 	  	  CompactCBAOSSpinorLayout(const LatticeInfo& info) : _info(info),
+	   	  /* Construct from a lattice info */
+ 	  	  CBSOASpinorLayout(const LatticeInfo& info) : _info(info),
  		  	  _n_color(info.GetNumColors()),
  			  _n_spin(info.GetNumSpins()),
  			  _n_sites(info.GetNumSites()),
-			  _n_cb_sites(info.GetNumCBSites()) {}
- 	  	  ~CompactCBAOSSpinorLayout() {}
+			  _n_cb_sites(info.GetNumCBSites()) {
+
+ 	  		  IndexType sites_per_line = MG_DEFAULT_ALIGNMENT/(n_complex*sizeof(T));
+ 	  		  IndexType sites_rem = _n_cb_sites % sites_per_line;
+ 	  		  if ( sites_rem > 0 ) {
+ 	  			  _n_cb_sites_stride = _n_cb_sites+(sites_per_line-sites_rem);
+
+ 	  		  }
+ 	  		  else {
+ 	  			  _n_cb_sites_stride = _n_cb_sites; // No padding needed
+
+ 	  		  }
+
+ 	  	  }
 
 
+ 	  	  /* Destruct */
+ 	  	  ~CBSOASpinorLayout() {}
+
+
+ 	  	  /* Query lattice info */
  	  	  const LatticeInfo& GetLatticeInfo(void) const { return _info; }
 
 
@@ -82,8 +104,7 @@ namespace MGGeometry {
  	  		  /* cb = 0 => cb_offset = 0
  	  		   * cb = 1 => cb_offset = numCBSites(0)
  	  		   */
- 	  		  return reim + n_complex*(color_index+
- 	  				  _n_color*(spin_index + _n_spin*(cb_index + _n_cb_sites*cb)));
+ 	  		  return reim + n_complex*(cb_index + _n_cb_sites_stride*(cb + n_checkerboard*(color_index + _n_color*spin_index)));
  	  	  }
 
 
@@ -94,11 +115,14 @@ namespace MGGeometry {
  						 IndexType color_index,
  						 IndexType reim) const {
 
+	  		  IndexType cb = site_index/_n_cb_sites;
+	  		  IndexType cb_index = site_index % _n_cb_sites;
+	  		  return ContainerIndex(cb,cb_index, spin_index, color_index, reim);
 
- 	  		  return reim + n_complex*(color_index + _n_color*(spin_index + _n_spin*site_index));
 
  	  	  }
 
+#if 1
  	  	  inline
  		  IndexType
  		  ContainerIndex(const IndexArray& coords,
@@ -117,32 +141,56 @@ namespace MGGeometry {
  	  		return ContainerIndex(cb,cb_index, spin_index, color_index, reim);
 
  	  	  }
+#endif
 
- 		  size_t DataNumElem() const {return  n_complex*_n_spin*_n_color*_n_sites;}
+ 	  	  // FIXME: DataNumElem can be useful for iterating, but NOT FOR MEMORY ALLOCATION
+ 	  	  //
+ 	  	  inline
+ 		  size_t GetNumData() const {return  n_complex*_n_spin*_n_color*n_checkerboard*_n_cb_sites_stride;}
 
- 		  size_t DataInBytes() const {return  DataNumElem()*sizeof(T);}
+ 	  	  inline
+ 		  size_t GetDataInBytes() const {return GetNumData()*sizeof(T);}
 
- 		  size_t GhostNumElem(IndexType cb,
- 				  	  	  	  IndexType dir,
- 							  IndexType forw_back) const {
- 			  return n_complex*_n_spin*_n_color*_info.GetNumCBSurfaceSites(dir);
- 		  }
 
- 		  size_t GhostNumBytes(IndexType cb,
- 				  	  	  	   IndexType dir,
- 				  	  	  	   IndexType forw_back) const { return GhostNumElem(cb,dir,forw_back)*sizeof(T); }
 
    private:
  	  	const LatticeInfo _info;
  	  	IndexType _n_color;
  	  	IndexType _n_spin;
  	  	IndexType _n_sites;
- 	  	IndexType _n_cb_sites;
 
+ 	  	IndexType _n_cb_sites;
+ 	  	IndexType _n_cb_sites_stride;
 
    };
 
 
+   template<>
+   struct LayoutTraits<CBSOASpinorLayout<float>>
+   {
+	   typedef float value_type;
+	   const bool has_subviews=false;
+	   typedef void subview_layout_type;
+
+   };
+
+   template<>
+      struct LayoutTraits<CBSOASpinorLayout<double>>
+      {
+   	   typedef double value_type;
+   	   const bool has_subviews=false;
+	   typedef void subview_layout_type;
+
+      };
+
+   template<>
+      struct LayoutTraits<CBSOASpinorLayout<IndexType>>
+      {
+   	   typedef float value_type;
+   	   const bool has_subviews=false;
+	   typedef void subview_layout_type;
+
+      };
 
 
 

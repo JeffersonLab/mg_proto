@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
+#include "lattice/layouts/compact_cb_aos_spinor_layout.h"
 #include "lattice/lattice_spinor.h"
 #include "utils/print_utils.h"
 #include "utils/memory.h"
@@ -8,6 +9,7 @@
 
 #include "test_env.h"
 #include "mock_nodeinfo.h"
+#include <cmath>
 
 using namespace MGGeometry;
 using namespace MGUtils;
@@ -21,10 +23,10 @@ TEST(TestLayout, TestCBLayoutCreate)
 	std::size_t before_alloc = GetCurrentRegularMemoryUsage();
 	CompactCBAOSSpinorLayout<float> float_layout(info);
 
-	MasterLog(DEBUG, "Float layout needs %u bytes", float_layout.DataInBytes());
+	MasterLog(DEBUG, "Float layout needs %u bytes", float_layout.GetDataInBytes());
 	{
 		MasterLog(DEBUG, "Memory USage before alloc = %u bytes", before_alloc);
-		GenericLayoutContainer<float, CompactCBAOSSpinorLayout> f_spinor(float_layout);
+		GenericLayoutContainer<float, CompactCBAOSSpinorLayout<float>> f_spinor(float_layout);
 		std::size_t after_alloc = GetCurrentRegularMemoryUsage();
 		MasterLog(DEBUG, "Memory Usage after alloc = %u bytes", after_alloc);
 
@@ -33,9 +35,9 @@ TEST(TestLayout, TestCBLayoutCreate)
 
 		// i) Check that the correct number of bytes was allocated
 		// ii) Check that the correct number of bytes is what we think it ought to be
-		ASSERT_EQ( float_layout.DataInBytes(), alloced);
-		ASSERT_EQ( float_layout.DataInBytes(),
-				float_layout.DataNumElem()*sizeof(float));
+		ASSERT_EQ( float_layout.GetDataInBytes(), alloced);
+		ASSERT_EQ( float_layout.GetDataInBytes(),
+				float_layout.GetNumData()*sizeof(float));
 	}
 	// Destroy spinor on leaving the block
 	// Check that the memory is back to where it was before.
@@ -220,7 +222,7 @@ TEST(TestLayout, TestCBSOALayoutCreate)
 	LatticeInfo info(latdims);
 	CBSOASpinorLayout<float> float_layout(info);
 
-	ASSERT_EQ(float_layout.DataNumElem(), static_cast<IndexType>(3072));
+	ASSERT_EQ(float_layout.GetNumData(), static_cast<IndexType>(3072));
 }
 
 TEST(TestLayout, TestCBSOALayoutSpinorCreate)
@@ -230,10 +232,10 @@ TEST(TestLayout, TestCBSOALayoutSpinorCreate)
 	CBSOASpinorLayout<float> float_layout(info);
 
 	std::size_t before_alloc = GetCurrentRegularMemoryUsage();
-	MasterLog(DEBUG, "Float layout needs %u bytes", float_layout.DataInBytes());
+	MasterLog(DEBUG, "Float layout needs %u bytes", float_layout.GetDataInBytes());
 	{
 		MasterLog(DEBUG, "Memory USage before alloc = %u bytes", before_alloc);
-		GenericLayoutContainer<float, CBSOASpinorLayout > f_spinor(float_layout);
+		GenericLayoutContainer<float, CBSOASpinorLayout<float> > f_spinor(float_layout);
 		std::size_t after_alloc = GetCurrentRegularMemoryUsage();
 		MasterLog(DEBUG, "Memory Usage after alloc = %u bytes", after_alloc);
 
@@ -242,9 +244,9 @@ TEST(TestLayout, TestCBSOALayoutSpinorCreate)
 
 		// i) Check that the correct number of bytes was allocated
 		// ii) Check that the correct number of bytes is what we think it ought to be
-		ASSERT_EQ( float_layout.DataInBytes(), alloced);
-		ASSERT_EQ( float_layout.DataInBytes(),
-				float_layout.DataNumElem()*sizeof(float));
+		ASSERT_EQ( float_layout.GetDataInBytes(), alloced);
+		ASSERT_EQ( float_layout.GetDataInBytes(),
+				float_layout.GetNumData()*sizeof(float));
 	}
 	// Destroy spinor on leaving the block
 	// Check that the memory is back to where it was before.
@@ -260,12 +262,14 @@ TEST(TestSpinor, TestCBSOALayout_site)
 
 	IndexType n_colors = info.GetNumColors();
 	IndexType n_spins  = info.GetNumSpins();
-
+	// Stride is from start of 1 cb to the next
+	IndexType cb_stride =  (float_layout.ContainerIndex(1,0,0,0,0) -  float_layout.ContainerIndex(0,0,0,0,0))/n_complex;
 #pragma omp parallel for shared(n_colors, n_spins) collapse(2)
 	for(IndexType spin=0; spin < n_spins; ++spin) {
 		for(IndexType color=0; color < n_colors; ++color) {
 
-			IndexType start_offset = (color+n_colors*spin)*n_checkerboard*float_layout.GetCBSitesStride()*n_complex;
+
+			IndexType start_offset = float_layout.ContainerIndex(0,spin,color,0);
 
 			for(IndexType site=0; site < info.GetNumSites(); ++site) {
 
@@ -273,7 +277,7 @@ TEST(TestSpinor, TestCBSOALayout_site)
 
         		IndexType cb = site/info.GetNumCBSites();
         		IndexType cbsite = site % info.GetNumCBSites();
-        		IndexType site_index = n_complex*(cbsite + float_layout.GetCBSitesStride()*cb) + start_offset;
+        		IndexType site_index = n_complex*(cbsite + cb_stride *cb) + start_offset;
         		IndexType offset_in_site =0;
 				for(IndexType reim=0; reim < n_complex; ++reim) {
 					EXPECT_EQ( float_layout.ContainerIndex(site,spin,color,reim),
@@ -296,16 +300,17 @@ TEST(TestSpinor, TestCBSOALayout_cbsite)
 	IndexType n_colors = info.GetNumColors();
 	IndexType n_spins  = info.GetNumSpins();
 
+	IndexType cb_stride = (float_layout.ContainerIndex(1,0,0,0,0)-float_layout.ContainerIndex(0,0,0,0,0))/n_complex;
 #pragma omp parallel for shared(n_colors, n_spins) collapse(2)
 	for(IndexType spin=0; spin < n_spins; ++spin) {
 		for(IndexType color=0; color < n_colors; ++color) {
 
-			IndexType start_offset = (color+n_colors*spin)*n_checkerboard*float_layout.GetCBSitesStride()*n_complex;
+			IndexType start_offset = float_layout.ContainerIndex(0,spin,color,0);
 
 			for(IndexType cb =0; cb < n_checkerboard; ++cb) {
 				for(IndexType cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite) {
 
-					IndexType site_index = n_complex*(cbsite + float_layout.GetCBSitesStride()*cb) + start_offset;
+					IndexType site_index = n_complex*(cbsite + cb_stride*cb) + start_offset;
 					IndexType offset_in_site =0;
 					for(IndexType reim=0; reim < n_complex; ++reim) {
 						EXPECT_EQ( float_layout.ContainerIndex(cb, cbsite,spin,color,reim),
@@ -335,6 +340,9 @@ TEST(TestSpinor, TestCBSOALayout_Coords)
 	IndexType ydims = latdims[Y_DIR];
 	IndexType xdims = latdims[X_DIR];
 
+
+	IndexType cb_stride = (float_layout.ContainerIndex(1,0,0,0,0)-float_layout.ContainerIndex(0,0,0,0,0))/n_complex;
+
 #pragma omp parallel for shared(n_colors, n_spins) collapse(6)
 	for(IndexType spin=0; spin < n_spins; ++spin) {
 		for(IndexType color=0; color < n_colors; ++color) {
@@ -347,8 +355,8 @@ TEST(TestSpinor, TestCBSOALayout_Coords)
 							IndexType cbsite = CoordsToIndex({{x/2,y,z,t}}, cb_latdims);
 							IndexType cb = (x + y + z + t) &1;
 
-							IndexType start_offset = (color+n_colors*spin)*n_checkerboard*float_layout.GetCBSitesStride()*n_complex;
-							IndexType site_index = n_complex*(cbsite + float_layout.GetCBSitesStride()*cb) + start_offset;
+							IndexType start_offset = (color+n_colors*spin)*n_checkerboard*cb_stride*n_complex;
+							IndexType site_index = n_complex*(cbsite + cb_stride*cb) + start_offset;
 
 							IndexType offset_in_site =0;
 							for(IndexType reim=0; reim < n_complex; ++reim) {
@@ -377,10 +385,12 @@ TEST(TestSpinor, TestCBSOALayout_CoordsOddNode)
 	IndexType n_spins  = info.GetNumSpins();
 	IndexArray cb_latdims = info.GetCBLatticeDimensions();
 
-   IndexType tdims = latdims[T_DIR];
-        IndexType zdims = latdims[Z_DIR];
-        IndexType ydims = latdims[Y_DIR];
-        IndexType xdims = latdims[X_DIR];
+	IndexType tdims = latdims[T_DIR];
+	IndexType zdims = latdims[Z_DIR];
+	IndexType ydims = latdims[Y_DIR];
+	IndexType xdims = latdims[X_DIR];
+
+    IndexType cb_stride = (float_layout.ContainerIndex(1,0,0,0,0)-float_layout.ContainerIndex(0,0,0,0,0))/n_complex;
 
 #pragma omp parallel for shared(n_colors, n_spins) collapse(6)
 	for(IndexType spin=0; spin < n_spins; ++spin) {
@@ -394,14 +404,15 @@ TEST(TestSpinor, TestCBSOALayout_CoordsOddNode)
 							IndexType cbsite = CoordsToIndex({{x/2,y,z,t}}, cb_latdims);
 							IndexType cb = (x + y + z + t + info.GetCBOrigin() ) &1;
 
-							IndexType start_offset = (color+n_colors*spin)*n_checkerboard*float_layout.GetCBSitesStride()*n_complex;
-							IndexType site_index = n_complex*(cbsite + float_layout.GetCBSitesStride()*cb) + start_offset;
+							IndexType start_offset = n_complex*cb_stride*n_checkerboard*(color+n_colors*spin);
+							IndexType site_index = n_complex*(cbsite + cb_stride*cb) + start_offset;
 
-							IndexType offset_in_site =0;
+
 							for(IndexType reim=0; reim < n_complex; ++reim) {
+
 								EXPECT_EQ( float_layout.ContainerIndex({{x,y,z,t}},spin,color,reim),
-										site_index + offset_in_site );
-								offset_in_site++;
+										site_index + reim);
+
 							}
 						}
 					}
@@ -417,7 +428,7 @@ TEST(TestSpinor, TestCBSOALayoutCBAligned)
 	IndexArray latdims={{4,3,5,2}};
 	LatticeInfo info(latdims);
 	CBSOASpinorLayout<float> float_layout(info);
-	GenericLayoutContainer<float, CBSOASpinorLayout> my_spinor(float_layout);
+	GenericLayoutContainer<float, CBSOASpinorLayout<float>> my_spinor(float_layout);
 
 	IndexType n_colors = info.GetNumColors();
 	IndexType n_spins  = info.GetNumSpins();
@@ -438,7 +449,7 @@ TEST(TestSpinor, TestCBSOALayoutCBAlignedDouble)
 	IndexArray latdims={{4,3,5,2}};
 	LatticeInfo info(latdims);
 	CBSOASpinorLayout<double> float_layout(info);
-	GenericLayoutContainer<double, CBSOASpinorLayout> my_spinor(float_layout);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> my_spinor(float_layout);
 
 	IndexType n_colors = info.GetNumColors();
 	IndexType n_spins  = info.GetNumSpins();
@@ -454,7 +465,235 @@ TEST(TestSpinor, TestCBSOALayoutCBAlignedDouble)
 	}
 }
 
+TEST(TestSpinor, TestSpinorNormSq)
+{
+	IndexArray latdims={{4,4,4,4}}; // Each cb: 2*4*4*4 = 128 sites => 128 * n_complex * sizeof(float) = 1024 bytes = 16 blocks of length 64 bytes - no padding.
+	LatticeInfo info(latdims);
+	CBSOASpinorLayout<double> float_layout(info);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> my_spinor(float_layout);
 
+	std::complex<double> one_plus_i = std::complex<double>{1,1};
+	Fill(one_plus_i, my_spinor);
+	double expected_norm_sq = 2*info.GetNumColors()*info.GetNumSpins()*info.GetNumSites();
+	EXPECT_DOUBLE_EQ( NormSq(my_spinor), expected_norm_sq);
+
+}
+
+TEST(TestSpinor, TestSpinorNormSqPadded)
+{
+	IndexArray latdims={{2,2,3,3}}; // Each cb: 1*2*3*3 = 18 sites => 18 * n_complex * sizeof(float) = 144 bytes = 2 blocks of length 64 bytes + 32 bytes
+	// - padding of 32 bytes.
+	LatticeInfo info(latdims);
+	CBSOASpinorLayout<double> float_layout(info);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> my_spinor(float_layout);
+
+	std::complex<double> one_plus_i= std::complex<double>{1,1};
+	Fill(one_plus_i, my_spinor);
+	double expected_norm_sq = 2*info.GetNumColors()*info.GetNumSpins()*info.GetNumSites();
+	EXPECT_DOUBLE_EQ( NormSq(my_spinor), expected_norm_sq);
+
+}
+
+
+TEST(TestSpinor, TestInnerProd)
+{
+	IndexArray latdims={{4,4,4,4}}; // Each cb: 2*4*4*4 = 128 sites => 128 * n_complex * sizeof(float) = 1024 bytes = 16 blocks of length 64 bytes - no padding.
+	LatticeInfo info(latdims);
+	CBSOASpinorLayout<double> float_layout(info);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> left(float_layout);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> right(float_layout);
+	std::complex<double> one_plus_i = std::complex<double>{1,1};
+	std::complex<double> one_minus_i = std::complex<double>{1,-1};
+
+	Fill(one_plus_i, right);
+	Fill(one_minus_i, left );
+
+
+	// Check the fill worked;
+	double expected_norm_sq = 2*info.GetNumColors()*info.GetNumSpins()*info.GetNumSites();
+	EXPECT_DOUBLE_EQ( NormSq( right ), expected_norm_sq );
+	EXPECT_DOUBLE_EQ( NormSq( left  ), expected_norm_sq );
+
+	/* For each element of the iprod we have:  conj(1 - i)*(1 + i) = (1+i)*(1+i) = 1 + i + i + i^2 = 2i
+	 * So summed over each site, spin_color the real part ought to be 0, the imag part ought to be 2*n_dof = expected norm_sq
+	 */
+	std::complex<double> iprod = InnerProduct(left,right);
+	EXPECT_DOUBLE_EQ( 0 , iprod.real());
+	EXPECT_DOUBLE_EQ( expected_norm_sq, iprod.imag());
+
+
+}
+
+TEST(TestSpinor, TestSpinorInnerProdPadded)
+{
+	IndexArray latdims={{2,2,3,3}};  // Each cb: 1*2*3*3 = 18 sites => 18 * n_complex * sizeof(float) = 144 bytes = 2 blocks of length 64 bytes + 32 bytes
+	LatticeInfo info(latdims);
+	CBSOASpinorLayout<double> float_layout(info);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> left(float_layout);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> right(float_layout);
+	std::complex<double> one_plus_i = std::complex<double>{1,1};
+	std::complex<double> one_minus_i = std::complex<double>{1,-1};
+
+	Fill(one_plus_i, right);
+	Fill(one_minus_i, left );
+
+
+	double expected_norm_sq = 2*info.GetNumColors()*info.GetNumSpins()*info.GetNumSites();
+	// Check the fill worked;
+	EXPECT_DOUBLE_EQ( NormSq( right ), expected_norm_sq );
+	EXPECT_DOUBLE_EQ( NormSq( left  ), expected_norm_sq );
+
+	/* For each element of the iprod we have:  conj(1 - i)*(1 + i) = (1+i)*(1+i) = 1 + i + i + i^2 = 2i
+	 * So summed over each site, spin_color the real part ought to be 0, the imag part ought to be 2*n_dof = expected norm_sq
+	 */
+
+	std::complex<double> iprod = InnerProduct(left,right);
+	EXPECT_DOUBLE_EQ( expected_norm_sq, iprod.imag());
+	EXPECT_DOUBLE_EQ(  0, iprod.real());
+}
+
+TEST(TestSpinor, TestSpinorVScale)
+{
+	IndexArray latdims={{4,4,4,4}}; // Each cb: 2*4*4*4 = 128 sites => 128 * n_complex * sizeof(float) = 1024 bytes = 16 blocks of length 64 bytes - no padding.
+	LatticeInfo info(latdims);
+	CBSOASpinorLayout<double> float_layout(info);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> my_spinor(float_layout);
+
+	std::complex<double> one_plus_i = std::complex<double>{1,1};
+	Fill(one_plus_i, my_spinor);
+
+
+	VScale(std::sqrt(0.5), my_spinor);
+
+	double expected_norm_sq = info.GetNumColors()*info.GetNumSpins()*info.GetNumSites();
+	EXPECT_DOUBLE_EQ( NormSq(my_spinor), expected_norm_sq);
+
+}
+
+TEST(TestSpinor, TestSpinorVScalePadded)
+{
+	IndexArray latdims={{2,2,3,3}}; // Each cb: 1*2*3*3 = 18 sites => 18 * n_complex * sizeof(float) = 144 bytes = 2 blocks of length 64 bytes + 32 bytes
+	// - padding of 32 bytes.
+	LatticeInfo info(latdims);
+	CBSOASpinorLayout<double> float_layout(info);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> my_spinor(float_layout);
+
+	std::complex<double> one_plus_i= std::complex<double>{1,1};
+	Fill(one_plus_i, my_spinor);
+
+
+	VScale(std::sqrt(0.5), my_spinor);
+
+	double expected_norm_sq = info.GetNumColors()*info.GetNumSpins()*info.GetNumSites();
+	EXPECT_DOUBLE_EQ( NormSq(my_spinor), expected_norm_sq);
+
+}
+
+
+TEST(TestSpinor, TestMCaxpy)
+{
+	IndexArray latdims={{4,4,4,4}}; // Each cb: 2*4*4*4 = 128 sites => 128 * n_complex * sizeof(float) = 1024 bytes = 16 blocks of length 64 bytes - no padding.
+	LatticeInfo info(latdims);
+	CBSOASpinorLayout<double> float_layout(info);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> x(float_layout);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> y(float_layout);
+
+	std::complex<double> one_plus_i = std::complex<double>{1,1};
+	Fill(one_plus_i, y);
+	Fill(one_plus_i, x);
+
+	std::complex<double> half=std::complex<double>{0.5,0};
+	MCaxpy(y, half, x);
+
+
+	double expected_norm_y_sq = 0.5*info.GetNumColors()*info.GetNumSpins()*info.GetNumSites();
+	double expected_norm_x_sq = 2*info.GetNumColors()*info.GetNumSpins()*info.GetNumSites();
+	EXPECT_DOUBLE_EQ( NormSq(y), expected_norm_y_sq);
+	EXPECT_DOUBLE_EQ( NormSq(x), expected_norm_x_sq);
+}
+
+TEST(TestSpinor, TestMCaxpyPadded)
+{
+	IndexArray latdims={{2,2,3,3}}; // Each cb: 1*2*3*3 = 18 sites => 18 * n_complex * sizeof(float) = 144 bytes = 2 blocks of length 64 bytes + 32 bytes
+	LatticeInfo info(latdims);
+	CBSOASpinorLayout<double> float_layout(info);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> x(float_layout);
+	GenericLayoutContainer<double, CBSOASpinorLayout<double>> y(float_layout);
+
+	std::complex<double> one_plus_i = std::complex<double>{1,1};
+	Fill(one_plus_i, y);
+	Fill(one_plus_i, x);
+
+	std::complex<double> half=std::complex<double>{0.5,0};
+	MCaxpy(y, half, x);
+
+
+	double expected_norm_y_sq = 0.5*info.GetNumColors()*info.GetNumSpins()*info.GetNumSites();
+	double expected_norm_x_sq = 2*info.GetNumColors()*info.GetNumSpins()*info.GetNumSites();
+	EXPECT_DOUBLE_EQ( NormSq(y), expected_norm_y_sq);
+	EXPECT_DOUBLE_EQ( NormSq(x), expected_norm_x_sq);
+}
+
+template<typename T, typename BlockedLayout>
+void BlockOrthonormalize(std::vector<GenericLayoutContainer<T,BlockedLayout>>& vectors)
+{
+	auto num_vectors = vectors.size();
+
+	// Dumb?
+	if( num_vectors == 0 ) return;
+
+	// Vectors zero now is guaranteed to exist.
+	const Aggregation& aggr = vectors[0].GetAggregation();
+
+	IndexType num_blocks = aggr.GetNumBlocks();
+	IndexType num_outerspins = aggr.GetNumAggregates();
+
+	// There is some amount of nested parallelism needed. I am not going to bother with it
+	// I will loop this level without threading, and I'll thread over the actual spinors.
+
+	for(IndexType block =0; block < num_blocks; ++block) {
+		for(IndexType outer_spin=0; outer_spin < num_outerspins; ++outer_spin) {
+
+			// This is the sub-spinor type
+			using BlockSpinorType = typename ContainerTraits<T,BlockedLayout,GenericLayoutContainer<T,BlockedLayout>>::subview_container_type;
+
+			// A vector to hold the sub-spinors
+			std::vector<BlockSpinorType> block_spinors(num_vectors);
+			for(auto v=0; v < num_vectors; ++v) {
+
+				block_spinors[v] = vectors[v].GetSubview(block, outer_spin);
+
+			}
+
+			GramSchmidt(block_spinors);
+
+		}
+	}
+}
+
+TEST(TestSpinor, BlockOrthogonalize)
+{
+	using Spinor = LatticeLayoutContainer<float,CBSOASpinorLayout<float>>;
+	using BlockSpinor = AggregateLayoutContainer<float, BlockAggregateVectorLayout<float>>;
+
+	// Now I have to be able to create a vector of block spinors. But How?
+	// Since I need to be able to
+	const int num_vec = 8;
+	IndexArray latdims={{4,4,4,4}}; // Each cb: 2*4*4*4 = 128 sites => 128 * n_complex * sizeof(float) = 1024 bytes = 16 blocks of length 64 bytes - no padding.
+	LatticeInfo fine_info(latdims);
+
+	/* Initialize num_vec fine lattice spinors */
+	std::vector<Spinor> fine_spinors(num_vec, Spinor(fine_info));
+
+	IndexArray blockdims={{2,2,2,2}};
+	StandardAggregation aggr(latdims,blockdims); // Create a standard aggregation
+	std::vector<BlockSpinor> block_aggregate_spinors(num_vec, BlockSpinor(fine_info,aggr));
+
+	/* Fill spinor with random numbers */
+
+
+
+}
 
 int main(int argc, char *argv[]) 
 {

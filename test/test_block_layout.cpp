@@ -8,7 +8,7 @@
 
 #include "test_env.h"
 #include "mock_nodeinfo.h"
-#include "lattice/block_cb_soa_spinor_layout.h"
+#include "lattice/layouts/block_cb_soa_spinor_layout.h"
 #include "lattice/block_operations.h"
 
 using namespace MGGeometry;
@@ -38,8 +38,8 @@ TEST(TestBlockLayout, TestBlockLayoutAlignedSpinorBlocks)
 	// Make a blocked Layout
 	BlockAggregateVectorLayout<float> block_layout(linfo,aggr);
 
-	int num_blocks = block_layout.GetNumBlocks();
- 	int num_aggr = aggr.GetNumAggregates();
+	auto num_blocks = block_layout.GetNumBlocks();
+ 	auto num_aggr = aggr.GetNumAggregates();
 #pragma omp parallel for shared(block_layout,aggr) 
 	for(IndexType block=0; block < num_blocks; ++block) {
 		for(IndexType cblock=0; cblock < num_aggr; ++cblock) {
@@ -67,7 +67,7 @@ TEST(TestBlockLayout, TestBlockSiteStride)
 	BlockAggregateVectorLayout<float> block_layout(linfo,aggr);
 
 	// This is the stride for sites. The number of elements
-	IndexType site_stride = block_layout.DataNumElem()/(aggr.GetNumAggregates()*aggr.GetNumBlocks()
+	IndexType site_stride = block_layout.GetNumData()/(aggr.GetNumAggregates()*aggr.GetNumBlocks()
 			*aggr.GetSourceSpins(0).size()*aggr.GetSourceColors(0).size());
 
 	IndexType	num_blocks = block_layout.GetNumBlocks();
@@ -80,6 +80,8 @@ TEST(TestBlockLayout, TestBlockSiteStride)
 
 			for(IndexType spin=0; spin  < aggr.GetSourceSpins(0).size(); spin++) {
 				for(IndexType color=0; color < aggr.GetSourceColors(0).size()-1; color++) {
+
+
 					IndexType true_stride=block_layout.ContainerIndex(block,cblock,0,spin,color+1,0)
 							-block_layout.ContainerIndex(block,cblock,0,spin,color,0);
 					EXPECT_EQ(true_stride,site_stride);
@@ -100,7 +102,7 @@ TEST(TestBlockLayout, TestCBlockBlockStride)
 	BlockAggregateVectorLayout<float> block_layout(linfo,aggr);
 
 	// This is the stride for sites. The number of elements
-	IndexType cblock_stride = block_layout.DataNumElem()/(aggr.GetNumBlocks()*aggr.GetNumAggregates());
+	IndexType cblock_stride = block_layout.GetNumData()/(aggr.GetNumBlocks()*aggr.GetNumAggregates());
 
 #pragma omp parallel for
 	for(IndexType block=0; block < block_layout.GetNumBlocks(); ++block) {
@@ -130,6 +132,59 @@ TEST(TestBlockLayout, TestCBlockAggregation)
 			linfo.GetNumSites()*linfo.GetNumColors()*linfo.GetNumSpins());
 }
 
+TEST(TestBlockLayout, TestBlockSubview)
+{
+	IndexArray latdims={{4,6,6,4}};
+	IndexArray blockdims={{2,2,2,2}};
+	LatticeInfo linfo(latdims);
+	StandardAggregation aggr(latdims, blockdims);
+
+//	BlockAggregateVectorLayout<IndexType> block_layout(linfo,aggr);
+	LatticeBlockSpinorIndex v_block(linfo,aggr);
+
+	IndexType num_blocks = aggr.GetNumBlocks();
+	IndexType num_outer_spins = aggr.GetNumAggregates();
+
+#pragma omp parallel for collapse(2)
+	for(IndexType block = 0; block < num_blocks; ++block) {
+		for(IndexType cblock=0; cblock < num_outer_spins; ++cblock) {
+			auto block_spinor = v_block.GetSubview(block,cblock);
+			auto block_info = block_spinor.GetLatticeInfo();
+
+			for(IndexType spin=0; spin < block_info.GetNumSpins(); ++spin) {
+				for(IndexType color=0; color < block_info.GetNumColors(); ++color) {
+					for(IndexType blocksite =0; blocksite < block_info.GetNumSites(); ++blocksite) {
+						for(IndexType reim=0; reim < n_complex; ++reim) {
+							block_spinor.Index(blocksite, spin, color, reim) = cblock + num_outer_spins*block;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	auto num_inner_spins = aggr.GetSourceSpins(0).size();
+	auto num_inner_colors = aggr.GetSourceColors(0).size();
+
+
+#pragma omp parallel for collapse(6)
+	for(IndexType block = 0; block < num_blocks; ++block) {
+		for(IndexType cblock=0; cblock < num_outer_spins; ++cblock) {
+			for(IndexType spin=0; spin < num_inner_spins; ++spin) {
+				for(IndexType color=0; color < num_inner_colors; ++color) {
+					for(IndexType blocksite =0; blocksite < aggr.GetBlockVolume(); ++blocksite) {
+						for(IndexType reim=0; reim < n_complex; ++reim) {
+							EXPECT_EQ( v_block.Index(block,cblock,blocksite,spin,color,reim), cblock + num_outer_spins*block);
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+}
+
 TEST(TestBlockLayout, TestZipUnzip)
 {
 	IndexArray latdims={{4,6,6,4}};
@@ -142,12 +197,20 @@ TEST(TestBlockLayout, TestZipUnzip)
 	// Make a blocked Layout
 	BlockAggregateVectorLayout<IndexType> block_layout(linfo,aggr);
 
-	LatticeSpinorIndex v_in(flat_layout);
-	LatticeSpinorIndex v_out(flat_layout);
-	LatticeBlockSpinorIndex v_block(block_layout);
+//	LatticeSpinorIndex v_in(flat_layout);
+//	LatticeSpinorIndex v_out(flat_layout);
+	//LatticeBlockSpinorIndex v_block(block_layout);
+
+	// New interface... The layout is magic-ed up behind the scenes
+	LatticeSpinorIndex v_in(linfo);
+	LatticeSpinorIndex v_out(linfo);
+	LatticeBlockSpinorIndex v_block(linfo,aggr);
+
 	IndexType num_spins = linfo.GetNumSpins();
 	IndexType num_colors = linfo.GetNumColors();
 	IndexType num_sites = linfo.GetNumSites();
+
+
 
 	// This will need to be converted to some generic fill routine:
 #pragma omp parallel for shared(num_spins, num_colors, num_sites) collapse(4)
@@ -156,9 +219,7 @@ TEST(TestBlockLayout, TestZipUnzip)
 			for(IndexType site=0; site < num_sites; ++site)   {
 				for(IndexType reim=0; reim < n_complex; ++reim) {
 					// Hash the params
-					IndexType value = reim+n_complex*(site+linfo.GetNumSites()*(color+linfo.GetNumColors()*spin));
-
-
+					IndexType value = flat_layout.ContainerIndex(site,spin,color,reim);
 					v_in.Index(site,spin,color,reim) = value;
 				}
 			}
@@ -174,6 +235,7 @@ TEST(TestBlockLayout, TestZipUnzip)
 			for(IndexType site=0; site < num_sites; ++site)   {
 				for(IndexType reim=0; reim < n_complex; ++reim) {
 
+
 					EXPECT_EQ(v_out.Index(site,spin,color,reim),
 							  v_in.Index(site,spin,color,reim));
 				}
@@ -181,69 +243,6 @@ TEST(TestBlockLayout, TestZipUnzip)
 		}
 	}
 
-
-
-}
-
-TEST(TestBlockLayout, TestZipUnzipArray)
-{
-	IndexArray latdims={{4,6,6,4}};
-	IndexArray blockdims={{2,2,2,2}};
-	IndexType n_vec = 24;
-
-	LatticeInfo linfo(latdims);
-	StandardAggregation aggr(latdims, blockdims);
-
-	// Make a non-blocked layout
-	CBSOASpinorLayout<IndexType> flat_layout(linfo);
-
-
-	// Make a blocked Layout
-	BlockAggregateVectorArrayLayout<IndexType> block_layout(linfo,aggr,n_vec);
-
-	LatticeSpinorIndex v_in(flat_layout);
-	LatticeSpinorIndex v_out(flat_layout);
-	LatticeBlockSpinorArrayIndex v_block(block_layout);
-	IndexType num_spins = linfo.GetNumSpins();
-	IndexType num_colors = linfo.GetNumColors();
-	IndexType num_sites = linfo.GetNumSites();
-
-	// This will need to be converted to some generic fill routine:
-	for(IndexType vec=0; vec < n_vec; ++vec) {
-
-#pragma omp parallel for shared(num_spins, num_colors, num_sites) collapse(4)
-		for(IndexType spin=0; spin < num_spins;++spin){
-			for(IndexType color=0; color < num_colors; ++color) {
-				for(IndexType site=0; site < num_sites; ++site)   {
-					for(IndexType reim=0; reim < n_complex; ++reim) {
-					// Hash the params
-						IndexType value = reim+n_complex*(site+linfo.GetNumSites()*(color+linfo.GetNumColors()*(spin + linfo.GetNumSpins()*vec)));
-
-
-						v_in.Index(site,spin,color,reim) = value;
-					}
-				}
-			}
-		}
-
-		zip<LatticeBlockSpinorArrayIndex,LatticeSpinorIndex>(v_block, v_in, vec);
-
-		unzip<LatticeSpinorIndex,LatticeBlockSpinorArrayIndex>(v_out, v_block,vec);
-
-#pragma omp parallel for shared(num_spins, num_colors, num_sites) collapse(4)
-		for(IndexType spin=0; spin < num_spins;++spin){
-			for(IndexType color=0; color < num_colors; ++color) {
-				for(IndexType site=0; site < num_sites; ++site)   {
-					for(IndexType reim=0; reim < n_complex; ++reim) {
-
-						EXPECT_EQ(v_out.Index(site,spin,color,reim),
-								   v_in.Index(site,spin,color,reim));
-					}
-				}
-			}
-		}
-
-	} // Vec Loop
 
 
 }

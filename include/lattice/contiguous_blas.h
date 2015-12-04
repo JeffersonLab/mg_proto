@@ -5,11 +5,12 @@
  *      Author: bjoo
  */
 
-#ifndef INCLUDE_LATTICE_BLOCK_BLAS_H_
-#define INCLUDE_LATTICE_BLOCK_BLAS_H_
+#ifndef INCLUDE_LATTICE_CONTIGUOUS_BLAS_H_
+#define INCLUDE_LATTICE_CONTIGUOUS_BLAS_H_
 
 #include "lattice/constants.h"
 #include "utils/print_utils.h"
+
 #include <complex>
 
 
@@ -22,14 +23,17 @@ namespace MGGeometry {
 	 *  NB: This is not a tree reduction so, susceptible to rounding
 	 */
 	template<typename T>
-	void NormSq(double& result, const T* data, IndexType num_real)
+	double NormSq(const T* data, IndexType num_real)
 	{
-		result = 0;
+		double result = 0;
 
 #pragma omp simd aligned(data:MG_DEFAULT_ALIGNMENT)
 		for(IndexType i=0; i < num_real; ++i) {
 			result += data[i]*data[i];
 		}
+
+		return result;
+
 
 	}
 
@@ -40,10 +44,8 @@ namespace MGGeometry {
 
 
 	template<typename T>
-	void InnerProduct(std::complex<double>& result, const T* data_left,
-									  const T* data_right, IndexType num_complex)
+	std::complex<double> InnerProduct(const T* data_left, const T* data_right, IndexType num_complex)
 	{
-		result = {0,0};
 		double result_re=0;
 		double result_im=0;
 
@@ -61,7 +63,10 @@ namespace MGGeometry {
 			result_im += cl[i].real() * cr[i].imag();
 			result_im -= cl[i].imag() * cr[i].real();
 		}
-		result=std::complex<double>{result_re,result_im};
+
+		std::complex<double> result=std::complex<double>{result_re,result_im};
+		return result;
+
 	}
 
 	/** Scale a function by a constant. Use this to E.g. Normalize a vector */
@@ -95,4 +100,4 @@ namespace MGGeometry {
 
 
 
-#endif /* INCLUDE_LATTICE_BLOCK_BLAS_H_ */
+#endif /* INCLUDE_LATTICE_CONTIGUOUS_BLAS_H_ */

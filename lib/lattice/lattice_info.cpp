@@ -1,9 +1,8 @@
 
+#include "MG_config.h"
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
-
 #include "lattice/nodeinfo.h"
-
 #include "utils/print_utils.h"
 
 #include <omp.h>
@@ -105,6 +104,5 @@ LatticeInfo::LatticeInfo(const IndexArray& lat_dims) :
 /** Destructor for the lattice class
  */
 LatticeInfo::~LatticeInfo() {}
-
 
 };

@@ -5,10 +5,9 @@
  *      Author: bjoo
  */
 
-#ifndef INCLUDE_LATTICE_CB_SOA_SPINOR_LAYOUT_H_
-#define INCLUDE_LATTICE_CB_SOA_SPINOR_LAYOUT_H_
+#ifndef INCLUDE_LATTICE_COMPACT_CB_AOS_SPINOR_LAYOUT_H_
+#define INCLUDE_LATTICE_COMPACT_CB_AOS_SPINOR_LAYOUT_H_
 
-#include "MG_config.h"
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/geometry_utils.h"
@@ -39,41 +38,33 @@ namespace MGGeometry {
 
 
 
-  /** Checkerboarded, SOA Spinor Layout
+  /** This is a checkerboarded layout
+   *  It is still compact as it will be site major
+   *  I will always store 'checkerboard even' (followed by 'checkerboard odd')
    *
-   *  The layout is:   spins (slowest) x colors x cb x cbsites x complex
-   *
-   * NB: For now, let me forget about padding
+   *  The lattice info site tables are not really much use to me here.
    *
    */
    template<typename T>
-   class CBSOASpinorLayout {
+   class CompactCBAOSSpinorLayout {
    public:
-	   	  CBSOASpinorLayout(const CBSOASpinorLayout& to_copy) :
+	   	  CompactCBAOSSpinorLayout(const CompactCBAOSSpinorLayout& to_copy) :
 	   		  _info(to_copy._info), _n_color(to_copy._n_color),
 			  _n_spin(to_copy._n_spin), _n_sites(to_copy._n_sites),
-			  _n_cb_sites(to_copy._n_cb_sites), _n_cb_sites_stride(to_copy._n_cb_sites_stride) {}
+			  _n_cb_sites(to_copy._n_cb_sites) {
 
-	   	  CBSOASpinorLayout() = delete;
 
- 	  	  CBSOASpinorLayout(const LatticeInfo& info) : _info(info),
+
+	   	  }
+
+	   	  CompactCBAOSSpinorLayout() = delete;
+
+ 	  	  CompactCBAOSSpinorLayout(const LatticeInfo& info) : _info(info),
  		  	  _n_color(info.GetNumColors()),
  			  _n_spin(info.GetNumSpins()),
  			  _n_sites(info.GetNumSites()),
-			  _n_cb_sites(info.GetNumCBSites()) {
-
- 	  		  IndexType sites_per_line = MG_DEFAULT_ALIGNMENT/(n_complex*sizeof(T));
- 	  		  IndexType sites_rem = _n_cb_sites % sites_per_line;
- 	  		  if ( sites_rem > 0 ) {
- 	  			  _n_cb_sites_stride = _n_cb_sites+(sites_per_line-sites_rem);
- 	  		  }
- 	  		  else {
- 	  			  _n_cb_sites_stride = _n_cb_sites; // No padding needed
- 	  		  }
-
- 	  	  }
-
- 	  	  ~CBSOASpinorLayout() {}
+			  _n_cb_sites(info.GetNumCBSites()) {}
+ 	  	  ~CompactCBAOSSpinorLayout() {}
 
 
  	  	  const LatticeInfo& GetLatticeInfo(void) const { return _info; }
@@ -91,7 +82,8 @@ namespace MGGeometry {
  	  		  /* cb = 0 => cb_offset = 0
  	  		   * cb = 1 => cb_offset = numCBSites(0)
  	  		   */
- 	  		  return reim + n_complex*(cb_index + _n_cb_sites_stride*(cb + n_checkerboard*(color_index + _n_color*spin_index)));
+ 	  		  return reim + n_complex*(color_index+
+ 	  				  _n_color*(spin_index + _n_spin*(cb_index + _n_cb_sites*cb)));
  	  	  }
 
 
@@ -102,10 +94,8 @@ namespace MGGeometry {
  						 IndexType color_index,
  						 IndexType reim) const {
 
-	  		  IndexType cb = site_index/_n_cb_sites;
-	  		  IndexType cb_index = site_index % _n_cb_sites;
-	  		  return ContainerIndex(cb,cb_index, spin_index, color_index, reim);
 
+ 	  		  return reim + n_complex*(color_index + _n_color*(spin_index + _n_spin*site_index));
 
  	  	  }
 
@@ -128,41 +118,26 @@ namespace MGGeometry {
 
  	  	  }
 
- 	  	  // FIXME: DataNumElem can be useful for iterating, but NOT FOR MEMORY ALLOCATION
- 	  	  //
- 	  	  inline
- 		  size_t DataNumElem() const {return  n_complex*_n_spin*_n_color*n_checkerboard*_n_cb_sites_stride;}
+ 		  size_t GetNumData() const {return  n_complex*_n_spin*_n_color*_n_sites;}
 
- 	  	  inline
- 		  size_t DataInBytes() const {return DataNumElem()*sizeof(T);}
+ 		  size_t GetDataInBytes() const {return  GetNumData()*sizeof(T);}
 
- 		  // Not padding Ghost.
- 	  	  inline
  		  size_t GhostNumElem(IndexType cb,
  				  	  	  	  IndexType dir,
  							  IndexType forw_back) const {
  			  return n_complex*_n_spin*_n_color*_info.GetNumCBSurfaceSites(dir);
  		  }
 
- 		  // Not padding Ghost
- 	  	  inline
  		  size_t GhostNumBytes(IndexType cb,
  				  	  	  	   IndexType dir,
  				  	  	  	   IndexType forw_back) const { return GhostNumElem(cb,dir,forw_back)*sizeof(T); }
-
- 	  	  inline
-		  size_t GetCBSitesStride() const {
- 	  		  return _n_cb_sites_stride;
- 	  	  }
 
    private:
  	  	const LatticeInfo _info;
  	  	IndexType _n_color;
  	  	IndexType _n_spin;
  	  	IndexType _n_sites;
-
  	  	IndexType _n_cb_sites;
- 	  	IndexType _n_cb_sites_stride;
 
 
    };

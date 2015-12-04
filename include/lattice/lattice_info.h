@@ -134,6 +134,24 @@ private:
 };
 
 
+
+/* Check compatibility of 2 lattice infos
+ * Basically I want to check that the number of spins, colors, and sites are the same
+ * FIXME do I need to check the node info is the same? In principle yes...
+ */
+inline
+void AssertCompatible(const LatticeInfo& l, const LatticeInfo& r)
+{
+#ifdef DEBUG_ASSERTIONS
+	if ( l.GetNumColors() != r.GetNumColors() ) { MasterLog(ERROR,"Lattices incompatible. Colors don't match\n"); }
+	if ( l.GetNumSpins() != r.GetNumSpins() ) { MasterLog(ERROR, "Lattices incompatible. Spins don't match \n"); }
+	if ( l.GetNumSites() != r.GetNumSites() ) { MasterLog(ERROR, "Lattices incompatible. NumSites don't match \n"); }
+	if ( l.GetNodeInfo().NodeID() != r.GetNumNodes().NodeID() ) { MasterLog(ERROR, "Lattices incompatible. NodeIDs don't match\n"); }
+	if ( l.GetNodeInfo().NumNodes() != r.GetNumNodes().NumNodes() ) { MasterLog(ERROR, "Lattices incompatible. NumNodes don't match\n"); }
+
+#endif
+}
+
 }
 
 #endif

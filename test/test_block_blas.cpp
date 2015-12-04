@@ -9,10 +9,10 @@
 #include "mock_nodeinfo.h"
 
 #include "lattice/block_operations.h"
-#include "lattice/block_blas.h"
-
 #include <omp.h>
 #include <utility>
+
+#include "../include/lattice/contiguous_blas.h"
 using namespace MGGeometry;
 using namespace MGUtils;
 
@@ -40,9 +40,7 @@ TEST_P(TestBLAS, SingleThreadNormSqSingle)
 	for(IndexType site=0; site < num_float;++site) {
 		data[site] = 0.25;
 	}
-	double data_norm;
-
-	NormSq(data_norm, data, num_float);
+	double data_norm = NormSq(data, num_float);
 
 	double expected = static_cast<double>(num_float)*0.25*0.25;
 	EXPECT_DOUBLE_EQ(data_norm,expected);
@@ -60,8 +58,7 @@ TEST_P(TestBLAS, SingleThreadNormSqDouble)
 	for(IndexType site=0; site < num_float;++site) {
 		data[site] = 0.25;
 	}
-	double data_norm;
-	NormSq(data_norm, data, num_float);
+	double data_norm= NormSq(data, num_float);
 	double expected = static_cast<double>(num_float)*0.25*0.25;
 	EXPECT_DOUBLE_EQ(data_norm,expected);
 	MemoryFree(data);
@@ -85,8 +82,7 @@ TEST_P(TestBLAS, SingleThreadInnerProdFloat)
 		data_right[2*site] = 0.25;
 		data_right[2*site+1] = 0.25;
 	}
-	std::complex<double> data_iprod;
-	InnerProduct(data_iprod, data_left, data_right, num_complex);
+	std::complex<double> data_iprod = InnerProduct(data_left, data_right, num_complex);
 	double expected = static_cast<double>(2*num_complex)*0.25*0.25;
 	EXPECT_DOUBLE_EQ(data_iprod.real(),expected);
 	EXPECT_DOUBLE_EQ(data_iprod.imag(),0);
@@ -113,9 +109,7 @@ TEST_P(TestBLAS, SingleThreadInnerProdDouble)
 		data_right[2*site] = 0.25;
 		data_right[2*site+1] = 0.25;
 	}
-	std::complex<double> data_iprod;
-
-	InnerProduct(data_iprod, data_left, data_right, num_complex);
+	std::complex<double> data_iprod = InnerProduct(data_left, data_right, num_complex);
 	double expected = static_cast<double>(2*num_complex)*0.25*0.25;
 	EXPECT_DOUBLE_EQ(data_iprod.real(),expected);
 	EXPECT_DOUBLE_EQ(data_iprod.imag(),0);
@@ -135,12 +129,11 @@ TEST_P(TestBLAS, SingleThreadVScalSingle)
 		data[2*site+1] = -0.3;
 	}
 
-	double normsq_data=0;
-	NormSq(normsq_data, data, num_complex*n_complex);
+	double normsq_data=NormSq(data, num_complex*n_complex);
 
 	float norm=1/sqrt(normsq_data);
 	VScale(norm, data, num_complex*n_complex);
-	NormSq(normsq_data, data, num_complex*n_complex);
+	normsq_data = NormSq(data, num_complex*n_complex);
 
 	EXPECT_FLOAT_EQ(static_cast<float>(normsq_data), 1);
 	MemoryFree(data);
@@ -158,12 +151,11 @@ TEST_P(TestBLAS, SingleThreadVScalDouble)
 		data[2*site+1] = -0.3;
 	}
 
-	double normsq_data=0;
-	NormSq(normsq_data, data, num_complex*n_complex);
+	double normsq_data = NormSq( data, num_complex*n_complex);
 
 	double norm=1/sqrt(normsq_data);
 	VScale(norm, data, num_complex*n_complex);
-	NormSq(normsq_data, data, num_complex*n_complex);
+	normsq_data = NormSq(data, num_complex*n_complex);
 
 	EXPECT_NEAR(normsq_data, 1, 1.0e-10);
 	MemoryFree(data);
@@ -187,15 +179,13 @@ TEST_P(TestBLAS, SingleThreadMCaxpySingle)
 		y[2*site+1] = -0.43;
 	}
 
-	double normsq_y_before=0;
-	NormSq(normsq_y_before, y, num_complex*n_complex);
+	double normsq_y_before=NormSq(y, num_complex*n_complex);
 
 	MCaxpy(y,a,x,num_complex);
 	a	 *= -1;
 	MCaxpy(y,a,x,num_complex);
 
-	double normsq_y_after=0;
-	NormSq(normsq_y_after, y, num_complex*n_complex);
+	double normsq_y_after=	NormSq(y, num_complex*n_complex);
 
 
 
@@ -223,15 +213,13 @@ TEST_P(TestBLAS, SingleThreadMCaxpyDouble)
 		y[2*site+1] = -0.43;
 	}
 
-	double normsq_y_before=0;
-	NormSq(normsq_y_before, y, num_complex*n_complex);
+	double normsq_y_before= NormSq(y, num_complex*n_complex);
 
 	MCaxpy(y,a,x,num_complex);
 	a	 *= -1;
 	MCaxpy(y,a,x,num_complex);
 
-	double normsq_y_after=0;
-	NormSq(normsq_y_after, y, num_complex*n_complex);
+	double normsq_y_after= NormSq(y, num_complex*n_complex);
 
 
 
