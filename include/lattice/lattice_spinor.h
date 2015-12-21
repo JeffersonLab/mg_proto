@@ -11,6 +11,7 @@
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/geometry_utils.h"
+#include "lattice/aggregation.h"
 #include "utils/memory.h"
 #include <memory>
 

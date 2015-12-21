@@ -94,7 +94,7 @@ namespace MGGeometry {
 	{
 		auto& layout = v_in.GetLayout();
 		auto& info = v_in.GetLatticeInfo();
-		const Aggregation& aggr = layout.GetAggregation();
+		auto& aggr = layout.GetAggregation();
 		IndexType num_chiral_blocks = aggr.GetNumAggregates();
 
 		auto& blocks_per_dim = aggr.GetNumBlocksPerDim();
@@ -142,7 +142,7 @@ namespace MGGeometry {
 	{
 		auto& layout = v_in.GetLayout();
 		auto& info = v_in.GetLatticeInfo();
-		const Aggregation& aggr = layout.GetAggregation();
+		auto& aggr = layout.GetAggregation();
 		IndexType num_chiral_blocks = aggr.GetNumAggregates();
 
 		auto& blocks_per_dim = aggr.GetNumBlocksPerDim();
@@ -183,8 +183,9 @@ namespace MGGeometry {
 		}
 	} // Function
 
+#if 0
 	// Option 1:
-	template<typename BlockedAggregateSpinor, typename Spinor>
+	template<typename BlockedAggregateSpinor>
 	void BlockOrthonormalize(std::vector<BlockedAggregateSpinor>& vectors)
 	{
 		auto num_vectors = vectors.size();
@@ -193,7 +194,7 @@ namespace MGGeometry {
 		if( num_vectors == 0 ) return;
 
 		// Vectors zero now is guaranteed to exist.
-		const Aggregation& aggr = vectors[0].GetAggregation();
+		auto& aggr = vectors[0].GetAggregation();
 
 		IndexType num_blocks = aggr.GetNumBlocks();
 		IndexType num_outerspins = aggr.GetNumAggregates();
@@ -219,6 +220,8 @@ namespace MGGeometry {
 			}
 		}
 	}
+
+#endif
 
 
 }

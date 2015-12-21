@@ -32,3 +32,6 @@ target_link_libraries(test_block_blas mg gtest_all mg_test ${EXT_LIBS})
 
 add_executable(test_block_blas_perf test_block_blas_perf.cpp)
 target_link_libraries(test_block_blas_perf mg gtest_all mg_test ${EXT_LIBS})
+
+add_executable(test_cmat_mult test_cmat_mult.cpp)
+target_link_libraries(test_cmat_mult mg gtest_all mg_test ${EXT_LIBS})

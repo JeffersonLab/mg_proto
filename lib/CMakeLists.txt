@@ -6,9 +6,9 @@ endif( QMP_COMMS )
 
 set( MEMORY_IMPL utils/memory_posix.cpp)
 
-add_library(mg lattice/coarsen.cpp
-			   lattice/lattice_info.cpp
+add_library(mg lattice/lattice_info.cpp
 			   lattice/nodeinfo.cpp
+			   lattice/cmat_mult.cpp
 			   ${NODEINFO_IMPL}
 			   utils/print_utils.cpp
 			   utils/memory.cpp

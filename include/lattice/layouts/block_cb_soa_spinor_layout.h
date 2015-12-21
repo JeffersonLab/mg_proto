@@ -21,7 +21,7 @@
 namespace MGGeometry {
 
 
-template<typename T>
+template<typename T, typename Aggregation=StandardAggregation>
 class BlockAggregateVectorLayout {
 private:
 	const LatticeInfo _info;
@@ -51,8 +51,8 @@ public:
 					_n_spins(aggr.GetSourceSpins(0).size()),
 					_block_layout(LatticeInfo(info.GetLatticeOrigin(),
 																   aggr.GetBlockDimensions(),
-																   aggr.GetSourceSpins(0).size(),
-																   aggr.GetSourceColors(0).size(),
+																   aggr.GetNumSourceSpins(),
+																   aggr.GetNumSourceColors(),
 																   info.GetNodeInfo()))
 	{
 
@@ -122,6 +122,7 @@ public:
 		}
 
 		/* This returns a layout with the origin amended. */
+		/* This will construct and copy */
 		return BlockInnerLayout(LatticeInfo(block_origin, _aggr.GetBlockDimensions(), binfo.GetNumSpins(), binfo.GetNumColors(), binfo.GetNodeInfo()));
 
 	}

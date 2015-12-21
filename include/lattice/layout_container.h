@@ -53,6 +53,13 @@ namespace MGGeometry {
 	  GenericLayoutContainer(const GenericLayoutContainer<T, Layout>& to_copy) :
 			 _layout(to_copy._layout), _buffer(to_copy._buffer), _data(to_copy._data) {}
 
+	  GenericLayoutContainer<T,Layout>& operator=(const GenericLayoutContainer<T,Layout>& to_copy) {
+		  _layout = to_copy._layout;
+		  _buffer = to_copy._buffer;
+		  _data = _buffer->GetData();
+		  return *this;
+	  }
+
 	  /** Allocating constructor */
 	  GenericLayoutContainer(const Layout& layout, const MGUtils::MemorySpace Space=MGUtils::REGULAR)
 	  : _layout(layout), _buffer(new Buffer<T>(layout.GetNumData(), Space)) {
@@ -146,13 +153,19 @@ namespace MGGeometry {
 	  ~LatticeLayoutContainer(){}
   };
 
-  template<typename T, typename Layout>
+  template<typename T, typename Layout, typename Aggregation=StandardAggregation>
   class AggregateLayoutContainer : public GenericLayoutContainer<T, Layout> {
    public:
  	  AggregateLayoutContainer(const LatticeInfo& info, const Aggregation& aggr,
  			  	  	  	  	  const MGUtils::MemorySpace Space=MGUtils::REGULAR) : GenericLayoutContainer<T,Layout>(Layout(info,aggr),Space) {}
 
  	  ~AggregateLayoutContainer(){};
+
+ 	  inline
+ 	  const Aggregation& GetAggregation()  const
+ 	  {
+ 		  return this->GetLayout().GetAggregation();
+ 	  }
    };
 
   template<typename T, typename Layout, typename Container>
@@ -168,6 +181,8 @@ namespace MGGeometry {
 	  typedef Layout layout_type;
 	  typedef GenericLayoutContainer<T,typename LayoutTraits<Layout>::subview_layout_type> subview_container_type;
   };
+
+
 
 }
 

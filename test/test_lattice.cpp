@@ -91,22 +91,6 @@ TEST(TestLattice, TestLatticeCoarseningStandardAggregation)
 
 }
 
-TEST(TestLattice, TestLatticeCoarseningFullSpinAggregation)
-{
- LatticeInfo fine_geom({{16,16,16,16}}, 4, 3, NodeInfo());
- FullSpinAggregation blocking(fine_geom.GetLatticeDimensions(),{{4,4,4,4}});
- IndexType num_vec = 24;
-
- LatticeInfo coarse_geom = CoarsenLattice(fine_geom,blocking,num_vec);
- for(IndexType mu=0; mu < n_dim; ++mu)
- {
-	 ASSERT_EQ((coarse_geom.GetLatticeDimensions())[mu], static_cast<IndexType>(4));
- }
- ASSERT_EQ(coarse_geom.GetNumColors(), static_cast<IndexType>(24));
- ASSERT_EQ(coarse_geom.GetNumSpins(), static_cast<IndexType>(1));
-
-
-}
 
 
 TEST(TestGeometryUtils, TestIndexToCoords)

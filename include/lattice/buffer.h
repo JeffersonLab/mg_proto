@@ -22,7 +22,7 @@ namespace MGGeometry {
   template<typename T>
   class Buffer {
   public:
-	  Buffer(IndexType n_elem, const MGUtils::MemorySpace Space=MGUtils::REGULAR) {
+	  Buffer(IndexType n_elem, const MGUtils::MemorySpace Space=MGUtils::REGULAR) : _owner(true){
 #pragma omp master
 		  {
 			  // Master thread allocates -- using MGUtils Allocato
@@ -31,13 +31,23 @@ namespace MGGeometry {
 #pragma omp barrier
 	  }
 
+	  /* A 'placement allocator' where the pointer to the buffer is passed in.
+	   * In this case we are not owners. Use this for views.
+	   */
+	  Buffer(const T* view_buffer) : _owner(false), _data(view_buffer) {}
+
+
+
 	  ~Buffer()
 	  {
+		  if(_owner) {
 #pragma omp master
 		  {
 			  MGUtils::MemoryFree(_data);
 		  }
+
 #pragma omp barrier
+		  }
 	  }
 
 	  /* Access data array -- beware threading */
@@ -51,6 +61,7 @@ namespace MGGeometry {
 	  }
   private:
   	  T* _data;
+  	  const bool _owner;
   };
 
 

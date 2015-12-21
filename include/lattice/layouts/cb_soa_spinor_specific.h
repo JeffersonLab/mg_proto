@@ -12,6 +12,11 @@
 #include "lattice/layouts/cb_soa_spinor_layout.h"
 #include "lattice/layout_container.h"
 #include "lattice/contiguous_blas.h"
+
+// This is using C++ random number engine for testing
+#include <random>
+
+
 namespace MGGeometry {
 
 	template<typename T, size_t blocksize = MG_DEFAULT_ALIGNMENT>
@@ -118,9 +123,65 @@ namespace MGGeometry {
 		}
 	}
 
+	template<typename T,
+		     typename Generator,
+			 size_t blocksize = MG_DEFAULT_ALIGNMENT>
+	void FillGaussian(GenericLayoutContainer<T,CBSOASpinorLayout<T>>& spinor, Generator& g) {
 
-	template<typename T>
-	void Random(const Generic)
+
+		std::normal_distribution<> gaussian_distribution;
+
+		const IndexType num_spins = spinor.GetLatticeInfo().GetNumSpins();
+		const IndexType num_colors = spinor.GetLatticeInfo().GetNumColors();
+		const IndexType num_cb = n_checkerboard;
+		const IndexType num_cbsites = spinor.GetLatticeInfo().GetNumCBSites();
+
+		/* Problem: We can distribute threading and vectors in various ways.
+		 * We can definitely compute in parallel the NormSq over each spin and color component in
+		 * each checkerboard. However, in the case of the fine lattice this does not have a lot of
+		 * parallelism. 4*3*2 = 24 way. However, on the fine lattice there may be a lot of local sites,
+		 * e.g. 4^4. We want to vectorize over these, but also feed additional threads.
+		 *
+		 * In single precision, for a vector lenght of 16 we need 8 complexes.
+		 * So the idea is to chunk the number of checkerboarded sites into blocks
+		 * the length of which corresponds to a cache line, which is at least 1 vector.
+		 * We can then parallelize also over the chunks.
+		 */
+
+
+		/* In this layout a site is a complex. So the number of sites in the block is the block size
+		 * in bytes divided by the size of a complex
+		 */
+		const IndexType sites_per_block = blocksize/sizeof(std::complex<T>);
+
+		/* Compute the number of blocks. If there is a remainder (the % op != 0) add an extra block. */
+		const IndexType num_blocks = (num_cbsites%sites_per_block == 0) ? (num_cbsites / sites_per_block) : (num_cbsites/sites_per_block)+1;
+
+#pragma omp parallel for collapse(4)
+		for(IndexType spin=0; spin < num_spins; ++spin) {
+			for(IndexType color=0; color < num_colors; ++color) {
+				for(IndexType cb=0; cb < num_cb; ++cb)  {
+					for(IndexType block=0; block < num_blocks; ++block) {
+
+
+						/* Find the start site of the block */
+						IndexType start_site = block*sites_per_block;
+
+						/* Find the end site of the block. In the last block, we may not fill the whole block */
+						IndexType end_site = (block+1)*sites_per_block > num_cbsites ? num_cbsites : (block+1)*sites_per_block;
+
+						for(IndexType site=start_site; site < end_site; ++site) {
+							spinor.Index(cb,site,spin,color,RE) = gaussian_distribution(g);
+							spinor.Index(cb,site,spin,color,IM) = gaussian_distribution(g);
+						}
+					}
+				}
+			}
+		}
+
+	}
+
+
 	template<typename T, size_t blocksize = MG_DEFAULT_ALIGNMENT>
 	double NormSq(const GenericLayoutContainer<T,CBSOASpinorLayout<T>>& spinor) {
 
