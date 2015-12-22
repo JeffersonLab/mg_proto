@@ -1,7 +1,27 @@
-#include "lattice/cmat_mult.h"
-#include <complex>
+#if 0
+
+#define SSE
+#define VECLEN 4  // SSE
 #include <xmmintrin.h>
 #include <pmmintrin.h>
+
+#else
+
+#define AVX2
+#define VECLEN 8 	// AVX2
+#define AVX2_FMA
+#undef AVX2_FMA_ADDSUB
+#include <immintrin.h>
+#endif
+
+#define VECLEN2 (VECLEN/2)
+
+
+
+#include "lattice/cmat_mult.h"
+#include <complex>
+
+#include <immintrin.h>
 namespace MGGeometry {
 
 
@@ -23,8 +43,6 @@ void CMatMultNaive(std::complex<float>*y,
     }
 }
 
-#define VECLEN 4  // SSE
-#define VECLEN2 (VECLEN/2)
 
 
 void CMatMult(float *y,
@@ -35,6 +53,10 @@ void CMatMult(float *y,
 
 	const IndexType TwoN=2*N;
 
+#ifdef AVX2
+	const __m256 signs=_mm256_set_ps(1,-1,1,-1,1,-1,1,-1);
+#endif
+
 	/* Initialize y */
 	for(IndexType row=0; row < TwoN; ++row) {
 	    y[row] = 0;
@@ -43,103 +65,80 @@ void CMatMult(float *y,
 	// 2 columns
 	for(IndexType col = 0; col < N; col++) {
 		for(int row=0; row < N; row += VECLEN2) {
-#if 0
-			float xr[VECLEN] __attribute((aligned(64)));
-			float xi[VECLEN] __attribute((aligned(64)));
-			float A_orig[VECLEN] __attribute((aligned(64)));
-			float A_perm[VECLEN] __attribute((aligned(64)));
 
-#else
+#ifdef SSE
 			__m128 xr,xi, A_orig, A_perm;
 			__m128 y1, y2;
-#endif
 
 			// NB: Single instruction broadcast...
-#if 0
-#pragma omp simd
-			for(IndexType i=0; i < VECLEN; ++i) {
-				xr[i] = x[2*col];
-			}
-#else
 			xr = _mm_load1_ps(&x[2*col]); // (unaligned load Broadcast...)
-#endif
-			// NB: Single instruction broadcast
-#if 0
-#pragma omp simd
-			for(IndexType i=0; i < VECLEN; ++i) {
-				xi[i] = x[2*col + 1];
-			}
-#else
 			xi = _mm_load1_ps(&x[2*col+1]); // Broadcast
-#endif
-			// This is kinda transposy: Get COLUMN of a into A_orig
-#if 0
-#pragma omp simd
-			for(IndexType i=0; i < VECLEN2; ++i) {
-				IndexType row = block*VECLEN2 + i;
-				A_orig[2*i] = A[TwoN*row + 2*col];
-				A_orig[2*i+1] = A[ TwoN*row + 2*col+1];
-			}
+			// Load VECLEN2 rows of A (A is row major so this is a simple thing)
+			A_orig = _mm_load_ps(&A[ TwoN*col + 2*row] );
+			A_perm = _mm_shuffle_ps( A_orig, A_orig, _MM_SHUFFLE(2,3,0,1));
+
+			// Do the maths.. Load in rows of result
+			__m128 yv = _mm_load_ps(&y[2*row]);
+
+			// 2 FMAs one with addsub
+			y1 = _mm_mul_ps(A_orig,xr);
+			yv = _mm_add_ps(yv,y1);
+			y2 = _mm_mul_ps(A_perm,xi);
+			yv = _mm_addsub_ps(yv, y2);
+
+			// Store
+			_mm_store_ps(&y[2*row],yv);
 #else
-			{
 
-				// Load VECLEN2 rows of A (A is row major so this is a simple thing)
-				A_orig = _mm_load_ps(&A[ TwoN*col + VECLEN2*row] );
+#ifdef AVX2
 
+#ifdef AVX2_FMA_ADDSUB
+			// Use addsub
+			__m256 xr,xi, A_orig, A_perm;
+			__m256 y1,y2;
 
-			}
-
+			xr = _mm256_broadcast_ss(&x[2*col]);
+			xi = _mm256_broadcast_ss(&x[2*col+1]);
+			A_orig = _mm256_load_ps( &A[ TwoN*col + 2*row] );
+			// In lane shuffle. Never cross 128bit lanes, only shuffle
+			// Real Imag parts of a lane. This is like two separate SSE
+			// Shuffles, hence the use of a single _MM_SHUFFLE() Macro
+			A_perm = _mm256_shuffle_ps(A_orig,A_orig, _MM_SHUFFLE(2,3,0,1));
+			__m256 yv = _mm256_load_ps(&y[2*row]);
+			__m256 tmp = _mm256_mul_ps(A_perm,xi);
+			yv = _mm256_fmadd_ps(A_orig,xr,yv);
+			yv = _mm256_addsub_ps(yv,tmp);
+			_mm256_store_ps(&y[2*row],yv);
 #endif
 
+#ifdef AVX2_FMA
+			// Use sign array
+			__m256 xr,xi, A_orig, A_perm;
+			__m256 y1,y2;
 
+			__m256 yv = _mm256_load_ps(&y[2*row]);
+			xr = _mm256_broadcast_ss(&x[2*col]);
+			xi = _mm256_broadcast_ss(&x[2*col+1]);
+			A_orig = _mm256_load_ps( &A[ TwoN*col + 2*row] );
 
-			// This would work best by permuting the previous column
-			// Ideally a single shuffle
-#if 0
-#pragma omp simd
-			for(IndexType i=0; i < VECLEN2; ++i) {
-				IndexType row = block*VECLEN2 + i;
-				A_perm[2*i] = -A[TwoN*row + 2*col + 1];
-				A_perm[2*i+1] = A[TwoN*row + 2*col];
-			}
-#else
-			{
-				// Permute them
-				A_perm = _mm_shuffle_ps( A_orig, A_orig, _MM_SHUFFLE(2,3,0,1));
-			}
-#endif
+			// In lane shuffle. Never cross 128bit lanes, only shuffle
+			// Real Imag parts of a lane. This is like two separate SSE
+			// Shuffles, hence the use of a single _MM_SHUFFLE() Macro
+			A_perm = _mm256_shuffle_ps(A_orig,A_orig, _MM_SHUFFLE(2,3,0,1));
+			__m256 tmp = _mm256_mul_ps(A_perm, xi);
+			yv = _mm256_fmadd_ps(A_orig,xr,yv);
 
-#if 0
-			// Two FMAs
-#pragma omp simd
-			for (IndexType i = 0; i < VECLEN; ++i) {
-				y[ start+i ] +=  A_orig[i]* xr[i] + A_perm[i]*xi[i];
-			}
-#else
-			{
-				// Do the maths.. Load in rows of result
-				__m128 yv = _mm_load_ps(&y[VECLEN2*row]);
+			// Instead of addsub, I am multiplying
+			// signs into tmp, to use 2 FMAs. This appears to
+			// be faster: 19.1GF vs 16.8GF at N=40
+			yv = _mm256_fmadd_ps(signs,tmp,yv);
 
-				// 2 FMAs one with addsub
-				y1 = _mm_mul_ps(A_orig,xr);
-				yv = _mm_add_ps(yv,y1);
-				y2 = _mm_mul_ps(A_perm,xi);
-				yv = _mm_addsub_ps(yv, y2);
+			_mm256_store_ps(&y[2*row],yv);
+#endif // AVX2 FMA
+#endif // AVX2
+#endif // SSE
 
-				// Store
-				_mm_store_ps(&y[VECLEN2*row],yv);
-			}
-#endif
 		}
-
-#if 0
-		for(IndexType row= n_block*VECLEN2 ; row < 2*N; ++row ) {
-			y[2*row] +=  A[TwoN * row + 2 * col]* x[2*col];
-				y[2*row + 1] +=  A[TwoN * row + 2	* col + 1] * x[2*col];
-				y[2*row] -=  A[TwoN * row + 2 * col + 1] * x[2*col + 1];
-				y[2*row + 1] += A[TwoN * row + 2 * col] * x[2*col+1];
-		}
-#endif
 	}
 
 }

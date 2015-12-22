@@ -165,6 +165,7 @@ TEST(TestBlockLayout, TestBlockSubview)
 
 	auto num_inner_spins = aggr.GetSourceSpins(0).size();
 	auto num_inner_colors = aggr.GetSourceColors(0).size();
+	auto num_block_vol = aggr.GetBlockVolume();
 
 
 #pragma omp parallel for collapse(6)
@@ -172,7 +173,7 @@ TEST(TestBlockLayout, TestBlockSubview)
 		for(IndexType cblock=0; cblock < num_outer_spins; ++cblock) {
 			for(IndexType spin=0; spin < num_inner_spins; ++spin) {
 				for(IndexType color=0; color < num_inner_colors; ++color) {
-					for(IndexType blocksite =0; blocksite < aggr.GetBlockVolume(); ++blocksite) {
+					for(IndexType blocksite =0; blocksite < num_block_vol; ++blocksite) {
 						for(IndexType reim=0; reim < n_complex; ++reim) {
 							EXPECT_EQ( v_block.Index(block,cblock,blocksite,spin,color,reim), cblock + num_outer_spins*block);
 						}
