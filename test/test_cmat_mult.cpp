@@ -66,7 +66,13 @@ TEST(CMatMult, TestCorrectness)
 	MGUtils::MasterLog(MGUtils::DEBUG2, "Computing Reference");
 	CMatMultNaive(yc,Ac,xc,N );
 	MGUtils::MasterLog(MGUtils::DEBUG2, "Computing Optimized");
-	CMatMult(y2,A_T,x,N);
+
+#pragma omp parallel shared(y2,A_T,x)
+	{
+		int tid=omp_get_thread_num();
+		int nthreads=omp_get_num_threads();
+		CMatMult(y2,A_T,x,N, tid, nthreads);
+	}
 	MGUtils::MasterLog(MGUtils::DEBUG2, "Comparing");
 	for(int i=0; i < 2*N; ++i) {
 		MGUtils::MasterLog(MGUtils::DEBUG3, "x[%d]=%g y[%d]=%g y2[%d]=%g",i,x[i],i,y[i],i,y2[i]);
@@ -85,18 +91,20 @@ TEST(CMatMult, TestCorrectness)
 TEST(CMatMult, TestSpeed)
 {
 	const int N = 40;
-	const int N_iter = 10000000;
-	const int N_warm = 2000;
-#if 0
-	__declspec(align(64)) float x[2*N];
-	__declspec(align(64)) float y[2*N];
-	__declspec(align(64)) float y2[2*N];
-	__declspec(align(64)) float A[2*N*N];
-#else
+	const int N_iter = 3000000;
+	const int N_warm = 200;
+#if 1
 	float *x = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
 	float *y = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
 	float *A = static_cast<float*>(MGUtils::MemoryAllocate(2*N*N*sizeof(float)));
 	float *y2 = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
+
+#else
+	__declspec(align(64)) float x[2*N];
+	__declspec(align(64)) float y[2*N];
+	__declspec(align(64)) float y2[2*N];
+	__declspec(align(64)) float A[2*N*N];
+
 #endif
 
 	std::complex<float>* xc = reinterpret_cast<std::complex<float>*>(&x[0]);
@@ -129,17 +137,30 @@ TEST(CMatMult, TestSpeed)
 	double N_iter_dble = static_cast<double>(N_iter);
 	double gflops=N_iter_dble*(N_dble*(8*N_dble-2))/1.0e9;
 
-	// Warm cache
-	for(int iter=0; iter < N_warm; ++iter ) {
-			CMatMult(y2,A,x,N);
-	}
+#pragma omp parallel shared(y2)
+	{
+		int tid=omp_get_thread_num();
+		int nthreads=omp_get_num_threads();
 
-	// Time Optimized
-	start_time = omp_get_wtime();
-	for(int iter=0; iter < N_iter; ++iter ) {
-		CMatMult(y2,A,x,N);
-	}
-	end_time = omp_get_wtime();
+		// Warm cache
+		for(int iter=0; iter < N_warm; ++iter ) {
+			CMatMult(y2,A,x,N,tid,nthreads);
+		}
+
+		// Time Optimized
+#pragma omp single
+		{
+			start_time = omp_get_wtime();
+		}
+		for(int iter=0; iter < N_iter; ++iter ) {
+			CMatMult(y2,A,x,N,tid,nthreads);
+		}
+
+#pragma omp single
+		{
+			end_time = omp_get_wtime();
+		}
+	} // end parallel
 	time=end_time - start_time;
 	double gflops_opt = gflops/time;
 

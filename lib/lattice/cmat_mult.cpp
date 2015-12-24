@@ -1,4 +1,7 @@
-#if 0
+
+#include <omp.h>
+#include <cstdio>
+#if 1
 
 #define SSE
 #define VECLEN 4  // SSE
@@ -48,7 +51,9 @@ void CMatMultNaive(std::complex<float>*y,
 void CMatMult(float *y,
 			  const float* A,
 			  const float* x,
-			  const IndexType N)
+			  const IndexType N,
+			  const int tid,
+			  const int nthreads)
 {
 
 	const IndexType TwoN=2*N;
@@ -57,15 +62,31 @@ void CMatMult(float *y,
 	const __m256 signs=_mm256_set_ps(1,-1,1,-1,1,-1,1,-1);
 #endif
 
+	int num_veclen2 = N/VECLEN2; // For N=40 this is 20
+
+	int blocks_per_thread = num_veclen2/nthreads; // For 2 threads this is 10
+	if( num_veclen2 % nthreads > 0) blocks_per_thread++;
+
+	// For thread 0 => 0, for thread 1 => 10
+	int minblock = tid*blocks_per_thread;
+	// For thread 0 => 10, for thread 2 = 20
+	int maxblock = (tid+1)*blocks_per_thread > num_veclen2 ? num_veclen2 : (tid+1)*blocks_per_thread;
+
 	/* Initialize y */
-	for(IndexType row=0; row < TwoN; ++row) {
-	    y[row] = 0;
+	for(IndexType vrow=minblock; vrow < maxblock; ++vrow) {
+
+#pragma omp simd aligned(y:16)
+		for(IndexType i=0; i < VECLEN; ++i) {
+			y[vrow*VECLEN+i] = 0;
+		}
 	}
 
-	// 2 columns
 	for(IndexType col = 0; col < N; col++) {
-		for(int row=0; row < N; row += VECLEN2) {
 
+		// thread 0 does = 0..9
+		// thread 1 does = 10-19
+		for(int vrow=minblock; vrow < maxblock; vrow++) {
+			int row = vrow*VECLEN2;
 #ifdef SSE
 			__m128 xr,xi, A_orig, A_perm;
 			__m128 y1, y2;

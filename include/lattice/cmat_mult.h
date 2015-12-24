@@ -20,7 +20,7 @@ namespace MGGeometry {
  */
 
 
-void CMatMult(float *y, const float *A,  const float *x, IndexType N);
+void CMatMult(float *y, const float *A,  const float *x, const IndexType N, const int tid, const int nthreads);
 
 void CMatMultNaive(std::complex<float>* y, const std::complex<float>* A, const std::complex<float>* x, IndexType N);
 
