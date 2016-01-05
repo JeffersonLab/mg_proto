@@ -168,7 +168,7 @@ namespace MGUtils {
 			MasterLog(INFO, "\t max: %zu bytes %zu MBytes",
 						max_fast, max_fast/(1024*1024));
 
-#if 1
+#if 0
 			MasterLog(DEBUG2, "Dumping (and Freeing) Regular Table");
 			for( auto it=regular_mmap.begin(); it != regular_mmap.end(); it++) {
 				MasterLog(DEBUG2, "\t address=%zu, size=%zu", it->first, it->second);
