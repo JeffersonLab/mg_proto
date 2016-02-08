@@ -272,7 +272,8 @@ TEST(CMatMultVrow, TestSpeed)
 	MGUtils::MasterLog(MGUtils::INFO, "Iters=%d CMatMultSMT: Time=%16.8e (sec) Flops = %16.8e (GF)",
 			N_iter, time, gflops_opt);
 
-#if 1
+
+#if 0
 	// Time Naive
 
 	// Warm cache
@@ -305,7 +306,6 @@ TEST(CMatMultVrow, TestSpeed)
 #endif
 }
 
-
 #if 0
 TEST(CMatMultVrow, TestSpeedNoSum)
 {
@@ -328,10 +328,6 @@ TEST(CMatMultVrow, TestSpeedNoSum)
 	__declspec(align(64)) float A[2*N*N*N_dir];
 
 #endif
-
-
-
-
 
 
 	/* Fill A and X with Gaussian Noise */
@@ -399,8 +395,6 @@ TEST(CMatMultVrow, TestSpeedNoSum)
 			}
 		}
 	}
-
-
 
 	MGUtils::MasterLog(MGUtils::INFO, "Done");
 	__declspec(aligned(64)) double start_time[128][8];
@@ -542,6 +536,7 @@ MGUtils::MasterLog(MGUtils::INFO, "Warming Up");
 	MGUtils::MemoryFree(x);
 #endif
 }
+
 
 #endif
 #endif
