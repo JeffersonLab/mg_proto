@@ -9,6 +9,7 @@
 
 
 #include "lattice/cmat_mult.h"
+#include "utils/memory.h"
 #include <complex>
 
 #include <immintrin.h>
@@ -171,9 +172,20 @@ void CMatMult(float *y,
 
 }
 
+__declspec(aligned(64)) float* tmp_space;
+
+void AllocSpace(const int N)
+{
+	tmp_space = static_cast<float*>(MGUtils::MemoryAllocate(8*2*N*sizeof(float)));
+}
+
+void DestroySpace(void)
+{
+	if( tmp_space != nullptr ) MGUtils::MemoryFree(tmp_space);
+}
 
 
-
+#if 0
 void CMatMultVrow(float *y,
 			  const float* A,
 			  const float* x,
@@ -302,6 +314,6 @@ void CMatMultVrow(float *y,
 
 }
 
-
+#endif
 
 }

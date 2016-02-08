@@ -5,7 +5,7 @@
 
 namespace MGGeometry { 
 
-	using IndexType = unsigned int;
+	using IndexType = int;
 	const IndexType n_dim = 4; // Our lattices are four dimensional
 	using IndexArray = std::array< IndexType, n_dim>;
 
