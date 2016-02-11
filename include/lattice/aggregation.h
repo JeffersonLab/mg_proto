@@ -11,7 +11,7 @@
 #include <vector>
 #include "lattice/constants.h"
 #include "lattice/geometry_utils.h"
-namespace MGGeometry {
+namespace MG {
 
 
 class StandardAggregation  {

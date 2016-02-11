@@ -13,7 +13,7 @@
 
 using namespace std;
 
-namespace MGUtils {
+namespace MG {
 
 	// Track allocations
 

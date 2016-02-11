@@ -21,7 +21,7 @@
 #include "lattice/layouts/cb_soa_spinor_specific.h"
 
 
-namespace MGGeometry {
+namespace MG {
 
   // Typedefs;
   using LatticeSpinorF = LatticeLayoutContainer<float,CBSOASpinorLayout<float>>;

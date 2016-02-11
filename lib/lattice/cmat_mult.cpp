@@ -13,7 +13,7 @@
 #include <complex>
 
 #include <immintrin.h>
-namespace MGGeometry {
+namespace MG {
 
 
 void CMatMultNaive(std::complex<float>*y,
@@ -176,12 +176,12 @@ __declspec(aligned(64)) float* tmp_space;
 
 void AllocSpace(const int N)
 {
-	tmp_space = static_cast<float*>(MGUtils::MemoryAllocate(8*2*N*sizeof(float)));
+	tmp_space = static_cast<float*>(MG::MemoryAllocate(8*2*N*sizeof(float)));
 }
 
 void DestroySpace(void)
 {
-	if( tmp_space != nullptr ) MGUtils::MemoryFree(tmp_space);
+	if( tmp_space != nullptr ) MG::MemoryFree(tmp_space);
 }
 
 

@@ -1,7 +1,7 @@
 #ifndef  PRINT_UTILS_H
 #define  PRINT_UTILS_H
 
-namespace MGUtils {
+namespace MG {
 	     /*! some log levels */
          enum LogLevel { ERROR=0, INFO, DEBUG, DEBUG2, DEBUG3 };
 

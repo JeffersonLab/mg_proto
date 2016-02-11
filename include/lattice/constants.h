@@ -3,7 +3,7 @@
 
 #include <array>
 
-namespace MGGeometry { 
+namespace MG { 
 
 	using IndexType = int;
 	const IndexType n_dim = 4; // Our lattices are four dimensional

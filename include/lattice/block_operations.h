@@ -14,7 +14,7 @@
 #include "lattice/layouts/block_cb_soa_spinor_layout.h"
 
 
-namespace MGGeometry {
+namespace MG {
 
 	template<typename BlockedSpinorOut, typename SpinorIn>
 	void zip(BlockedSpinorOut& v_out, const SpinorIn& spinor_in)

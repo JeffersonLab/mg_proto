@@ -8,9 +8,9 @@
 
 #include "utils/print_utils.h"
 
-using namespace MGUtils;
+using namespace MG;
 
-namespace MGGeometry {
+namespace MG {
 
 
 

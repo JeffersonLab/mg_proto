@@ -1,7 +1,7 @@
 #ifndef INCLUDE_LATTICE_VIRTUAL_NODE_H
 #define INCLUDE_LATTICE_VIRTUAL_NODE_H
 
-namespace MGGeometry {
+namespace MG {
 
 template<typename T, const unsigned int Nd>
 struct VNGeneral {

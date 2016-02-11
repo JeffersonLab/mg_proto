@@ -9,7 +9,7 @@
 #include <complex>
 
 #include <immintrin.h>
-namespace MGGeometry {
+namespace MG {
 
 
 CoarseDiracOp::CoarseDiracOp(const LatticeInfo& l_info,
@@ -31,7 +31,7 @@ CoarseDiracOp::CoarseDiracOp(const LatticeInfo& l_info,
 #pragma omp master
 		{
 			_n_threads = omp_get_num_threads();
-			_thread_limits = (ThreadLimits*) MGUtils::MemoryAllocate(_n_threads*sizeof(ThreadLimits), MGUtils::REGULAR);
+			_thread_limits = (ThreadLimits*) MG::MemoryAllocate(_n_threads*sizeof(ThreadLimits), MG::REGULAR);
 		} // omp master: barrier implied
 
 #pragma omp barrier

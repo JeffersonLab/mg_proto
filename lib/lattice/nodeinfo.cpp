@@ -7,7 +7,7 @@
 
 #include "lattice/nodeinfo.h"
 
-namespace MGGeometry {
+namespace MG {
 
 	/*! Copy Constructor */
 	NodeInfo::NodeInfo(const NodeInfo& i) : _num_nodes{i._num_nodes},

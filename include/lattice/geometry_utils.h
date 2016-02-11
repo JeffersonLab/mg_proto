@@ -12,7 +12,7 @@
 #include "lattice/constants.h"
 #include "utils/print_utils.h"
 
-namespace MGGeometry {
+namespace MG {
 
 
 	/** Check that one lattice divides another
@@ -25,7 +25,7 @@ namespace MGGeometry {
 	{
 		 for(unsigned int mu=0; mu < n_dim; ++mu ) {
 			 if ( dims_num[mu] % dims_den[mu] != 0 ) {
-				 MGUtils::MasterLog(MGUtils::ERROR, "CheckVectorsDivideEachOther: Dimensions incompatible");
+				 MG::MasterLog(MG::ERROR, "CheckVectorsDivideEachOther: Dimensions incompatible");
 			 }
 		 }
 	}
@@ -34,7 +34,7 @@ namespace MGGeometry {
 	void  AssertEquals( const IndexType v1, const IndexType v2)
 	{
 		if ( v1 != v2 ) {
-			MGUtils::MasterLog(MGUtils::ERROR, "IndexType values are unequal %u and %u",v1,v2);
+			MG::MasterLog(MG::ERROR, "IndexType values are unequal %u and %u",v1,v2);
 		}
 	}
 

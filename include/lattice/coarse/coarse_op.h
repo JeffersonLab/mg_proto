@@ -13,7 +13,7 @@
 #include "lattice/cmat_mult.h"
 #include "lattice/coarse/coarse_types.h"
 
-namespace MGGeometry {
+namespace MG {
 
 struct ThreadLimits {
 

@@ -8,7 +8,7 @@
 #ifndef INCLUDE_LATTICE_LAYOUT_TRAITS_H_
 #define INCLUDE_LATTICE_LAYOUT_TRAITS_H_
 
-namespace MGGeometry {
+namespace MG {
 
 template<typename L>
 struct

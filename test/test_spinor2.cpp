@@ -13,8 +13,8 @@
 #include <cmath>
 
 #include <random>
-using namespace MGGeometry;
-using namespace MGUtils;
+using namespace MG;
+using namespace MG;
 
 /* Test the layout functions */
 TEST(TestLayout, TestCBLayoutCreate)

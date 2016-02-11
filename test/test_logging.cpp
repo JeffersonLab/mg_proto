@@ -5,7 +5,7 @@
 #include "MG_config.h"
 #include "test_env.h"
 
-using namespace MGUtils; 
+using namespace MG; 
 
 
 TEST(TestLogging, TestDefaultLoglevel)

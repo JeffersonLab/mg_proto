@@ -13,7 +13,7 @@
 #include "utils/print_utils.h"
 
 
-namespace MGGeometry {
+namespace MG {
 
 	class MockNodeInfo : public NodeInfo {
 	public:
@@ -24,7 +24,7 @@ namespace MGGeometry {
 				_node_dims[mu]=pe_dims[mu];
 				_node_coords[mu]=pe_coords[mu];
 				if( _node_coords[mu] >= _node_dims[mu] ) {
-					MGUtils::MasterLog(MGUtils::ERROR,
+					MG::MasterLog(MG::ERROR,
 								"Node Coordinate has to be less than or equal to node dimension.");
 				}
 			}

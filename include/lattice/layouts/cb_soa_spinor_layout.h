@@ -13,7 +13,7 @@
 #include "lattice/lattice_info.h"
 #include "lattice/geometry_utils.h"
 #include "lattice/layout_traits.h"
-namespace MGGeometry {
+namespace MG {
 
   /** A Class to hold spinors
    *

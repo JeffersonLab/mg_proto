@@ -15,9 +15,9 @@
 #include <iostream>
 #include "qmp.h"
 
-using namespace MGUtils;
+using namespace MG;
 
-namespace MGGeometry {
+namespace MG {
 
 	NodeInfo::NodeInfo(void)
 	{

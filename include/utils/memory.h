@@ -17,7 +17,7 @@
 //     Kokkos does a good job of this already I bet.
 //
 
-namespace MGUtils {
+namespace MG {
 
 	// We typically have notions of slow and fast memory.
 	// For sake of argument: on GPU Fast memory may be GPU memory

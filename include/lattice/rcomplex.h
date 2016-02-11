@@ -11,7 +11,7 @@
 #include "lattice/constants.h"
 #include "lattice/basic_typetraits.h"
 
-namespace MGGeometry {
+namespace MG {
 
 template<typename T>
 class RComplex {

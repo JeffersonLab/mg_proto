@@ -5,7 +5,7 @@
  *      Author: bjoo
  */
 
-namespace MGGeometry {
+namespace MG {
 
 	/* I need some kind of random number generator */
 

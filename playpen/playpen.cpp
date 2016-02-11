@@ -13,8 +13,8 @@
 
 #include <vector>
 
-using namespace MGGeometry;
-using namespace MGUtils;
+using namespace MG;
+using namespace MG;
 
 
 class CoarseOperator {

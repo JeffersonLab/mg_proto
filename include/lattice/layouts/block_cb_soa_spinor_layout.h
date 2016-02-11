@@ -18,7 +18,7 @@
 #include "utils/print_utils.h"
 #include "lattice/layout_traits.h"
 #include <memory>
-namespace MGGeometry {
+namespace MG {
 
 
 template<typename T, typename Aggregation=StandardAggregation>

@@ -14,7 +14,7 @@
 #include "lattice/layouts/cb_soa_spinor_layout.h"
 #include "lattice/buffer.h"
 
-namespace MGGeometry
+namespace MG
 {
 
 /* Value Type */
@@ -22,7 +22,7 @@ template<typename T>
 class LatticeGeneralSpinor {
 public:
 	explicit LatticeGeneralSpinor(const LatticeInfo& info,
-								  const MGUtils::MemorySpace Space=MGUtils::REGULAR) : _layout(CBSOASpinorLayout<T>(info)),
+								  const MG::MemorySpace Space=MG::REGULAR) : _layout(CBSOASpinorLayout<T>(info)),
 		_buffer(new Buffer<T>(_layout.GetNumData(),Space)) {
 		_data = _buffer->GetData();
 	}

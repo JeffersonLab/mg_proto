@@ -12,7 +12,7 @@
 #include "lattice/basic_typetraits.h"
 #include "lattice/virtual_node.h"
 
-namespace MGGeometry {
+namespace MG {
 
 // This has to be a leaf class
 // F has to be something literal like float/double

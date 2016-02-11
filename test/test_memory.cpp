@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include "utils/memory.h"
 
-using namespace MGUtils;
+using namespace MG;
 
 TEST(TestMemory, InitialSetup)
 {

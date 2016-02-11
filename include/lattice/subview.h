@@ -12,11 +12,11 @@
 #include "lattice/layout_container.h"
 #include "utils/memory.h"
 
-namespace MGGeometry {
+namespace MG {
 
 	template<typename T,
 	         template<typename T2> class Layout,
-			 const MGUtils::MemorySpace Space = MGUtils::REGULAR>
+			 const MG::MemorySpace Space = MG::REGULAR>
 class SubView {
 public:
 

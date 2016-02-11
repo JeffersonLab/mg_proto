@@ -66,12 +66,12 @@ namespace MG
 		MasterLog(INFO, "Declared QMP Topology: %d %d %d %d\n",
 				  proc_geometry[0], proc_geometry[1], proc_geometry[2], proc_geometry[3]);
 #endif
-		MGUtils::InitMemory(argc,argv);
+		MG::InitMemory(argc,argv);
 	}
 
 	void finalize(void)
 	{
-		MGUtils::FinalizeMemory();
+		MG::FinalizeMemory();
 #ifdef QMP_COMMS
 		QMP_finalize_msg_passing();
 #endif
@@ -79,7 +79,7 @@ namespace MG
 
 	void abort(void)
 	{
-		MGUtils::FinalizeMemory();
+		MG::FinalizeMemory();
 #ifdef QMP_COMMS
 		QMP_abort(1);
 #else

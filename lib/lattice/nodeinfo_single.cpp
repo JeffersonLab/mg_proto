@@ -13,7 +13,7 @@
 
 
 
-namespace MGGeometry {
+namespace MG {
 
 	NodeInfo::NodeInfo(void)
 	{

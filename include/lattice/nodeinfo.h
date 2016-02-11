@@ -4,7 +4,7 @@
 #include "lattice/constants.h"
 #include <vector>
 
-namespace MGGeometry {
+namespace MG {
 
   // Place holder
   class NodeInfo {

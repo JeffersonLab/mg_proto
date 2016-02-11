@@ -8,7 +8,7 @@
 #ifndef INCLUDE_LATTICE_THREAD_INFO_H_
 #define INCLUDE_LATTICE_THREAD_INFO_H_
 
-namespace MGGeometry {
+namespace MG {
 
 	struct ThreadInfo {
 

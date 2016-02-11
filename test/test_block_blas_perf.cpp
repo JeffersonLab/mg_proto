@@ -13,10 +13,10 @@
 #include <utility>
 
 #include "lattice/contiguous_blas.h"
-using namespace MGGeometry;
-using namespace MGUtils;
+using namespace MG;
+using namespace MG;
 
-namespace MGGeometry {
+namespace MG {
 
 
 

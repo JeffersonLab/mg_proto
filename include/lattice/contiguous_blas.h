@@ -14,9 +14,9 @@
 #include <complex>
 
 
-using namespace MGUtils;
+using namespace MG;
 
-namespace MGGeometry {
+namespace MG {
 
 	/** NormSquared of a list of real numbers.
 	 *  I tried blocking this etc, but it seems to do best as it is

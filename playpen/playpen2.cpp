@@ -24,8 +24,8 @@
  * However, probably you don't want to deep copy your vector spaces
  *
  */
-using namespace MGGeometry;
-using namespace MGUtils;
+using namespace MG;
+using namespace MG;
 
 // Option 1:
 template<typename T, typename BlockedLayout>

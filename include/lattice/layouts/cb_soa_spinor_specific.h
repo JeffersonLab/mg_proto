@@ -17,7 +17,7 @@
 #include <random>
 
 
-namespace MGGeometry {
+namespace MG {
 
 	template<typename T, size_t blocksize = MG_DEFAULT_ALIGNMENT>
 	void Zero(GenericLayoutContainer<T,CBSOASpinorLayout<T>>& spinor)
@@ -413,7 +413,7 @@ namespace MGGeometry {
 
 		// Dumb?
 		if ( num_vectors == 0 ) {
-			MGUtils::MasterLog(MGUtils::ERROR, "GramSchmidt: Attempting to Orthogonalize zero vectors ");
+			MG::MasterLog(MG::ERROR, "GramSchmidt: Attempting to Orthogonalize zero vectors ");
 		}
 
 		// Gram-Schmidt-ery

@@ -11,8 +11,8 @@
 #include "constants.h"
 #include <complex>
 
-#undef SSE
-#define AVX2
+#define SSE
+#undef AVX2
 #undef AVX
 
 #ifdef  SSE
@@ -37,7 +37,7 @@
 
 
 
-namespace MGGeometry {
+namespace MG {
 
 inline int MinInt(const int& a, const int& b)
 {

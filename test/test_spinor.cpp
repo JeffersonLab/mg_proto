@@ -16,8 +16,8 @@
 #include "lattice/ilattice.h"
 #include "lattice/rcomplex.h"
 
-using namespace MGGeometry;
-using namespace MGUtils;
+using namespace MG;
+using namespace MG;
 
 
 

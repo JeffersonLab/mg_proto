@@ -11,7 +11,7 @@
 #include "lattice/lattice_info.h"
 #include "lattice/aggregation.h"
 
-namespace MGGeometry {
+namespace MG {
 
 
 	/*!  Coarsen a lattice info given a number of vectors and an aggregation */

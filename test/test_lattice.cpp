@@ -11,7 +11,7 @@
 #include "test_env.h"
 #include "mock_nodeinfo.h"
 
-using namespace MGGeometry; 
+using namespace MG; 
 
 TEST(TestLattice, TestLatticeInitialization)
 {

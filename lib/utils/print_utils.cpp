@@ -9,7 +9,7 @@
 #include "qmp.h"
 #endif
 
-namespace MGUtils {
+namespace MG {
 
 	/* Current Log Level */
 	static volatile LogLevel current_log_level = MG_DEFAULT_LOGLEVEL;

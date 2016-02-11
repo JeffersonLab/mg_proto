@@ -11,8 +11,8 @@
 #include "lattice/layouts/block_cb_soa_spinor_layout.h"
 #include "lattice/block_operations.h"
 
-using namespace MGGeometry;
-using namespace MGUtils;
+using namespace MG;
+using namespace MG;
 
 TEST(TestBlockLayout, TestBlockLayoutCreate)
 {

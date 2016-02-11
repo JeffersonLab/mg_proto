@@ -10,10 +10,10 @@
 /* These are for sorting */
 #include <algorithm>
 #include <functional>
-using namespace MGUtils;
+using namespace MG;
 using namespace std;
 
-namespace MGGeometry { 
+namespace MG { 
 
 LatticeInfo::LatticeInfo(
 		    const IndexArray& lat_origin, // Global Origin

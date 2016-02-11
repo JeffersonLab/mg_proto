@@ -9,7 +9,7 @@
 #define INCLUDE_LATTICE_BUFFER_H_
 
 #include "utils/memory.h"
-namespace MGGeometry {
+namespace MG {
 // NB: At this level the BlockSpinor Does not need a ghost
 // The block spinor will need block: norm2(), norm() innerProduct(), add(), sub(), madd(), msub() and scale() operations
 // To perform the block orthogonalization.
@@ -22,11 +22,11 @@ namespace MGGeometry {
   template<typename T>
   class Buffer {
   public:
-	  Buffer(IndexType n_elem, const MGUtils::MemorySpace Space=MGUtils::REGULAR) : _owner(true){
+	  Buffer(IndexType n_elem, const MG::MemorySpace Space=MG::REGULAR) : _owner(true){
 #pragma omp master
 		  {
 			  // Master thread allocates -- using MGUtils Allocato
-			  _data = reinterpret_cast<T*>(MGUtils::MemoryAllocate(n_elem*sizeof(T),Space));
+			  _data = reinterpret_cast<T*>(MG::MemoryAllocate(n_elem*sizeof(T),Space));
 		  }
 #pragma omp barrier
 	  }
@@ -43,7 +43,7 @@ namespace MGGeometry {
 		  if(_owner) {
 #pragma omp master
 		  {
-			  MGUtils::MemoryFree(_data);
+			  MG::MemoryFree(_data);
 		  }
 
 #pragma omp barrier

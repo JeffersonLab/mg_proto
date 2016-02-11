@@ -13,9 +13,9 @@
 #include "utils/memory.h"
 #include "utils/print_utils.h"
 
-using namespace MGUtils;
+using namespace MG;
 
-namespace MGGeometry {
+namespace MG {
 
 	/** Coarse Spinor
 	 *  \param LatticeInfo
@@ -46,8 +46,8 @@ namespace MGGeometry {
 			IndexType num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_site_offset;
 
 			/* Contiguout allocation */
-			data[0] = (float *)MGUtils::MemoryAllocate(num_floats_per_cb*sizeof(float), MGUtils::REGULAR);
-			data[1] = (float *)MGUtils::MemoryAllocate(num_floats_per_cb*sizeof(float), MGUtils::REGULAR);
+			data[0] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
+			data[1] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
 
 			/* Offset the checkerboard */
 			//data[1] = (data[0] + num_floats_per_cb);
@@ -135,8 +135,8 @@ namespace MGGeometry {
 			IndexType num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_site_offset;
 
 			/* Contiguout allocation */
-			data[0] = (float *)MGUtils::MemoryAllocate(num_floats_per_cb*sizeof(float), MGUtils::REGULAR);
-			data[1] = (float *)MGUtils::MemoryAllocate(num_floats_per_cb*sizeof(float), MGUtils::REGULAR);
+			data[0] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
+			data[1] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
 
 		}
 

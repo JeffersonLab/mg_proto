@@ -17,7 +17,7 @@
 #include <memory>
 #include <type_traits>
 
-namespace MGGeometry {
+namespace MG {
 
   /** A Class to hold spinors
    *
@@ -61,14 +61,14 @@ namespace MGGeometry {
 	  }
 
 	  /** Allocating constructor */
-	  GenericLayoutContainer(const Layout& layout, const MGUtils::MemorySpace Space=MGUtils::REGULAR)
+	  GenericLayoutContainer(const Layout& layout, const MG::MemorySpace Space=MG::REGULAR)
 	  : _layout(layout), _buffer(new Buffer<T>(layout.GetNumData(), Space)) {
 		  _data = _buffer->GetData();
 	  }
 
 #if 0
 	  /** Allocating constructor -- needs only lattice info */
-	  GenericLayoutContainer(const LatticeInfo& info, const MGUtils::MemorySpace Space=MGUtils::REGULAR)
+	  GenericLayoutContainer(const LatticeInfo& info, const MG::MemorySpace Space=MG::REGULAR)
 	  : _layout{info}, _buffer(new Buffer<T>(_layout.GetNumData(), Space)) {
 		  _data = _buffer->GetData();
 	  }
@@ -149,7 +149,7 @@ namespace MGGeometry {
   template<typename T, typename Layout>
   class LatticeLayoutContainer : public GenericLayoutContainer<T, Layout> {
   public:
-	  LatticeLayoutContainer(const LatticeInfo& info, const MGUtils::MemorySpace Space=MGUtils::REGULAR) : GenericLayoutContainer<T,Layout>(Layout(info),Space) {}
+	  LatticeLayoutContainer(const LatticeInfo& info, const MG::MemorySpace Space=MG::REGULAR) : GenericLayoutContainer<T,Layout>(Layout(info),Space) {}
 	  ~LatticeLayoutContainer(){}
   };
 
@@ -157,7 +157,7 @@ namespace MGGeometry {
   class AggregateLayoutContainer : public GenericLayoutContainer<T, Layout> {
    public:
  	  AggregateLayoutContainer(const LatticeInfo& info, const Aggregation& aggr,
- 			  	  	  	  	  const MGUtils::MemorySpace Space=MGUtils::REGULAR) : GenericLayoutContainer<T,Layout>(Layout(info,aggr),Space) {}
+ 			  	  	  	  	  const MG::MemorySpace Space=MG::REGULAR) : GenericLayoutContainer<T,Layout>(Layout(info,aggr),Space) {}
 
  	  ~AggregateLayoutContainer(){};
 

@@ -16,7 +16,7 @@
 #include "lattice/layout_traits.h"
 
 #include "utils/print_utils.h"
-namespace MGGeometry {
+namespace MG {
 
   /** A Class to hold spinors
    *
@@ -75,7 +75,7 @@ namespace MGGeometry {
  	  		    */
  	  		   for(IndexType mu = 0;  mu < VNode::n_dim; ++mu) {
  	  			   if ( _outer_dims[mu] % 2 != 0 ) {
- 	  				   MGUtils::MasterLog(MGUtils::ERROR, "Dim %u needs to be even after checkerboarding for Grid Layout to work. It is %u", mu, dims[mu] );
+ 	  				   MG::MasterLog(MG::ERROR, "Dim %u needs to be even after checkerboarding for Grid Layout to work. It is %u", mu, dims[mu] );
  	  			   }
  	  			   else {
  	  				   _outer_dims[mu] /= 2;

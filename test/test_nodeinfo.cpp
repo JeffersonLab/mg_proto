@@ -19,8 +19,8 @@
 
 #include <vector>
 
-using namespace MGUtils;
-using namespace MGGeometry;
+using namespace MG;
+using namespace MG;
 
 
 TEST(TestMockNodeinfo, MockNodeInfoCreate)

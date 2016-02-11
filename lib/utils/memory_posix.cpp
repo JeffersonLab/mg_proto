@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 
-namespace MGUtils
+namespace MG
 {
 	int regular_alloc(void **ptr, size_t size, size_t alignment)
 	{

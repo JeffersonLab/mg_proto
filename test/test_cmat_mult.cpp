@@ -19,8 +19,8 @@
 
 #include "lattice/coarse/coarse_types.h"
 
-using namespace MGGeometry;
-using namespace MGUtils;
+using namespace MG;
+using namespace MG;
 
 #define N_SMT 1
 #if 1
@@ -28,11 +28,11 @@ TEST(CMatMult, TestCorrectness)
 {
 	const int N = 40;
 #if 1
-	float *x = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
-	float *y = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
-	float *A = static_cast<float*>(MGUtils::MemoryAllocate(2*N*N*sizeof(float)));
-	float *A_T = static_cast<float*>(MGUtils::MemoryAllocate(2*N*N*sizeof(float)));
-	float *y2 = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
+	float *x = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
+	float *y = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
+	float *A = static_cast<float*>(MG::MemoryAllocate(2*N*N*sizeof(float)));
+	float *A_T = static_cast<float*>(MG::MemoryAllocate(2*N*N*sizeof(float)));
+	float *y2 = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
 #else
 	__declspec(align(64)) float x[2*N];
 	__declspec(align(64)) float y[2*N];
@@ -47,14 +47,14 @@ TEST(CMatMult, TestCorrectness)
 	std::normal_distribution<> d(0,2);
 #endif
 	for(int i=0; i < 2*N; ++i) {
-		MGUtils::MasterLog(MGUtils::DEBUG2, "i=%d",i);
+		MG::MasterLog(MG::DEBUG2, "i=%d",i);
 		x[i] = (float)(i);
 	}
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Filling Matrices");
+	MG::MasterLog(MG::DEBUG2, "Filling Matrices");
 	for(IndexType row=0; row < N; ++row) {
 			for(IndexType col=0; col < N; ++col) {
 				for(IndexType z=0; z < 2; ++z) {
-					MGUtils::MasterLog(MGUtils::DEBUG2, "(row,col,cmplx)=(%d,%d,%d)",
+					MG::MasterLog(MG::DEBUG2, "(row,col,cmplx)=(%d,%d,%d)",
 								row,col,z);
 
 					A[(2*N)*row + 2*col + z] = (float)((2*N)*row + 2*col + z);
@@ -62,15 +62,15 @@ TEST(CMatMult, TestCorrectness)
 				}
 			}
 		}
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Done");
+	MG::MasterLog(MG::DEBUG2, "Done");
 
 	std::complex<float>* xc = reinterpret_cast<std::complex<float>*>(&x[0]);
 	std::complex<float>* Ac = reinterpret_cast<std::complex<float>*>(&A[0]);
 	std::complex<float>* yc = reinterpret_cast<std::complex<float>*>(&y[0]);
 
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Computing Reference");
+	MG::MasterLog(MG::DEBUG2, "Computing Reference");
 	CMatMultNaive(yc,Ac,xc,N );
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Computing Optimized");
+	MG::MasterLog(MG::DEBUG2, "Computing Optimized");
 
 #pragma omp parallel shared(y2,A_T,x)
 	{
@@ -78,18 +78,18 @@ TEST(CMatMult, TestCorrectness)
 		int nthreads=omp_get_num_threads();
 		CMatMult(y2,A_T,x,N, tid, nthreads);
 	}
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Comparing");
+	MG::MasterLog(MG::DEBUG2, "Comparing");
 	for(int i=0; i < 2*N; ++i) {
-		MGUtils::MasterLog(MGUtils::DEBUG3, "x[%d]=%g y[%d]=%g y2[%d]=%g",i,x[i],i,y[i],i,y2[i]);
+		MG::MasterLog(MG::DEBUG3, "x[%d]=%g y[%d]=%g y2[%d]=%g",i,x[i],i,y[i],i,y2[i]);
 		ASSERT_NEAR(y[i],y2[i], 5.0e-6*abs(y2[i]));
 	}
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Done");
+	MG::MasterLog(MG::DEBUG2, "Done");
 #if 1
-	MGUtils::MemoryFree(y);
-	MGUtils::MemoryFree(y2);
-	MGUtils::MemoryFree(A);
-	MGUtils::MemoryFree(A_T);
-	MGUtils::MemoryFree(x);
+	MG::MemoryFree(y);
+	MG::MemoryFree(y2);
+	MG::MemoryFree(A);
+	MG::MemoryFree(A_T);
+	MG::MemoryFree(x);
 #endif
 }
 
@@ -97,11 +97,11 @@ TEST(CMatMultVrow, TestCorrectness)
 {
 	const int N = 40;
 #if 1
-	float *x = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
-	float *y = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
-	float *A = static_cast<float*>(MGUtils::MemoryAllocate(2*N*N*sizeof(float)));
-	float *A_T = static_cast<float*>(MGUtils::MemoryAllocate(2*N*N*sizeof(float)));
-	float *y2 = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
+	float *x = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
+	float *y = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
+	float *A = static_cast<float*>(MG::MemoryAllocate(2*N*N*sizeof(float)));
+	float *A_T = static_cast<float*>(MG::MemoryAllocate(2*N*N*sizeof(float)));
+	float *y2 = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
 #else
 	__declspec(align(64)) float x[2*N];
 	__declspec(align(64)) float y[2*N];
@@ -116,14 +116,14 @@ TEST(CMatMultVrow, TestCorrectness)
 	std::normal_distribution<> d(0,2);
 #endif
 	for(int i=0; i < 2*N; ++i) {
-		MGUtils::MasterLog(MGUtils::DEBUG2, "i=%d",i);
+		MG::MasterLog(MG::DEBUG2, "i=%d",i);
 		x[i] = (float)(i);
 	}
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Filling Matrices");
+	MG::MasterLog(MG::DEBUG2, "Filling Matrices");
 	for(IndexType row=0; row < N; ++row) {
 			for(IndexType col=0; col < N; ++col) {
 				for(IndexType z=0; z < 2; ++z) {
-					MGUtils::MasterLog(MGUtils::DEBUG2, "(row,col,cmplx)=(%d,%d,%d)",
+					MG::MasterLog(MG::DEBUG2, "(row,col,cmplx)=(%d,%d,%d)",
 								row,col,z);
 
 					A[(2*N)*row + 2*col + z] = (float)((2*N)*row + 2*col + z);
@@ -131,15 +131,15 @@ TEST(CMatMultVrow, TestCorrectness)
 				}
 			}
 		}
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Done");
+	MG::MasterLog(MG::DEBUG2, "Done");
 
 	std::complex<float>* xc = reinterpret_cast<std::complex<float>*>(&x[0]);
 	std::complex<float>* Ac = reinterpret_cast<std::complex<float>*>(&A[0]);
 	std::complex<float>* yc = reinterpret_cast<std::complex<float>*>(&y[0]);
 
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Computing Reference");
+	MG::MasterLog(MG::DEBUG2, "Computing Reference");
 	CMatMultNaive(yc,Ac,xc,N );
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Computing Optimized");
+	MG::MasterLog(MG::DEBUG2, "Computing Optimized");
 
 #pragma omp parallel shared(y2,A_T,x)
 	{
@@ -162,18 +162,18 @@ TEST(CMatMultVrow, TestCorrectness)
 }
 		CMatMultVrowSMT(y2,A_T,x,N,smt_id, n_smt,N_vrows);
 	}
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Comparing");
+	MG::MasterLog(MG::DEBUG2, "Comparing");
 	for(int i=0; i < 2*N; ++i) {
-		MGUtils::MasterLog(MGUtils::DEBUG3, "x[%d]=%g y[%d]=%g y2[%d]=%g",i,x[i],i,y[i],i,y2[i]);
+		MG::MasterLog(MG::DEBUG3, "x[%d]=%g y[%d]=%g y2[%d]=%g",i,x[i],i,y[i],i,y2[i]);
 		ASSERT_NEAR(y[i],y2[i], 5.0e-6*abs(y2[i]));
 	}
-	MGUtils::MasterLog(MGUtils::DEBUG2, "Done");
+	MG::MasterLog(MG::DEBUG2, "Done");
 #if 1
-	MGUtils::MemoryFree(y);
-	MGUtils::MemoryFree(y2);
-	MGUtils::MemoryFree(A);
-	MGUtils::MemoryFree(A_T);
-	MGUtils::MemoryFree(x);
+	MG::MemoryFree(y);
+	MG::MemoryFree(y2);
+	MG::MemoryFree(A);
+	MG::MemoryFree(A_T);
+	MG::MemoryFree(x);
 #endif
 }
 
@@ -186,10 +186,10 @@ TEST(CMatMultVrow, TestSpeed)
 	const int n_smt = N_SMT;
 
 #if 1
-	float *x = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
-	float *y = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
-	float *A = static_cast<float*>(MGUtils::MemoryAllocate(2*N*N*sizeof(float)));
-	float *y2 = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
+	float *x = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
+	float *y = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
+	float *A = static_cast<float*>(MG::MemoryAllocate(2*N*N*sizeof(float)));
+	float *y2 = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
 
 #else
 	__declspec(align(64)) float x[2*N];
@@ -269,7 +269,7 @@ TEST(CMatMultVrow, TestSpeed)
 	time=end_time - start_time;
 	double gflops_opt = gflops/time;
 
-	MGUtils::MasterLog(MGUtils::INFO, "Iters=%d CMatMultSMT: Time=%16.8e (sec) Flops = %16.8e (GF)",
+	MG::MasterLog(MG::INFO, "Iters=%d CMatMultSMT: Time=%16.8e (sec) Flops = %16.8e (GF)",
 			N_iter, time, gflops_opt);
 
 
@@ -290,19 +290,19 @@ TEST(CMatMultVrow, TestSpeed)
 	end_time = omp_get_wtime();
 	time = end_time - start_time;
 	double gflops_naive = gflops/time;
-	MGUtils::MasterLog(MGUtils::INFO, "Iters=%d CMatMultNaive: Time=%16.8e (sec) Flops = %16.8e (GF)",
+	MG::MasterLog(MG::INFO, "Iters=%d CMatMultNaive: Time=%16.8e (sec) Flops = %16.8e (GF)",
 			N_iter, time, gflops_naive);
 
 
-	MGUtils::MasterLog(MGUtils::INFO, "Speedup = gflops_opt/gflops_naive=%16.8e", gflops_opt/gflops_naive);
+	MG::MasterLog(MG::INFO, "Speedup = gflops_opt/gflops_naive=%16.8e", gflops_opt/gflops_naive);
 #endif
 
 
 #if 1
-	MGUtils::MemoryFree(y);
-	MGUtils::MemoryFree(y2);
-	MGUtils::MemoryFree(A);
-	MGUtils::MemoryFree(x);
+	MG::MemoryFree(y);
+	MG::MemoryFree(y2);
+	MG::MemoryFree(A);
+	MG::MemoryFree(x);
 #endif
 }
 
@@ -317,10 +317,10 @@ TEST(CMatMultVrow, TestSpeedNoSum)
 
 
 #if 1
-	float *x = static_cast<float*>(MGUtils::MemoryAllocate(N_dir*2*N*sizeof(float)));
-	float *y_dir = static_cast<float*>(MGUtils::MemoryAllocate(N_dir*2*N*sizeof(float)));
-	float *A = static_cast<float*>(MGUtils::MemoryAllocate(N_dir*2*N*N*sizeof(float)));
-	float *y = static_cast<float*>(MGUtils::MemoryAllocate(2*N*sizeof(float)));
+	float *x = static_cast<float*>(MG::MemoryAllocate(N_dir*2*N*sizeof(float)));
+	float *y_dir = static_cast<float*>(MG::MemoryAllocate(N_dir*2*N*sizeof(float)));
+	float *A = static_cast<float*>(MG::MemoryAllocate(N_dir*2*N*N*sizeof(float)));
+	float *y = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
 #else
 	__declspec(align(64)) float x[2*N*N_dir];
 	__declspec(align(64)) float y_dir[2*N*N_dir];
@@ -335,7 +335,7 @@ TEST(CMatMultVrow, TestSpeedNoSum)
 	std::mt19937 gen(rd());
 	std::normal_distribution<> d(0,2);
 
-	MGUtils::MasterLog(MGUtils::INFO, "Filling x");
+	MG::MasterLog(MG::INFO, "Filling x");
 	// Initialize y
 #pragma omp simd aligned(y:16) safelen(VECLEN)
 	for(int i=0; i < 2*N; ++i) y[i] = 0;
@@ -396,7 +396,7 @@ TEST(CMatMultVrow, TestSpeedNoSum)
 		}
 	}
 
-	MGUtils::MasterLog(MGUtils::INFO, "Done");
+	MG::MasterLog(MG::INFO, "Done");
 	__declspec(aligned(64)) double start_time[128][8];
 	__declspec(aligned(64)) double end_time[128][8];
 	double time=0;
@@ -447,7 +447,7 @@ TEST(CMatMultVrow, TestSpeedNoSum)
 		}
 }
 
-MGUtils::MasterLog(MGUtils::INFO, "Warming Up");
+MG::MasterLog(MG::INFO, "Warming Up");
 // 	Start in sync
 #pragma omp barrier
 		for(int iter=0; iter < N_iter; ++iter ) {
@@ -476,8 +476,8 @@ MGUtils::MasterLog(MGUtils::INFO, "Warming Up");
 		}
 #pragma omp barrier
 
-		MGUtils::MasterLog(MGUtils::INFO, "Done");
-		MGUtils::MasterLog(MGUtils::INFO, "Timing");
+		MG::MasterLog(MG::INFO, "Done");
+		MG::MasterLog(MG::INFO, "Timing");
 #endif
 
 		start_time[tid][0] = omp_get_wtime();
@@ -524,16 +524,16 @@ MGUtils::MasterLog(MGUtils::INFO, "Warming Up");
 	time/=n_threads;
 	double gflops_opt = gflops/time;
 
-	MGUtils::MasterLog(MGUtils::INFO, "Iters=%d CMatMultVrow: Time=%16.8e (sec) Flops = %16.8e / %16.8e / %16.8e (GF)  Avg/Min Thread/Max Thread",
+	MG::MasterLog(MG::INFO, "Iters=%d CMatMultVrow: Time=%16.8e (sec) Flops = %16.8e / %16.8e / %16.8e (GF)  Avg/Min Thread/Max Thread",
 			N_iter, time, gflops_opt, gflops/max_time, gflops/min_time);
 
 
 
 #if 1
-	MGUtils::MemoryFree(y);
-	MGUtils::MemoryFree(y_dir);
-	MGUtils::MemoryFree(A);
-	MGUtils::MemoryFree(x);
+	MG::MemoryFree(y);
+	MG::MemoryFree(y_dir);
+	MG::MemoryFree(A);
+	MG::MemoryFree(x);
 #endif
 }
 

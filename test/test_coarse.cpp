@@ -20,8 +20,8 @@
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_op.h"
 
-using namespace MGGeometry;
-using namespace MGUtils;
+using namespace MG;
+using namespace MG;
 
 TEST(CoarseDslash, TestSpeed)
 {

@@ -11,7 +11,7 @@
 #include <type_traits>
 #include "lattice/constants.h"
 
-namespace MGGeometry {
+namespace MG {
 //* Some basic traits about basic types */
 
 template<typename T,  class Enable=void>
