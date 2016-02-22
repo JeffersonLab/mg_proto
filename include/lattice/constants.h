@@ -28,6 +28,8 @@ namespace MG {
   const IndexType	EVEN = 0;            /*!<  Even checkerboar index */
   const IndexType	ODD = 1;   		/*!	< Odd checkerboard index */
 
+  enum LinOpType { LINOP, DAGGER };
+
 
 }
 

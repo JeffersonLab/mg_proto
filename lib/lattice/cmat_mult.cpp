@@ -74,6 +74,22 @@ void CMatMult(float *y,
 		// thread 1 does = 10-19
 		for(int vrow=minblock; vrow < maxblock; vrow++) {
 			int row = vrow*VECLEN2;
+
+
+			float A_orig[VECLEN];
+			float A_perm[VECLEN];
+			for(int i=0; i < VECLEN; ++i) A_orig[i] = A[ TwoN*col + 2*row + i];
+			for(int i=0; i < VECLEN/2; ++i) {
+				A_perm[2*i] = -A_orig[2*i+1];
+				A_perm[2*i+1] = A_orig[2*i];
+			}
+
+ 			for(int i=0; i < VECLEN; ++i) {
+ 					y[2*row+i] += A_orig[i]*x[2*col] + A_perm[i]*x[2*col+1];
+ 			}
+#if 1
+
+#else
 #ifdef SSE
 			__m128 xr,xi, A_orig, A_perm;
 			__m128 y1, y2;
@@ -166,15 +182,18 @@ void CMatMult(float *y,
 			_mm256_store_ps(&y[2*row],yv);
 #endif // AVX2 FMA
 #endif // AVX2
+#endif
+
+
 
 		}
 	}
 
 }
 
-__declspec(aligned(64)) float* tmp_space;
+ float* tmp_space;
 
-void AllocSpace(const int N)
+ void AllocSpace(const int N)
 {
 	tmp_space = static_cast<float*>(MG::MemoryAllocate(8*2*N*sizeof(float)));
 }

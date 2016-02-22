@@ -164,7 +164,7 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_plus + _n_z*t))),
 			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_minus + _n_z*t))),
 			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_plus))),
-			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_plus))),
+			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_minus))),
 		};
 
 
@@ -183,18 +183,9 @@ void CoarseDiracOp::siteApply( float *output,
 							 const IndexType min_vrow,
 							 const IndexType max_vrow) const
 {
-	for(IndexType vrow=min_vrow; vrow < max_vrow; ++vrow) {
-		__m256 ovec = _mm256_load_ps(&output[vrow*VECLEN]);
-		__m256 ivec = _mm256_load_ps(&spinor_cb[vrow*VECLEN]);
-		__m256 sum = _mm256_add_ps(ovec,ivec);
-		_mm256_store_ps(&output[vrow*VECLEN],sum);
-#if 0
-#pragma omp simd safelen(VECLEN) aligned(output:16,spinor_cb:16)
-		for(IndexType row=0; row < VECLEN; ++row) {
-			output[ vrow*VECLEN + row ] = spinor_cb[ vrow*VECLEN + row ];
-		}
-#endif
-
+	for(IndexType vrow=min_vrow*VECLEN; vrow < max_vrow*VECLEN; vrow++)
+	{
+		output[vrow] = spinor_cb[vrow];
 	}
 
 	// NB: This is a sigle thread so no need to worry about twrite conflicts
@@ -334,7 +325,7 @@ void CoarseDiracOp::applyMulti(CoarseSpinor* spinor_out[],
 
 }
 
-
+#if 1
 inline
 void CoarseDiracOp::siteApplyMulti( float *output[],
 		  	  	  	  	 	 const float* gauge_links[8],
@@ -359,9 +350,10 @@ void CoarseDiracOp::siteApplyMulti( float *output[],
 
 	// NB: This is a sigle thread so no need to worry about twrite conflicts
 	for(IndexType dir=0; dir < 8; ++dir) {
-
-			CMatMultVrowAddMulti(output, gauge_links[dir], &neigh_spinors[dir*n_src],_n_colorspin,smt_id, _n_smt, n_src, min_vrow,max_vrow);
-			}
+		CMatMultVrowAddMulti(output, gauge_links[dir], &neigh_spinors[dir*n_src],_n_colorspin,smt_id, _n_smt, n_src, min_vrow,max_vrow);
+	}
 }
+
+#endif
 
 }

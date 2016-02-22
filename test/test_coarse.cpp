@@ -38,7 +38,7 @@ TEST(CoarseDslash, TestSpeed)
 	CoarseSpinor y_spinor(linfo);
 	CoarseGauge gauge(linfo);
 
-	const int N_iter =1000000;
+	const int N_iter =100;
 	const int n_smt= 1 ;
 
 	double total_time[288][8]; // Timing info for 72 cores x 4 threads
@@ -132,7 +132,7 @@ TEST(CoarseDslashMulti, TestSpeed2)
 
 	CoarseGauge gauge(linfo);
 
-	const int N_iter =400000;
+	const int N_iter =400;
 	const int n_smt= 1 ;
 	const IndexType n_src = 16;
 

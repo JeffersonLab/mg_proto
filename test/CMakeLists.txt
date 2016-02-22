@@ -21,20 +21,11 @@ target_link_libraries(test_nodeinfo mg gtest_all mg_test ${EXT_LIBS})
 add_executable(test_memory test_memory.cpp)
 target_link_libraries(test_memory mg gtest_all mg_test ${EXT_LIBS})
 
-add_executable(test_spinor test_spinor.cpp)
-target_link_libraries(test_spinor mg gtest_all mg_test ${EXT_LIBS})
-
-add_executable(test_block_layout test_block_layout.cpp)
-target_link_libraries(test_block_layout mg gtest_all mg_test ${EXT_LIBS})
-
-add_executable(test_block_blas test_block_blas.cpp)
-target_link_libraries(test_block_blas mg gtest_all mg_test ${EXT_LIBS})
-
-add_executable(test_block_blas_perf test_block_blas_perf.cpp)
-target_link_libraries(test_block_blas_perf mg gtest_all mg_test ${EXT_LIBS})
-
 add_executable(test_cmat_mult test_cmat_mult.cpp)
 target_link_libraries(test_cmat_mult mg gtest_all mg_test ${EXT_LIBS})
 
 add_executable(test_coarse test_coarse.cpp)
 target_link_libraries(test_coarse mg gtest_all mg_test ${EXT_LIBS})
+
+add_executable(test_mg_setup test_mg_setup.cpp)
+target_link_libraries(test_mg_setup mg gtest_all mg_test ${EXT_LIBS})

@@ -14,7 +14,8 @@ add_library(mg lattice/lattice_info.cpp
 			   utils/print_utils.cpp
 			   utils/memory.cpp
 			   ${MEMORY_IMPL}
-			   utils/initialize.cpp)
+			   utils/initialize.cpp
+			   lattice/mg_setup.cpp)
 			   
 target_compile_options(mg PUBLIC ${EXT_CXXFLAGS})
 install(TARGETS mg DESTINATION lib)

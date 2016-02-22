@@ -152,6 +152,14 @@ TEST(CMatMultVrow, TestCorrectness)
 		int smt_id = tid - n_smt*core_id;
 
 		int N_vrows = N / (VECLEN/2);
+		const int n_floats_per_cacheline =MG_DEFAULT_CACHE_LINE_SIZE/sizeof(float);
+		int n_cachelines = N_vrows*VECLEN/n_floats_per_cacheline;
+		int cl_per_smt = n_cachelines/n_smt;
+		if( n_cachelines % n_smt != 0 ) cl_per_smt++;
+		int min_cl = smt_id*cl_per_smt;
+		int max_cl = MinInt((smt_id+1)*cl_per_smt, n_cachelines);
+		int min_vrow = (min_cl*n_floats_per_cacheline)/VECLEN;
+		int max_vrow = (max_cl*n_floats_per_cacheline)/VECLEN;
 
 #pragma omp critical
 {
@@ -160,7 +168,7 @@ TEST(CMatMultVrow, TestCorrectness)
 
 
 }
-		CMatMultVrowSMT(y2,A_T,x,N,smt_id, n_smt,N_vrows);
+		CMatMultVrow(y2,A_T,x,N,min_vrow,max_vrow);
 	}
 	MG::MasterLog(MG::DEBUG2, "Comparing");
 	for(int i=0; i < 2*N; ++i) {
@@ -181,7 +189,7 @@ TEST(CMatMultVrow, TestCorrectness)
 TEST(CMatMultVrow, TestSpeed)
 {
 	const int N = 40;
-	const int N_iter = 10000000;
+	const int N_iter = 100000;
 	const int N_warm = 2000;
 	const int n_smt = N_SMT;
 
@@ -229,7 +237,7 @@ TEST(CMatMultVrow, TestSpeed)
 	double N_iter_dble = static_cast<double>(N_iter);
 	double gflops=N_iter_dble*(N_dble*(8*N_dble-2))/1.0e9;
 
-#pragma omp parallel shared(y2,A,x,N,start_time,end_time)
+#pragma omp parallel shared(y2,A,x,start_time,end_time)
 	{
 		int tid=omp_get_thread_num();
 		int n_threads=omp_get_num_threads();
