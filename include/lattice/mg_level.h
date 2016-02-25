@@ -60,6 +60,10 @@ private:
  */
 
 struct SolverParams {
+	SolverParams() {
+		overrelax_omega = 1.0;
+		gmres_n_krylov = 10;
+	}
 	double overrelax_omega; 	// Overrelaxation parameter
 	int max_iter;				// Maximum Iterations
 	double rsd_target; 			// Target Residuum
@@ -90,6 +94,8 @@ public:
 
 	void operator()(Spinor& out, const Spinor& in,const SolverParams& param) const {
 		MasterLog(INFO, "Applying MR solver on Level %d", _level);
+		MasterLog(INFO, " \t RsdTarget=%16.8e MaxIter=%d Omega=%16.8e\n",
+								param.rsd_target, param.max_iter, param.overrelax_omega );
 	}
 
 	~MRSolver() {
@@ -109,7 +115,7 @@ public:
 	}
 
 	void operator()(Spinor& out, const Spinor& in, const SolverParams& param) const {
-		MasterLog(INFO, "Applying BICGStab solver on Level %d", _level);
+		MasterLog(INFO, "Applying BICGStab solver on Level %d. MaxIter=%d RsdTarget=%16.8e", _level, param.max_iter, param.rsd_target);
 	}
 
 	~BiCGStabSolver() {
@@ -143,7 +149,11 @@ public:
 		}
 		else {
 			MasterLog(INFO, "Applying Preconditioned GCR Solver on level %d", _level);
+			(*_M_prec)(out, in, param);  // Fixme: PARAM Shouldn't be here
+			                             // Maybe M_prec should be a linop...
 		}
+		MasterLog(INFO, " \t RsdTarget=%16.8e MaxIter=%d N_krylov=%d Omega=%16.8e\n",
+						param.rsd_target, param.max_iter, param.gmres_n_krylov, param.overrelax_omega );
 	}
 
 	~GCRSolver() {
@@ -181,7 +191,7 @@ Solver *createSolver(SolverType type, const LinearOperator& M, const Solver* M_p
 		ret_val = new GCRSolver(M, M_prec);
 		break;
 	default:
-		MasterLog(ERROR, "Unknown solver type requested", level);
+		MasterLog(ERROR, "Unknown solver type requested", M.GetLevel());
 		break;
 	}
 
@@ -232,11 +242,20 @@ struct MGLevel {
 	Restrictor* R;                 // Restrict to next level
 	Prolongator* P;                // Prolongate to previous level
 	Solver* null_solver;           // Solver for NULL on this level
-	Solver* pre_smoother;          // PreSmoother on this level
-	Solver* post_smoother;         // Post Smoother on this level
+	Solver* smoother;          // PreSmoother on this level
 	LinearOperator* M; // Linear Operator for this level (needed to construct pre smoother, post smoother, level_solver)
-	Solver* level_solver; // The level solver on this level (Does this make sense? This could be part of the cycle)
 
+	~MGLevel() {
+		if( M != nullptr) delete M;
+		if( smoother != nullptr) delete smoother;
+		if( null_solver != nullptr ) delete null_solver;
+		if( P != nullptr ) delete P;
+		if( R != nullptr ) delete R;
+		if( info != nullptr ) delete info;
+		for(int vec=0; vec < null_vecs.size(); ++vec) {
+			if ( null_vecs[vec] != nullptr ) delete null_vecs[vec];
+		}
+ 	}
 };
 
 
@@ -268,8 +287,26 @@ struct SetupParams {
 	std::vector<int> n_vecs;
 	IndexArray local_lattice_size;
 	std::vector< std::array<int,n_dim> > block_sizes;
+	std::vector< int > null_solver_max_iter;
+	std::vector< double > null_solver_rsd_target;
+};
 
+struct VCycleParams {
+	// Pre Smoother Params
+	int pre_hits;
+	double pre_omega;
+	double pre_rsd_target;
 
+	// Lower Solve params
+	double coarse_rsd_target;
+	int    max_coarse_iter;
+	int    N_krylov_coarse;
+	double coarse_omega;
+
+	// Post Smoother Params
+	int post_hits;
+	double post_omega;
+	double post_rsd_target;
 };
 
 inline
@@ -283,6 +320,101 @@ void freeSpinor(Spinor* spinor)
 {
 	delete spinor;
 }
+
+class VCyclePreconditioner : public Solver {
+public:
+	VCyclePreconditioner(int level,
+			std::vector<VCycleParams>& p,
+			std::vector<MGLevel>& mg_levels) :
+				_level(level),
+				_n_levels(mg_levels.size()), _p(p), _mg_levels(mg_levels)
+	{
+		MasterLog(INFO, "VCycle(%d): Initializing", _level);
+
+		if (_level == _n_levels - 2) {
+			MasterLog(INFO, "VCycle(%d): Recursing to top level %d", _level,
+					_level + 1);
+			SolverCoarse = createSolver(GCR, *(_mg_levels[_level + 1].M),
+					nullptr);
+		} else {
+			MasterLog(INFO, "VCycle(%d): Recursing to level %d", _level,
+					_level + 1);
+
+			PrecondCoarse = new VCyclePreconditioner(_level + 1, _p, _mg_levels);
+			SolverCoarse = createSolver(GCR, *(_mg_levels[_level + 1].M),
+					PrecondCoarse);
+		}
+		R = _mg_levels[_level].R;
+		P = _mg_levels[_level + 1].P;
+		Smoother = _mg_levels[_level].smoother;
+
+		pre_smoother_params.max_iter = _p[_level].pre_hits;
+		pre_smoother_params.rsd_target = _p[_level].pre_rsd_target;
+		pre_smoother_params.overrelax_omega = _p[_level].pre_omega;
+
+		post_smoother_params.max_iter = _p[_level].post_hits;
+		post_smoother_params.rsd_target = _p[_level].post_rsd_target;
+		post_smoother_params.overrelax_omega = _p[_level].post_omega;
+
+		coarse_gcr_params.max_iter = _p[_level].max_coarse_iter;
+		coarse_gcr_params.rsd_target = _p[_level].coarse_rsd_target;
+		coarse_gcr_params.gmres_n_krylov = _p[_level].N_krylov_coarse;
+		coarse_gcr_params.overrelax_omega = _p[_level].coarse_omega;
+
+	}
+
+	~VCyclePreconditioner()
+	{
+		if( _level != _n_levels - 2) {
+			delete SolverCoarse;
+		}
+		else {
+			delete SolverCoarse;
+			delete PrecondCoarse;
+		}
+	}
+
+	void operator()(Spinor& out, const Spinor& in, const SolverParams& param) const {
+		if( _level < _n_levels - 1) {
+			Spinor* smoothed_tmp = allocateSpinor(*(_mg_levels[_level].info), _level);
+			Spinor* coarse_in = allocateSpinor(*(_mg_levels[_level-1].info), _level-1);
+			Spinor* coarse_out = allocateSpinor(*(_mg_levels[_level-1].info), _level-1);
+			MasterLog(INFO, " VCycle(%d): PreSmoothing", _level);
+			(*Smoother)(*smoothed_tmp, in, pre_smoother_params);
+
+			MasterLog(INFO, " VCycle(%d): Restricting to %d", _level, _level+1);
+			(*R)(*smoothed_tmp, *coarse_in);
+
+			MasterLog(INFO, " VCycle(%d): Coarse Solving", _level);
+			(*SolverCoarse)(*coarse_out, *coarse_in, coarse_gcr_params);
+
+			MasterLog(INFO, " VCycle(%d): Prolongating from %d", _level, _level+1);
+			(*P)(*coarse_out, *smoothed_tmp);
+
+			MasterLog(INFO, " VCycle(%d): PostSmoothing", _level);
+			(*Smoother)(out, *smoothed_tmp, post_smoother_params);
+
+			freeSpinor(coarse_out);
+			freeSpinor(coarse_in);
+			freeSpinor(smoothed_tmp);
+		}
+	}
+public:
+	int _level;
+	int _n_levels;
+	std::vector<VCycleParams>& _p;
+	std::vector<MGLevel>& _mg_levels;
+	Restrictor *R;
+	Prolongator *P;
+	Solver *Smoother;
+	Solver *PrecondCoarse;
+	Solver *SolverCoarse;
+	SolverParams pre_smoother_params;
+	SolverParams post_smoother_params;
+	SolverParams coarse_gcr_params;
+
+};
+
 
 void mgSetup(const SetupParams& p,std::vector< MGLevel >& mg_levels);
 

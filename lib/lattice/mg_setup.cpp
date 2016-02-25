@@ -91,9 +91,8 @@ namespace MG {
 
 			   // Create the NULL solver & smoother for this level for this level.
 			   // Again, bottom level is a direct solve, so no need to make a smoother
-			   mg_levels[level].null_solver = createSolver(BICGSTAB, level);
-			   mg_levels[level].pre_smoother = createSolver(MR, level);
-			   mg_levels[level].post_smoother = mg_levels[level].pre_smoother;
+			   mg_levels[level].null_solver = createSolver(BICGSTAB, *(mg_levels[level].M));
+			   mg_levels[level].smoother = createSolver(MR, *(mg_levels[level].M));
 
 			   // Now generate the nullspace
 			   // For this I need a zero vector to use as an RHS
@@ -107,11 +106,14 @@ namespace MG {
 					   // Fill with random noise
 					   gaussian( *(mg_levels[level].null_vecs[vec]));
 
+					   SolverParams null_solver_params;
+					   null_solver_params.max_iter = p.null_solver_max_iter[level];
+					   null_solver_params.rsd_target = p.null_solver_rsd_target[level];
 					   // Solve with a NULL solver
 					   (*(mg_levels[level].null_solver))(
 							   *(mg_levels[level].null_vecs[vec]),
-							   *(zero_vec)
-							   );
+							   *(zero_vec),
+							   null_solver_params);
 				   }
 
 				   freeSpinor(zero_vec);
