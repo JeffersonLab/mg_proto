@@ -157,7 +157,7 @@ public:
 	}
 
 	~GCRSolver() {
-		MasterLog(INFO, "Destroying MR Solver for Level %d", _level);
+		MasterLog(INFO, "Destroying GCR Solver for Level %d", _level);
 	}
 
 private:
