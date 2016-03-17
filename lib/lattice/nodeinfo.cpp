@@ -14,8 +14,8 @@ namespace MG {
 			_node_id{i._node_id}, _node_dims(i._node_dims), _node_coords(i._node_coords) {
 
 		for(IndexType mu=0; mu < n_dim; ++mu) {
-			_neighbor_ids[mu][BACKWARD] = i._neighbor_ids[mu][BACKWARD];
-			_neighbor_ids[mu][FORWARD] = i._neighbor_ids[mu][FORWARD];
+			_neighbor_ids[mu][MG_BACKWARD] = i._neighbor_ids[mu][MG_BACKWARD];
+			_neighbor_ids[mu][MG_FORWARD] = i._neighbor_ids[mu][MG_FORWARD];
 		}
 	}
 
@@ -27,8 +27,8 @@ namespace MG {
 		_node_coords= i._node_coords;
 
 		for(IndexType mu=0; mu < n_dim; ++mu) {
-			_neighbor_ids[mu][BACKWARD] = i._neighbor_ids[mu][BACKWARD];
-			_neighbor_ids[mu][FORWARD] = i._neighbor_ids[mu][FORWARD];
+			_neighbor_ids[mu][MG_BACKWARD] = i._neighbor_ids[mu][MG_BACKWARD];
+			_neighbor_ids[mu][MG_FORWARD] = i._neighbor_ids[mu][MG_FORWARD];
 		}
 
 		return (*this);

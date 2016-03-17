@@ -21,7 +21,11 @@ TEST(MGSetup, CreateMGSetup)
 			{5.0e-6,5.0e-6}   // Null solver rsd target
 	};
 
-	mgSetup(params, mg_levels );
+	Gauge u;
+		Clover clov;
+		Clover invclov;
+
+	mgSetup(params, mg_levels, &u, &clov, &invclov );
 }
 
 TEST(MGSetup, CreateVCycle)
@@ -39,8 +43,13 @@ TEST(MGSetup, CreateVCycle)
 			{5.0e-6,5.0e-6}   // Null solver rsd target
 	};
 
+
+	Gauge u;
+	Clover clov;
+	Clover invclov;
+
 	// Set Up Null Vecs and Linear Operators
-	mgSetup(params, mg_levels );
+	mgSetup(params, mg_levels, &u, &clov, &invclov );
 
 	// V Ctcle parametere
 	std::vector<VCycleParams> v_params={
@@ -85,7 +94,12 @@ TEST(MGSetup, MGPrecGCR)
 	};
 
 	// Set Up Null Vecs and Linear Operators
-	mgSetup(params, mg_levels );
+	Gauge u;
+	Clover clov;
+	Clover invclov;
+
+	// Set Up Null Vecs and Linear Operators
+	mgSetup(params, mg_levels, &u, &clov, &invclov );
 
 	// V Ctcle parametere
 	std::vector<VCycleParams> v_params={

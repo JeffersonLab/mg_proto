@@ -37,6 +37,7 @@ TEST(CoarseDslash, TestSpeed)
 	CoarseSpinor x_spinor(linfo);
 	CoarseSpinor y_spinor(linfo);
 	CoarseGauge gauge(linfo);
+	CoarseClover clov(linfo);
 
 	const int N_iter =100;
 	const int n_smt= 1 ;
@@ -55,7 +56,8 @@ TEST(CoarseDslash, TestSpeed)
 		const int tid = omp_get_thread_num();
 		const int n_threads=omp_get_num_threads();
 
-		// One thread per site
+		// One thread per site -- fill fields with random junk
+
 #pragma omp for schedule(static)
 		for(IndexType site=0; site < N_sites_cb; ++site) {
 
@@ -69,9 +71,31 @@ TEST(CoarseDslash, TestSpeed)
 
 			for(int dir=0; dir < 8; ++dir) {
 				for(int col=0; col < N; col++) {
-					for(int row=0; row < n_complex*N; ++row) {
-						gauge.GetSiteDirDataPtr(0,site,dir)[ row + n_complex*N*col ] = 0.23;
-						gauge.GetSiteDirDataPtr(1,site,dir)[ row + n_complex*N*col ] = 0.23;
+									for(int row=0; row < n_complex*N; ++row) {
+										gauge.GetSiteDirDataPtr(0,site,dir)[ row + n_complex*N*col ] = 0.23;
+										gauge.GetSiteDirDataPtr(1,site,dir)[ row + n_complex*N*col ] = 0.23;
+									}
+								}
+			}
+
+			for(int col=0; col < N/2; col++) {
+				for(int row=0; row < (N/2); ++row) {
+					for(int z=0; z < n_complex; ++z ) {
+
+						clov.GetSiteChiralDataPtr(0,site,0)[ z + n_complex*(row + (N/2)*col) ] = 0.23;
+						clov.GetSiteChiralDataPtr(0,site,1)[ z + n_complex*(row + (N/2)*col)   ] = 0.12;
+
+					}
+				}
+			}
+
+			for(int col=0; col < (N/2); col++) {
+				for(int row=0; row < (N/2); ++row) {
+					for(int z=0; z < n_complex; ++z ) {
+
+						clov.GetSiteChiralDataPtr(1,site,0)[ z + n_complex*(row + (N/2)*col) ] = 0.23;
+						clov.GetSiteChiralDataPtr(1,site,1)[ z + n_complex*(row + (N/2)*col)   ] = 0.12;
+
 					}
 				}
 			}
@@ -86,7 +110,7 @@ TEST(CoarseDslash, TestSpeed)
 		double start_time = omp_get_wtime();
 
 		for(int iter = 0; iter < N_iter; ++iter) {
-			D(y_spinor,gauge,x_spinor,0,tid);
+			D(y_spinor,gauge,clov,x_spinor,0,tid);
 		} // iter
 
 		double end_time = omp_get_wtime();
@@ -117,6 +141,7 @@ TEST(CoarseDslash, TestSpeed)
 	MasterLog(INFO, "Max time=%16.8e (sec) => GFLOPs = %16.8e", max_time, gflops/max_time);
 }
 
+#if 0
 
 TEST(CoarseDslashMulti, TestSpeed2)
 {
@@ -226,6 +251,9 @@ TEST(CoarseDslashMulti, TestSpeed2)
 		delete y_spinor[j];
 	}
 	}
+
+#endif
+
 int main(int argc, char *argv[])
 {
 	return MGTesting::TestMain(&argc, argv);

@@ -67,8 +67,8 @@ public:
 		// Forward and backward leaves
 		for(int mu=0; mu < 4; ++mu) {
 
-		       LatticeFermionArray v_x_plus_mu(N_vec  * N_aggr, fine_lattice_info) = block_shift(mu, FORWARD, v);
-		       LatticeFermionArray v_x_minus_mu(N_vec * N_aggr, fine_lattice_info) = block_shift(mu, BACKWARD, v);
+		       LatticeFermionArray v_x_plus_mu(N_vec  * N_aggr, fine_lattice_info) = block_shift(mu, MG_FORWARD, v);
+		       LatticeFermionArray v_x_minus_mu(N_vec * N_aggr, fine_lattice_info) = block_shift(mu, MG_BACKWARD, v);
 
 		       /* Vector Block Inner Product version */
 		       for(int block=0; block < N_blocks; ++blocks) {

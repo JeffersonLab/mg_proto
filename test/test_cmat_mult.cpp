@@ -26,7 +26,7 @@ using namespace MG;
 #if 1
 TEST(CMatMult, TestCorrectness)
 {
-	const int N = 40;
+	const int N = 24;
 #if 1
 	float *x = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
 	float *y = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
@@ -64,12 +64,8 @@ TEST(CMatMult, TestCorrectness)
 		}
 	MG::MasterLog(MG::DEBUG2, "Done");
 
-	std::complex<float>* xc = reinterpret_cast<std::complex<float>*>(&x[0]);
-	std::complex<float>* Ac = reinterpret_cast<std::complex<float>*>(&A[0]);
-	std::complex<float>* yc = reinterpret_cast<std::complex<float>*>(&y[0]);
-
 	MG::MasterLog(MG::DEBUG2, "Computing Reference");
-	CMatMultNaive(yc,Ac,xc,N );
+	CMatMultNaive(y,A,x,N );
 	MG::MasterLog(MG::DEBUG2, "Computing Optimized");
 
 #pragma omp parallel shared(y2,A_T,x)
@@ -95,7 +91,7 @@ TEST(CMatMult, TestCorrectness)
 
 TEST(CMatMultVrow, TestCorrectness)
 {
-	const int N = 40;
+	const int N = 24;
 #if 1
 	float *x = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
 	float *y = static_cast<float*>(MG::MemoryAllocate(2*N*sizeof(float)));
@@ -133,12 +129,8 @@ TEST(CMatMultVrow, TestCorrectness)
 		}
 	MG::MasterLog(MG::DEBUG2, "Done");
 
-	std::complex<float>* xc = reinterpret_cast<std::complex<float>*>(&x[0]);
-	std::complex<float>* Ac = reinterpret_cast<std::complex<float>*>(&A[0]);
-	std::complex<float>* yc = reinterpret_cast<std::complex<float>*>(&y[0]);
-
 	MG::MasterLog(MG::DEBUG2, "Computing Reference");
-	CMatMultNaive(yc,Ac,xc,N );
+	CMatMultNaive(y,A,x,N );
 	MG::MasterLog(MG::DEBUG2, "Computing Optimized");
 
 #pragma omp parallel shared(y2,A_T,x)
@@ -188,7 +180,7 @@ TEST(CMatMultVrow, TestCorrectness)
 
 TEST(CMatMultVrow, TestSpeed)
 {
-	const int N = 40;
+	const int N = 24;
 	const int N_iter = 100000;
 	const int N_warm = 2000;
 	const int n_smt = N_SMT;
@@ -206,10 +198,6 @@ TEST(CMatMultVrow, TestSpeed)
 	__declspec(align(64)) float A[2*N*N];
 
 #endif
-
-	std::complex<float>* xc = reinterpret_cast<std::complex<float>*>(&x[0]);
-	std::complex<float>* Ac = reinterpret_cast<std::complex<float>*>(&A[0]);
-	std::complex<float>* yc = reinterpret_cast<std::complex<float>*>(&y[0]);
 
 	/* Fill A and X with Gaussian Noise */
 	std::random_device rd;

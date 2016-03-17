@@ -65,8 +65,8 @@ namespace MG {
 							            )
 						   			);
 
-				_neighbor_ids[mu][BACKWARD] = bwd_nodeid;
-				_neighbor_ids[mu][FORWARD]  = fwd_nodeid;
+				_neighbor_ids[mu][MG_BACKWARD] = bwd_nodeid;
+				_neighbor_ids[mu][MG_FORWARD]  = fwd_nodeid;
 
 			}	// for int mu
 		}  // Mock Node Info constructor

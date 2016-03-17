@@ -31,8 +31,8 @@ struct ThreadLimits {
 
 class CoarseDiracOp {
 public:
-	CoarseDiracOp(const LatticeInfo& l_info,
-				  const IndexType n_smt=1);
+	CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt);
+
 
 	~CoarseDiracOp() {}
 
@@ -42,6 +42,7 @@ public:
 
 	void operator()(CoarseSpinor& spinor_out,
 			const CoarseGauge& gauge_in,
+			const CoarseClover& clover_in,
 			const CoarseSpinor& spinor_in,
 			const IndexType target_cb,
 			const IndexType tid) const;
@@ -49,27 +50,10 @@ public:
 
 	void siteApply( float *output,
 			  	  	  	  	 	 const float* gauge_links[8],
+								 const float* clover_cb_0,
+								 const float* clover_cb_1,
 								 const float* spinor_cb,
-								 const float* neigh_spinors[8],
-								 const IndexType min_vrow,
-								 const IndexType max_vrow) const;
-
-	void applyMulti(CoarseSpinor* spinor_out[],
-				const CoarseGauge& gauge_in,
-				CoarseSpinor* spinor_in[],
-				const IndexType n_src,
-				const IndexType target_cb,
-				const IndexType tid) const;
-
-
-	void siteApplyMulti( float *output[],
-			  	  	  	  	 	 const float* gauge_links[8],
-								 const float* spinor_cb[],
-								 const float* neigh_spinors[],
-								 const IndexType smt_id,
-								 const IndexType min_vrow,
-								 const IndexType max_vrow,
-								 const IndexType n_src) const;
+								 const float* neigh_spinors[8]) const ;
 
 	inline
 	IndexType GetNumColorSpin() const {
@@ -92,9 +76,8 @@ private:
 	const IndexType _n_color;
 	const IndexType _n_spin;
 	const IndexType _n_colorspin;
-
-	const IndexType _n_vrows;
 	const IndexType _n_smt;
+	const IndexType _n_vrows;
 
 	int _n_threads;
 	ThreadLimits* _thread_limits;

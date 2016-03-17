@@ -11,7 +11,8 @@
 namespace MG {
 
 
-   void mgSetup(const SetupParams& p, std::vector< MGLevel >& mg_levels )
+   void mgSetup(const SetupParams& p, std::vector< MGLevel >& mg_levels,
+		   	   Gauge* u, Clover* clov, Clover *invclov)
    {
 	   MasterLog(INFO, "Setting Up MG Levels with %d levels", p.n_levels);
 
@@ -20,7 +21,9 @@ namespace MG {
 
 	   // Level zero is the fine level
 	   mg_levels[0].info = new LatticeInfo(p.local_lattice_size);
-
+	   mg_levels[0].gauge = u;
+	   mg_levels[0].clover = clov;
+	   mg_levels[0].inv_clover = invclov;
 
 
 	   MasterLog(INFO, "Level 0: Lattice Info Set.");
@@ -74,7 +77,7 @@ namespace MG {
 		   // Level zero is trivial -- just the fine linOp
 		   // Level 1 -- N-1 is less trivial -- need nullvecs from previous level
 		  //  Assume this is taken care of here
-		   mg_levels[level].M = createLinearOperator(level);
+		   mg_levels[level].M = createLinearOperator(mg_levels, level);
 
 		   // If we are not on the last level, we need to create a nullspace
 		   // for the level below us.

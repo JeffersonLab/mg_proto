@@ -51,7 +51,7 @@ namespace MG {
 					// Find neighbor in mu dim
 					for(IndexType mu=0; mu < n_dim; ++mu) {
 
-					  for(auto dir = BACKWARD; dir <= FORWARD; ++dir) {
+					  for(auto dir = MG_BACKWARD; dir <= MG_FORWARD; ++dir) {
 
 						 // QMP Expects ints rather than unsigned ints
 						 int neigh_coords[n_dim] = { static_cast<int>(_node_coords[0]),
@@ -61,12 +61,12 @@ namespace MG {
 
 
 					   	// Implement wraparounds
-						if( dir == BACKWARD ) {
+						if( dir == MG_BACKWARD ) {
 							neigh_coords[mu]--;
 							if( neigh_coords[mu] < 0 ) neigh_coords[mu] = _node_dims[mu]-1;
 						}
 
-						if( dir  == FORWARD ) {
+						if( dir  == MG_FORWARD ) {
 							neigh_coords[mu]++;
 							if( neigh_coords[mu] >= static_cast<int>(_node_dims[mu])) neigh_coords[mu] = 0;
 						}

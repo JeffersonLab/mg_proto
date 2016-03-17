@@ -24,8 +24,8 @@ namespace MG {
 		for(IndexType mu=0; mu < n_dim; ++mu) {
 			_node_dims[mu] = 1;
 			_node_coords[mu] = 0;
-			_neighbor_ids[mu][BACKWARD] = 0;
-			_neighbor_ids[mu][FORWARD] = 0;
+			_neighbor_ids[mu][MG_BACKWARD] = 0;
+			_neighbor_ids[mu][MG_FORWARD] = 0;
 		}
 	}
 

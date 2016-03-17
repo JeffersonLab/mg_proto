@@ -48,7 +48,7 @@ TEST(TestLattice, TestSurfacesBasic)
 	LatticeInfo lat(latdims, 4, 3, node);
 
 	for(IndexType mu=0; mu < n_dim; ++mu) {
-		for(IndexType fb = BACKWARD; fb <= FORWARD; ++fb) {
+		for(IndexType fb = MG_BACKWARD; fb <= MG_FORWARD; ++fb) {
 
 			IndexType surface_sites = lat.GetNumCBSurfaceSites(mu)
 					+ lat.GetNumCBSurfaceSites(mu);

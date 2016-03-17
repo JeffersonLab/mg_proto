@@ -16,10 +16,19 @@ namespace MG {
 
 
 class Spinor {
+
 private:
 	void *data;	// Amorphous Spinor
 };
 
+class Clover {
+
+
+};
+
+class Gauge {
+
+};
 
 /** Linear Operator concept. Can apply itself to a vector (Spinor).
  *  Hermitian Conjugation must be implemented, tho this may be refactored
@@ -28,27 +37,6 @@ private:
  *    Spinor out and Spinor in have the same lattice info as the Operator, if this
  *    can't be type-checked at compile time.
  */
-class LinearOperator {
-public:
-	LinearOperator(int level) : _level(level) {
-		MasterLog(INFO, "Creating LinearOperator for level %d", _level);
-	}
-
-	void operator()(Spinor& out, const Spinor& in, LinOpType type = LINOP) {
-		if (type == LINOP) {
-			MasterLog(INFO, "Applying LinOp");
-		} else {
-			MasterLog(INFO, "Applying Daggered Op");
-		}
-	}
-
-	int GetLevel(void) const {
-		return _level;
-	}
-
-private:
-	int _level;
-};
 
 /** Solver concept. Can apply itself to a vector (Spinor)
  *  Uses LinearOperator
@@ -62,6 +50,8 @@ private:
 struct SolverParams {
 	SolverParams() {
 		overrelax_omega = 1.0;
+		max_iter = 500;
+		rsd_target = 1.0e-12;
 		gmres_n_krylov = 10;
 	}
 	double overrelax_omega; 	// Overrelaxation parameter
@@ -70,6 +60,18 @@ struct SolverParams {
 	int gmres_n_krylov;			// Size of Krylov Subspace, for GMRES type algorithms								// This is 1 for MR & BiCGStab and ignored
 };
 
+/*! Abstract Linear Operator Class */
+class LinearOperator {
+public:
+	virtual
+	void operator()(Spinor& out, const Spinor& in, LinOpType type = LINOP)  = 0;
+
+	virtual ~LinearOperator() {}
+
+	virtual int GetLevel(void) const =  0;
+
+private:
+};
 
 class Solver {
 public:
@@ -80,6 +82,7 @@ public:
 	/* Do I need an interface function to return the linop ? */
 };
 
+/*! I Care about 3 solver types */
 enum SolverType {
 	MR, GCR, BICGSTAB
 };
@@ -167,12 +170,7 @@ private:
 };
 
 
-inline
-LinearOperator* createLinearOperator(int level) {
 
-	return new LinearOperator(level);
-
-}
 
 /** This is essentially a solver factory..
  * we will want to redo this properly, to also deal with parameters
@@ -197,6 +195,8 @@ Solver *createSolver(SolverType type, const LinearOperator& M, const Solver* M_p
 
 	return ret_val;
 }
+
+
 /** Restrictor Concept
  *  I am not 100% sure of the interface to this yet.
  *  For now I will let it have two methods which act on Spinors
@@ -237,6 +237,9 @@ private:
 
 
 struct MGLevel {
+	Gauge* gauge;					// Gauge field on this level
+	Clover* clover;				    // Clover field
+	Clover* inv_clover; 			// Inverse field
 	std::vector<Spinor*> null_vecs; // NULL Vectors
 	LatticeInfo* info;       // Info about the current lattice level
 	Restrictor* R;                 // Restrict to next level
@@ -258,6 +261,90 @@ struct MGLevel {
  	}
 };
 
+
+
+/*! This is the fine grid Clover op. Ideally it would be nice if under the hood it could
+ *  call a QPHiX based Op
+ */
+
+class WilsonCloverLinearOperator : public LinearOperator {
+public:
+	WilsonCloverLinearOperator( std::vector<MGLevel>& mg_levels )
+	{
+		MasterLog(INFO, "Creating Wilson Clover Operator on Level 0");
+		// Gauge field and clover term need to be set on level 0
+	}
+
+	void operator()(Spinor& out, const Spinor& in, LinOpType type = LINOP) {
+			if (type == LINOP) {
+				MasterLog(INFO, "Applying Regular Wilson Clover LinOp");
+			} else {
+				MasterLog(INFO, "Applying Daggered Regular Wilson Clover LinOp");
+			}
+		}
+
+	int GetLevel(void) const {
+		return 0;
+	}
+private:
+};
+
+/*! This is a little more involved and would need effort */
+class CoarseLinearOperator : public LinearOperator {
+public:
+
+	/* Use the info in the levels */
+	CoarseLinearOperator( std::vector<MGLevel>& mg_levels,  int level ) : _level(level)
+	{
+		MasterLog(INFO, "Creating Coarse Clover Operator on Level %d, with %d colors", _level, mg_levels[_level].info->GetNumColors());
+	}
+
+	// Matrix Multiplies & Nearest Neighbour communications
+	void operator()(Spinor& out, const Spinor& in, LinOpType type = LINOP) {
+			if (type == LINOP) {
+				MasterLog(INFO, "Applying Coarse LinOp");
+			} else {
+				MasterLog(INFO, "Applying Daggered Coarse Lin Op");
+			}
+		}
+
+	int GetLevel(void) const {
+		return _level;
+	}
+
+	~CoarseLinearOperator() {
+		MasterLog(INFO, "Freeing Coarse Linear Operator on level %d", _level);
+	}
+
+private:
+
+	/*! Internal function for computing the triple product on the gauge links (and gamma matrices) */
+	void CoarsenGauge(const Gauge& u, std::vector<Spinor*>& nullvecs) {
+		MasterLog(INFO, "Coarsening gauge field with %d null_vectors", nullvecs.size());
+	}
+
+	/*! Internal function for coarsening the clover field */
+	void CoarsenClover(const Clover& clov, std::vector<Spinor*> nullvecs ) {
+
+	MasterLog(INFO, "Coarsening clover term with %d null_vectors", nullvecs.size());
+
+
+		MasterLog(INFO, "Inverting clover term");
+
+	}
+
+	int _level;
+};
+
+inline
+LinearOperator* createLinearOperator(std::vector<MGLevel>& mg_levels, int level) {
+	if ( level ==  0 ) {
+		return new WilsonCloverLinearOperator(mg_levels);
+	}
+	else {
+		return new CoarseLinearOperator(mg_levels, level);
+	}
+}
 
 inline
 void gaussian(Spinor& s)
@@ -416,7 +503,8 @@ public:
 };
 
 
-void mgSetup(const SetupParams& p,std::vector< MGLevel >& mg_levels);
+void mgSetup(const SetupParams& p,std::vector< MGLevel >& mg_levels,
+			Gauge* u, Clover* clov, Clover* invclov);
 
 
 

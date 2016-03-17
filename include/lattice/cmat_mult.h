@@ -57,7 +57,10 @@ void CMatMult(float *y, const float *A,  const float *x, const IndexType N, cons
  * -- caller computes, and possibly stores in a ThreadInfo structure
  */
 
-void CMatMultNaive(std::complex<float>* y, const std::complex<float>* A, const std::complex<float>* x, IndexType N);
+void CMatMultNaive(float* y, const float* A, const float* x, IndexType N);
+void CMatMultNaiveAdd(float* y, const float* A, const float* x, IndexType N);
+
+
 
 
 inline
