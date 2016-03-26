@@ -98,7 +98,7 @@ CoarseDiracOp::CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt)
 
 }
 
-// Run in thread
+
 void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 			const CoarseGauge& gauge_in,
 			const CoarseClover& clover_in,
@@ -177,6 +177,105 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 
 }
 
+// Run in thread
+void CoarseDiracOp::Dslash(CoarseSpinor& spinor_out,
+			const CoarseGauge& gauge_in,
+			const CoarseSpinor& spinor_in,
+			const IndexType target_cb,
+			const IndexType tid) const
+{
+	IndexType min_site = _thread_limits[tid].min_site;
+	IndexType max_site = _thread_limits[tid].max_site;
+	// Site is output site
+	for(IndexType site=min_site; site < max_site;++site) {
+
+		// Turn site into x,y,z,t coords assuming we run as
+		//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
+
+		IndexType tmp_yzt = site / _n_xh;
+		IndexType xcb = site - _n_xh * tmp_yzt;
+		IndexType tmp_zt = tmp_yzt / _n_y;
+		IndexType y = tmp_yzt - _n_y * tmp_zt;
+		IndexType t = tmp_zt / _n_z;
+		IndexType z = tmp_zt - _n_z * t;
+
+		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		const float* gauge_base = gauge_in.GetSiteDataPtr(target_cb,site);
+		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
+		const IndexType gdir_offset = gauge_in.GetLinkOffset();
+
+		const float *gauge_links[8]={ gauge_base,                    // X forward
+							gauge_base+gdir_offset,        // X backward
+							gauge_base+2*gdir_offset,      // Y forward
+							gauge_base+3*gdir_offset,      // Y backward
+							gauge_base+4*gdir_offset,      // Z forward
+							gauge_base+5*gdir_offset,      // Z backward
+							gauge_base+6*gdir_offset,      // T forward
+							gauge_base+7*gdir_offset       // T backward
+		};
+
+		// Neighbouring spinors
+		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
+
+		// Boundaries -- we can indirect here to
+		// some face buffers if needs be
+		IndexType x_plus = (x < _n_x-1 ) ? (x + 1) : 0;
+		IndexType x_minus = ( x > 0 ) ?  (x - 1) : _n_x-1;
+
+		x_plus /= 2; // Convert to checkerboard
+		x_minus /=2; // Covert to checkerboard
+
+		IndexType y_plus = ( y < _n_y - 1) ? y+1 : 0;
+		IndexType y_minus = ( y > 0 ) ? y-1 : _n_y - 1;
+
+		IndexType z_plus = ( z < _n_z - 1) ? z+1 : 0;
+		IndexType z_minus = ( z > 0 ) ? z-1 : _n_z - 1;
+
+		IndexType t_plus = ( t < _n_t - 1) ? t+1 : 0;
+		IndexType t_minus = ( t > 0 ) ? t-1 : _n_t - 1;
+
+		const IndexType source_cb = 1 - target_cb;
+		const float *neigh_spinors[8] = {
+			spinor_in.GetSiteDataPtr(source_cb, x_plus  + _n_xh*(y + _n_y*(z + _n_z*t))),
+			spinor_in.GetSiteDataPtr(source_cb, x_minus + _n_xh*(y + _n_y*(z + _n_z*t))),
+			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y_plus + _n_y*(z + _n_z*t))),
+			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y_minus + _n_y*(z + _n_z*t))),
+			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_plus + _n_z*t))),
+			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_minus + _n_z*t))),
+			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_plus))),
+			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_minus))),
+		};
+
+
+		siteApplyDslash(output, gauge_links, spinor_cb, neigh_spinors);
+	}
+
+}
+
+
+inline
+void CoarseDiracOp::siteApplyDslash( float *output,
+		  	  	  	  	 	 const float* gauge_links[8],
+							 const float* spinor_cb,
+							 const float* neigh_spinors[8]) const
+{
+	const int N_color = GetNumColor();
+	const int N_colorspin = GetNumColorSpin();
+
+#pragma omp simd
+	for(int i=0; i < N_colorspin*n_complex; ++i) {
+		output[i] = 0;
+	}
+
+#if 1
+	// Apply the Dslash term.
+	for(int mu=0; mu < 8; ++mu) {
+		CMatMultNaiveAdd(output, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+
+	}
+#endif
+
+}
 
 inline
 void CoarseDiracOp::siteApply( float *output,

@@ -44,8 +44,14 @@ void CMatMultNaive(float* y,
 	const std::complex<float>* Ac = reinterpret_cast<const std::complex<float>*>(A);
 	const std::complex<float>* xc = reinterpret_cast<const std::complex<float>*>(x);
 
-	if( N == 8 ) {
+	if( N == 6 ) {
+		CMatMultNaiveT<6>(yc, Ac, xc);
+	}
+	else if( N == 8 ) {
 		CMatMultNaiveT<8>(yc, Ac, xc);
+	}
+	else if ( N == 12 ) {
+		CMatMultNaiveT<12>(yc, Ac, xc);
 	}
 	else if ( N == 16 ) {
 		CMatMultNaiveT<16>(yc, Ac,xc);
@@ -63,7 +69,7 @@ void CMatMultNaive(float* y,
 		CMatMultNaiveT<64>(yc, Ac, xc);
 	}
 	else {
-		MasterLog(ERROR, "Matrix size %d not supported in CMatMult", N );
+		MasterLog(ERROR, "Matrix size %d not supported in CMatMultNaive", N );
 	}
 }
 
@@ -92,8 +98,14 @@ void CMatMultNaiveAdd(float* y,
 	const std::complex<float>* Ac = reinterpret_cast<const std::complex<float>*>(A);
 	const std::complex<float>* xc = reinterpret_cast<const std::complex<float>*>(x);
 
-	if( N == 8 ) {
+	if (N == 6 ) {
+		CMatMultNaiveAddT<6>(yc, Ac, xc);
+	}
+	else if( N == 8 ) {
 		CMatMultNaiveAddT<8>(yc, Ac, xc);
+	}
+	else if( N == 12 ) {
+		CMatMultNaiveAddT<12>(yc, Ac, xc);
 	}
 	else if ( N == 16 ) {
 		CMatMultNaiveAddT<16>(yc,Ac,xc);
@@ -111,7 +123,7 @@ void CMatMultNaiveAdd(float* y,
 		CMatMultNaiveAddT<64>(yc, Ac, xc);
 	}
 	else {
-		MasterLog(ERROR, "Matrix size %d not supported in CMatMult" , N );
+		MasterLog(ERROR, "Matrix size %d not supported in CMatMultNaiveAdd" , N );
 	}
 }
 

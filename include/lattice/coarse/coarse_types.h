@@ -104,6 +104,12 @@ namespace MG {
 				return _n_spin;
 		}
 
+		inline
+		const LatticeInfo& GetInfo() const {
+			return _lattice_info;
+		}
+
+
 	private:
 		const LatticeInfo& _lattice_info;
 		float* data[2];  // Even and odd checkerboards
@@ -173,24 +179,30 @@ namespace MG {
 				{
 					return &data[cb][site*_n_site_offset];
 				}
-		/** GetSiteDirData
-		 *
-		 *  Returns a pointer to the link in direction mu
-		 *  Conventions are:
-		 *  	mu=0 - X forward
-		 *  	mu=1 - X backward
-		 *  	mu=2 - Y forwad
-		 *  	mu=3 - Y backward
-		 *  	mu=4 - Z forward
-		 *  	mu=5 - Z backward
-		 *      mu=6 - T forward
-		 *      mu=7 - T backward
-		 */
-		inline
-		float *GetSiteDirDataPtr(IndexType cb, IndexType site, IndexType mu)
-		{
-			return &data[cb][site*_n_site_offset + mu*_n_link_offset];
-		}
+				/** GetSiteDirData
+				 *
+				 *  Returns a pointer to the link in direction mu
+				 *  Conventions are:
+				 *  	mu=0 - X forward
+				 *  	mu=1 - X backward
+				 *  	mu=2 - Y forwad
+				 *  	mu=3 - Y backward
+				 *  	mu=4 - Z forward
+				 *  	mu=5 - Z backward
+				 *      mu=6 - T forward
+				 *      mu=7 - T backward
+				 */
+				inline
+				float *GetSiteDirDataPtr(IndexType cb, IndexType site, IndexType mu)
+				{
+					return &data[cb][site*_n_site_offset + mu*_n_link_offset];
+				}
+
+				inline
+				const float *GetSiteDirDataPtr(IndexType cb, IndexType site, IndexType mu) const
+				{
+					return &data[cb][site*_n_site_offset + mu*_n_link_offset];
+				}
 
 		~CoarseGauge()
 		{
@@ -220,6 +232,10 @@ namespace MG {
 			return _n_link_offset;
 		}
 
+		inline
+		const LatticeInfo& GetInfo() const {
+			 return _lattice_info;
+		}
 	private:
 		const LatticeInfo& _lattice_info;
 		float* data[2];  // Even and odd checkerboards

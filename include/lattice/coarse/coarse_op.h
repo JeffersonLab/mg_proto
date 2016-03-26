@@ -31,7 +31,7 @@ struct ThreadLimits {
 
 class CoarseDiracOp {
 public:
-	CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt);
+	CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt = 1);
 
 
 	~CoarseDiracOp() {}
@@ -47,6 +47,18 @@ public:
 			const IndexType target_cb,
 			const IndexType tid) const;
 
+
+	void Dslash(CoarseSpinor& spinor_out,
+				const CoarseGauge& gauge_in,
+				const CoarseSpinor& spinor_in,
+				const IndexType target_cb,
+				const IndexType tid) const;
+
+
+	void siteApplyDslash( float *output,
+			  	  	  	  	 	 const float* gauge_links[8],
+								 const float* spinor_cb,
+								 const float* neigh_spinors[8]) const;
 
 	void siteApply( float *output,
 			  	  	  	  	 	 const float* gauge_links[8],
