@@ -6,6 +6,8 @@
 #include "qdpxx_helpers.h"
 #include "reunit.h"
 #include "transf.h"
+#include "clover_fermact_params_w.h"
+#include "clover_term_qdp_w.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_op.h"
 #include "dslashm_w.h"
@@ -83,7 +85,26 @@ void dslashTripleProduct12x12SiteDir(int dir, const multi1d<LatticeColorMatrix>&
 
 }
 
+void clovTripleProduct12cx12Site(const QDPCloverTerm& clov, const LatticePropagator& in_prop, LatticePropagator& out_prop)
+{
+	LatticeFermion in, out;
+	LatticePropagator prop_tmp = zero;
+	for(int spin=0; spin < 4; ++spin ) {
+			for(int color=0; color < 3; ++color ) {
 
+				// Extract component into 'in'
+				PropToFerm(in_prop,in,color,spin);
+
+				// Apply Dlsash in that Direction
+				clov.apply(out, in, 0,0) ; // isign doesnt matter as Hermitian, cb=0
+				clov.apply(out, in, 0,1) ; // isign doesnt matter as Hermitian, cb=1
+
+				// Place back into prop
+				FermToProp(out, prop_tmp, color, spin);
+			} // color
+		} // spin
+	out_prop=adj(in_prop)*prop_tmp;
+}
 
 
 TEST(TestInterface, TestQDPSpinorToCoarseSpinor)
@@ -138,7 +159,7 @@ TEST(TestInterface, TestQDPPropagatorToCoarsePropagator)
 
 
 
-TEST(TestCoarseQDPXX, TestCoarseQDPXX)
+TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash)
 {
 	IndexArray latdims={{2,2,2,2}};
 	initQDPXXLattice(latdims);
@@ -227,6 +248,149 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXX)
 
 }
 
+TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
+{
+	IndexArray latdims={{2,2,2,2}};
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+//		u[mu] = 1;
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Now need to make a clover op
+	 CloverFermActParams clparam;
+	 AnisoParam_t aniso;
+
+	  // Aniso prarams
+	 aniso.anisoP=true;
+	 aniso.xi_0 = 1.5;
+	 aniso.nu = 0.95;
+	 aniso.t_dir = 3;
+
+	  // Set up the Clover params
+	 clparam.anisoParam = aniso;
+
+	  // Some mass
+	 clparam.Mass = Real(0.1);
+
+	 // Some random clover coeffs
+	  clparam.clovCoeffR=Real(1.35);
+	  clparam.clovCoeffT=Real(0.8);
+	  QDPCloverTerm clov_qdp;
+	  clov_qdp.create(u,clparam);
+
+
+
+	// Generate the 'vectors' of which there are to be 12. Funnily this fits nicely into a propagator
+	// Later on would be better to have this be a general unitary matrix per site.
+	QDPIO::cout << "Generating Eye" << std::endl;
+	LatticePropagator eye=1;
+
+	Double eye_norm = norm2(eye);
+	Double eye_norm_per_site = eye_norm/Layout::vol();
+	QDPIO::cout << "Eye Norm Per Site " << eye_norm_per_site << std::endl;
+
+	LatticePropagator tprod_result;
+
+	clovTripleProduct12cx12Site(clov_qdp, eye, tprod_result);
+
+	QDPIO::cout << "Checking Triple product result PropClover is still block diagonal" << std::endl;
+
+	for(int spin_row=0; spin_row < 2; ++spin_row) {
+		for(int spin_col=2; spin_col < 4; ++spin_col) {
+			for(int col_row = 0; col_row < 3; ++col_row ) {
+				for(int col_col = 0; col_col < 3; ++col_col ) {
+					float re = tprod_result.elem(0).elem(spin_col,spin_row).elem(col_col,col_row).real();
+					float im = tprod_result.elem(0).elem(spin_col,spin_row).elem(col_col,col_row).imag();
+
+					ASSERT_FLOAT_EQ(re,0);
+					ASSERT_FLOAT_EQ(im,0);
+
+				}
+			}
+		}
+	}
+
+	for(int spin_row=2; spin_row < 4; ++spin_row) {
+		for(int spin_col=0; spin_col < 2; ++spin_col) {
+			for(int col_row = 0; col_row < 3; ++col_row ) {
+				for(int col_col = 0; col_col < 3; ++col_col ) {
+					float re = tprod_result.elem(0).elem(spin_col,spin_row).elem(col_col,col_row).real();
+					float im = tprod_result.elem(0).elem(spin_col,spin_row).elem(col_col,col_row).imag();
+
+					ASSERT_FLOAT_EQ(re,0);
+					ASSERT_FLOAT_EQ(im,0);
+
+				}
+			}
+		}
+	}
+
+	LatticeFermion orig;
+	gaussian(orig);
+	LatticeFermion orig_res=zero;
+
+	clov_qdp.apply(orig_res, orig, 0, 0);
+	clov_qdp.apply(orig_res, orig, 0, 1);
+
+
+	LatticeFermion diff = zero;
+	{
+		QDPIO::cout << "Checking Triple product result PropClover can be multiplied with Fermion" << std::endl;
+
+		LatticeFermion tprod_res_ferm = zero;
+
+		// Just multiply by propgatator
+		tprod_res_ferm = tprod_result*orig;
+
+		diff = tprod_res_ferm - orig_res;
+		QDPIO::cout << "Diff Norm = " << sqrt(norm2(diff)) << std::endl;
+	}
+
+
+	QDPIO::cout << "Importing Triple product result PropClover into CoarseClover " << std::endl;
+	LatticeInfo info(latdims, 2, 6, NodeInfo());
+	CoarseClover c_clov(info);
+	QDPPropToCoarseClover(tprod_result, c_clov);
+
+	CoarseSpinor s_in(info);
+	QDPSpinorToCoarseSpinor(orig,s_in);
+
+	CoarseSpinor s_out(info);
+
+	int n_smt = 1;
+	CoarseDiracOp D(info,n_smt);
+
+#pragma omp parallel
+	{
+		int tid = omp_get_thread_num();
+
+		D.CloverApply(s_out, c_clov, s_in,0,tid);
+		D.CloverApply(s_out, c_clov, s_in,1,tid);
+
+
+	}
+
+	LatticeFermion coarse_res;
+	CoarseSpinorToQDPSpinor(s_out,coarse_res);
+	diff = orig_res - coarse_res;
+
+	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
+	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
+	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[0] = " << sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[1] = " << sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff = " << sqrt(norm2(diff)/norm2(orig)) << std::endl;
+
+
+
+}
 
 int main(int argc, char *argv[]) 
 {

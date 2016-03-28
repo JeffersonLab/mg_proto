@@ -299,6 +299,44 @@ void CoarseDiracOp::siteApply( float *output,
 	}
 
 }
+// Run in thread
+void CoarseDiracOp::CloverApply(CoarseSpinor& spinor_out,
+			const CoarseClover& clov_in,
+			const CoarseSpinor& spinor_in,
+			const IndexType target_cb,
+			const IndexType tid) const
+{
+	IndexType min_site = _thread_limits[tid].min_site;
+	IndexType max_site = _thread_limits[tid].max_site;
+
+	// Site is output site
+	for(IndexType site=min_site; site < max_site;++site) {
+
+		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		const float* clover_chiral_0 = clov_in.GetSiteChiralDataPtr(target_cb,site,0);
+		const float* clover_chiral_1 = clov_in.GetSiteChiralDataPtr(target_cb,site,1);
+		const float* input = spinor_in.GetSiteDataPtr(target_cb,site);
+
+		siteApplyClover(output, clover_chiral_0, clover_chiral_1, input);
+	}
+
+}
+
+inline
+void CoarseDiracOp::siteApplyClover( float *output,
+					  const float* clover_chiral_0,
+					  const float* clover_chiral_1,
+					  const float *input) const
+{
+	const int N_color = GetNumColor();
+
+	// NB: For = 6 input spinor may not be aligned!!!! BEWARE when testing optimized
+	// CMatMult-s.
+	CMatMultNaive(output, clover_chiral_0, input, N_color);
+	CMatMultNaive(&output[2*N_color], clover_chiral_1, &input[2*N_color], N_color);
+
+
+}
 
 } // Namespace
 

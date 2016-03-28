@@ -329,11 +329,14 @@ namespace MG {
 		}
 
 		inline
-		IndexType GetNumBlock() const {
+		IndexType GetNumChiral() const {
 				return _n_chiral;
 		}
 
-
+		inline
+		const LatticeInfo& GetInfo() const {
+			return _lattice_info;
+		}
 	private:
 		const LatticeInfo& _lattice_info;
 		float* data[2];  // Even and odd checkerboards

@@ -47,6 +47,11 @@ public:
 			const IndexType target_cb,
 			const IndexType tid) const;
 
+	void CloverApply(CoarseSpinor& spinor_out,
+				const CoarseClover& clov_in,
+				const CoarseSpinor& spinor_in,
+				const IndexType target_cb,
+				const IndexType tid) const;
 
 	void Dslash(CoarseSpinor& spinor_out,
 				const CoarseGauge& gauge_in,
@@ -66,6 +71,12 @@ public:
 								 const float* clover_cb_1,
 								 const float* spinor_cb,
 								 const float* neigh_spinors[8]) const ;
+
+	void siteApplyClover( float *output,
+						  const float* clover_chiral_0,
+						  const float* clover_chiral_1,
+						  const float *input) const ;
+
 
 	inline
 	IndexType GetNumColorSpin() const {
