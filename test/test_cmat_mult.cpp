@@ -77,7 +77,7 @@ TEST(CMatMult, TestCorrectness)
 	MG::MasterLog(MG::DEBUG2, "Comparing");
 	for(int i=0; i < 2*N; ++i) {
 		MG::MasterLog(MG::DEBUG3, "x[%d]=%g y[%d]=%g y2[%d]=%g",i,x[i],i,y[i],i,y2[i]);
-		ASSERT_NEAR(y[i],y2[i], 5.0e-6*abs(y2[i]));
+		ASSERT_NEAR(y[i],y2[i], 5.0e-6*fabs(y2[i]));
 	}
 	MG::MasterLog(MG::DEBUG2, "Done");
 #if 1
@@ -165,7 +165,7 @@ TEST(CMatMultVrow, TestCorrectness)
 	MG::MasterLog(MG::DEBUG2, "Comparing");
 	for(int i=0; i < 2*N; ++i) {
 		MG::MasterLog(MG::DEBUG3, "x[%d]=%g y[%d]=%g y2[%d]=%g",i,x[i],i,y[i],i,y2[i]);
-		ASSERT_NEAR(y[i],y2[i], 5.0e-6*abs(y2[i]));
+		ASSERT_NEAR(y[i],y2[i], 5.0e-6*fabs(y2[i]));
 	}
 	MG::MasterLog(MG::DEBUG2, "Done");
 #if 1

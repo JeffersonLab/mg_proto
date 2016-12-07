@@ -50,7 +50,7 @@ namespace MG {
 		  }
 	  }
 
-	  /* Access data array -- beware threading */
+	  /** Access data array -- beware threading */
 	  T* GetData(void) {
 		  return _data;
 	  }
@@ -59,6 +59,11 @@ namespace MG {
 	  T* GetData(IndexType elem) {
 		  return &_data[elem];
 	  }
+
+	  /** Regular indexing */
+	  T& operator[](IndexType elem) { return _data[elem]; }
+	  const T& operator[](IndexType elem) const { return _data[elem]; }
+
   private:
   	  T* _data;
   	  const bool _owner;

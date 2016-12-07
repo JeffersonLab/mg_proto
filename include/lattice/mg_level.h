@@ -255,7 +255,7 @@ struct MGLevel {
 		if( P != nullptr ) delete P;
 		if( R != nullptr ) delete R;
 		if( info != nullptr ) delete info;
-		for(int vec=0; vec < null_vecs.size(); ++vec) {
+		for(unsigned vec=0; vec < null_vecs.size(); ++vec) {
 			if ( null_vecs[vec] != nullptr ) delete null_vecs[vec];
 		}
  	}
@@ -367,6 +367,16 @@ void blockOrthogonalize( std::vector< Spinor* >& vecs,
 	MasterLog(INFO, "Block Orthogonalizing Vectors with block size (%d %d %d %d)",
 			block_dims[0],block_dims[1],block_dims[2],block_dims[3]);
 
+}
+
+inline
+void GramSchm(Spinor& v_i, std::vector< Spinor *>& vecs, const IndexType max_vec)
+{
+	for(auto j=0; j < max_vec; ++j) {
+		MasterLog(INFO, "Orthogonalizing Vector against previous vector %d", j);
+
+	}
+	MasterLog(INFO, "Normalizing vector %d", max_vec);
 }
 
 struct SetupParams {

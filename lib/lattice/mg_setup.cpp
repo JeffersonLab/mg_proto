@@ -57,8 +57,9 @@ namespace MG {
 		   // Reuse node info from toplevel
 		   mg_levels[level].info = new LatticeInfo(blocked_lattice_size,
 				   	   	   	   	   	   	   	   	   	  2,
-													  p.n_vecs[level-1],
+													  p.n_vecs[level-1], // Colors = Number of Nullvecs on prev level.
 													  mg_levels[level-1].info->GetNodeInfo());
+
 		   MasterLog(INFO, "Level %d: Lattice Info Set.", level);
 		   MasterLog(INFO, "Local Vol: (%d, %d, %d, %d),  Ns=%d, Nc=%d",
 				   (mg_levels[level].info->GetLatticeDimensions())[0],
@@ -77,6 +78,8 @@ namespace MG {
 		   // Level zero is trivial -- just the fine linOp
 		   // Level 1 -- N-1 is less trivial -- need nullvecs from previous level
 		  //  Assume this is taken care of here
+		  //  MG Levels will have the coarsened gauge field and clover in it...
+		  //
 		   mg_levels[level].M = createLinearOperator(mg_levels, level);
 
 		   // If we are not on the last level, we need to create a nullspace
@@ -87,7 +90,7 @@ namespace MG {
 			   mg_levels[level].null_vecs.resize(p.n_vecs[level]);
 
 			   // Allocate the vectors
-			   for(int vec=0; vec < mg_levels[level].null_vecs.size(); ++vec) {
+			   for(size_t vec=0; vec < mg_levels[level].null_vecs.size(); ++vec) {
 				   mg_levels[level].null_vecs[vec] = allocateSpinor(*(mg_levels[level].info), level);
 			   }
 
@@ -102,21 +105,30 @@ namespace MG {
 			   MasterLog(INFO, "Level %d: Creating %d NULL vectors", level, p.n_vecs[level]);
 			   {
 				   Spinor* zero_vec = allocateSpinor(*(mg_levels[level].info), level);
+
 				   zero(*zero_vec);
 
 				   // Partially solve M x = 0 using the null solver
 				   for(IndexType vec=0; vec < p.n_vecs[level]; ++vec) {
+
 					   // Fill with random noise
 					   gaussian( *(mg_levels[level].null_vecs[vec]));
 
 					   SolverParams null_solver_params;
 					   null_solver_params.max_iter = p.null_solver_max_iter[level];
 					   null_solver_params.rsd_target = p.null_solver_rsd_target[level];
+
+					   auto v_i = mg_levels[level].null_vecs[vec];
+
 					   // Solve with a NULL solver
 					   (*(mg_levels[level].null_solver))(
-							   *(mg_levels[level].null_vecs[vec]),
+							   *v_i,
 							   *(zero_vec),
 							   null_solver_params);
+
+					   // Orthonormalize v_i against previous vec-1 vecs.
+					   GramSchm(*v_i, mg_levels[level].null_vecs, vec);
+
 				   }
 
 				   freeSpinor(zero_vec);

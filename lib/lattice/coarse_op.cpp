@@ -106,6 +106,8 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 			const IndexType target_cb,
 			const IndexType tid) const
 {
+
+	// Thread over output sites
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
@@ -122,6 +124,7 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 		IndexType t = tmp_zt / _n_z;
 		IndexType z = tmp_zt - _n_z * t;
 
+
 		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
 		const float* gauge_base = gauge_in.GetSiteDataPtr(target_cb,site);
 		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
@@ -129,6 +132,8 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 		const float* clover_cb_1 = clover_in.GetSiteChiralDataPtr(target_cb,site,1);
 		const IndexType gdir_offset = gauge_in.GetLinkOffset();
 
+		// Assumes 8 links are kept contigusly.
+		//
 		const float *gauge_links[8]={ gauge_base,                    // X forward
 							gauge_base+gdir_offset,        // X backward
 							gauge_base+2*gdir_offset,      // Y forward

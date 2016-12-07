@@ -45,7 +45,7 @@ namespace MG {
 			// Allocate Data
 			IndexType num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_site_offset;
 
-			/* Contiguout allocation */
+			/* Non-Contiguout allocation */
 			data[0] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
 			data[1] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
 
