@@ -244,18 +244,27 @@ void clovTripleProductSite(const QDPCloverTerm& clov,const multi1d<LatticeFermio
 	int Ncolor_c = cl_coarse.GetNumColor();
 	int Nchiral_c = cl_coarse.GetNumChiral();
 
+
 	// in vecs has size Ncolor_c = Ncolorspin_c/2
 	// But this mixes both upper and lower spins
 	// Once we deal with those separately we will need Ncolorspin_c results
 	// And we will need to apply the 'DslashDir' separately to each aggregate
 
 	assert( in_vecs.size() == Ncolor_c );
+	assert( Nchiral_c == 2);
 
-	// Take apart the aggregates, and apply the clover term to them
-	multi1d<LatticeFermion> out_vecs( Ncolor_c * Nchiral_c);
+	// out_vecs is the result of applying clover term to in_vecs
+	// NOTE!!!: Unlike with Dslash where (1 +/- gamma_mu) mixes the upper and lower spin components
+	// Clover *does not* do this. In this chiral basis that we use Clover is block diagonal
+	// So it acts independently on upper and lower spin components.
+	// This means Ncolor vectors are sufficient. The upper components will hold the results of
+	// clover_term applied to the upper components while the lower components will hold the results of
+	// clover_term applied to the lower components in the same way in_vector combines upper and lower
+	// components.
+	multi1d<LatticeFermion> out_vecs( Ncolor_c );
 
 	// Zero the output
-	for(int j=0; j < Ncolor_c * Nchiral_c; ++j) {
+	for(int j=0; j < Ncolor_c; ++j) {
 		out_vecs[j]=zero;
 	}
 
@@ -263,10 +272,16 @@ void clovTripleProductSite(const QDPCloverTerm& clov,const multi1d<LatticeFermio
 	// multiply by clover and store in out_vecs. There will be Ncolor_c*Nchiral_c output
 	// vectors
 	for(int j=0; j < Ncolor_c; ++j) {
-		for(int chiral=0; chiral < Nchiral_c; ++chiral) {
-			LatticeFermion tmp=zero;
-			extractAggregate(tmp, in_vecs[j], chiral);
-			clov.apply(out_vecs[chiral*Ncolor_c+j], tmp, 0, chiral);
+
+		// Clover term is block diagonal
+		// So I can apply it once, the upper and lower spin components will
+		// be acted on independently. No need to separate the aggregates before
+		// applying
+
+		LatticeFermion tmp=zero;
+		for(int cb=0; cb < 2; ++cb) {
+			clov.apply(out_vecs[j], in_vecs[j], 0, cb);
+			clov.apply(out_vecs[j], in_vecs[j], 0, cb);
 		}
 	}
 
@@ -315,8 +330,10 @@ void clovTripleProductSite(const QDPCloverTerm& clov,const multi1d<LatticeFermio
 							int color=k%Nc;
 
 							// Right vector - chiral*Ncolor_c selects A_upper ( chiral=0 ) or B_lower (chiral=1)
-							REAL right_r = out_vecs[matmul_col + chiral * Ncolor_c].elem(site).elem(spin).elem(color).real();
-							REAL right_i = out_vecs[matmul_col + chiral * Ncolor_c].elem(site).elem(spin).elem(color).imag();
+
+							// NB: Out vecs has only NColor members
+							REAL right_r = out_vecs[matmul_col].elem(site).elem(spin).elem(color).real();
+							REAL right_i = out_vecs[matmul_col].elem(site).elem(spin).elem(color).imag();
 
 							// Left vector -- only Ncolor_c components with [ V^H_upper V^H_lower ]
 							//
@@ -327,8 +344,8 @@ void clovTripleProductSite(const QDPCloverTerm& clov,const multi1d<LatticeFermio
 							// [	  0       V^H_lower ]
 							//
 							// so index with row % Ncolor_c = matmul_row
-							REAL left_r = in_vecs[matmul_row + chiral * Ncolor_c].elem(site).elem(spin).elem(color).real();
-							REAL left_i = in_vecs[matmul_row + chiral * Ncolor_c].elem(site).elem(spin).elem(color).imag();
+							REAL left_r = in_vecs[matmul_row ].elem(site).elem(spin).elem(color).real();
+							REAL left_i = in_vecs[matmul_row ].elem(site).elem(spin).elem(color).imag();
 
 							// Accumulate inner product V^H_row A_column
 							coarse_clov[RE + coarse_clov_index ] += left_r*right_r + left_i*right_i;
@@ -792,6 +809,160 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
 
 
 }
+
+TEST(TestCoarseQDPXX, TestCoarseQDPXXClov2)
+{
+	IndexArray latdims={{2,2,2,2}};
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+//		u[mu] = 1;
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Now need to make a clover op
+	 CloverFermActParams clparam;
+	 AnisoParam_t aniso;
+
+	  // Aniso prarams
+	 aniso.anisoP=true;
+	 aniso.xi_0 = 1.5;
+	 aniso.nu = 0.95;
+	 aniso.t_dir = 3;
+
+	  // Set up the Clover params
+	 clparam.anisoParam = aniso;
+
+	  // Some mass
+	 clparam.Mass = Real(0.1);
+
+	 // Some random clover coeffs
+	  clparam.clovCoeffR=Real(1.35);
+	  clparam.clovCoeffT=Real(0.8);
+	  QDPCloverTerm clov_qdp;
+	  clov_qdp.create(u,clparam);
+
+
+
+	// Generate the 'vectors' of which there are to be 12. Funnily this fits nicely into a propagator
+	// Later on would be better to have this be a general unitary matrix per site.
+	QDPIO::cout << "Generating Eye" << std::endl;
+	LatticePropagator eye=1;
+
+	Double eye_norm = norm2(eye);
+	Double eye_norm_per_site = eye_norm/Layout::vol();
+	QDPIO::cout << "Eye Norm Per Site " << eye_norm_per_site << std::endl;
+
+	// Pack 'Eye' vectors into to the in_vecs;
+	// This is similar to the case when we will have noise filled vectors
+	multi1d<LatticeFermion> in_vecs(Nc*Ns/2);
+
+	for(int spin=0; spin < Ns/2; ++spin) {
+		for(int color =0; color < Nc; ++color) {
+			LatticeFermion upper = zero;
+			LatticeFermion lower = zero;
+
+			PropToFerm(eye, lower, color, spin);
+			PropToFerm(eye, upper, color, spin+Ns/2);
+			in_vecs[color + Nc*spin] = upper + lower;
+		}
+	}
+
+
+	LatticePropagator tprod_result;
+	clovTripleProduct12cx12Site(clov_qdp, eye, tprod_result);
+#if 0
+
+	QDPIO::cout << "Checking Triple product result PropClover is still block diagonal" << std::endl;
+
+	for(int spin_row=0; spin_row < 2; ++spin_row) {
+		for(int spin_col=2; spin_col < 4; ++spin_col) {
+			for(int col_row = 0; col_row < 3; ++col_row ) {
+				for(int col_col = 0; col_col < 3; ++col_col ) {
+					float re = tprod_result.elem(0).elem(spin_row,spin_col).elem(col_row,col_col).real();
+					float im = tprod_result.elem(0).elem(spin_row,spin_col).elem(col_row,col_col).imag();
+
+					ASSERT_FLOAT_EQ(re,0);
+					ASSERT_FLOAT_EQ(im,0);
+
+				}
+			}
+		}
+	}
+
+	for(int spin_row=2; spin_row < 4; ++spin_row) {
+		for(int spin_col=0; spin_col < 2; ++spin_col) {
+			for(int col_row = 0; col_row < 3; ++col_row ) {
+				for(int col_col = 0; col_col < 3; ++col_col ) {
+					float re = tprod_result.elem(0).elem(spin_row,spin_col).elem(col_row,col_col).real();
+					float im = tprod_result.elem(0).elem(spin_row,spin_col).elem(col_row,col_col).imag();
+
+					ASSERT_FLOAT_EQ(re,0);
+					ASSERT_FLOAT_EQ(im,0);
+
+				}
+			}
+		}
+	}
+
+#endif
+
+	QDPIO::cout << "Importing Triple product result PropClover into CoarseClover " << std::endl;
+
+
+	// Now test the new packer.
+	LatticeInfo info(latdims, 2, 6, NodeInfo());
+	CoarseClover c_clov(info);
+	clovTripleProductSite(clov_qdp,in_vecs, c_clov);
+
+	// Now create a LatticeFermion and apply both the QDP++ and the Coarse Clover
+	LatticeFermion orig;
+	gaussian(orig);
+	LatticeFermion orig_res=zero;
+
+
+	// orig_res = A orig
+	for(int cb=0; cb < 2; ++cb) {
+		clov_qdp.apply(orig_res, orig, 0, cb);
+	}
+
+	// Convert original spinor to a coarse spinor
+	CoarseSpinor s_in(info);
+	QDPSpinorToCoarseSpinor(orig,s_in);
+	CoarseSpinor s_out(info);
+
+	int n_smt = 1;
+	CoarseDiracOp D(info,n_smt);
+
+#pragma omp parallel
+	{
+		int tid = omp_get_thread_num();
+
+		D.CloverApply(s_out, c_clov, s_in,0,tid);
+		D.CloverApply(s_out, c_clov, s_in,1,tid);
+	}
+
+	LatticeFermion coarse_res;
+	CoarseSpinorToQDPSpinor(s_out,coarse_res);
+
+	LatticeFermion diff = orig_res - coarse_res;
+
+	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
+	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
+	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[0] = " << sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[1] = " << sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff = " << sqrt(norm2(diff)/norm2(orig)) << std::endl;
+
+
+
+}
+
 
 int main(int argc, char *argv[]) 
 {
