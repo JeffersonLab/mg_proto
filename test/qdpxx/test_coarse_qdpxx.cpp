@@ -12,6 +12,8 @@
 #include "lattice/coarse/coarse_op.h"
 #include "dslashm_w.h"
 
+#include <complex>
+
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
@@ -82,7 +84,7 @@ void caxpyAggr(const std::complex<double>& alpha, const LatticeFermion& x, Latti
 
 // In the full blown version, instead of the 'site' we will sum over sites in
 // a block
-double norm2Aggregate(const LatticeFermion& v, int site, int aggr)
+double norm2Aggr(const LatticeFermion& v, int site, int aggr)
 {
 	double norm2 = (double)0;
 	for(int spin=aggr*(Ns/2); spin < (aggr+1)*(Ns/2); ++spin) {
@@ -100,9 +102,7 @@ double norm2Aggregate(const LatticeFermion& v, int site, int aggr)
 std::complex<double>
 innerProductAggr(const LatticeFermion& left, const LatticeFermion& right, int site, int aggr)
 {
-	std::complex<double> iprod;
-	double re=0;
-	double im=0;
+	std::complex<double> iprod = {0,0};
 
 	for(int spin=aggr*(Ns/2); spin < (aggr+1)*(Ns/2); ++spin) {
 		for(int color=0; color < Nc; ++color) {
@@ -111,45 +111,44 @@ innerProductAggr(const LatticeFermion& left, const LatticeFermion& right, int si
 
 			REAL right_r = right.elem(site).elem(spin).elem(color).real();
 			REAL right_i = right.elem(site).elem(spin).elem(color).imag();
-			re += left_r*right_r + left_i*right_i;
-			im += left_r*right_i - left_i*right_r;
+
+			std::complex<double> left_elem = { left_r, left_i };
+			std::complex<double> right_elem = { right_r, right_i };
+
+			iprod += conj(left_elem)*right_elem;
 		}
 	}
-
-	iprod=std::complex<double>(re,im);
 	return iprod;
 }
 
 void orthonormalizeAggregates(multi1d<LatticeFermion>& vecs)
 {
+
+
 	for(int aggr=0; aggr < 2; ++aggr) {
 
 		MasterLog(DEBUG, "Orthonormalizing Aggregate: %d\n",aggr);
 
-#pragma omp parallel for
 			// This will be over blocks...
 			for(int site=all.start(); site <= all.end(); ++site) {
 
 
 				// do vecs[0] ... vecs[N]
 				for(int curr_vec=0; curr_vec < vecs.size(); curr_vec++) {
-					MasterLog(DEBUG, "CurrVec: %d Previous: ",curr_vec);
 
 					// orthogonalize against previous vectors
 					// if curr_vec == 0 this will be skipped
 					for(int prev_vec=0; prev_vec < curr_vec; prev_vec++) {
-						MasterLog(DEBUG, "%d ", prev_vec);
 
-						std::complex<double> iprod = innerProductAggr( vecs[curr_vec], vecs[prev_vec], site, aggr);
-						std::complex<double> minus_iprod = -iprod;
+						std::complex<double> iprod = innerProductAggr( vecs[prev_vec], vecs[curr_vec], site, aggr);
+						std::complex<double> minus_iprod=std::complex<double>(-real(iprod), -imag(iprod) );
 
 						// curr_vec <- curr_vec - <curr_vec|prev_vec>*prev_vec = -iprod*prev_vec + curr_vec
 						caxpyAggr( minus_iprod, vecs[prev_vec], vecs[curr_vec], site, aggr);
 					}
-					MasterLog(DEBUG,"\n");
 
 					// Normalize current vector
-					double inv_norm = ((double)1)/sqrt(norm2Aggregate(vecs[curr_vec], site, aggr));
+					double inv_norm = ((double)1)/sqrt(norm2Aggr(vecs[curr_vec], site, aggr));
 
 					// vecs[curr_vec] = inv_norm * vecs[curr_vec]
 					axAggr(inv_norm, vecs[curr_vec], site, aggr);
@@ -217,8 +216,6 @@ void dslashTripleProductSiteDir(int dir, const multi1d<LatticeColorMatrix>& u, c
 	int Ncolor_c = u_coarse.GetNumColor();
 	int Ncolorspin_c = u_coarse.GetNumColorSpin();
 	int Naggr_c = Ncolorspin_c/Ncolor_c;
-
-	QDPIO::cout << "Ncolor_c=" << Ncolor_c << " Ncolorspin_c=" << Ncolorspin_c << " Nc*Ns=" << Nc*Ns << std::endl;
 
 	// in vecs has size Ncolor_c = Ncolorspin_c/2
 	// But this mixes both upper and lower spins
@@ -471,24 +468,101 @@ void clovTripleProductSite(const QDPCloverTerm& clov,const multi1d<LatticeFermio
 
 }
 
-#if 0
-void RestrictSpinor( const multi1d<LatticeFermion>& V, const LatticeFermion& ferm_in, CoarseSpinor& out)
+// Later on there will be Coarse to Coarse maybe?
+//
+void restrictSpinorFineToCoarse( const multi1d<LatticeFermion>& v, const LatticeFermion& ferm_in, CoarseSpinor& out)
 {
-	int num_cbsites=out.GetInfo().GetNumCBSites();
-	int num_colorspin=out.GetNumColorSpin();
-	int num_color = out.GetNumColor();
+	int num_coarse_cbsites=out.GetInfo().GetNumCBSites();
+	int num_coarse_color = out.GetNumColor();
 
+
+	assert( v.size() == num_coarse_color );
+
+	// This will be a loop over blocks
 	for(int cb=0; cb < 2; ++cb) {
-		for(int cbsite=0; cbsite < num_cbsites; ++cbsite ) {
+		for(int cbsite=0; cbsite < num_coarse_cbsites; ++cbsite ) {
 
-			for(int coarse_row=0; coarse_row < num_colorspin; ++coarse_row) {
-				int coarse_row_color =
+			float* site_spinor = out.GetSiteDataPtr(cb,cbsite);
+			int qdpsite = rb[cb].siteTable()[cbsite];
+
+			for(int chiral = 0; chiral < 2; ++chiral ) {
+			for(int coarse_color=0; coarse_color  < num_coarse_color; coarse_color++) {
+				int coarse_colorspin = coarse_color + chiral * num_coarse_color;
+				site_spinor[ RE + n_complex*coarse_colorspin ] = 0;
+				site_spinor[ IM + n_complex*coarse_colorspin ] = 0;
+
+
+				for(int spin=0; spin < Ns/2; ++spin ) {
+					for(int color=0; color < Nc; ++color ) {
+
+						int targ_spin = spin + chiral*(Ns/2); // Offset by whether upper/lower
+
+						REAL left_r = v[ coarse_color ].elem(qdpsite).elem(targ_spin).elem(color).real();
+						REAL left_i = v[ coarse_color ].elem(qdpsite).elem(targ_spin).elem(color).imag();
+
+						REAL right_r = ferm_in.elem(qdpsite).elem(targ_spin).elem(color).real();
+						REAL right_i = ferm_in.elem(qdpsite).elem(targ_spin).elem(color).imag();
+
+						// It is V_j^H  ferm_in so conj(left)*right.
+						site_spinor[ RE + n_complex*coarse_colorspin ] += left_r * right_r + left_i * right_i;
+						site_spinor[ IM + n_complex*coarse_colorspin ] += left_r * right_i - right_r * left_i;
+
+					}
+				}
+
 			}
-
+			}
 		}
 	}
 }
-#endif
+
+// Later on there may be Coarse To Coarse Maybe
+void prolongateSpinorCoarseToFine( const multi1d<LatticeFermion>& v, const CoarseSpinor& coarse_in, LatticeFermion& fine_out)
+{
+	int num_coarse_cbsites=coarse_in.GetInfo().GetNumCBSites();
+	int num_coarse_color = coarse_in.GetNumColor();
+
+	assert( v.size() == num_coarse_color );
+
+	// Two ways to look at this. One way is that we need to prolongate the coarse blocks.
+	// For now each block is a site. I'll figure out how to deal with sites in the blocks later
+	//
+	for(int cb=0; cb < 2; ++cb) {
+		for(int cbsite=0; cbsite < num_coarse_cbsites; ++cbsite ) {
+
+			const float *coarse_spinor = coarse_in.GetSiteDataPtr(cb,cbsite);
+			int qdpsite = rb[cb].siteTable()[cbsite];
+
+			for(int fine_spin=0; fine_spin < Ns; ++fine_spin) {
+
+				int chiral = fine_spin < (Ns/2) ? 0 : 1;
+
+				for(int fine_color=0; fine_color < Nc; fine_color++ ) {
+
+					fine_out.elem(qdpsite).elem(fine_spin).elem(fine_color).real() = 0;
+					fine_out.elem(qdpsite).elem(fine_spin).elem(fine_color).imag() = 0;
+
+
+					for(int coarse_color = 0; coarse_color < num_coarse_color; coarse_color++) {
+
+						REAL left_r = v[coarse_color].elem(qdpsite).elem(fine_spin).elem(fine_color).real();
+						REAL left_i = v[coarse_color].elem(qdpsite).elem(fine_spin).elem(fine_color).imag();
+
+						int colorspin = coarse_color + chiral*num_coarse_color;
+						REAL right_r = coarse_spinor[ RE + n_complex*colorspin];
+						REAL right_i = coarse_spinor[ IM + n_complex*colorspin];
+
+						// V_j | out  (rather than V^{H}) so needs regular complex mult?
+						fine_out.elem(qdpsite).elem(fine_spin).elem(fine_color).real() += left_r * right_r - left_i * right_i;
+						fine_out.elem(qdpsite).elem(fine_spin).elem(fine_color).imag() += left_i * right_r + left_r * right_i;
+					}
+				}
+			}
+		}
+	}
+
+}
+
 
 TEST(TestInterface, TestQDPSpinorToCoarseSpinor)
 {
@@ -510,8 +584,10 @@ TEST(TestInterface, TestQDPSpinorToCoarseSpinor)
 	Double diff_norm = norm2(diff);
 	Double rel_diff_norm = diff_norm/norm2(in);
 	QDPIO::cout << "Diff Norm = " << sqrt(diff_norm) << std::endl;
-	QDPIO::cout << "Relative Diff Norm = " << sqrt(rel_diff_norm) << std::endl;
+	ASSERT_NEAR( toDouble(sqrt(diff_norm)), 0, 1.0e-6 );
 
+	QDPIO::cout << "Relative Diff Norm = " << sqrt(rel_diff_norm) << std::endl;
+	ASSERT_NEAR( toDouble(sqrt(rel_diff_norm)), 0, 1.0e-7);
 }
 
 TEST(TestInterface, TestQDPPropagatorToCoarsePropagator)
@@ -536,7 +612,10 @@ TEST(TestInterface, TestQDPPropagatorToCoarsePropagator)
 		Double diff_norm = norm2(diff);
 		Double rel_diff_norm = diff_norm/norm2(in);
 		QDPIO::cout << "Dir: " << mu << " Diff Norm = " << sqrt(diff_norm) << std::endl;
+		ASSERT_NEAR( toDouble(sqrt(diff_norm)), 0, 1.0e-5 );
+
 		QDPIO::cout << "Dir: " << mu << " Relative Diff Norm = " << sqrt(rel_diff_norm) << std::endl;
+		ASSERT_NEAR( toDouble(sqrt(rel_diff_norm)), 0, 1.0e-6);
 	}
 }
 
@@ -629,6 +708,14 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash)
 	QDPIO::cout << "Rel. Norm Diff[1] = " << sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) << std::endl;
 	QDPIO::cout << "Rel. Norm Diff = " << sqrt(norm2(diff)/norm2(psi)) << std::endl;
 
+
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(psi,rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(psi)) ), 0, 1.e-5 );
+
 }
 
 TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
@@ -665,15 +752,14 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 		}
 	}
 
-	MasterLog(DEBUG,"Printing in-vecs: \n");
+	QDPIO::cout << "Printing in-vecs: " << std::endl;
 	for(int spin=0; spin < 4; ++spin ) {
 		for(int color=0; color < 3; ++color ) {
 			for(int j=0; j < Nc*Ns/2; ++j) {
-				MasterLog(DEBUG,"( %1.2lf, %1.2lf ) ", in_vecs[j].elem(0).elem(spin).elem(color).real(),
+				printf("( %1.2lf, %1.2lf ) ", in_vecs[j].elem(0).elem(spin).elem(color).real(),
 									in_vecs[j].elem(0).elem(spin).elem(color).imag() );
 			}
-			MasterLog(DEBUG, "\n");
-
+			printf("\n");
 		}
 	}
 
@@ -692,7 +778,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 
 	// Generate the triple products directly into the u_coarse
 	for(int mu=0; mu < 8; ++mu) {
-		MasterLog(INFO,"Attempting Triple Product in direction: %d\n",mu);
+		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
 		dslashTripleProductSiteDir(mu, u, in_vecs, u_coarse);
 	}
 
@@ -704,13 +790,13 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 			int spin_column = column / Nc;
 			int color_column = column % Nc;
 
-			MasterLog(DEBUG,"( %1.2lf, %1.2lf ) ", dslash_links[0].elem(0).elem(spin_row,spin_column).elem(color_row,color_column).real(),
+			printf("( %1.2lf, %1.2lf ) ", dslash_links[0].elem(0).elem(spin_row,spin_column).elem(color_row,color_column).real(),
 					dslash_links[0].elem(0).elem(spin_row, spin_column).elem(color_row,color_column).imag() );
 
 		}
-		MasterLog(DEBUG,"\n");
+		printf("\n");
 	}
-	MasterLog(DEBUG,"\n");
+	printf("\n");
 
 	float *coarse_link = u_coarse.GetSiteDirDataPtr(0,0,0);
 
@@ -719,9 +805,9 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 		for(int column=0; column < Nc*Ns; ++column) {
 
 			int coarse_link_index = n_complex*(column + Ns*Nc*row);
-			MasterLog(DEBUG," ( %1.2lf, %1.2lf ) ", coarse_link[ RE+coarse_link_index], coarse_link[ IM + coarse_link_index]);
+			printf(" ( %1.2lf, %1.2lf ) ", coarse_link[ RE+coarse_link_index], coarse_link[ IM + coarse_link_index]);
 		}
-		MasterLog(DEBUG,"\n");
+		printf("\n");
 	}
 
 
@@ -772,6 +858,12 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 	QDPIO::cout << "Rel. Norm Diff[1] = " << sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) << std::endl;
 	QDPIO::cout << "Rel. Norm Diff = " << sqrt(norm2(diff)/norm2(psi)) << std::endl;
 
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(psi,rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(psi)) ), 0, 1.e-5 );
 }
 
 TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
@@ -917,6 +1009,12 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
 	QDPIO::cout << "Rel. Norm Diff = " << sqrt(norm2(diff)/norm2(orig)) << std::endl;
 
 
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(orig)) ), 0, 1.e-5 );
 
 }
 
@@ -1069,8 +1167,506 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov2)
 	QDPIO::cout << "Rel. Norm Diff[1] = " << sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) << std::endl;
 	QDPIO::cout << "Rel. Norm Diff = " << sqrt(norm2(diff)/norm2(orig)) << std::endl;
 
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(orig)) ), 0, 1.e-5 );
 
 
+
+}
+
+TEST(TestCoarseQDPXX, TestCoarseOrthonormalize)
+{
+	IndexArray latdims={{2,2,2,2}};
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeFermion> vecs(6);
+	for(int k=0; k < 6; ++k) {
+		gaussian(vecs[k]);
+	}
+
+	// Someone once said doing this twice is good
+	orthonormalizeAggregates(vecs);
+	orthonormalizeAggregates(vecs);
+
+	for(int site=all.start(); site <= all.end(); ++site) {
+		for(int aggr=0; aggr < 2; ++aggr ) {
+			// Check normalization:
+			for(int curr_vec = 0; curr_vec < 6; ++curr_vec) {
+
+				//
+				for(int test_vec = 0; test_vec < 6; ++test_vec ) {
+
+					if( test_vec != curr_vec ) {
+						//	MasterLog(DEBUG, "Checking inner product of pair (%d,%d), site=%d aggr=%d\n", curr_vec,test_vec, site,aggr);
+						std::complex<double> iprod = innerProductAggr(vecs[test_vec],vecs[curr_vec], site, aggr);
+						ASSERT_NEAR( real(iprod), 0, 1.0e-15);
+						ASSERT_NEAR( imag(iprod), 0, 1.0e-15);
+
+					}
+					else {
+
+						std::complex<double> iprod = innerProductAggr(vecs[test_vec],vecs[curr_vec], site, aggr);
+						ASSERT_NEAR( real(iprod), 1, 1.0e-15);
+						ASSERT_NEAR( imag(iprod), 0, 1.0e-15);
+
+						// 	MasterLog(DEBUG, "Checking norm2 of vector %d site=%d aggr=%d\n", curr_vec, site,aggr);
+						double norm = sqrt(norm2Aggr(vecs[curr_vec],site,aggr));
+						ASSERT_NEAR(norm, 1, 1.0e-15);
+
+					}
+				}
+			}
+		}
+	}
+
+}
+
+TEST(TestCoarseQDPXX, TestRestrictorIdentity1)
+{
+	IndexArray latdims={{2,2,2,2}};
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		//u[mu] = 1;
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	multi1d<LatticeFermion> in_vecs(Nc*Ns/2);     // In terms of vectors
+
+	MasterLog(INFO,"Generating Eye\n");
+	LatticePropagator eye=1;
+
+
+	// Pack 'Eye' vectors into to the in_vecs;
+	for(int spin=0; spin < Ns/2; ++spin) {
+		for(int color =0; color < Nc; ++color) {
+			LatticeFermion upper = zero;
+			LatticeFermion lower = zero;
+
+			PropToFerm(eye, lower, color, spin);
+			PropToFerm(eye, upper, color, spin+Ns/2);
+			in_vecs[color + Nc*spin] = upper + lower;
+		}
+	}
+
+	LatticeInfo info(latdims, 2, 6, NodeInfo());
+	CoarseSpinor coarse(info);
+
+	LatticeFermion fine_in;
+	LatticeFermion fine_out;
+
+	gaussian(fine_in);
+
+	// Restrict -- this should be just like packing
+	restrictSpinorFineToCoarse(in_vecs, fine_in, coarse);
+
+	// Unpack --
+	CoarseSpinorToQDPSpinor(coarse,fine_out);
+
+	for(int site=all.start(); site <= all.end(); ++site ) {
+		for(int spin=0; spin < Ns; spin++) {
+			for(int color=0; color < Nc; color++) {
+				ASSERT_FLOAT_EQ(  fine_out.elem(site).elem(spin).elem(color).real(),
+							fine_in.elem(site).elem(spin).elem(color).real());
+				ASSERT_FLOAT_EQ(  fine_out.elem(site).elem(spin).elem(color).imag(),
+											fine_in.elem(site).elem(spin).elem(color).imag());
+
+			}
+		}
+	}
+
+
+}
+
+TEST(TestCoarseQDPXX, TestRestrictorIdentity2)
+{
+	IndexArray latdims={{2,2,2,2}};
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		//u[mu] = 1;
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	multi1d<LatticeFermion> in_vecs(Nc*Ns/2);     // In terms of vectors
+
+	MasterLog(INFO,"Generating Eye\n");
+	LatticePropagator eye=1;
+
+
+	// Pack 'Eye' vectors into to the in_vecs;
+	for(int spin=0; spin < Ns/2; ++spin) {
+		for(int color =0; color < Nc; ++color) {
+			LatticeFermion upper = zero;
+			LatticeFermion lower = zero;
+
+			PropToFerm(eye, lower, color, spin);
+			PropToFerm(eye, upper, color, spin+Ns/2);
+			in_vecs[color + Nc*spin] = upper + lower;
+		}
+	}
+
+	LatticeInfo info(latdims, 2, 6, NodeInfo());
+	CoarseSpinor coarse(info);
+
+	LatticeFermion fine_in;
+	LatticeFermion fine_out;
+
+	gaussian(fine_in);
+
+	// Restrict -- this should be just like packing
+	QDPSpinorToCoarseSpinor(fine_in,coarse);
+
+	prolongateSpinorCoarseToFine(in_vecs, coarse,fine_out);
+
+
+	for(int site=all.start(); site <= all.end(); ++site ) {
+		for(int spin=0; spin < Ns; spin++) {
+			for(int color=0; color < Nc; color++) {
+				ASSERT_FLOAT_EQ(  fine_out.elem(site).elem(spin).elem(color).real(),
+							fine_in.elem(site).elem(spin).elem(color).real());
+				ASSERT_FLOAT_EQ(  fine_out.elem(site).elem(spin).elem(color).imag(),
+											fine_in.elem(site).elem(spin).elem(color).imag());
+
+			}
+		}
+	}
+
+
+}
+
+
+TEST(TestCoarseQDPXX, TestRestrictorIdentity3)
+{
+	IndexArray latdims={{2,2,2,2}};
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		//u[mu] = 1;
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	multi1d<LatticeFermion> in_vecs(Nc*Ns/2);     // In terms of vectors
+
+	MasterLog(INFO,"Generating Eye\n");
+	LatticePropagator eye=1;
+
+
+	// Pack 'Eye' vectors into to the in_vecs;
+	for(int spin=0; spin < Ns/2; ++spin) {
+		for(int color =0; color < Nc; ++color) {
+			LatticeFermion upper = zero;
+			LatticeFermion lower = zero;
+
+			PropToFerm(eye, lower, color, spin);
+			PropToFerm(eye, upper, color, spin+Ns/2);
+			in_vecs[color + Nc*spin] = upper + lower;
+		}
+	}
+
+	LatticeInfo info(latdims, 2, 6, NodeInfo());
+	CoarseSpinor coarse(info);
+
+	LatticeFermion fine_in;
+	LatticeFermion fine_out;
+
+	gaussian(fine_in);
+
+	// Restrict -- this should be just like packing
+	restrictSpinorFineToCoarse(in_vecs,fine_in,coarse);
+	prolongateSpinorCoarseToFine(in_vecs, coarse,fine_out);
+
+
+	for(int site=all.start(); site <= all.end(); ++site ) {
+		for(int spin=0; spin < Ns; spin++) {
+			for(int color=0; color < Nc; color++) {
+				ASSERT_FLOAT_EQ(  fine_out.elem(site).elem(spin).elem(color).real(),
+							fine_in.elem(site).elem(spin).elem(color).real());
+				ASSERT_FLOAT_EQ(  fine_out.elem(site).elem(spin).elem(color).imag(),
+											fine_in.elem(site).elem(spin).elem(color).imag());
+
+			}
+		}
+	}
+
+
+}
+
+TEST(TestCoarseQDPXX, TestRestrictorIdentity4)
+{
+	IndexArray latdims={{2,2,2,2}};
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		//u[mu] = 1;
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	multi1d<LatticeFermion> vecs(6);
+	for(int k=0; k < 6; ++k) {
+		gaussian(vecs[k]);
+	}
+
+	// Someone once said doing this twice is good
+	orthonormalizeAggregates(vecs);
+	orthonormalizeAggregates(vecs);
+
+	LatticeInfo info(latdims, 2, 6, NodeInfo());
+	CoarseSpinor coarse(info);
+
+	LatticeFermion fine_in;
+	LatticeFermion fine_out;
+
+	gaussian(fine_in);
+
+	// Restrict -- this should be just like packing
+	restrictSpinorFineToCoarse(vecs,fine_in,coarse);
+	prolongateSpinorCoarseToFine(vecs, coarse,fine_out);
+
+
+	for(int site=all.start(); site <= all.end(); ++site ) {
+		for(int spin=0; spin < Ns; spin++) {
+			for(int color=0; color < Nc; color++) {
+				ASSERT_NEAR(  fine_out.elem(site).elem(spin).elem(color).real(),
+							fine_in.elem(site).elem(spin).elem(color).real(), 1.0e-6);
+				ASSERT_NEAR(  fine_out.elem(site).elem(spin).elem(color).imag(),
+											fine_in.elem(site).elem(spin).elem(color).imag(), 1.0e-6);
+
+			}
+		}
+	}
+
+
+}
+
+
+TEST(TestCoarseQDPXX, TestCoarseQDPXXClov3)
+{
+	IndexArray latdims={{2,2,2,2}};
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		//		u[mu] = 1;
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Now need to make a clover op
+	CloverFermActParams clparam;
+	AnisoParam_t aniso;
+
+	// Aniso prarams
+	aniso.anisoP=true;
+	aniso.xi_0 = 1.5;
+	aniso.nu = 0.95;
+	aniso.t_dir = 3;
+
+	// Set up the Clover params
+	clparam.anisoParam = aniso;
+
+	// Some mass
+	clparam.Mass = Real(0.1);
+
+	// Some random clover coeffs
+	clparam.clovCoeffR=Real(1.35);
+	clparam.clovCoeffT=Real(0.8);
+	QDPCloverTerm clov_qdp;
+	clov_qdp.create(u,clparam);
+
+	multi1d<LatticeFermion> vecs(6);
+	for(int k=0; k < 6; ++k) {
+		gaussian(vecs[k]);
+	}
+
+	// Someone once said doing this twice is good
+	orthonormalizeAggregates(vecs);
+	orthonormalizeAggregates(vecs);
+
+	QDPIO::cout << "Coarsening Clover" << std::endl;
+
+	LatticeInfo info(latdims, 2, 6, NodeInfo());
+	CoarseClover c_clov(info);
+	clovTripleProductSite(clov_qdp, vecs, c_clov);
+
+	// Now create a LatticeFermion and apply both the QDP++ and the Coarse Clover
+	LatticeFermion orig;
+	gaussian(orig);
+	LatticeFermion orig_res=zero;
+
+	// Apply QDP++ clover
+	for(int cb=0; cb < 2; ++cb) {
+		clov_qdp.apply(orig_res, orig, 0, cb);
+	}
+
+	// Convert original spinor to a coarse spinor
+	CoarseSpinor s_in(info);
+
+	// Restrict using orthonormal basis
+	restrictSpinorFineToCoarse(vecs, orig, s_in);
+
+	// Output
+	CoarseSpinor s_out(info);
+
+	int n_smt = 1;
+	CoarseDiracOp D(info,n_smt);
+
+	// Apply Coarsened Clover
+#pragma omp parallel
+	{
+		int tid = omp_get_thread_num();
+
+		D.CloverApply(s_out, c_clov, s_in,0,tid);
+		D.CloverApply(s_out, c_clov, s_in,1,tid);
+	}
+
+	LatticeFermion coarse_res;
+	prolongateSpinorCoarseToFine(vecs, s_out, coarse_res);
+
+
+	LatticeFermion diff = orig_res - coarse_res;
+
+
+	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
+	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
+	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[0] = " << sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[1] = " << sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff = " << sqrt(norm2(diff)/norm2(orig)) << std::endl;
+
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(orig)) ), 0, 1.e-5 );
+
+
+
+}
+
+
+TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash3)
+{
+	IndexArray latdims={{2,2,2,2}};
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		//u[mu] = 1;
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+
+	// Random Basis vectors
+	multi1d<LatticeFermion> vecs(6);
+	for(int k=0; k < 6; ++k) {
+		gaussian(vecs[k]);
+	}
+
+	// Someone once said doing this twice is good
+	orthonormalizeAggregates(vecs);
+	orthonormalizeAggregates(vecs);
+
+
+	// Next step should be to copy this into the fields needed for gauge and clover ops
+	LatticeInfo info(latdims, 2, 6, NodeInfo());
+	CoarseGauge u_coarse(info);
+
+	// Generate the triple products directly into the u_coarse
+	for(int mu=0; mu < 8; ++mu) {
+		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
+		dslashTripleProductSiteDir(mu, u, vecs, u_coarse);
+	}
+
+
+	LatticeFermion psi, d_psi, m_psi;
+
+	gaussian(psi);
+
+	m_psi = zero;
+
+
+	// Fine version:  m_psi_f =  D_f  psi_f
+	// Apply Dslash to both CBs, isign=1
+	// Result in m_psiu
+	for(int cb=0; cb < 2; ++cb) {
+		dslash(m_psi, u, psi, 1, cb);
+	}
+
+	// CoarsSpinors
+	CoarseSpinor coarse_s_in(info);
+	CoarseSpinor coarse_s_out(info);
+
+	restrictSpinorFineToCoarse(vecs, psi, coarse_s_in);
+
+
+	// Create A coarse operator
+	int n_smt = 1;
+	CoarseDiracOp D_op_coarse(info, n_smt);
+
+	// Apply Coarse Op Dslash in Threads
+#pragma omp parallel
+	{
+		int tid = omp_get_thread_num();
+		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, tid);
+		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, tid);
+	}
+
+	// Export Coarse spinor to QDP++ spinors.
+	LatticeFermion coarse_d_psi = zero;
+
+	// Prolongate to form coarse_d_psi = P D_c R psi_f
+	prolongateSpinorCoarseToFine(vecs, coarse_s_out, coarse_d_psi);
+
+	// Check   D_f psi_f = P D_c R psi_f
+	LatticeFermion diff = m_psi - coarse_d_psi;
+
+	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
+	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
+	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[0] = " << sqrt(norm2(diff, rb[0])/norm2(psi,rb[0])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[1] = " << sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff = " << sqrt(norm2(diff)/norm2(psi)) << std::endl;
+
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])) ), 0, 5.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])) ), 0, 5.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 5.e-5);
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(psi,rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(psi)) ), 0, 1.e-5 );
 }
 
 
