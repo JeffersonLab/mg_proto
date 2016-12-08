@@ -235,7 +235,7 @@ void QDPPropToCoarseClover(const LatticePropagator& qdpxx_in,
 	}
 
 
-#pragma omp paralel for collapse(3)
+#pragma omp parallel for collapse(3)
 	for (int cb = 0; cb < 2; ++cb) {
 		for (int cbsite = 0; cbsite < num_cb_sites; ++cbsite) {
 

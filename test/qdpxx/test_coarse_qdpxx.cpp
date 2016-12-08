@@ -50,6 +50,110 @@ void DslashDir(LatticeFermion& out, const multi1d<LatticeColorMatrix>& u, const 
 	}
 }
 
+// In the full blown version, instead of the 'site' we will sum over sites in
+// a block
+void axAggr(const double alpha, LatticeFermion& v, int site, int aggr)
+{
+	for(int spin=aggr*(Ns/2); spin < (aggr+1)*(Ns/2); ++spin) {
+		for(int color=0; color < Nc; ++color) {
+			v.elem(site).elem(spin).elem(color).real() *= alpha;
+			v.elem(site).elem(spin).elem(color).imag() *= alpha;
+		}
+	}
+}
+
+// In the full blown version, instead of the 'site' we will sum over sites in
+// a block
+void caxpyAggr(const std::complex<double>& alpha, const LatticeFermion& x, LatticeFermion& y, int site, int aggr)
+{
+	for(int spin=aggr*(Ns/2); spin < (aggr+1)*(Ns/2); ++spin) {
+		for(int color=0; color < Nc; ++color) {
+			double ar = real(alpha);
+			double ai = imag(alpha);
+			double xr = x.elem(site).elem(spin).elem(color).real();
+			double xi = x.elem(site).elem(spin).elem(color).imag();
+
+			y.elem(site).elem(spin).elem(color).real() += ar*xr - ai*xi;
+			y.elem(site).elem(spin).elem(color).imag() += ar*xi + ai*xr;
+
+		}
+	}
+}
+
+// In the full blown version, instead of the 'site' we will sum over sites in
+// a block
+double norm2Aggregate(const LatticeFermion& v, int site, int aggr)
+{
+	double norm2 = (double)0;
+	for(int spin=aggr*(Ns/2); spin < (aggr+1)*(Ns/2); ++spin) {
+		for(int color=0; color < Nc; ++color) {
+			norm2 += v.elem(site).elem(spin).elem(color).real() * v.elem(site).elem(spin).elem(color).real();
+			norm2 += v.elem(site).elem(spin).elem(color).imag() * v.elem(site).elem(spin).elem(color).imag();
+		}
+	}
+
+	return norm2;
+}
+
+// In the full blown version, instead of the 'site' we will sum over sites in
+// a block
+std::complex<double>
+innerProductAggr(const LatticeFermion& left, const LatticeFermion& right, int site, int aggr)
+{
+	std::complex<double> iprod;
+	double re=0;
+	double im=0;
+
+	for(int spin=aggr*(Ns/2); spin < (aggr+1)*(Ns/2); ++spin) {
+		for(int color=0; color < Nc; ++color) {
+			REAL left_r = left.elem(site).elem(spin).elem(color).real();
+			REAL left_i = left.elem(site).elem(spin).elem(color).imag();
+
+			REAL right_r = right.elem(site).elem(spin).elem(color).real();
+			REAL right_i = right.elem(site).elem(spin).elem(color).imag();
+			re += left_r*right_r + left_i*right_i;
+			im += left_r*right_i - left_i*right_r;
+		}
+	}
+
+	iprod=std::complex<double>(re,im);
+	return iprod;
+}
+
+void normalizeAggregates(multi1d<LatticeFermion>& vecs)
+{
+	for(int aggr=0; aggr < 2; ++aggr) {
+#pragma omp parallel for
+			// This will be over blocks...
+			for(int site=all.start(); site <= all.end(); ++site) {
+
+
+				// do vecs[0] ... vecs[N]
+				for(int curr_vec=0; curr_vec < vecs.size(); curr_vec++) {
+
+					// orthogonalize against previous vectors
+					// if curr_vec == 0 this will be skipped
+					for(int prev_vec=0; prev_vec < curr_vec; prev_vec++) {
+						QDPIO::cout << "Orthogonalizing vector " << curr_vec << " against vector " << prev_vec << std::endl;
+						std::complex<double> iprod = innerProductAggr( vecs[curr_vec], vecs[prev_vec], site, aggr);
+						std::complex<double> minus_iprod = -iprod;
+
+						// curr_vec = curr_vec - iprod*prev_vec = -iprod*prev_vec + curr_vec
+						caxpyAggr( minus_iprod, vecs[prev_vec], vecs[curr_vec], site, aggr);
+					}
+
+					// Normalize current vector
+					double inv_norm = ((double)1)/sqrt(norm2Aggregate(vecs[curr_vec], site, aggr));
+
+					// vecs[curr_vec] = inv_norm * vecs[curr_vec]
+					axAggr(inv_norm, vecs[curr_vec], site, aggr);
+				}
+
+
+			}	// site
+	}// aggregates
+}
+
 //  prop_out(x) = prop_in^\dagger(x) ( 1 +/- gamma_mu ) U mu(x) prop_in(x + mu)
 //
 //  This routine is used to test Coarse Dslash
@@ -281,7 +385,7 @@ void clovTripleProductSite(const QDPCloverTerm& clov,const multi1d<LatticeFermio
 		LatticeFermion tmp=zero;
 		for(int cb=0; cb < 2; ++cb) {
 			clov.apply(out_vecs[j], in_vecs[j], 0, cb);
-			clov.apply(out_vecs[j], in_vecs[j], 0, cb);
+
 		}
 	}
 
