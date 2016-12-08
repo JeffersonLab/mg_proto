@@ -45,7 +45,7 @@ void DslashDir(LatticeFermion& out, const multi1d<LatticeColorMatrix>& u, const 
 		out = spinReconstructDir3Plus(shift(adj(u[3]) * spinProjectDir3Plus(in), BACKWARD, 3));
 		break;
 	default:
-		QDPIO::cerr<< "Unknown direction. You oughtnt call this" << std::endl;
+		MasterLog(ERROR,"Unknown direction. You oughtnt call this\n");
 		QDP_abort(1);
 	}
 }
@@ -120,9 +120,12 @@ innerProductAggr(const LatticeFermion& left, const LatticeFermion& right, int si
 	return iprod;
 }
 
-void normalizeAggregates(multi1d<LatticeFermion>& vecs)
+void orthonormalizeAggregates(multi1d<LatticeFermion>& vecs)
 {
 	for(int aggr=0; aggr < 2; ++aggr) {
+
+		MasterLog(DEBUG, "Orthonormalizing Aggregate: %d\n",aggr);
+
 #pragma omp parallel for
 			// This will be over blocks...
 			for(int site=all.start(); site <= all.end(); ++site) {
@@ -130,17 +133,20 @@ void normalizeAggregates(multi1d<LatticeFermion>& vecs)
 
 				// do vecs[0] ... vecs[N]
 				for(int curr_vec=0; curr_vec < vecs.size(); curr_vec++) {
+					MasterLog(DEBUG, "CurrVec: %d Previous: ",curr_vec);
 
 					// orthogonalize against previous vectors
 					// if curr_vec == 0 this will be skipped
 					for(int prev_vec=0; prev_vec < curr_vec; prev_vec++) {
-						QDPIO::cout << "Orthogonalizing vector " << curr_vec << " against vector " << prev_vec << std::endl;
+						MasterLog(DEBUG, "%d ", prev_vec);
+
 						std::complex<double> iprod = innerProductAggr( vecs[curr_vec], vecs[prev_vec], site, aggr);
 						std::complex<double> minus_iprod = -iprod;
 
-						// curr_vec = curr_vec - iprod*prev_vec = -iprod*prev_vec + curr_vec
+						// curr_vec <- curr_vec - <curr_vec|prev_vec>*prev_vec = -iprod*prev_vec + curr_vec
 						caxpyAggr( minus_iprod, vecs[prev_vec], vecs[curr_vec], site, aggr);
 					}
+					MasterLog(DEBUG,"\n");
 
 					// Normalize current vector
 					double inv_norm = ((double)1)/sqrt(norm2Aggregate(vecs[curr_vec], site, aggr));
@@ -643,7 +649,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 	multi1d<LatticeFermion> in_vecs(Nc*Ns/2);     // In terms of vectors
 	multi1d<LatticePropagator> dslash_links(8); // In terms of propagators
 
-	QDPIO::cout << "Generating Eye" << std::endl;
+	MasterLog(INFO,"Generating Eye\n");
 	LatticePropagator eye=1;
 
 
@@ -659,21 +665,21 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 		}
 	}
 
-	QDPIO::cout << "Printing in-vecs:" << std::endl;
+	MasterLog(DEBUG,"Printing in-vecs: \n");
 	for(int spin=0; spin < 4; ++spin ) {
 		for(int color=0; color < 3; ++color ) {
 			for(int j=0; j < Nc*Ns/2; ++j) {
-				printf("( %1.2lf, %1.2lf ) ", in_vecs[j].elem(0).elem(spin).elem(color).real(),
+				MasterLog(DEBUG,"( %1.2lf, %1.2lf ) ", in_vecs[j].elem(0).elem(spin).elem(color).real(),
 									in_vecs[j].elem(0).elem(spin).elem(color).imag() );
 			}
-			printf("\n");
+			MasterLog(DEBUG, "\n");
 
 		}
 	}
 
 	// Generate the Triple product into dslash_links[mu]
 	for(int mu=0; mu < 8; ++mu) {
-			QDPIO::cout << "Attempting Triple Product in direction: " << mu << std::endl;
+			MasterLog(INFO,"Attempting Triple Product in direction: %d \n", mu);
 			dslashTripleProduct12x12SiteDir(mu, u, eye, dslash_links[mu]);
 	}
 
@@ -686,7 +692,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 
 	// Generate the triple products directly into the u_coarse
 	for(int mu=0; mu < 8; ++mu) {
-		QDPIO::cout << "Attempting Triple Product in direction: " << mu << std::endl;
+		MasterLog(INFO,"Attempting Triple Product in direction: %d\n",mu);
 		dslashTripleProductSiteDir(mu, u, in_vecs, u_coarse);
 	}
 
@@ -698,13 +704,13 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 			int spin_column = column / Nc;
 			int color_column = column % Nc;
 
-			printf("( %1.2lf, %1.2lf ) ", dslash_links[0].elem(0).elem(spin_row,spin_column).elem(color_row,color_column).real(),
+			MasterLog(DEBUG,"( %1.2lf, %1.2lf ) ", dslash_links[0].elem(0).elem(spin_row,spin_column).elem(color_row,color_column).real(),
 					dslash_links[0].elem(0).elem(spin_row, spin_column).elem(color_row,color_column).imag() );
 
 		}
-		printf("\n");
+		MasterLog(DEBUG,"\n");
 	}
-	printf("\n");
+	MasterLog(DEBUG,"\n");
 
 	float *coarse_link = u_coarse.GetSiteDirDataPtr(0,0,0);
 
@@ -713,13 +719,13 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 		for(int column=0; column < Nc*Ns; ++column) {
 
 			int coarse_link_index = n_complex*(column + Ns*Nc*row);
-			printf(" ( %1.2lf, %1.2lf ) ", coarse_link[ RE+coarse_link_index], coarse_link[ IM + coarse_link_index]);
+			MasterLog(DEBUG," ( %1.2lf, %1.2lf ) ", coarse_link[ RE+coarse_link_index], coarse_link[ IM + coarse_link_index]);
 		}
-		printf("\n");
+		MasterLog(DEBUG,"\n");
 	}
 
 
-	QDPIO::cout << "Coarse Gauge Field initialized " << std::endl;
+	MasterLog(INFO,"Coarse Gauge Field initialized\n");
 
 
 	LatticeFermion psi, d_psi, m_psi;
@@ -772,11 +778,11 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
 {
 	IndexArray latdims={{2,2,2,2}};
 	initQDPXXLattice(latdims);
-	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	MasterLog(INFO,"QDP++ Testcase Initialized\n");
 
 	multi1d<LatticeColorMatrix> u(Nd);
 
-	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	MasterLog(INFO,"Generating Random Gauge with Gaussian Noise\n");
 	for(int mu=0; mu < Nd; ++mu) {
 //		u[mu] = 1;
 		gaussian(u[mu]);
@@ -809,7 +815,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
 
 	// Generate the 'vectors' of which there are to be 12. Funnily this fits nicely into a propagator
 	// Later on would be better to have this be a general unitary matrix per site.
-	QDPIO::cout << "Generating Eye" << std::endl;
+	MasterLog(INFO,"Generating Eye\n");
 	LatticePropagator eye=1;
 
 	Double eye_norm = norm2(eye);
