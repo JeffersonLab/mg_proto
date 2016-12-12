@@ -45,7 +45,7 @@ QDPSpinorToCoarseSpinor(const LatticeFermion& qdpxx_in,
 		QDP_abort(1);
 	}
 
-#pragma omp paralel for collapse(2)
+#pragma omp parallel for collapse(2)
 	for(int cb=0; cb < 2; ++cb) {
 		for(int cbsite=0; cbsite < num_cb_sites; ++cbsite) {
 			float *spinor_data=coarse_out.GetSiteDataPtr(cb,cbsite);
@@ -124,7 +124,7 @@ QDPPropToCoarseGaugeLink(const LatticePropagator& qdpxx_in,
 		QDP_abort(1);
 	}
 
-#pragma omp paralel for collapse(2)
+#pragma omp parallel for collapse(2)
 	for(int cb=0; cb < 2; ++cb) {
 		for(int cbsite=0; cbsite < num_cb_sites; ++cbsite) {
 			float *prop_data=coarse_out.GetSiteDirDataPtr(cb,cbsite,dir);
@@ -171,7 +171,7 @@ CoarseGaugeLinkToQDPProp(const CoarseGauge& coarse_in,
 		QDP_abort(1);
 	}
 
-#pragma omp paralel for collapse(2)
+#pragma omp parallel for collapse(2)
 	for (int cb = 0; cb < 2; ++cb) {
 		for (int cbsite = 0; cbsite < num_cb_sites; ++cbsite) {
 			const float *prop_data = coarse_in.GetSiteDirDataPtr(cb,cbsite,dir);
