@@ -477,8 +477,223 @@ TEST(TestCoarseQDPXXBlock, TestProlongatorTrivial)
 
 }
 
+TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXDslashTrivial)
+{
+	IndexArray latdims={{2,2,2,2}};
+	IndexArray blockdims={{1,1,1,1}};
 
-#if 0
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		//u[mu] = 1;
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+
+	// Random Basis vectors
+	multi1d<LatticeFermion> vecs(6);
+	for(int k=0; k < 6; ++k) {
+		gaussian(vecs[k]);
+	}
+
+	// 1) Create the blocklist
+		std::vector<Block> my_blocks;
+		IndexArray blocked_lattice_dims;
+		CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+
+		// Do the proper block orthogonalize
+			orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+			orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	// Next step should be to copy this into the fields needed for gauge and clover ops
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	CoarseGauge u_coarse(info);
+
+	// Generate the triple products directly into the u_coarse
+	for(int mu=0; mu < 8; ++mu) {
+		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
+		dslashTripleProductDirQDPXX(my_blocks, mu, u, vecs, u_coarse);
+	}
+
+
+	LatticeFermion psi, d_psi, m_psi;
+
+	gaussian(psi);
+
+	m_psi = zero;
+
+
+	// Fine version:  m_psi_f =  D_f  psi_f
+	// Apply Dslash to both CBs, isign=1
+	// Result in m_psiu
+	for(int cb=0; cb < 2; ++cb) {
+		dslash(m_psi, u, psi, 1, cb);
+	}
+
+	// CoarsSpinors
+	CoarseSpinor coarse_s_in(info);
+	CoarseSpinor coarse_s_out(info);
+
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, psi, coarse_s_in);
+
+
+	// Create A coarse operator
+	int n_smt = 1;
+	CoarseDiracOp D_op_coarse(info, n_smt);
+
+	// Apply Coarse Op Dslash in Threads
+#pragma omp parallel
+	{
+		int tid = omp_get_thread_num();
+		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, tid);
+		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, tid);
+	}
+
+	// Export Coa            rse spinor to QDP++ spinors.
+	LatticeFermion coarse_d_psi = zero;
+
+	// Prolongate to form coarse_d_psi = P D_c R psi_f
+	prolongateSpinorCoarseToQDPXXFine(my_blocks,vecs, coarse_s_out, coarse_d_psi);
+
+	// Check   D_f psi_f = P D_c R psi_f
+	LatticeFermion diff = m_psi - coarse_d_psi;
+
+	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
+	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
+	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[0] = " << sqrt(norm2(diff, rb[0])/norm2(psi,rb[0])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[1] = " << sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff = " << sqrt(norm2(diff)/norm2(psi)) << std::endl;
+
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])) ), 0, 5.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])) ), 0, 5.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 5.e-5);
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(psi,rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(psi)) ), 0, 1.e-5 );
+}
+
+TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXClovTrivial)
+{
+	IndexArray latdims={{2,2,2,2}};
+	IndexArray blockdims={{1,1,1,1}};
+
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		//		u[mu] = 1;
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Now need to make a clover op
+	CloverFermActParams clparam;
+	AnisoParam_t aniso;
+
+	// Aniso prarams
+	aniso.anisoP=true;
+	aniso.xi_0 = 1.5;
+	aniso.nu = 0.95;
+	aniso.t_dir = 3;
+
+	// Set up the Clover params
+	clparam.anisoParam = aniso;
+
+	// Some mass
+	clparam.Mass = Real(0.1);
+
+	// Some random clover coeffs
+	clparam.clovCoeffR=Real(1.35);
+	clparam.clovCoeffT=Real(0.8);
+	QDPCloverTerm clov_qdp;
+	clov_qdp.create(u,clparam);
+
+	multi1d<LatticeFermion> vecs(6);
+	for(int k=0; k < 6; ++k) {
+		gaussian(vecs[k]);
+	}
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+
+	// Do the proper block orthogonalize
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	QDPIO::cout << "Coarsening Clover" << std::endl;
+
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	CoarseClover c_clov(info);
+	clovTripleProductQDPXX(my_blocks, clov_qdp, vecs, c_clov);
+
+	// Now create a LatticeFermion and apply both the QDP++ and the Coarse Clover
+	LatticeFermion orig;
+	gaussian(orig);
+	LatticeFermion orig_res=zero;
+
+	// Apply QDP++ clover
+	for(int cb=0; cb < 2; ++cb) {
+		clov_qdp.apply(orig_res, orig, 0, cb);
+	}
+
+	// Convert original spinor to a coarse spinor
+	CoarseSpinor s_in(info);
+
+	// Restrict using orthonormal basis
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, orig, s_in);
+
+	// Output
+	CoarseSpinor s_out(info);
+
+	int n_smt = 1;
+	CoarseDiracOp D(info,n_smt);
+
+	// Apply Coarsened Clover
+#pragma omp parallel
+	{
+		int tid = omp_get_thread_num();
+
+		D.CloverApply(s_out, c_clov, s_in,0,tid);
+		D.CloverApply(s_out, c_clov, s_in,1,tid);
+	}
+
+	LatticeFermion coarse_res;
+	prolongateSpinorCoarseToQDPXXFine(my_blocks, vecs, s_out, coarse_res);
+
+
+	LatticeFermion diff = orig_res - coarse_res;
+
+
+	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
+	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
+	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[0] = " << sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff[1] = " << sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) << std::endl;
+	QDPIO::cout << "Rel. Norm Diff = " << sqrt(norm2(diff)/norm2(orig)) << std::endl;
+
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) ), 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(orig)) ), 0, 1.e-5 );
+
+
+
+}
+
+
 //
 
 //  We want to test:  D_c v_c = ( R D_f P )
@@ -538,13 +753,21 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseClov)
 
 	// Someone once said doing this twice is good
 	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
-	orthonormalizeAggregatesQDPXX(vecs);
-	orthonormalizeAggregatesQDPXX(vecs);
 
-	QDPIO::cout << "Coarsening Clover to create D_c" << std::endl;
-	LatticeInfo info(latdims, 2, 6, NodeInfo());
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+
+	// Do the proper block orthogonalize
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	QDPIO::cout << "Coarsening Clover with Triple Product to create D_c" << std::endl;
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseClover c_clov(info);
-	clovTripleProductSiteQDPXX(clov_qdp, vecs, c_clov);
+	clovTripleProductQDPXX(my_blocks, clov_qdp, vecs, c_clov);
+
 
 
 	// Now create a LatticeFermion and apply both the QDP++ and the Coarse Clover
@@ -553,12 +776,15 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseClov)
 
 	// Coarsen v_f to R(v_f) give us coarse RHS for tests
 	CoarseSpinor v_c(info);
-	restrictSpinorQDPXXFineToCoarse(vecs, v_f, v_c);
+
+	QDPIO::cout << "Creating v_c = R v_f, with v_f gaussian" << std::endl;
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, v_f, v_c);
 
 	// Output
 	CoarseSpinor out(info);
 	CoarseSpinor fake_out(info);
 
+	QDPIO::cout << "Applying Clov_c: out = D_c v_c" <<std::endl;
 	// Now evaluate  D_c v_c
 	int n_smt = 1;
 	CoarseDiracOp D(info,n_smt);
@@ -574,30 +800,38 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseClov)
 
 	// Now apply the fake operator:
 	LatticeFermion P_v_c = zero;
-	prolongateSpinorCoarseToQDPXXFine(vecs, v_c, P_v_c); // NB: This is not the same as v_f, but rather P R v_f
+	QDPIO::cout << "Prolongating; P v_c " << std::endl;
+	prolongateSpinorCoarseToQDPXXFine(my_blocks, vecs, v_c, P_v_c); // NB: This is not the same as v_f, but rather P R v_f
 
+	QDPIO::cout << "Applying: Clov_f P v_c" << std::endl;
 	// Now apply the Clover Term to form D_f P
 	LatticeFermion D_f_out = zero;
-
-	for(int cb=0; cb < 2; ++cb) {
+	for(int cb=0; cb < n_checkerboard; ++cb) {
 		clov_qdp.apply(D_f_out, P_v_c, 0, cb);
 	}
 
 	// Now restrict back:
-	restrictSpinorQDPXXFineToCoarse(vecs, D_f_out, fake_out);
+	QDPIO::cout << "Restricting: out = R Clov_f P v_c" << std::endl;
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, D_f_out, fake_out);
 
+	QDPIO::cout << "Checking Clov_c v_c = R Clov_f P v_c. " << std::endl;
 	// We should now compare out, with fake_out. For this we need an xmy
 	double norm_diff = sqrt(xmyNorm2Coarse(fake_out,out));
 	double norm_diff_per_site = norm_diff / (double)fake_out.GetInfo().GetNumSites();
 
 	MasterLog(INFO, "Diff Norm = %16.8e", norm_diff);
+	ASSERT_NEAR( norm_diff, 0, 2.e-5 );
 	MasterLog(INFO, "Diff Norm per site = %16.8e", norm_diff_per_site);
+	ASSERT_NEAR( norm_diff_per_site,0,1.e-6);
+
 }
 
 
 TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 {
 	IndexArray latdims={{4,4,4,4}};
+	IndexArray blockdims={{2,2,2,2}};
+
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 
@@ -615,20 +849,27 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 	for(int k=0; k < 6; ++k) {
 		gaussian(vecs[k]);
 	}
-
 	// Someone once said doing this twice is good
-	orthonormalizeAggregatesQDPXX(vecs);
-	orthonormalizeAggregatesQDPXX(vecs);
+	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+
+	// Do the proper block orthogonalize -- I do it twice... Why not
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo info(latdims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseGauge u_coarse(info);
 
 	// Generate the triple products directly into the u_coarse
 	for(int mu=0; mu < 8; ++mu) {
 		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
-		dslashTripleProductSiteDirQDPXX(mu, u, vecs, u_coarse);
+		dslashTripleProductDirQDPXX(my_blocks, mu, u, vecs, u_coarse);
 	}
 
 	int n_smt = 1;
@@ -640,12 +881,14 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 
 	// Coarsen v_f to R(v_f) give us coarse RHS for tests
 	CoarseSpinor v_c(info);
-	restrictSpinorQDPXXFineToCoarse(vecs, v_f, v_c);
+	QDPIO::cout << "Restricting v_f -> v_c over blocks" << std::endl;
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, v_f, v_c);
 
 	// Output
 	CoarseSpinor out(info);
 	CoarseSpinor fake_out(info);
 
+	QDPIO::cout << "Applying: out = D_c v_c" << std::endl;
 	// Apply Coarse Op Dslash in Threads
 #pragma omp parallel
 	{
@@ -655,32 +898,39 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 	}
 
 
+	QDPIO::cout << "Prolongating: P_v_c = P v_c" << std::endl;
 	// Now apply the fake operator:
 	LatticeFermion P_v_c = zero;
-	prolongateSpinorCoarseToQDPXXFine(vecs, v_c, P_v_c); // NB: This is not the same as v_f, but rather P R v_f
+	prolongateSpinorCoarseToQDPXXFine(my_blocks, vecs, v_c, P_v_c); // NB: This is not the same as v_f, but rather P R v_f
 
+
+	QDPIO::cout << "Applying: D_f P_v_c = D_f P v_c" << std::endl;
 	// Now apply the Clover Term to form D_f P
 	LatticeFermion D_f_out = zero;
 
 	// Apply Dslash to both CBs, isign=1
 	// Result in m_psiu
-	for(int cb=0; cb < 2; ++cb) {
+	for(int cb=0; cb < n_checkerboard; ++cb) {
 		dslash(D_f_out, u, P_v_c, 1, cb);
 	}
 
 
+	QDPIO::cout << "Restricting: D_f_out = R D_f P v_c" << std::endl;
 	// Now restrict back: fake_out = R D_f P  v_c
-	restrictSpinorQDPXXFineToCoarse(vecs, D_f_out, fake_out);
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, D_f_out, fake_out);
 
+	QDPIO::cout << "Checking: R D_f P v_c == D_c v_c " <<std::endl;
 	// We should now compare out, with fake_out. For this we need an xmy
 	double norm_diff = sqrt(xmyNorm2Coarse(fake_out,out));
 	double norm_diff_per_site = norm_diff / (double)fake_out.GetInfo().GetNumSites();
 
 	MasterLog(INFO, "Diff Norm = %16.8e", norm_diff);
+	ASSERT_NEAR( norm_diff, 0, 1.e-5 );
 	MasterLog(INFO, "Diff Norm per site = %16.8e", norm_diff_per_site);
+	ASSERT_NEAR( norm_diff_per_site,0,1.e-6);
 
 }
-#endif
+
 
 int main(int argc, char *argv[]) 
 {
