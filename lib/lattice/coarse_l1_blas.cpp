@@ -26,6 +26,7 @@ namespace GlobalComm {
  * @param x  - CoarseSpinor ref
  * @param y  - CoarseSpinor ref
  * @return   double containing the norm of the difference
+ *
  */
 double xmyNorm2Coarse(const CoarseSpinor& x, const CoarseSpinor& y)
 {
