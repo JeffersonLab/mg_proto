@@ -35,6 +35,8 @@ void CMatMultNaiveT(std::complex<float>*y,
     }
 }
 
+
+
 void CMatMultNaive(float* y,
 				   const float* A,
 				   const float* x,
@@ -88,6 +90,7 @@ void CMatMultNaiveAddT(std::complex<float>*y,
     }
 }
 
+
 void CMatMultNaiveAdd(float* y,
 				   const float* A,
 				   const float* x,
@@ -126,6 +129,7 @@ void CMatMultNaiveAdd(float* y,
 		MasterLog(ERROR, "Matrix size %d not supported in CMatMultNaiveAdd" , N );
 	}
 }
+
 
 
 

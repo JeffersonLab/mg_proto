@@ -12,22 +12,11 @@
 #include "lattice/constants.h"
 #include "lattice/cmat_mult.h"
 #include "lattice/coarse/coarse_types.h"
+#include "lattice/coarse/thread_limits.h"
 
 namespace MG {
 
-struct ThreadLimits {
 
-
-	IndexType min_vrow;
-	IndexType max_vrow;
-/*
- *  Was:
- *    min_row,max_vrow
- */
-	IndexType min_site;
-	IndexType max_site;
-	unsigned char pad[MG_DEFAULT_CACHE_LINE_SIZE-4*sizeof(IndexType)]; // Cache line pad
-};
 
 class CoarseDiracOp {
 public:
@@ -45,37 +34,43 @@ public:
 			const CoarseClover& clover_in,
 			const CoarseSpinor& spinor_in,
 			const IndexType target_cb,
+			const IndexType dagger,
 			const IndexType tid) const;
 
 	void CloverApply(CoarseSpinor& spinor_out,
 				const CoarseClover& clov_in,
 				const CoarseSpinor& spinor_in,
 				const IndexType target_cb,
+				const IndexType dagger,
 				const IndexType tid) const;
 
 	void Dslash(CoarseSpinor& spinor_out,
 				const CoarseGauge& gauge_in,
 				const CoarseSpinor& spinor_in,
 				const IndexType target_cb,
+				const IndexType dagger,
 				const IndexType tid) const;
 
 
 	void siteApplyDslash( float *output,
 			  	  	  	  	 	 const float* gauge_links[8],
 								 const float* spinor_cb,
-								 const float* neigh_spinors[8]) const;
+								 const float* neigh_spinors[8],
+								 const IndexType dagger) const;
 
 	void siteApply( float *output,
 			  	  	  	  	 	 const float* gauge_links[8],
 								 const float* clover_cb_0,
 								 const float* clover_cb_1,
 								 const float* spinor_cb,
-								 const float* neigh_spinors[8]) const ;
+								 const float* neigh_spinors[8],
+								 const IndexType dagger ) const ;
 
 	void siteApplyClover( float *output,
 						  const float* clover_chiral_0,
 						  const float* clover_chiral_1,
-						  const float *input) const ;
+						  const float *input,
+						  const IndexType dagger) const ;
 
 
 	inline

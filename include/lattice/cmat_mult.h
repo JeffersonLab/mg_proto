@@ -62,7 +62,6 @@ void CMatMultNaiveAdd(float* y, const float* A, const float* x, IndexType N);
 
 
 
-
 inline
 void CMatMultVrow(float *y,
 			  const float* A,

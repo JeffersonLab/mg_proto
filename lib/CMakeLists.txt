@@ -11,6 +11,7 @@ add_library(mg lattice/lattice_info.cpp
 			   lattice/cmat_mult.cpp
 			   lattice/coarse_op.cpp
 			   lattice/coarse_l1_blas.cpp
+			   lattice/fine_op.cpp
 			   ${NODEINFO_IMPL}
 			   utils/print_utils.cpp
 			   utils/memory.cpp

@@ -19,6 +19,9 @@ namespace MG {
   const IndexType MG_BACKWARD=0;
   const IndexType MG_FORWARD=1;
 
+  const IndexType LINOP_OP=0;
+  const IndexType LINOP_DAGGER = 1;
+
   // Will need these if we use non native complex numbers.
   const IndexType	n_complex=2;         /*!<  Number of complex numbers */
   const IndexType	RE = 0;              /*!<  Index for real part */

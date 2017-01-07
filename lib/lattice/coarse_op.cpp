@@ -104,6 +104,7 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 			const CoarseClover& clover_in,
 			const CoarseSpinor& spinor_in,
 			const IndexType target_cb,
+			const IndexType dagger,
 			const IndexType tid) const
 {
 
@@ -177,7 +178,7 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 		};
 
 
-		siteApply(output, gauge_links, clover_cb_0, clover_cb_1, spinor_cb, neigh_spinors);
+		siteApply(output, gauge_links, clover_cb_0, clover_cb_1, spinor_cb, neigh_spinors,dagger);
 	}
 
 }
@@ -187,6 +188,7 @@ void CoarseDiracOp::Dslash(CoarseSpinor& spinor_out,
 			const CoarseGauge& gauge_in,
 			const CoarseSpinor& spinor_in,
 			const IndexType target_cb,
+			const IndexType dagger,
 			const IndexType tid) const
 {
 	IndexType min_site = _thread_limits[tid].min_site;
@@ -252,7 +254,7 @@ void CoarseDiracOp::Dslash(CoarseSpinor& spinor_out,
 		};
 
 
-		siteApplyDslash(output, gauge_links, spinor_cb, neigh_spinors);
+		siteApplyDslash(output, gauge_links, spinor_cb, neigh_spinors, dagger);
 	}
 
 }
@@ -262,7 +264,8 @@ inline
 void CoarseDiracOp::siteApplyDslash( float *output,
 		  	  	  	  	 	 const float* gauge_links[8],
 							 const float* spinor_cb,
-							 const float* neigh_spinors[8]) const
+							 const float* neigh_spinors[8],
+							 const IndexType dagger) const
 {
 	const int N_color = GetNumColor();
 	const int N_colorspin = GetNumColorSpin();
@@ -273,10 +276,33 @@ void CoarseDiracOp::siteApplyDslash( float *output,
 	}
 
 #if 1
-	// Apply the Dslash term.
-	for(int mu=0; mu < 8; ++mu) {
-		CMatMultNaiveAdd(output, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+	if( dagger == LINOP_OP ) {
+		// Apply the Dslash term.
+		for(int mu=0; mu < 8; ++mu) {
 
+			// Forward
+			CMatMultNaiveAdd(output, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+		}
+	}
+	else {
+			// Apply the Dslash term.
+			for(int mu=0; mu < 8; ++mu) {
+
+				// Apply (1,1,1,..1,-1,-1,...-1);
+				float in_spinor[N_colorspin*n_complex];
+				for(int j=0; j < N_color*n_complex; ++j) {
+					in_spinor[j] = neigh_spinors[mu][j];
+				}
+				for(int j=N_color*n_complex; j < N_colorspin*n_complex; ++j) {
+					in_spinor[j] = -neigh_spinors[mu][j];
+				}
+
+				CMatMultNaiveAdd(output, gauge_links[mu], in_spinor, N_colorspin);
+			} // mu
+
+			for(int j=N_color*n_complex; j < N_colorspin*n_complex; ++j) {
+				output[j] = -output[j];
+			}
 	}
 #endif
 
@@ -288,27 +314,66 @@ void CoarseDiracOp::siteApply( float *output,
 							 const float* clover_cb_0,
 							 const float* clover_cb_1,
 							 const float* spinor_cb,
-							 const float* neigh_spinors[8]) const
+							 const float* neigh_spinors[8],
+							 const IndexType dagger) const
 {
 	const int N_color = GetNumColor();
 	const int N_colorspin = GetNumColorSpin();
 
-	// Apply clover term
-	CMatMultNaive(output, clover_cb_0, spinor_cb, N_color);
-	CMatMultNaive(&output[2*N_color], clover_cb_1, &spinor_cb[2*N_color], N_color);
+	if ( dagger == LINOP_OP ) {
+		// Apply clover term
+		CMatMultNaive(output, clover_cb_0, spinor_cb, N_color);
+		CMatMultNaive(&output[2*N_color], clover_cb_1, &spinor_cb[2*N_color], N_color);
 
-	// Apply the Dslash term.
-	for(int mu=0; mu < 8; ++mu) {
-		CMatMultNaiveAdd(output, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+		// Apply the Dslash term.
+		for(int mu=0; mu < 8; ++mu) {
+			CMatMultNaiveAdd(output, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+
+		}
+	}
+	else {
+
+		float in_spinor[N_colorspin*n_complex];
+
+		// Apply (1,1,1,..1,-1,-1,...-1); to spinor_cb
+		for(int j=0; j < N_color*n_complex; ++j) {
+			in_spinor[j] = spinor_cb[j];
+		}
+		for(int j=N_color*n_complex; j < N_colorspin*n_complex; ++j) {
+			in_spinor[j] = -spinor_cb[j];
+		}
+		// Apply clover term
+		CMatMultNaive(output, clover_cb_0, in_spinor, N_color);
+		CMatMultNaive(&output[2*N_color], clover_cb_1, &in_spinor[2*N_color], N_color);
+
+		// Apply the Dslash term.
+		for(int mu=0; mu < 8; ++mu) {
+
+			// Apply (1,1,1,..1,-1,-1,...-1); to spinor_cb
+			for(int j=0; j < N_color*n_complex; ++j) {
+				in_spinor[j] = neigh_spinors[mu][j];
+			}
+			for(int j=N_color*n_complex; j < N_colorspin*n_complex; ++j) {
+				in_spinor[j] = -neigh_spinors[mu][j];
+			}
+
+			CMatMultNaiveAdd(output, gauge_links[mu], in_spinor, N_colorspin);
+
+		}
+
+		// Apply (1,1,1,..1,-1,-1,...-1); to output
+		for(int j=N_color*n_complex; j < N_colorspin*n_complex; ++j) {
+			output[j] = -output[j];
+		}
 
 	}
-
 }
 // Run in thread
 void CoarseDiracOp::CloverApply(CoarseSpinor& spinor_out,
 			const CoarseClover& clov_in,
 			const CoarseSpinor& spinor_in,
 			const IndexType target_cb,
+			const IndexType dagger,
 			const IndexType tid) const
 {
 	IndexType min_site = _thread_limits[tid].min_site;
@@ -322,7 +387,7 @@ void CoarseDiracOp::CloverApply(CoarseSpinor& spinor_out,
 		const float* clover_chiral_1 = clov_in.GetSiteChiralDataPtr(target_cb,site,1);
 		const float* input = spinor_in.GetSiteDataPtr(target_cb,site);
 
-		siteApplyClover(output, clover_chiral_0, clover_chiral_1, input);
+		siteApplyClover(output, clover_chiral_0, clover_chiral_1, input,dagger);
 	}
 
 }
@@ -331,15 +396,38 @@ inline
 void CoarseDiracOp::siteApplyClover( float *output,
 					  const float* clover_chiral_0,
 					  const float* clover_chiral_1,
-					  const float *input) const
+					  const float *input,
+					  const IndexType dagger) const
 {
 	const int N_color = GetNumColor();
+	const int N_colorspin = GetNumColorSpin();
 
 	// NB: For = 6 input spinor may not be aligned!!!! BEWARE when testing optimized
 	// CMatMult-s.
-	CMatMultNaive(output, clover_chiral_0, input, N_color);
-	CMatMultNaive(&output[2*N_color], clover_chiral_1, &input[2*N_color], N_color);
+	if( dagger == LINOP_OP) {
+		CMatMultNaive(output, clover_chiral_0, input, N_color);
+		CMatMultNaive(&output[2*N_color], clover_chiral_1, &input[2*N_color], N_color);
+	}
+	else {
+		float in_spinor[N_colorspin*n_complex];
 
+		// Apply (1,1,1,..1,-1,-1,...-1); to spinor_cb
+		for(int j=0; j < N_color*n_complex; ++j) {
+			in_spinor[j] = input[j];
+		}
+		for(int j=N_color*n_complex; j < N_colorspin*n_complex; ++j) {
+			in_spinor[j] = -input[j];
+		}
+
+		CMatMultNaive(output, clover_chiral_0, in_spinor, N_color);
+		CMatMultNaive(&output[2*N_color], clover_chiral_1, &in_spinor[2*N_color], N_color);
+
+		// Apply (1,1,1,..1,-1,-1,...-1); to output
+		for(int j=N_color*n_complex; j < N_colorspin*n_complex; ++j) {
+			output[j] = -output[j];
+		}
+
+	}
 
 }
 

@@ -119,6 +119,9 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash)
 
 	QDPIO::cout << "Coarse Gauge Field initialized " << std::endl;
 
+	for(int op = LINOP_OP; op <= LINOP_DAGGER; ++op ) {
+
+		int isign = ( op == LINOP_OP ? +1 : -1 );
 
 	LatticeFermion psi, d_psi, m_psi;
 	gaussian(psi);
@@ -127,8 +130,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash)
 
 	// Apply Dslash to both CBs, isign=1
 	// Result in m_psiu
-	dslash(m_psi, u, psi, 1, 0);
-	dslash(m_psi, u, psi, 1, 1);
+	dslash(m_psi, u, psi, isign, 0);
+	dslash(m_psi, u, psi, isign, 1);
 
 	// CoarsSpinors
 	CoarseSpinor coarse_s_in(info);
@@ -146,8 +149,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash)
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, tid);
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, tid);
+		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
+		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
 	}
 
 	// Export Coarse spinor to QDP++ spinors.
@@ -157,6 +160,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash)
 	// Find the difference between regular dslash and 'coarse' dslash
 	LatticeFermion diff = m_psi - coarse_d_psi;
 
+	QDPIO::cout << "OP=" << op << std::endl;
 	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
 	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
 	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
@@ -167,10 +171,11 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash)
 
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])) ), 0, 1.e-5 );
-	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 1.5e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(psi,rb[0])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(psi)) ), 0, 1.e-5 );
+	}//op
 
 }
 
@@ -269,6 +274,9 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 
 	MasterLog(INFO,"Coarse Gauge Field initialized\n");
 
+	for(int op = LINOP_OP; op <= LINOP_DAGGER; ++op) {
+
+	int isign = (op == LINOP_OP ) ? +1 : -1 ;
 
 	LatticeFermion psi, d_psi, m_psi;
 	gaussian(psi);
@@ -277,8 +285,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 
 	// Apply Dslash to both CBs, isign=1
 	// Result in m_psiu
-	dslash(m_psi, u, psi, 1, 0);
-	dslash(m_psi, u, psi, 1, 1);
+	dslash(m_psi, u, psi, isign, 0);
+	dslash(m_psi, u, psi, isign, 1);
 
 	// CoarsSpinors
 	CoarseSpinor coarse_s_in(info);
@@ -296,8 +304,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, tid);
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, tid);
+		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
+		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
 	}
 
 	// Export Coarse spinor to QDP++ spinors.
@@ -307,6 +315,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 	// Find the difference between regular dslash and 'coarse' dslash
 	LatticeFermion diff = m_psi - coarse_d_psi;
 
+	QDPIO::cout << "OP = " << op << std::endl;
 	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
 	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
 	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
@@ -316,10 +325,11 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])) ), 0, 1.e-5 );
-	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 1.e-5 );
+	ASSERT_NEAR( toDouble( sqrt(norm2(diff)) ) , 0, 1.5e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(psi,rb[0])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(psi)) ), 0, 1.e-5 );
+	}
 }
 
 TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
@@ -406,14 +416,19 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
 		}
 	}
 
+
+	for(int op = LINOP_OP; op <= LINOP_DAGGER; ++op ) {
+
+	int isign = ( op == LINOP_OP ? +1 : -1 ) ;
+
 	LatticeFermion orig;
 	gaussian(orig);
 	LatticeFermion orig_res=zero;
 
 
 	// orig_res = A orig
-	clov_qdp.apply(orig_res, orig, 0, 0);
-	clov_qdp.apply(orig_res, orig, 0, 1);
+	clov_qdp.apply(orig_res, orig, isign, 0);
+	clov_qdp.apply(orig_res, orig, isign, 1);
 
 
 	LatticeFermion diff = zero;
@@ -447,8 +462,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
 	{
 		int tid = omp_get_thread_num();
 
-		D.CloverApply(s_out, c_clov, s_in,0,tid);
-		D.CloverApply(s_out, c_clov, s_in,1,tid);
+		D.CloverApply(s_out, c_clov, s_in,0,op, tid);
+		D.CloverApply(s_out, c_clov, s_in,1,op, tid);
 
 
 	}
@@ -457,6 +472,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
 	CoarseSpinorToQDPSpinor(s_out,coarse_res);
 	diff = orig_res - coarse_res;
 
+	QDPIO::cout << "OP=" << op << std::endl;
 	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
 	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
 	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
@@ -471,6 +487,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(orig)) ), 0, 1.e-5 );
+	}  // op
 
 }
 
@@ -584,6 +601,11 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov2)
 	CoarseClover c_clov(info);
 	clovTripleProductSiteQDPXX(clov_qdp,in_vecs, c_clov);
 
+
+	for(int op = LINOP_OP; op <= LINOP_DAGGER; ++op) {
+
+		int isign = ( op == LINOP_OP ) ? +1 : -1;
+
 	// Now create a LatticeFermion and apply both the QDP++ and the Coarse Clover
 	LatticeFermion orig;
 	gaussian(orig);
@@ -592,7 +614,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov2)
 
 	// orig_res = A orig
 	for(int cb=0; cb < 2; ++cb) {
-		clov_qdp.apply(orig_res, orig, 0, cb);
+		clov_qdp.apply(orig_res, orig, isign, cb);
 	}
 
 	// Convert original spinor to a coarse spinor
@@ -607,8 +629,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov2)
 	{
 		int tid = omp_get_thread_num();
 
-		D.CloverApply(s_out, c_clov, s_in,0,tid);
-		D.CloverApply(s_out, c_clov, s_in,1,tid);
+		D.CloverApply(s_out, c_clov, s_in,0,op,tid);
+		D.CloverApply(s_out, c_clov, s_in,1,op,tid);
 	}
 
 	LatticeFermion coarse_res;
@@ -616,6 +638,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov2)
 
 	LatticeFermion diff = orig_res - coarse_res;
 
+	QDPIO::cout << "OP = " << op << std::endl;
 	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
 	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
 	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
@@ -629,7 +652,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov2)
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(orig)) ), 0, 1.e-5 );
-
+	} // op
 
 
 }
@@ -973,6 +996,10 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov3)
 	CoarseClover c_clov(info);
 	clovTripleProductSiteQDPXX(clov_qdp, vecs, c_clov);
 
+	for(int op = LINOP_OP; op <= LINOP_DAGGER; ++op ) {
+
+		int isign = ( op == LINOP_OP ) ? +1 : -1 ;
+
 	// Now create a LatticeFermion and apply both the QDP++ and the Coarse Clover
 	LatticeFermion orig;
 	gaussian(orig);
@@ -980,7 +1007,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov3)
 
 	// Apply QDP++ clover
 	for(int cb=0; cb < 2; ++cb) {
-		clov_qdp.apply(orig_res, orig, 0, cb);
+		clov_qdp.apply(orig_res, orig, isign, cb);
 	}
 
 	// Convert original spinor to a coarse spinor
@@ -1000,8 +1027,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov3)
 	{
 		int tid = omp_get_thread_num();
 
-		D.CloverApply(s_out, c_clov, s_in,0,tid);
-		D.CloverApply(s_out, c_clov, s_in,1,tid);
+		D.CloverApply(s_out, c_clov, s_in,0, op, tid);
+		D.CloverApply(s_out, c_clov, s_in,1, op, tid);
 	}
 
 	LatticeFermion coarse_res;
@@ -1010,6 +1037,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov3)
 
 	LatticeFermion diff = orig_res - coarse_res;
 
+	QDPIO::cout << "OP = " << op << std::endl;
 
 	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
 	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
@@ -1024,7 +1052,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov3)
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(orig,rb[0])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(orig,rb[1])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(orig)) ), 0, 1.e-5 );
-
+	}
 
 
 }
@@ -1067,6 +1095,9 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash3)
 		dslashTripleProductSiteDirQDPXX(mu, u, vecs, u_coarse);
 	}
 
+	for(int op = LINOP_OP; op <= LINOP_DAGGER; ++op ) {
+		int isign = ( op == LINOP_OP ) ? +1 : -1;
+
 
 	LatticeFermion psi, d_psi, m_psi;
 
@@ -1079,7 +1110,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash3)
 	// Apply Dslash to both CBs, isign=1
 	// Result in m_psiu
 	for(int cb=0; cb < 2; ++cb) {
-		dslash(m_psi, u, psi, 1, cb);
+		dslash(m_psi, u, psi, isign, cb);
 	}
 
 	// CoarsSpinors
@@ -1097,8 +1128,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash3)
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, tid);
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, tid);
+		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
+		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
 	}
 
 	// Export Coa            rse spinor to QDP++ spinors.
@@ -1109,7 +1140,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash3)
 
 	// Check   D_f psi_f = P D_c R psi_f
 	LatticeFermion diff = m_psi - coarse_d_psi;
-
+	QDPIO::cout << "OP = " << op << std::endl;
 	QDPIO::cout << "Norm Diff[0] = " << sqrt(norm2(diff, rb[0])) << std::endl;
 	QDPIO::cout << "Norm Diff[1] = " << sqrt(norm2(diff, rb[1])) 	<< std::endl;
 	QDPIO::cout << "Norm Diff = " << sqrt(norm2(diff)) << std::endl;
@@ -1123,6 +1154,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash3)
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[0])/norm2(psi,rb[0])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff, rb[1])/norm2(psi,rb[1])) ), 0, 1.e-5 );
 	ASSERT_NEAR( toDouble( sqrt(norm2(diff)/norm2(psi)) ), 0, 1.e-5 );
+	} // op
 }
 
 
