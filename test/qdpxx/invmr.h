@@ -236,7 +236,7 @@ namespace MGTesting  {
   };
 
   template<typename Spinor, typename Gauge>
-  class MRSolver : LinearSolver<Spinor,Gauge> {
+  class MRSolver : public LinearSolver<Spinor,Gauge> {
   public:
 	  MRSolver(const LinearOperator<Spinor,Gauge>& M, const MG::LinearSolverParamsBase& params) : _M(M),
 	  _params(static_cast<const MRSolverParams&>(params)){}
@@ -254,14 +254,14 @@ namespace MGTesting  {
   };
 
   template<typename Spinor, typename Gauge>
-  class MRSmoother : Smoother<Spinor,Gauge> {
+  class MRSmoother : public Smoother<Spinor,Gauge> {
   public:
 	  MRSmoother(const LinearOperator<Spinor,Gauge>& M, const MG::LinearSolverParamsBase& params) : _M(M),
 	  _params(static_cast<const MRSolverParams&>(params)){}
 
-	  void operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE) const {
+	  void operator()(Spinor& out, const Spinor& in) const {
 		  InvMR_a(_M, in, out, Real(_params.Omega), Real(_params.RsdTarget),
-				  _params.MaxIter, LINOP_OP, resid_type, _params.VerboseP , false );
+				  _params.MaxIter, LINOP_OP,  ABSOLUTE, _params.VerboseP , false );
 
 	  }
 

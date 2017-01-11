@@ -249,7 +249,7 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
 }
 
 template<typename Spinor, typename Gauge>
- class BiCGStabSolver : LinearSolver<Spinor,Gauge> {
+ class BiCGStabSolver : public LinearSolver<Spinor,Gauge> {
  public:
 	 	 BiCGStabSolver(const LinearOperator<Spinor,Gauge>& M, const LinearSolverParamsBase& params) : _M(M),
 	  _params(params){}

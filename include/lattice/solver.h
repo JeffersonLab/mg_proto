@@ -19,7 +19,9 @@ namespace MG {
 
 	template<typename Spinor, typename Gauge>
 	class LinearSolver {
-		LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType = RELATIVE ) const;
+	public:
+		virtual LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType = RELATIVE ) const=0;
+		virtual ~LinearSolver(){}
 	};
 
 	// Base Parameter Struct
@@ -40,7 +42,9 @@ namespace MG {
 	// be fixed.
 	template<typename Spinor, typename Gauge>
 	class Smoother {
-		void operator()(Spinor& out, const Spinor& in) const;
+	public:
+		virtual void operator()(Spinor& out, const Spinor& in) const = 0;
+		virtual ~Smoother(){}
 	};
 
 	// Base Parameter Struct

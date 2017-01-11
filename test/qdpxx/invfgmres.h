@@ -1,0 +1,544 @@
+/*
+ * invfgmres.h
+ *
+ *  Created on: Jan 11, 2017
+ *      Author: bjoo
+ */
+
+#ifndef TEST_QDPXX_INVFGMRES_H_
+#define TEST_QDPXX_INVFGMRES_H_
+
+#include "qdp.h"
+#include "lattice/constants.h"
+#include "lattice/linear_operator.h"
+#include "lattice/solver.h"
+
+using namespace MG;
+using namespace QDP;
+
+namespace MGTesting {
+
+//! Params for FGMRESDR inverter
+ /*! \ingroup invert */
+ struct FGMRESParams : public MG::LinearSolverParamsBase {
+ public:
+	 int NKrylov;
+ };
+
+ namespace FGMRES {
+
+ class Givens {
+ public:
+
+	 // Givens rotation.
+	 //   There are a variety of ways to choose the rotations
+	 //   which can do the job. I employ the method given by Saad
+	 //   in Iterative Methods (Sec. 6.5.9 (eq. 6.80)
+	 //
+	 //  [  conj(c) conj(s)  ] [ h_jj    ] = [ r ]
+	 //  [    -s       c     ] [ h_j+1,j ]   [ 0 ]
+	 //
+	 //  We know that h_j+1,j is a vector norm so imag(h_{j+1,j} = 0)
+	 //
+	 //  we have: s = h_{j+1,j} / t
+	 //           c = h_jj / t
+	 //
+	 //   t=sqrt( norm2(h_jj) + h_{j+1,j}^2 ) is real and nonnegative
+	 //
+	 //  so in this case s, is REAL and nonnegative (since t is and h_{j+1,j} is
+	 //  but  c is in general complex valued.
+	 //
+	 //
+	 //  using this we find r = conj(c) h_jj + conj(s) h_{j+1,j}
+	 //                        = (1/t)* [  conj(h_jj)*h_jj + h_{j+1,j}*h_{j+1,h} ]
+	 //                        = (1/t)* [  norm2(h_jj) + h_{j+1,j}^2 ]
+	 //                        = (1/t)* [ t^2 ] = t
+	 //
+	 //  Applying this to a general 2 vector
+	 //
+	 //   [ conj(c) conj(s) ] [ a ] = [ r_1 ]
+	 //   [   -s      c     ] [ b ]   [ r_2 ]
+	 //
+	 //   we have r_1 = conj(c)*a + conj(s)*b  = conj(c)*a + s*b  since s is real, nonnegative
+	 //      and  r_2 = -s*a + c*b
+	 //
+	 //  NB: In this setup we choose the sine 's' to be real in the rotation.
+	 //      This is in contradistinction from LAPACK which typically chooses the cosine 'c' to be real
+	 //
+	 //
+	 // There are some special cases:
+	 //   if  h_jj and h_{j+1,j} are both zero we can choose any s and c as long as |c|^2 + |s|^2 =1
+	 //   Keeping with the notation that s is real and nonnegative we choose
+	 //   if    h_jj != 0 and h_{j+1,h) == 0 => c = sgn(conj(h_jj)), s = 0, r = | h_jj |
+	 //   if    h_jj == 0 and h_{j+1,j} == 0 => c = 0, s = 1,  r = 0 = h_{j+1,j}
+	 //   if    h_jj == 0 and h_{j+1,j} != 0 => c = 0, s = 1,  r = h_{j+1,j} = h_{j+1,j}
+	 //   else the formulae we computed.
+
+	 /*! Given  a marix H, construct the rotator so that H(row,col) = r and H(row+1,col) = 0
+	  *
+	  *  \param col  the column Input
+	  *  \param  H   the Matrix Input
+	  */
+
+	 Givens(int col, const multi2d<DComplex>& H) : col_(col)
+ {
+		 DComplex f = H(col_,col_);
+		 DComplex g = H(col_,col_+1);
+
+		 if( toBool( real(f) == Double(0) && imag(f) == Double(0) ) ) {
+
+			 // h_jj is 0
+			 c_ = DComplex(0);
+			 s_ = DComplex(1);
+			 r_ = g;  // Handles the case when g is also zero
+		 }
+		 else {
+			 if( toBool( real(g) == Double(0) && imag(g) == Double(0) ) ) {
+				 s_ = DComplex(0);
+				 c_ = conj(f)/sqrt( norm2(f) ); //   sgn( conj(f) ) = conj(f) / | conj(f) |  = conj(f) / | f |
+				 r_ = DComplex( sqrt(norm2(f)) );
+			 }
+			 else {
+				 // Revisit this with
+				 Double t = sqrt( norm2(f) + norm2(g) );
+				 r_ = t;
+				 c_  = f/t;
+				 s_  = g/t;
+			 }
+		 }
+ }
+
+	 /*! Apply the rotation to column col of the matrix H. The
+	  *  routine affects col and col+1.
+	  *
+	  *  \param col  the columm
+	  *  \param  H   the matrix
+	  */
+
+	 void operator()(int col,  multi2d<DComplex>& H) {
+		 if ( col == col_ ) {
+			 // We've already done this column and know the answer
+			 H(col_,col_) = r_;
+			 H(col_,col_+1) = 0;
+		 }
+		 else {
+			 int row = col_; // The row on which the rotation was defined
+			 DComplex a = H(col,row);
+			 DComplex b = H(col,row+1);
+			 H(col,row) = conj(c_)*a + conj(s_)*b;
+			 H(col,row+1) = -s_*a + c_*b;
+		 }
+	 }
+
+	 /*! Apply rotation to Column Vector v */
+	 void operator()(multi1d<DComplex>& v) {
+		 DComplex a =  v(col_);
+		 DComplex b =  v(col_+1);
+		 v(col_) = conj(c_)*a + conj(s_)*b;
+		 v(col_+1) =  -s_*a + c_*b;
+
+	 }
+
+ private:
+	 int col_;
+	 DComplex s_;
+	 DComplex c_;
+	 DComplex r_;
+ };
+
+ 	 template<typename Spinor, typename Gauge>
+ 	 void FlexibleArnoldiT(int n_krylov,
+			 const Real& rsd_target,
+			 const LinearOperator<Spinor,Gauge>& A,     // Operator
+			 const LinearSolver<Spinor,Gauge>* M,  // Preconditioner
+			 multi1d<Spinor>& V,
+			 multi1d<Spinor>& Z,
+			 multi2d<DComplex>& H,
+			 multi1d< Givens* >& givens_rots,
+			 multi1d<DComplex>& c,
+			 int& ndim_cycle,
+			 ResiduumType resid_type,
+			 bool VerboseP )
+
+ 	 {
+ 		 const Subset& s = all;      // Linear Operator Subset
+ 		 ndim_cycle = 0;
+
+ 		 if( VerboseP ) {
+ 			 QDPIO::cout << "FLEXIBLE ARNOLDI: Flexible Arnoldi Cycle: " << std::endl;
+ 		 }
+
+
+ 		 // Work by columns:
+ 		 for(int j=0; j < n_krylov; ++j) {
+
+ 			 // Check convention... Z=solution, V=source
+ 			 // Here we have an opportunity to not precondition...
+ 			 // If M is a nullpointer.
+ 			 if( M != nullptr) {
+ 				 (*M)( Z[j], V[j], resid_type );  // z_j = M^{-1} v_j
+ 			 }
+ 			 else {
+ 				 Z[j] = V[j];
+ 			 }
+
+ 			 Spinor w;
+ 			 A( w, Z[j], LINOP_OP);  // w  = A z_
+
+ 			 // Fill out column j
+ 			 for(int i=0; i <= j ;  ++i ) {
+ 				 H(j,i) = innerProduct(V[i], w, s);
+ 				 w[s] -= H(j,i)* V[i];
+ 			 }
+
+ 			 Double wnorm=sqrt(norm2(w,s));
+ 			 H(j,j+1) = DComplex(wnorm);
+
+ 			 // In principle I should check w_norm to be 0, and if it is I should
+ 			 // terminate: Code Smell -- get rid of 1.0e-14.
+ 			 if ( toBool( fabs( wnorm ) < Double(1.0e-14) ) ) {
+
+ 				 // If wnorm = 0 exactly, then we have converged exactly
+ 				 // Replay Givens rots here, how to test?
+
+ 				 QDPIO::cout << "FLEXIBLE ARNOLDI: Converged at iter = " << j+1 << std::endl;
+ 				 ndim_cycle = j;
+ 				 return;
+ 			 }
+
+ 			 Double invwnorm = Double(1)/wnorm;
+ 			 V[j+1] = invwnorm*w;
+
+ 			 // Apply Existing Givens Rotations to this column of H
+ 			 for(int i=0;i < j; ++i) {
+ 				 (*givens_rots[i])(j,H);
+ 			 }
+
+ 			 // Compute next Givens Rot for this column
+ 			 givens_rots[j] = new Givens(j,H);
+
+ 			 (*givens_rots[j])(j,H); // Apply it to H
+ 			 (*givens_rots[j])(c);   // Apply it to the c vector
+
+ 			 Double accum_resid = fabs(real(c[j+1]));
+
+ 			 // j-ndeflate is the 0 based iteration count
+ 			 // j-ndeflate+1 is the 1 based human readable iteration count
+
+ 			 if ( VerboseP ) {
+ 				 QDPIO::cout << "FLEXIBLE ARNOLDI: Iter " << j+1 << " || r || = " << accum_resid << " Target=" <<rsd_target << std::endl;
+ 			 }
+ 			 ndim_cycle = j+1;
+ 			 if ( toBool( accum_resid <= rsd_target ) ) {
+ 				 if ( VerboseP ) {
+ 					 QDPIO::cout << "FLEXIBLE ARNOLDI: Cycle Converged at iter = " << j+1 << std::endl;
+ 				 }
+ 				 return;
+ 			 }
+ 		 }
+ 	 }
+ } // Namespace FGMRES
+
+
+ template<typename Spinor,typename Gauge>
+ class FGMRESSolver : public LinearSolver<Spinor,Gauge>
+  {
+  public:
+
+    //! Constructor
+    /*!
+     * \param A_        Linear operator ( Read )
+     * \param invParam  inverter parameters ( Read )
+     */
+    FGMRESSolver(const LinearOperator<Spinor,Gauge>& A,
+    			 const MG::LinearSolverParamsBase& params,
+    			 const LinearSolver<Spinor,Gauge>* M_prec=nullptr) : _A(A), _params(static_cast<const FGMRESParams&>(params)), _M_prec(M_prec)
+      {
+    	// Initialize stuff
+    	InitMatrices();
+      }
+
+
+    //! Initialize the internal matrices
+    void InitMatrices()
+    {
+
+
+    	H_.resize(_params.NKrylov, _params.NKrylov+1); // This is odd. Shouldn't it be
+
+    	V_.resize(_params.NKrylov+1);
+    	Z_.resize(_params.NKrylov+1);
+    	givens_rots_.resize(_params.NKrylov+1);
+    	c_.resize(_params.NKrylov+1);
+    	eta_.resize(_params.NKrylov);
+
+
+    	for(int col =0; col < _params.NKrylov; col++) {
+    		for(int row = 0; row < _params.NKrylov+1; row++) {
+    			H_(col,row) = zero;
+    		}
+    	}
+
+    	for(int row = 0; row < _params.NKrylov+1; row++) {
+    		V_[row] = zero;
+    		Z_[row] = zero;
+    		c_[row] = zero;
+    		givens_rots_[row] = nullptr;
+    	}
+
+    	for(int row = 0; row < _params.NKrylov; row++) {
+    		eta_[row] = zero;
+    	}
+
+
+
+    }
+
+    LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE) const
+    {
+    	LinearSolverResults res; // Value to return
+    	res.resid_type = resid_type;
+
+    	const Subset s = all;
+
+    	Double norm_rhs = sqrt(norm2(in,s));   //  || b ||
+    	Double target = _params.RsdTarget;
+
+    	if ( resid_type == RELATIVE) {
+    		target *= norm_rhs; // Target  || r || < || b || RsdTarget
+    	}
+
+    	// Compute ||r||
+    	Spinor r = zero;
+    	Spinor tmp = zero;
+    	r[s] = in;
+    	(_A)(tmp, out, LINOP_OP);
+    	r[s] -=tmp;
+
+    	// The current residuum
+    	Double r_norm = sqrt(norm2(r,s));
+
+    	// Initialize iterations
+    	int iters_total = 0;
+    	if ( _params.VerboseP ) {
+    		QDPIO::cout << "FGMRES Solve: iters=" << iters_total << " || r ||=" << r_norm << " Target || r ||=" << target <<std::endl;
+    	}
+
+    	if( toBool( r_norm < target) )  {
+    		res.n_count = 0;
+    		res.resid = toDouble( r_norm );
+    		if( resid_type == ABSOLUTE ) {
+    			if( _params.VerboseP ) {
+    				QDPIO::cout << "FGMRES Solve Converged: iters=0  Final Absolute || r ||=" << res.resid << std::endl;
+    			}
+    		}
+    		else {
+    			res.resid /= toDouble( norm_rhs );
+    			if( _params.VerboseP ) {
+    				QDPIO::cout << "FGMRES Solve Converged: iters=0  Final || r ||/|| b ||=" << res.resid << std::endl;
+    			}
+    		}
+    		return res;
+    	}
+
+    	int n_cycles = 0;
+    	int prev_dim = _params.NKrylov; // This is the default previous dimension
+
+
+
+
+    	// We are done if norm is sufficiently accurate,
+    	bool finished = toBool( r_norm <= target ) ;
+
+    	// We keep executing cycles until we are finished
+    	while( !finished ) {
+
+    		// If not finished, we should do another cycle with RHS='r' to find dx to add to psi.
+    		++n_cycles;
+
+
+    		int dim; // dim at the end of cycle (in case we terminate in-cycle
+    		int n_krylov  = _params.NKrylov;
+
+    		// We are either first cycle, or
+    		// We have no deflation subspace ie we are regular FGMRES
+    		// and we are just restarting
+    		//
+    		// Set up initial vector c = [ beta, 0 ... 0 ]^T
+    		// In this case beta should be the r_norm, ie || r || (=|| b || for the first cycle)
+    		//
+    		// NB: We will have a copy of this called 'g' onto which we will
+    		// apply Givens rotations to get an inline estimate of the residuum
+    		for(int j=0; j < c_.size(); ++j) {
+    			c_[j] = DComplex(0);
+    		}
+    		c_[0] = r_norm;
+
+    		// Set up initial V[0] = rhs / || r^2 ||
+    		// and since we are solving for A delta x = r
+    		// the rhs is 'r'
+    		//
+    		Double beta_inv = Double(1)/r_norm;
+    		V_[0][s] = beta_inv * r;
+
+
+
+    		// Carry out Flexible Arnoldi process for the cycle
+
+    		// We are solving for the defect:   A dx = r
+    		// so the RHS in the Arnoldi process is 'r'
+    		// NB: We recompute a true 'r' after every cycle
+    		// So in the cycle we could in principle
+    		// use reduced precision... TBInvestigated.
+
+    		FlexibleArnoldi(n_krylov,
+    				target,
+    				V_,
+    				Z_,
+    				H_,
+    				givens_rots_,
+    				c_,
+    				dim,
+					resid_type);
+
+    		int iters_this_cycle = dim;
+    		LeastSquaresSolve(H_,c_,eta_, dim); // Solve Least Squares System
+
+    		// Compute the correction dx = sum_j  eta_j Z_j
+    		LatticeFermion dx = zero;
+    		for(int j=0; j < dim; ++j) {
+    			dx[s] += eta_[j]*Z_[j];
+    		}
+
+    		// Update psi
+    		out[s] += dx;
+
+
+
+
+    		// Recompute r
+    		r[s] = in;
+    		(_A)(tmp, out, LINOP_OP);
+    		r[s] -= tmp;  // This 'r' will be used in next cycle as the || rhs ||
+
+    		// Recompute true norm
+    		r_norm = sqrt(norm2(r,s));
+
+    		// Update total iters
+    		iters_total += iters_this_cycle;
+    		if ( _params.VerboseP ) {
+    			QDPIO::cout << "FGMRES: Cycle finished with " << iters_this_cycle << " iterations" << std::endl;
+    			QDPIO::cout << "FGMRES: iter=" << iters_total << " || r || = " << r_norm <<  " target=" << target << std::endl;
+    		}
+
+    		// Check if we are done either via convergence, or runnign out of iterations
+    		finished = toBool( r_norm <= target ) || (iters_total >= _params.MaxIter);
+    		prev_dim = dim;
+
+        	// Init matrices should've initialized this but just in case this is e.g. a second call or something.
+        	for(int j=0; j < _params.NKrylov; ++j) {
+        		if ( givens_rots_[j] != nullptr ) {
+        			delete givens_rots_[j];
+        			givens_rots_[j] = nullptr;
+        		}
+        	}
+    	}
+
+    	// Either we've exceeded max iters, or we have converged in either case set res:
+    	res.n_count = iters_total;
+    	res.resid = toDouble( r_norm );
+    	if( resid_type == ABSOLUTE ) {
+
+        	QDPIO::cout << "FGMRES: Done. Cycles=" << n_cycles << ", Iters=" << iters_total << " || r ||=" << res.resid << " Target=" << _params.RsdTarget << std::endl;
+
+    	}
+    	else {
+    		res.resid /= toDouble( norm_rhs ) ;
+
+    		QDPIO::cout << "FGMRES: Done. Cycles=" << n_cycles << ", Iters=" << iters_total << " || r ||/|| b ||=" << res.resid << " Target=" << _params.RsdTarget << std::endl;
+    	}
+    	return res;
+
+    }
+
+
+    void FlexibleArnoldi(int n_krylov,
+			 const Real& rsd_target,
+			 multi1d<Spinor>& V,
+			 multi1d<Spinor>& Z,
+			 multi2d<DComplex>& H,
+			 multi1d< FGMRES::Givens* >& givens_rots,
+			 multi1d<DComplex>& c,
+			 int&  ndim_cycle,
+			 ResiduumType resid_type) const
+    {
+
+
+    	FGMRES::FlexibleArnoldiT<Spinor,Gauge>(n_krylov,
+    				rsd_target,
+    				_A,
+    				_M_prec,
+    				V,Z,H,givens_rots,c, ndim_cycle, resid_type, _params.VerboseP);
+    }
+
+
+    void LeastSquaresSolve(const multi2d<DComplex>& H,
+    		const multi1d<DComplex>& rhs,
+			multi1d<DComplex>& eta,
+			int n_cols) const
+
+    {
+    	/* Assume here we have a square matrix with an extra row.
+           Hence the loop counters are the columns not the rows.
+           NB: For an augmented system this will change */
+    	eta[n_cols-1] = rhs[n_cols-1]/H(n_cols-1,n_cols-1);
+    	for(int row = n_cols-2; row >= 0; --row) {
+    		eta[row] = rhs[row];
+    		for(int col=row+1; col <  n_cols; ++col) {
+    			eta[row] -= H(col,row)*eta[col];
+    		}
+    		eta[row] /= H(row,row);
+    	}
+    }
+
+
+  private:
+    const LinearOperator<Spinor,Gauge>& _A;
+    const FGMRESParams _params;
+    const LinearSolver<Spinor,Gauge>* _M_prec;
+
+    // These can become state variables, as they will need to be
+    // handed around
+    mutable multi2d<DComplex> H_; // The H matrix
+    mutable multi2d<DComplex> R_; // R = H diagonalized with Givens rotations
+    mutable multi1d<Spinor> V_;  // K(A)
+    mutable multi1d<Spinor> Z_;  // K(MA)
+    mutable multi1d< FGMRES::Givens* > givens_rots_;
+
+    // This is the c = V^H_{k+1} r vector (c is frommers Notation)
+    // For regular FGMRES I need to keep only the basis transformed
+    // version of it, for rotating by the Q's (I call this 'g')
+    // However, for FGMRES-DR I need this because I need
+    //  || c - H eta || to extend the G_k matrix to form V_{k+1}
+    // it is made of the previous v_{k+1} by explicitly evaluating c
+    // except at the end of the first cycle when the V_{k+1} are not
+    // yet available
+
+    // Once G_k+1 is available, I can form the QR decomposition
+    // and set  my little g = Q^H and then as I do the Arnoldi
+    // I can then work it with the Givens rotations...
+
+    mutable multi1d<DComplex> c_;
+    mutable multi1d<DComplex> eta_;
+    mutable multi1d<DComplex> g_;
+
+
+
+  };
+
+};
+
+
+
+
+#endif /* TEST_QDPXX_INVFGMRES_H_ */

@@ -8,6 +8,7 @@
 #include "wilson_clover_linear_operator.h"
 #include "invmr.h"
 #include "invbicgstab.h"
+#include "invfgmres.h"
 
 using namespace MG;
 using namespace MGTesting;
@@ -114,6 +115,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvBiCGStab)
 	ASSERT_LT(res.resid, 5.75e-6);
 }
 
+
 TEST(TestQDPXX, TestQDPXXCloverOpInvBiCGStabZeroRHS)
 {
 	IndexArray latdims={{4,4,4,4}};
@@ -165,6 +167,105 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvBiCGStabZeroRHS)
 
 }
 
+TEST(TestQDPXX, TestQDPXXCloverOpInvUnprecFGMRES)
+{
+	IndexArray latdims={{4,4,4,4}};
+	initQDPXXLattice(latdims);
+	using Spinor = LatticeFermion;
+	using Gauge = multi1d<LatticeColorMatrix>;
+
+	float m_q = 0.1;
+	float c_sw = 1.25;
+
+	int t_bc=-1; // Antiperiodic t BCs
+
+	LatticeFermion in,out;
+	gaussian(in);
+	out=zero;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+	for(int mu=0; mu < Nd; ++mu) {
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Create linear operator
+	QDPWilsonCloverLinearOperator M(m_q, c_sw, t_bc,u);
+	FGMRESParams params;
+	params.MaxIter = 500;
+	params.RsdTarget = 1.0e-5;
+	params.VerboseP = true;
+	params.NKrylov = 10;
+
+	FGMRESSolver<Spinor,Gauge>  FGMRES(M, params,nullptr);
+	Spinor b;
+	gaussian(b);
+	Spinor x=zero;
+
+	QDPIO::cout << "|| b ||=  " << sqrt(norm2(b)) << std::endl;
+	QDPIO::cout << "|| x || = " << sqrt(norm2(x)) << std::endl;
+
+	LinearSolverResults res = FGMRES(x,b);
+	QDPIO::cout << "FGMRES Solver Took: " << res.n_count << " iterations"
+			<< std::endl;
+	ASSERT_EQ(res.resid_type, RELATIVE);
+	ASSERT_LT(res.resid, 9e-6);
+}
+
+TEST(TestQDPXX, TestQDPXXCloverOpInvRightPrecFGMRES)
+{
+	IndexArray latdims={{4,4,4,4}};
+	initQDPXXLattice(latdims);
+	using Spinor = LatticeFermion;
+	using Gauge = multi1d<LatticeColorMatrix>;
+
+	float m_q = 0.1;
+	float c_sw = 1.25;
+
+	int t_bc=-1; // Antiperiodic t BCs
+
+	LatticeFermion in,out;
+	gaussian(in);
+	out=zero;
+
+	multi1d<LatticeColorMatrix> u(Nd);
+	for(int mu=0; mu < Nd; ++mu) {
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Create linear operator
+	QDPWilsonCloverLinearOperator M(m_q, c_sw, t_bc,u);
+
+	// Create a simple MR Preconditioner
+	MRSolverParams mr_params;
+	mr_params.Omega = 1.1;
+	mr_params.RsdTarget = 1.0e-1;
+	mr_params.MaxIter = 20;
+	mr_params.VerboseP = true;
+
+	MRSolver<Spinor,Gauge> MR(M, mr_params);
+
+	FGMRESParams params;
+	params.MaxIter = 500;
+	params.RsdTarget = 1.0e-5;
+	params.VerboseP = true;
+	params.NKrylov = 10;
+
+	FGMRESSolver<Spinor,Gauge>  FGMRES(M, params,&MR);
+	Spinor b;
+	gaussian(b);
+	Spinor x=zero;
+
+	QDPIO::cout << "|| b ||=  " << sqrt(norm2(b)) << std::endl;
+	QDPIO::cout << "|| x || = " << sqrt(norm2(x)) << std::endl;
+
+	LinearSolverResults res = FGMRES(x,b);
+	QDPIO::cout << "FGMRES Solver Took: " << res.n_count << " iterations"
+			<< std::endl;
+	ASSERT_EQ(res.resid_type, RELATIVE);
+	ASSERT_LT(res.resid, 9e-6);
+}
 int main(int argc, char *argv[]) 
 {
 	return MGTesting::TestMain(&argc, argv);
