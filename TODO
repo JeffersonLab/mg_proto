@@ -1,0 +1,32 @@
+- Add Test Code for Coarsening the Full Operator. Similar to existing D_c = R D_fine P,
+  but rather than piecemeal coarsenings, the returned Coarse Gauge and Clover Fields should be added into
+  a linear operator which can be applied.
+
+- Add Solvers on Coarse Datatypes: BICGSTAB would be the first one -- use as a 'bottom solver'
+
+- Create 2 Level MultiGrid Test to demonstrate machinery.
+
+Code Fork: 
+    Start to go towards more optimized infrastructure, or go towards 3rd level?
+
+3rd level: 
+    Add MR and FGMRES on Coarse Datatypes -- BiCGStab already existing 
+    Add Coarse->Coarse Transfer operators. Will need Coarse-Dslash equivalent of "DslashDir" for the nearest neighbor part.
+    Create n-level VCycle.
+
+====== Done for Prototype Milestone
+
+Even Odd Preconditioning Tricks
+
+====
+    
+Other Tricks: 
+    'Global Mode deflation -- e.g. FGMRES-DR -- needs to resurrect Chroma FGMRES-DR and would need Lapack
+                              or:  GCRO-DR -- as we heard at SC
+
+    Multiple Right Hand Sides? This is primarily an optimization tho right?
+   
+Multi-Node: 
+    Want to do the multi-node features only once,
+
+Optimization: Need optimized infrastructure.
