@@ -4,6 +4,7 @@
 
 #include <vector>
 
+using namespace MGLevelNamespace;
 using namespace MG;
 
 TEST(MGSetup, CreateMGSetup)

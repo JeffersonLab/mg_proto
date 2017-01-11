@@ -12,7 +12,7 @@
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "utils/print_utils.h"
-namespace MGLevelNamespace {
+namespace MG {
 
 
 class Spinor {
@@ -239,10 +239,11 @@ private:
 struct MGLevel {
 	Gauge* gauge;					// Gauge field on this level
 	Clover* clover;				    // Clover field
+	Clover* inv_clover; 			// Inverse field
 	std::vector<Spinor*> null_vecs; // NULL Vectors
 	LatticeInfo* info;       // Info about the current lattice level
-	Restrictor* R;                 // Restrict down to next level
-	Prolongator* P;                // Prolongate up from next level
+	Restrictor* R;                 // Restrict to next level
+	Prolongator* P;                // Prolongate to previous level
 	Solver* null_solver;           // Solver for NULL on this level
 	Solver* smoother;          // PreSmoother on this level
 	LinearOperator* M; // Linear Operator for this level (needed to construct pre smoother, post smoother, level_solver)
@@ -276,9 +277,9 @@ public:
 
 	void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) {
 			if (type == LINOP_OP) {
-				MasterLog(INFO, "Applying Regular Wilson Clover LinearOperator");
+				MasterLog(INFO, "Applying Regular Wilson Clover LinOp");
 			} else {
-				MasterLog(INFO, "Applying Daggered Regular Wilson Clover LinearOperator");
+				MasterLog(INFO, "Applying Daggered Regular Wilson Clover LinOp");
 			}
 		}
 
@@ -472,23 +473,19 @@ public:
 
 	void operator()(Spinor& out, const Spinor& in, const SolverParams& param) const {
 		if( _level < _n_levels - 1) {
-
 			Spinor* smoothed_tmp = allocateSpinor(*(_mg_levels[_level].info), _level);
-
 			Spinor* coarse_in = allocateSpinor(*(_mg_levels[_level-1].info), _level-1);
 			Spinor* coarse_out = allocateSpinor(*(_mg_levels[_level-1].info), _level-1);
-
-
 			MasterLog(INFO, " VCycle(%d): PreSmoothing", _level);
 			(*Smoother)(*smoothed_tmp, in, pre_smoother_params);
 
-			MasterLog(INFO, " VCycle(%d): Restricting to %d", _level, _level-1);
+			MasterLog(INFO, " VCycle(%d): Restricting to %d", _level, _level+1);
 			(*R)(*smoothed_tmp, *coarse_in);
 
 			MasterLog(INFO, " VCycle(%d): Coarse Solving", _level);
 			(*SolverCoarse)(*coarse_out, *coarse_in, coarse_gcr_params);
 
-			MasterLog(INFO, " VCycle(%d): Prolongating from %d", _level, _level-1);
+			MasterLog(INFO, " VCycle(%d): Prolongating from %d", _level, _level+1);
 			(*P)(*coarse_out, *smoothed_tmp);
 
 			MasterLog(INFO, " VCycle(%d): PostSmoothing", _level);

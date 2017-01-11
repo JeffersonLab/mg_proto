@@ -11,14 +11,26 @@
 #include <qdp.h>
 #include "lattice/constants.h"
 #include "lattice/coarse/coarse_types.h"
+#include "clover_term_qdp_w.h"
 
 
 namespace MGTesting {
 	void initQDPXXLattice(const MG::IndexArray& latdims);
+
+	// Convert a QDP++ Spinor into a Coarse Spinor Datatype.
+	// Geometries, Spins, Colors, must match
 	void QDPSpinorToCoarseSpinor(const QDP::LatticeFermion& qdpxx_in,
 	    			CoarseSpinor& coarse_out);
+
+	// Convert a CoarseSpinor Datatype to a QDP++ Spinor Datatype
+	// Geometries, Spins, Colors must match
 	void CoarseSpinorToQDPSpinor(const CoarseSpinor& coarse_in,
 	     			QDP::LatticeFermion& qdpxx_out);
+
+
+	void QDPGaugeLinksToCoarseGaugeLinks( const multi1d<LatticeColorMatrix>& qdp_u_in, CoarseGauge& gauge_out);
+	void CoarseGaugeLinksToQDPGaugeLinks( const CoarseGauge& gauge_in, multi1d<LatticeColorMatrix>& qdp_u_out );
+
 
 	void QDPPropToCoarseGaugeLink(const QDP::LatticePropagator& qdpxx_in,
 	    			CoarseGauge& coarse_out, IndexType dir);
@@ -28,6 +40,8 @@ namespace MGTesting {
 
 	void QDPPropToCoarseClover(const QDP::LatticePropagator& qdpxx_in,
 							   CoarseClover& coarse_out);
+
+
 
 };
 

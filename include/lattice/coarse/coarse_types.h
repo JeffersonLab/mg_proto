@@ -36,11 +36,12 @@ namespace MG {
 				_n_colorspin(lattice_info.GetNumColors()*lattice_info.GetNumSpins()),
 				_n_site_offset(n_complex*_n_colorspin)
 		{
+#if 1
 			// Check That we have 2 spins
 			if( lattice_info.GetNumSpins() != 2 ) {
 				MasterLog(ERROR, "Attempting to Create CoarseSpinor with num_spins != 2");
 			}
-
+#endif
 
 			// Allocate Data
 			IndexType num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_site_offset;
@@ -251,14 +252,14 @@ namespace MG {
 	public:
 		CoarseClover(LatticeInfo& lattice_info) : _lattice_info(lattice_info), data{nullptr,nullptr},
 				_n_color(lattice_info.GetNumColors()), // NxN matrix size
-				_n_block_offset(n_complex*_n_color*_n_color),
+				_n_block_offset( ( lattice_info.GetNumSpins() == 4 ) && (lattice_info.GetNumColors() == 3)  ?  (6+15*n_complex) : n_complex*_n_color*_n_color),
 				_n_chiral(2),
-				_n_site_offset(_n_block_offset*_n_chiral)
+				_n_site_offset(_n_block_offset*_n_chiral),
+				_is_fine( ( lattice_info.GetNumSpins() == 4 ) && (lattice_info.GetNumColors() == 3)  ?  true : false )
 
 		{
-			// Allocate Data
-			IndexType num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_site_offset;
 
+			IndexType num_floats_per_cb =  _lattice_info.GetNumCBSites()*_n_site_offset;
 			/* Contiguout allocation */
 			data[0] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
 			data[1] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
@@ -337,6 +338,12 @@ namespace MG {
 		const LatticeInfo& GetInfo() const {
 			return _lattice_info;
 		}
+
+		inline
+		const bool IsFine() const {
+			return _is_fine;
+		}
+
 	private:
 		const LatticeInfo& _lattice_info;
 		float* data[2];  // Even and odd checkerboards
@@ -345,6 +352,7 @@ namespace MG {
 		const IndexType _n_block_offset;
 		const IndexType _n_chiral;
 		const IndexType _n_site_offset;
+		const bool _is_fine;
 
 	};
 

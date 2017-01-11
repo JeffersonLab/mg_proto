@@ -8,7 +8,8 @@
 #include <vector>
 #include "lattice/mg_level.h"
 
-namespace MG {
+
+namespace MGLevelNamespace {
 
 
    void mgSetup(const SetupParams& p, std::vector< MGLevel >& mg_levels,
@@ -23,7 +24,6 @@ namespace MG {
 	   mg_levels[0].info = new LatticeInfo(p.local_lattice_size);
 	   mg_levels[0].gauge = u;
 	   mg_levels[0].clover = clov;
-	   mg_levels[0].inv_clover = invclov;
 
 
 	   MasterLog(INFO, "Level 0: Lattice Info Set.");

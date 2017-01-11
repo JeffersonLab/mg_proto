@@ -14,3 +14,6 @@ target_link_libraries(test_coarse_qdpxx  qdpxx_helpers test_aggregation mg gtest
 
 add_executable(test_coarse_qdpxx_site test_coarse_qdpxx_site.cpp)
 target_link_libraries(test_coarse_qdpxx_site  qdpxx_helpers test_aggregation mg gtest_all mg_test ${EXT_LIBS})
+
+add_executable(test_qdpxx_clover_linop test_qdpxx_clover_linop.cpp)
+target_link_libraries(test_qdpxx_clover_linop  qdpxx_helpers test_aggregation mg gtest_all mg_test ${EXT_LIBS})

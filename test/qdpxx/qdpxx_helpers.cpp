@@ -102,6 +102,79 @@ CoarseSpinorToQDPSpinor(const CoarseSpinor& coarse_in,
 	}
 }
 
+void QDPGaugeLinksToCoarseGaugeLinks( const multi1d<LatticeColorMatrix>& qdp_u_in,
+									  CoarseGauge& gauge_out )
+{
+	const LatticeInfo& info = gauge_out.GetInfo();
+	int num_cb_sites = info.GetNumCBSites();
+
+	assert( info.GetNumColors() == 3);
+	assert( info.GetNumSpins() == 4);
+	assert( num_cb_sites == rb[0].numSiteTable() );
+
+	for(int dir=0; dir < n_dim; ++dir ) {
+		LatticeColorMatrix u_back = adj(shift( qdp_u_in[dir], BACKWARD, dir));
+		const LatticeColorMatrix& u_forw = qdp_u_in[dir];
+
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+#pragma omp parallel for
+			for(int cbsite=0; cbsite < num_cb_sites; ++cbsite) {
+
+				float *site_data_forw = gauge_out.GetSiteDirDataPtr(cb,cbsite,2*dir);
+				float *site_data_back = gauge_out.GetSiteDirDataPtr(cb,cbsite,2*dir+1);
+				for(int row=0; row < 3; ++row) {
+					for(int col=0; col < 3; ++col) {
+						site_data_forw[ RE + n_complex*(col + 3*row)] = u_forw.elem(rb[cb].siteTable()[cbsite]).elem().elem(row,col).real();
+						site_data_forw[ IM + n_complex*(col + 3*row)] = u_forw.elem(rb[cb].siteTable()[cbsite]).elem().elem(row,col).imag();
+					} // col
+				} // row
+				for(int row=0; row < 3; ++row) {
+					for(int col=0; col < 3; ++col) {
+						site_data_back[ RE + n_complex*(col + 3*row)] = u_back.elem(rb[cb].siteTable()[cbsite]).elem().elem(row,col).real();
+						site_data_back[ IM + n_complex*(col + 3*row)] = u_back.elem(rb[cb].siteTable()[cbsite]).elem().elem(row,col).imag();
+
+					} // col
+				} // row
+			}// cbsite
+		} // cb
+	} // dir
+
+
+}
+
+void CoarseGaugeLinksToQDPGaugeLinks( const CoarseGauge& coarse_in,
+									  multi1d<LatticeColorMatrix>& qdp_u_out)
+{
+	const LatticeInfo& info = coarse_in.GetInfo();
+	int num_cb_sites = info.GetNumCBSites();
+
+	assert( info.GetNumColors() == 3);
+	assert( info.GetNumSpins() == 4);
+	assert( num_cb_sites == rb[0].numSiteTable() );
+
+	for(int dir=0; dir < n_dim; ++dir ) {
+		//LatticeColorMatrix& u = qdp_u_out[dir];
+
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+#pragma omp parallel for
+			for(int cbsite=0; cbsite < num_cb_sites; ++cbsite) {
+
+				const float *site_data_forw = coarse_in.GetSiteDirDataPtr(cb,cbsite,2*dir);
+				for(int row=0; row < 3; ++row) {
+					for(int col=0; col < 3; ++col) {
+						qdp_u_out[dir].elem(rb[cb].siteTable()[cbsite]).elem().elem(row,col).real()=site_data_forw[ RE + n_complex*(col + 3*row)];
+						qdp_u_out[dir].elem(rb[cb].siteTable()[cbsite]).elem().elem(row,col).imag()=site_data_forw[ IM + n_complex*(col + 3*row)];
+					} // col
+				} // row
+			}// cbsite
+		} // cb
+	} // dir
+
+
+}
+
+
+
 
 void
 QDPPropToCoarseGaugeLink(const LatticePropagator& qdpxx_in,
