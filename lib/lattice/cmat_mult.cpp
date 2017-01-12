@@ -130,6 +130,70 @@ void CMatMultNaiveAdd(float* y,
 	}
 }
 
+template<const int N>
+void CMatMultNaiveCoeffAddT(std::complex<float>*y,
+				   const float alpha,
+				   const std::complex<float>* A,
+				   const std::complex<float>* x)
+{
+	std::complex<float> tmp[N]; // This temporary should be explicitly aligned
+
+    for(IndexType row=0; row < N; ++row) {
+    	// Zero out result of row x col product
+    	tmp[row]=std::complex<float>(0,0);
+
+    	// Accumulate row x col product
+    	for(IndexType col=0; col < N; ++col) {
+
+    		// NB: These are complex multiplies
+    		tmp[row] += A[ N*row + col ] * x[ col ];
+    	}
+
+    	// Multiply it by alpha
+    	y[row] += alpha*tmp[row];
+    }
+}
+
+
+void CMatMultNaiveCoeffAdd(float* y,
+				   const float alpha,
+				   const float* A,
+				   const float* x,
+				   IndexType N)
+{
+	// Pretend these are arrays of complex numbers
+	std::complex<float>* yc = reinterpret_cast<std::complex<float>*>(y);
+	const std::complex<float>* Ac = reinterpret_cast<const std::complex<float>*>(A);
+	const std::complex<float>* xc = reinterpret_cast<const std::complex<float>*>(x);
+
+	if (N == 6 ) {
+		CMatMultNaiveCoeffAddT<6>(yc, alpha, Ac, xc);
+	}
+	else if( N == 8 ) {
+		CMatMultNaiveCoeffAddT<8>(yc, alpha, Ac, xc);
+	}
+	else if( N == 12 ) {
+		CMatMultNaiveCoeffAddT<12>(yc, alpha, Ac, xc);
+	}
+	else if ( N == 16 ) {
+		CMatMultNaiveCoeffAddT<16>(yc, alpha, Ac,xc);
+	}
+	else if (N == 24 ) {
+		CMatMultNaiveCoeffAddT<24>(yc, alpha, Ac,xc);
+	}
+	else if (N == 32 ) {
+		CMatMultNaiveCoeffAddT<32>(yc, alpha, Ac,xc);
+	}
+	else if (N == 48 ) {
+		CMatMultNaiveCoeffAddT<48>(yc, alpha, Ac, xc);
+	}
+	else if (N == 64 ) {
+		CMatMultNaiveCoeffAddT<64>(yc, alpha, Ac, xc);
+	}
+	else {
+		MasterLog(ERROR, "Matrix size %d not supported in CMatMultNaiveAdd" , N );
+	}
+}
 
 
 

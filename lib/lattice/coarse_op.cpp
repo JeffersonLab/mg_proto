@@ -319,15 +319,16 @@ void CoarseDiracOp::siteApply( float *output,
 {
 	const int N_color = GetNumColor();
 	const int N_colorspin = GetNumColorSpin();
+	const float mhalf=-0.5;
 
 	if ( dagger == LINOP_OP ) {
 		// Apply clover term
 		CMatMultNaive(output, clover_cb_0, spinor_cb, N_color);
 		CMatMultNaive(&output[2*N_color], clover_cb_1, &spinor_cb[2*N_color], N_color);
 
-		// Apply the Dslash term.
+		// Apply and accumulate the Dslash term.
 		for(int mu=0; mu < 8; ++mu) {
-			CMatMultNaiveAdd(output, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+			CMatMultNaiveCoeffAdd(output, mhalf, gauge_links[mu], neigh_spinors[mu], N_colorspin);
 
 		}
 	}
@@ -357,7 +358,7 @@ void CoarseDiracOp::siteApply( float *output,
 				in_spinor[j] = -neigh_spinors[mu][j];
 			}
 
-			CMatMultNaiveAdd(output, gauge_links[mu], in_spinor, N_colorspin);
+			CMatMultNaiveCoeffAdd(output, mhalf, gauge_links[mu], in_spinor, N_colorspin);
 
 		}
 

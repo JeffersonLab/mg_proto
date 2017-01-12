@@ -18,7 +18,8 @@ namespace MG {
  * @param y  - CoarseSpinor ref
  * @return   double containing the norm of the difference
  */
-double xmyNorm2Coarse(const CoarseSpinor& x, const CoarseSpinor& y);
+double xmyNorm2(const CoarseSpinor& x, const CoarseSpinor& y);
+double norm2(const CoarseSpinor& x);
 
 
 }

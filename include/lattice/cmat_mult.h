@@ -57,9 +57,14 @@ void CMatMult(float *y, const float *A,  const float *x, const IndexType N, cons
  * -- caller computes, and possibly stores in a ThreadInfo structure
  */
 
+/* y = A x */
 void CMatMultNaive(float* y, const float* A, const float* x, IndexType N);
+
+/* y += A x */
 void CMatMultNaiveAdd(float* y, const float* A, const float* x, IndexType N);
 
+/* y += alpha A x,  alpha is real */
+void CMatMultNaiveCoeffAdd(float* y, const float alpha, const float* A, const float* x, IndexType N);
 
 
 inline

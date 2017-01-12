@@ -5,7 +5,7 @@
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/geometry_utils.h"
-#include "lattice/coarse/coarse_types.h"
+
 #include "lattice/coarse/coarse_op.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 
@@ -829,7 +829,7 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseClov)
 
 	QDPIO::cout << "Checking Clov_c v_c = R Clov_f P v_c. " << std::endl;
 	// We should now compare out, with fake_out. For this we need an xmy
-	double norm_diff = sqrt(xmyNorm2Coarse(fake_out,out));
+	double norm_diff = sqrt(xmyNorm2(fake_out,out));
 	double norm_diff_per_site = norm_diff / (double)fake_out.GetInfo().GetNumSites();
 
 	MasterLog(INFO, "OP = %d", op);
@@ -939,7 +939,7 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 
 	QDPIO::cout << "Checking: R D_f P v_c == D_c v_c " <<std::endl;
 	// We should now compare out, with fake_out. For this we need an xmy
-	double norm_diff = sqrt(xmyNorm2Coarse(fake_out,out));
+	double norm_diff = sqrt(xmyNorm2(fake_out,out));
 	double norm_diff_per_site = norm_diff / (double)fake_out.GetInfo().GetNumSites();
 
 	MasterLog(INFO, "OP=%d", op);

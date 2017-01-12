@@ -17,6 +17,8 @@
 #include "clover_term_qdp_w.h"
 #include "qdpxx_helpers.h"
 #include "dslashm_w.h"
+#include "lattice/coarse/coarse_types.h"
+#include "aggregate_block_qdpxx.h"
 
 using namespace QDP;
 using namespace MGTesting;
@@ -57,6 +59,21 @@ public:
 
 	int GetLevel(void) const {
 		return 0;
+	}
+
+	void generateCoarseGauge(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse)
+	{
+		// Generate the triple products directly into the u_coarse
+		for(int mu=0; mu < 8; ++mu) {
+			QDPIO::cout << "QDPWilsonCloverLinearOperator: Dslash Triple Product in direction: " << mu << std::endl;
+			dslashTripleProductDirQDPXX(blocklist, mu, _u, in_vecs, u_coarse);
+		}
+	}
+
+	void generateCoarseClover(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseClover& coarse_clov)
+	{
+		QDPIO::cout << "QDPWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
+		clovTripleProductQDPXX(blocklist, _clov, in_vecs, coarse_clov);
 	}
 private:
 	const int _t_bc;

@@ -179,7 +179,7 @@ namespace MGTesting {
  				 (*M)( Z[j], V[j], resid_type );  // z_j = M^{-1} v_j
  			 }
  			 else {
- 				 Z[j] = V[j];
+ 				 Z[j] = V[j];      // Vector assignment " copy "
  			 }
 
  			 Spinor w;
@@ -187,11 +187,11 @@ namespace MGTesting {
 
  			 // Fill out column j
  			 for(int i=0; i <= j ;  ++i ) {
- 				 H(j,i) = innerProduct(V[i], w, s);
- 				 w[s] -= H(j,i)* V[i];
+ 				 H(j,i) = innerProduct(V[i], w, s);        //  Inner product
+ 				 w[s] -= H(j,i)* V[i];                     // y = y - alpha x = CAXPY
  			 }
 
- 			 Double wnorm=sqrt(norm2(w,s));
+ 			 Double wnorm=sqrt(norm2(w,s));               //  NORM
  			 H(j,j+1) = DComplex(wnorm);
 
  			 // In principle I should check w_norm to be 0, and if it is I should
@@ -207,7 +207,7 @@ namespace MGTesting {
  			 }
 
  			 Double invwnorm = Double(1)/wnorm;
- 			 V[j+1] = invwnorm*w;
+ 			 V[j+1] = invwnorm*w;                           // SCAL
 
  			 // Apply Existing Givens Rotations to this column of H
  			 for(int i=0;i < j; ++i) {
@@ -275,14 +275,14 @@ namespace MGTesting {
 
     	for(int col =0; col < _params.NKrylov; col++) {
     		for(int row = 0; row < _params.NKrylov+1; row++) {
-    			H_(col,row) = zero;
+    			H_(col,row) = zero;       // COMPLEX ZERO
     		}
     	}
 
     	for(int row = 0; row < _params.NKrylov+1; row++) {
-    		V_[row] = zero;
-    		Z_[row] = zero;
-    		c_[row] = zero;
+    		V_[row] = zero;                  // BLAS ZERO
+    		Z_[row] = zero;                  // BLAS ZERO
+    		c_[row] = zero;                  // COMPLEX ZERO
     		givens_rots_[row] = nullptr;
     	}
 
@@ -301,7 +301,7 @@ namespace MGTesting {
 
     	const Subset s = all;
 
-    	Double norm_rhs = sqrt(norm2(in,s));   //  || b ||
+    	Double norm_rhs = sqrt(norm2(in,s));   //  || b ||                      BLAS: NORM2
     	Double target = _params.RsdTarget;
 
     	if ( resid_type == RELATIVE) {
@@ -309,14 +309,14 @@ namespace MGTesting {
     	}
 
     	// Compute ||r||
-    	Spinor r = zero;
-    	Spinor tmp = zero;
+    	Spinor r = zero;                                                       // BLAS: ZERO
+    	Spinor tmp = zero;                                                     // BLAS: COPY
     	r[s] = in;
     	(_A)(tmp, out, LINOP_OP);
-    	r[s] -=tmp;
+    	r[s] -=tmp;                                                            // BLAS: X=X-Y
 
     	// The current residuum
-    	Double r_norm = sqrt(norm2(r,s));
+    	Double r_norm = sqrt(norm2(r,s));                                      // BLAS: NORM
 
     	// Initialize iterations
     	int iters_total = 0;
@@ -379,7 +379,7 @@ namespace MGTesting {
     		// the rhs is 'r'
     		//
     		Double beta_inv = Double(1)/r_norm;
-    		V_[0][s] = beta_inv * r;
+    		V_[0][s] = beta_inv * r;                       // BLAS: VSCAL
 
 
 
@@ -405,24 +405,24 @@ namespace MGTesting {
     		LeastSquaresSolve(H_,c_,eta_, dim); // Solve Least Squares System
 
     		// Compute the correction dx = sum_j  eta_j Z_j
-    		LatticeFermion dx = zero;
+    		LatticeFermion dx = zero;                         // BLAS: ZERO
     		for(int j=0; j < dim; ++j) {
-    			dx[s] += eta_[j]*Z_[j];
+    			dx[s] += eta_[j]*Z_[j];                       // Y = Y + AX => BLAS AXPY
     		}
 
     		// Update psi
-    		out[s] += dx;
+    		out[s] += dx;                                    // BLAS: Y=Y+X => APY
 
 
 
 
     		// Recompute r
-    		r[s] = in;
+    		r[s] = in;                                        // BLAS: COPY
     		(_A)(tmp, out, LINOP_OP);
-    		r[s] -= tmp;  // This 'r' will be used in next cycle as the || rhs ||
+    		r[s] -= tmp;  // This 'r' will be used in next cycle as the || rhs ||: Y=Y-X
 
     		// Recompute true norm
-    		r_norm = sqrt(norm2(r,s));
+    		r_norm = sqrt(norm2(r,s));                       // BLAS: NORM2
 
     		// Update total iters
     		iters_total += iters_this_cycle;

@@ -25,10 +25,10 @@ namespace GlobalComm {
 /** returns || x - y ||^2
  * @param x  - CoarseSpinor ref
  * @param y  - CoarseSpinor ref
- * @return   double containing the norm of the difference
+ * @return   double containing the square norm of the difference
  *
  */
-double xmyNorm2Coarse(const CoarseSpinor& x, const CoarseSpinor& y)
+double xmyNorm2(const CoarseSpinor& x, const CoarseSpinor& y)
 {
 	double norm_diff = (double)0;
 
@@ -69,6 +69,49 @@ double xmyNorm2Coarse(const CoarseSpinor& x, const CoarseSpinor& y)
 
 	return norm_diff;
 }
+
+/** returns || x ||^2
+ * @param x  - CoarseSpinor ref
+ * @return   double containing the square norm of the difference
+ *
+ */
+double norm2(const CoarseSpinor& x)
+{
+	double norm_sq = (double)0;
+
+	const LatticeInfo& x_info = x.GetInfo();
+
+
+	IndexType num_cbsites = x_info.GetNumCBSites();
+	IndexType num_colorspin = x.GetNumColorSpin();
+
+	// Loop over the sites and sum up the norm
+#pragma omp parallel for collapse(2) reduction(+:norm_sq)
+	for(int cb=0; cb < 2; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+
+
+			// Identify the site
+			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
+
+			// Sum difference over the colorspins
+			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				double x_re = x_site_data[ RE + n_complex*cspin ];
+				double x_im = x_site_data[ IM + n_complex*cspin ];
+
+				norm_sq += x_re*x_re + x_im*x_im;
+
+			}
+
+		}
+	} // End of Parallel for reduction
+
+	// I would probably need some kind of global reduction here  over the nodes which for now I will ignore.
+	MG::GlobalComm::GlobalSum(norm_sq);
+
+	return norm_sq;
+}
+
 
 };
 

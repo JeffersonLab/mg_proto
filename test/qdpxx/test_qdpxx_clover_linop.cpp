@@ -266,6 +266,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvRightPrecFGMRES)
 	ASSERT_EQ(res.resid_type, RELATIVE);
 	ASSERT_LT(res.resid, 9e-6);
 }
+
 int main(int argc, char *argv[]) 
 {
 	return MGTesting::TestMain(&argc, argv);
