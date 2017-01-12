@@ -27,6 +27,7 @@ public:
 	virtual ~LinearOperator() {}
 
 	virtual int GetLevel(void) const =  0;
+	virtual const LatticeInfo& GetInfo() const;
 
 private:
 };

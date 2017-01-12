@@ -23,7 +23,11 @@ public:
 	// Hardwire n_smt=1 for now.
 	CoarseWilsonCloverLinearOperator(const Gauge* gauge_in, const CoarseClover* clover_in, int level) : _u(gauge_in),
 	_clov(clover_in), _the_op( gauge_in->GetInfo(), 1), _level(level)
-	{	}
+	{
+		AssertCompatible( gauge_in->GetInfo(), clover_in->GetInfo());
+
+
+	}
 
 	~CoarseWilsonCloverLinearOperator(){}
 
@@ -48,6 +52,9 @@ public:
 		return _level;
 	}
 
+	const LatticeInfo& GetInfo(void) const {
+		return _u->GetInfo();
+	}
 private:
 	const Gauge* _u;
 	const CoarseClover* _clov;

@@ -40,6 +40,17 @@ public:
 		_params.clovCoeffR = Real(c_sw);
 		_params.clovCoeffT = Real(c_sw);
 		_clov.create(_u,_params);  // Make the clover term
+
+		IndexArray latdims = {{ QDP::Layout::subgridLattSize()[0],
+								QDP::Layout::subgridLattSize()[1],
+								QDP::Layout::subgridLattSize()[2],
+								QDP::Layout::subgridLattSize()[3] }};
+
+		_info = new LatticeInfo( latdims, 4,3,NodeInfo());
+	}
+
+	~QDPWilsonCloverLinearOperator() {
+		delete _info;
 	}
 
 	void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const {
@@ -61,7 +72,11 @@ public:
 		return 0;
 	}
 
-	void generateCoarseGauge(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse)
+	const LatticeInfo& GetInfo(void) const {
+		return *_info;
+	}
+
+	void generateCoarseGauge(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse) const
 	{
 		// Generate the triple products directly into the u_coarse
 		for(int mu=0; mu < 8; ++mu) {
@@ -70,18 +85,20 @@ public:
 		}
 	}
 
-	void generateCoarseClover(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseClover& coarse_clov)
+	void generateCoarseClover(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseClover& coarse_clov) const
 	{
 		QDPIO::cout << "QDPWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
 		clovTripleProductQDPXX(blocklist, _clov, in_vecs, coarse_clov);
 	}
 private:
+
 	const int _t_bc;
 	Gauge _u;
 	MGTesting::CloverFermActParams _params;
 	MGTesting::QDPCloverTerm _clov;
-	LatticeFermion from;
-	LatticeFermion to;
+	LatticeInfo *_info;
+
+
 };
 
 
