@@ -77,12 +77,32 @@ namespace MGTesting  {
 	  bool TerminateOnResidua)
   {
 
-	if( MaxIter <= 0 ) {
-		QDPIO::cerr << "MR: Invalid Value: MaxIter <= 0 " << std::endl;
+	if( MaxIter < 0 ) {
+		QDPIO::cerr << "MR: Invalid Value: MaxIter < 0 " << std::endl;
 		QDP_abort(1);
 
 	}
-    LinearSolverResults res; res.resid_type = resid_type;
+
+    LinearSolverResults res;
+    if ( MaxIter == 0 ) {
+    	// No work to do -- likely only happens in the case of a smoother
+    	res.resid_type=INVALID;
+    	res.n_count = 0;
+    	res.resid = -1;
+    	return res;
+    }
+
+
+
+
+    res.resid_type = resid_type;
+
+
+
+
+
+
+
     Spinor Mr;
     Spinor chi_internal;
 
@@ -93,10 +113,6 @@ namespace MGTesting  {
     DComplex c;
     Double d;
     int k=0;
-
-    if( VerboseP ) {
-    	QDPIO::cout << "MR Solver Starting: " << std::endl;
-    }
 
     chi_internal[s] = chi;
     /*  r[0]  :=  Chi - M . Psi[0] */
@@ -123,8 +139,8 @@ namespace MGTesting  {
     	Double cp = norm2(r,s);                 /* 2 Nc Ns  flops */
 
     	if( VerboseP ) {
-    		QDPIO::cout << "MR: iter=" << k << " || r ||^2 = " << cp << " Target || r ||^2 = " << rsd_sq << std::endl;
 
+    		MasterLog(INFO, "MR Solver: iter=%d || r ||^2 = %16.8e  Target || r ||^2 = %16.8e",k,cp, rsd_sq);
 
     	}
 
@@ -135,16 +151,17 @@ namespace MGTesting  {
     		res.resid   = toDouble(sqrt(cp));
     		if( resid_type == ABSOLUTE ) {
     			if( VerboseP ) {
-    				QDPIO::cout << "MR: Final Absolute Residua: || r ||_accum = " << sqrt(cp) << " || r ||_actual = "
-    			    		    				<< res.resid << std::endl;
+    				MasterLog(INFO, "MR Solver: Final iters=0 || r ||_accum=16.8e || r ||_actual = %16.8e",
+    						toDouble(sqrt(cp)), res.resid);
+
     			}
     		}
     		else {
 
     			res.resid /= toDouble(sqrt(norm_chi_internal));
     			if( VerboseP ) {
-    			QDPIO::cout << "MR: Final Residua: || r ||/|| b ||_accum = " << sqrt(cp/norm_chi_internal) << " || r || / || b ||_actual = "
-    		    				<< res.resid << std::endl;
+    				MasterLog(INFO, "MR Solver: Final iters=0 || r ||/|| b ||_accum=16.8e || r ||/|| b ||_actual = %16.8e",
+    						toDouble(sqrt(cp/norm_chi_internal)), res.resid);
     			}
     		}
 
@@ -153,7 +170,7 @@ namespace MGTesting  {
     }
 
     // TerminateOnResidua==true: if we met the residuum criterion we'd have terminated, safe to say no to terminate
-    // TerminateOnResidua==false: We need to do at least 1 iteration.
+    // TerminateOnResidua==false: We need to do at least 1 iteration (otherwise we'd have exited)
     bool continueP = true;
 
     /* Main iteration loop */
@@ -188,14 +205,14 @@ namespace MGTesting  {
     	  /*  cp  =  | r[k] |**2 */
     	  cp = norm2(r, s);
     	  if( VerboseP ) {
-    		  QDPIO::cout << "MR: iter=" << k << " || r ||^2 =" << cp << " Target || r ||^2 = " << rsd_sq << std::endl;
+    		  MasterLog(INFO, "MR Solver: iter=%d || r ||^2 = %16.8e  Target || r^2 || = %16.8e",
+    				  k, toBool(cp), toBool(rsd_sq) );
     	  }
     	  continueP = (k < MaxIter) && (toBool(cp > rsd_sq));
       }
       else {
     	  if( VerboseP ) {
-    		  QDPIO::cout << "MR: iter=" << k << std::endl;
-
+    		  MasterLog(INFO, "MR Solver: iter=%d",k);
     	  }
     	  continueP =  (k < MaxIter);
       }
@@ -213,16 +230,16 @@ namespace MGTesting  {
     	res.resid = toDouble(sqrt(actual_res));
 		if( resid_type == ABSOLUTE ) {
 			if( VerboseP ) {
-				QDPIO::cout << "MR: Final Absolute Residua: || r ||_accum = " << sqrt(cp) << " || r ||_actual = "
-			    		    				<< res.resid << std::endl;
+				MasterLog(INFO, "MR Solver: Final iters=%d || r ||_accum=16.8e || r ||_actual = %16.8e",
+				    						res.n_count, toDouble(sqrt(cp)), res.resid);
 			}
 		}
 		else {
 
 			res.resid /= toDouble(sqrt(norm_chi_internal));
 			if( VerboseP ) {
-			QDPIO::cout << "MR: Final Relative Residua: || r ||/|| b ||_accum = " << sqrt(cp/norm_chi_internal) << " || r || / || b ||_actual = "
-		    				<< res.resid << std::endl;
+				MasterLog(INFO, "MR Solver: Final iters=%d || r ||_accum=16.8e || r ||_actual = %16.8e",
+				    						res.n_count, toDouble(sqrt(cp/norm_chi_internal)), res.resid);
 			}
 		}
     }

@@ -197,7 +197,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvUnprecFGMRES)
 	params.VerboseP = true;
 	params.NKrylov = 10;
 
-	FGMRESSolver<Spinor,Gauge>  FGMRES(M, params,nullptr);
+	FGMRESSolver FGMRES(M, params,nullptr);
 	Spinor b;
 	gaussian(b);
 	Spinor x=zero;
@@ -252,7 +252,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvRightPrecFGMRES)
 	params.VerboseP = true;
 	params.NKrylov = 10;
 
-	FGMRESSolver<Spinor,Gauge>  FGMRES(M, params,&MR);
+	FGMRESSolver  FGMRES(M, params,&MR);
 	Spinor b;
 	gaussian(b);
 	Spinor x=zero;

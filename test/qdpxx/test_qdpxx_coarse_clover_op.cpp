@@ -301,7 +301,7 @@ TEST(TestLattice, CoarseLinOpFGMRESInvBlocked)
 	// Create an FGMRES Solver for the coarse Op
 	FGMRESSolverCoarse CoarseFGMRES( M_coarse, p, nullptr);
 
-	// Creaste a source on the blocked lattice
+	// Create a source on the blocked lattice
 	CoarseSpinor psi_in_coarse(info);
 	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, psi_in, psi_in_coarse);
 

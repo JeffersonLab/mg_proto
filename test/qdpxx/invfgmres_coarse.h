@@ -5,8 +5,8 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_INVFGMRES_H_
-#define TEST_QDPXX_INVFGMRES_H_
+#ifndef TEST_QDPXX_INVFGMRES_COARSE_H_
+#define TEST_QDPXX_INVFGMRES_COARSE_H_
 
 #include "qdp.h"
 #include "lattice/constants.h"
@@ -170,7 +170,7 @@ namespace MGTesting {
  		 ndim_cycle = 0;
 
  		 if( VerboseP ) {
- 			 MasterLog(INFO,"FLEXIBLE ARNOLDI (COARSE): Flexible Arnoldi Cycle: ");
+ 			 MasterLog(INFO,"FLEXIBLE ARNOLDI COARSE: Flexible Arnoldi Cycle: ");
  		 }
 
 
@@ -220,7 +220,7 @@ namespace MGTesting {
  				 // If wnorm = 0 exactly, then we have converged exactly
  				 // Replay Givens rots here, how to test?
  				 if( VerboseP ) {
- 					 MasterLog(INFO,"FLEXIBLE ARNOLDI (COARSE): Converged at iter = %d ",j+1);
+ 					 MasterLog(INFO,"FLEXIBLE ARNOLDI COARSE: Converged at iter = %d ",j+1);
  				 }
  				 ndim_cycle = j;
  				 return;
@@ -248,14 +248,14 @@ namespace MGTesting {
  			 // j-ndeflate+1 is the 1 based human readable iteration count
 
  			 if ( VerboseP ) {
- 				 MasterLog(INFO,"FLEXIBLE ARNOLDI (COARSE): Iter=%d || r || = %16.8e Target=%16.8e",
+ 				 MasterLog(INFO,"FLEXIBLE ARNOLDI COARSE: Iter=%d || r || = %16.8e Target=%16.8e",
  						 	 	 	 	 	 	 	 	 	 	 	 	 j+1, accum_resid,rsd_target);
 
  			 }
  			 ndim_cycle = j+1;
  			 if ( toBool( accum_resid <= rsd_target ) ) {
  				 if ( VerboseP ) {
- 					 MasterLog(INFO,"FLEXIBLE ARNOLDI (COARSE): Cycle Converged at iter = %d",j+1);
+ 					 MasterLog(INFO,"FLEXIBLE ARNOLDI COARSE: Cycle Converged at iter = %d",j+1);
  				 }
  				 return;
  			 } // if
@@ -368,7 +368,7 @@ namespace MGTesting {
     	// Initialize iterations
     	int iters_total = 0;
     	if ( _params.VerboseP ) {
-    		MasterLog(INFO,"FGMRES Solve: iters=%d || r ||=%16.8e Target || r ||=%16.8e", iters_total, r_norm,target);
+    		MasterLog(INFO,"FGMRES COARSE Solve: iters=%d || r ||=%16.8e Target || r ||=%16.8e", iters_total, r_norm,target);
     	}
 
     	if( r_norm < target )  {
@@ -376,13 +376,13 @@ namespace MGTesting {
     		res.resid = r_norm ;
     		if( resid_type == ABSOLUTE ) {
     			if( _params.VerboseP ) {
-    				MasterLog(INFO,"FGMRES Solve Converged: iters=0  Final Absolute || r ||=%16.8e",res.resid);
+    				MasterLog(INFO,"FGMRES COARSE Solve Converged: iters=0  Final Absolute || r ||=%16.8e",res.resid);
     			}
     		}
     		else {
     			res.resid /= norm_rhs;
     			if( _params.VerboseP ) {
-    				MasterLog(INFO,"FGMRES Solve Converged: iters=0  Final Absolute || r ||/|| b ||=%16.8e",res.resid);
+    				MasterLog(INFO,"FGMRES COARSE Solve Converged: iters=0  Final Absolute || r ||/|| b ||=%16.8e",res.resid);
     			}
     		}
     		return res;
@@ -465,8 +465,7 @@ namespace MGTesting {
     		// Update total iters
     		iters_total += iters_this_cycle;
     		if ( _params.VerboseP ) {
-    			QDPIO::cout << "FGMRES: Cycle finished with " << iters_this_cycle << " iterations" << std::endl;
-    			QDPIO::cout << "FGMRES: iter=" << iters_total << " || r || = " << r_norm <<  " target=" << target << std::endl;
+    			MasterLog(INFO, "FGMRES COARSE: iter=%d || r ||=%16.8e target=%16.8e", iters_total, r_norm, target);
     		}
 
     		// Check if we are done either via convergence, or runnign out of iterations
@@ -479,7 +478,7 @@ namespace MGTesting {
         			givens_rots_[j] = nullptr;
         		}
         	}
-    	}
+    	} // Next Cycle...
 
     	// Either we've exceeded max iters, or we have converged in either case set res:
     	res.n_count = iters_total;
@@ -568,9 +567,6 @@ namespace MGTesting {
 
     mutable multi1d<std::complex<double>> c_;
     mutable multi1d<std::complex<double>> eta_;
-    mutable multi1d<std::complex<double>> g_;
-
-
 
   };
 

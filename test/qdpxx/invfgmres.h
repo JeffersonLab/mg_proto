@@ -143,13 +143,13 @@ namespace MGTesting {
  	 DComplex r_;
   };
 
- 	 template<typename Spinor, typename Gauge>
+
  	 void FlexibleArnoldiT(int n_krylov,
 			 const Real& rsd_target,
-			 const LinearOperator<Spinor,Gauge>& A,     // Operator
-			 const LinearSolver<Spinor,Gauge>* M,  // Preconditioner
-			 multi1d<Spinor>& V,
-			 multi1d<Spinor>& Z,
+			 const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix>>& A,     // Operator
+			 const LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix>>* M,  // Preconditioner
+			 multi1d<LatticeFermion>& V,
+			 multi1d<LatticeFermion>& Z,
 			 multi2d<DComplex>& H,
 			 multi1d< Givens* >& givens_rots,
 			 multi1d<DComplex>& c,
@@ -160,10 +160,6 @@ namespace MGTesting {
  	 {
  		 const Subset& s = all;      // Linear Operator Subset
  		 ndim_cycle = 0;
-
- 		 if( VerboseP ) {
- 			 QDPIO::cout << "FLEXIBLE ARNOLDI: Flexible Arnoldi Cycle: " << std::endl;
- 		 }
 
 
  		 // Work by columns:
@@ -179,7 +175,7 @@ namespace MGTesting {
  				 Z[j] = V[j];      // Vector assignment " copy "
  			 }
 
- 			 Spinor w;
+ 			 LatticeFermion w;
  			 A( w, Z[j], LINOP_OP);  // w  = A z_
 
  			 // Fill out column j
@@ -198,7 +194,6 @@ namespace MGTesting {
  				 // If wnorm = 0 exactly, then we have converged exactly
  				 // Replay Givens rots here, how to test?
 
- 				 QDPIO::cout << "FLEXIBLE ARNOLDI: Converged at iter = " << j+1 << std::endl;
  				 ndim_cycle = j;
  				 return;
  			 }
@@ -223,13 +218,13 @@ namespace MGTesting {
  			 // j-ndeflate+1 is the 1 based human readable iteration count
 
  			 if ( VerboseP ) {
- 				 QDPIO::cout << "FLEXIBLE ARNOLDI: Iter " << j+1 << " || r || = " << accum_resid << " Target=" <<rsd_target << std::endl;
+
+ 				 MasterLog(INFO,"FLEXIBLE ARNOLDI: Iter=%d  || r ||=%16.8e  Target=%16.8e",
+ 						 	 j+1, toDouble(accum_resid), toDouble(rsd_target));
+
  			 }
  			 ndim_cycle = j+1;
  			 if ( toBool( accum_resid <= rsd_target ) ) {
- 				 if ( VerboseP ) {
- 					 QDPIO::cout << "FLEXIBLE ARNOLDI: Cycle Converged at iter = " << j+1 << std::endl;
- 				 }
  				 return;
  			 }
  		 }
@@ -237,8 +232,8 @@ namespace MGTesting {
  } // Namespace FGMRES
 
 
- template<typename Spinor,typename Gauge>
- class FGMRESSolver : public LinearSolver<Spinor,Gauge>
+
+ class FGMRESSolver : public LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix> >
   {
   public:
 
@@ -247,9 +242,9 @@ namespace MGTesting {
      * \param A_        Linear operator ( Read )
      * \param invParam  inverter parameters ( Read )
      */
-    FGMRESSolver(const LinearOperator<Spinor,Gauge>& A,
+    FGMRESSolver(const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix> >& A,
     			 const MG::LinearSolverParamsBase& params,
-    			 const LinearSolver<Spinor,Gauge>* M_prec=nullptr) : _A(A), _params(static_cast<const FGMRESParams&>(params)), _M_prec(M_prec)
+    			 const LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix>>* M_prec=nullptr) : _A(A), _params(static_cast<const FGMRESParams&>(params)), _M_prec(M_prec)
       {
     	// Initialize stuff
     	InitMatrices();
@@ -291,7 +286,7 @@ namespace MGTesting {
 
     }
 
-    LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE) const
+    LinearSolverResults operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type = RELATIVE) const
     {
     	LinearSolverResults res; // Value to return
     	res.resid_type = resid_type;
@@ -306,8 +301,8 @@ namespace MGTesting {
     	}
 
     	// Compute ||r||
-    	Spinor r = zero;                                                       // BLAS: ZERO
-    	Spinor tmp = zero;                                                     // BLAS: COPY
+    	LatticeFermion r = zero;                                                       // BLAS: ZERO
+    	LatticeFermion tmp = zero;                                                     // BLAS: COPY
     	r[s] = in;
     	(_A)(tmp, out, LINOP_OP);
     	r[s] -=tmp;                                                            // BLAS: X=X-Y
@@ -318,7 +313,9 @@ namespace MGTesting {
     	// Initialize iterations
     	int iters_total = 0;
     	if ( _params.VerboseP ) {
-    		QDPIO::cout << "FGMRES Solve: iters=" << iters_total << " || r ||=" << r_norm << " Target || r ||=" << target <<std::endl;
+    		MasterLog(INFO, "FGMRES Solve: iters=%d  || r ||=%16.8e  Target=%16.8e",
+    				iters_total, toDouble(r_norm), toDouble(target));
+
     	}
 
     	if( toBool( r_norm < target) )  {
@@ -326,13 +323,15 @@ namespace MGTesting {
     		res.resid = toDouble( r_norm );
     		if( resid_type == ABSOLUTE ) {
     			if( _params.VerboseP ) {
-    				QDPIO::cout << "FGMRES Solve Converged: iters=0  Final Absolute || r ||=" << res.resid << std::endl;
+    		  		MasterLog(INFO, "FGMRES Solve Converged: iters=%d  Final (absolute) || r ||=%16.8e",
+    		    				res.resid);
     			}
     		}
     		else {
     			res.resid /= toDouble( norm_rhs );
     			if( _params.VerboseP ) {
-    				QDPIO::cout << "FGMRES Solve Converged: iters=0  Final || r ||/|| b ||=" << res.resid << std::endl;
+       		  		MasterLog(INFO, "FGMRES Solve Converged: iters=%d  Final (relative) || r ||/|| b ||=%16.8e",
+        		    				res.resid);
     			}
     		}
     		return res;
@@ -424,8 +423,7 @@ namespace MGTesting {
     		// Update total iters
     		iters_total += iters_this_cycle;
     		if ( _params.VerboseP ) {
-    			QDPIO::cout << "FGMRES: Cycle finished with " << iters_this_cycle << " iterations" << std::endl;
-    			QDPIO::cout << "FGMRES: iter=" << iters_total << " || r || = " << r_norm <<  " target=" << target << std::endl;
+    			MasterLog(INFO, "FGMRES: iter=%d || r ||=%16.8e target=%16.8e", iters_total, toDouble(r_norm), toDouble(target));
     		}
 
     		// Check if we are done either via convergence, or runnign out of iterations
@@ -446,14 +444,13 @@ namespace MGTesting {
     	res.resid = toDouble( r_norm );
     	if( resid_type == ABSOLUTE ) {
 
-        	QDPIO::cout << "FGMRES: Done. Cycles=" << n_cycles << ", Iters=" << iters_total << " || r ||=" << res.resid << " Target=" << _params.RsdTarget << std::endl;
-
+        	MasterLog(INFO,"FGMRES: Done. Cycles=%d, Iters=%d || r ||=%16.8e",
+        	        	n_cycles,iters_total, res.resid, _params.RsdTarget);
     	}
     	else {
     		res.resid /= toDouble( norm_rhs ) ;
-
-    		QDPIO::cout << "FGMRES: Done. Cycles=" << n_cycles << ", Iters=" << iters_total << " || r ||/|| b ||=" << res.resid << " Target=" << _params.RsdTarget << std::endl;
-    	}
+    		MasterLog(INFO,"FGMRES: Done. Cycles=%d, Iters=%d || r ||/|| b ||=%16.8e",
+    		        	n_cycles,iters_total, res.resid, _params.RsdTarget);  	}
     	return res;
 
     }
@@ -461,8 +458,8 @@ namespace MGTesting {
 
     void FlexibleArnoldi(int n_krylov,
 			 const Real& rsd_target,
-			 multi1d<Spinor>& V,
-			 multi1d<Spinor>& Z,
+			 multi1d<LatticeFermion>& V,
+			 multi1d<LatticeFermion>& Z,
 			 multi2d<DComplex>& H,
 			 multi1d< FGMRES::Givens* >& givens_rots,
 			 multi1d<DComplex>& c,
@@ -471,7 +468,7 @@ namespace MGTesting {
     {
 
 
-    	FGMRES::FlexibleArnoldiT<Spinor,Gauge>(n_krylov,
+    	FGMRES::FlexibleArnoldiT(n_krylov,
     				rsd_target,
     				_A,
     				_M_prec,
@@ -500,16 +497,16 @@ namespace MGTesting {
 
 
   private:
-    const LinearOperator<Spinor,Gauge>& _A;
+    const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix>>& _A;
     const FGMRESParams _params;
-    const LinearSolver<Spinor,Gauge>* _M_prec;
+    const LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix>>* _M_prec;
 
     // These can become state variables, as they will need to be
     // handed around
     mutable multi2d<DComplex> H_; // The H matrix
     mutable multi2d<DComplex> R_; // R = H diagonalized with Givens rotations
-    mutable multi1d<Spinor> V_;  // K(A)
-    mutable multi1d<Spinor> Z_;  // K(MA)
+    mutable multi1d<LatticeFermion> V_;  // K(A)
+    mutable multi1d<LatticeFermion> Z_;  // K(MA)
     mutable multi1d< FGMRES::Givens* > givens_rots_;
 
     // This is the c = V^H_{k+1} r vector (c is frommers Notation)
@@ -527,8 +524,6 @@ namespace MGTesting {
 
     mutable multi1d<DComplex> c_;
     mutable multi1d<DComplex> eta_;
-    mutable multi1d<DComplex> g_;
-
 
 
   };

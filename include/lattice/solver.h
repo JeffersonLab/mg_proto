@@ -9,7 +9,7 @@
 #define INCLUDE_LATTICE_SOLVER_H_
 
 namespace MG {
-	enum ResiduumType { ABSOLUTE, RELATIVE };
+	enum ResiduumType { ABSOLUTE, RELATIVE, INVALID};
 
 	struct LinearSolverResults {
 		ResiduumType resid_type;
