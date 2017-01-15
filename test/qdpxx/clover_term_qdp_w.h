@@ -492,7 +492,6 @@ void QDPCloverTermT<T,U>::create(const multi1d<U>& u_,
     void LDagDLInvSiteLoop(int lo, int hi, int myId, LDagDLInvArgs<U>* a) 
     {
       typedef typename LDagDLInvArgs<U>::REALT REALT;
-      typedef typename LDagDLInvArgs<U>::RealT RealT;
       typedef typename LDagDLInvArgs<U>::LatticeRealT LatticeRealT;
 
       LatticeRealT& tr_log_diag = a->tr_log_diag;
@@ -899,7 +898,7 @@ void QDPCloverTermT<T,U>::create(const multi1d<U>& u_,
       int cb = arg->cb;
       
 
-      int n = 2*Nc;
+
       
       const multi1d<int>& tab = rb[cb].siteTable();
       
