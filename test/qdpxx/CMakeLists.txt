@@ -23,3 +23,6 @@ target_link_libraries(test_qdpxx_coarse_clover_op  qdpxx_helpers test_aggregatio
 
 add_executable(test_vcycle test_vcycle.cpp)
 target_link_libraries(test_vcycle  qdpxx_helpers test_aggregation mg gtest_all mg_test ${EXT_LIBS})
+
+add_executable(test_coarse_coarse_blocking test_coarse_coarse_blocking.cpp)
+target_link_libraries(test_coarse_coarse_blocking  qdpxx_helpers test_aggregation mg gtest_all mg_test ${EXT_LIBS})
