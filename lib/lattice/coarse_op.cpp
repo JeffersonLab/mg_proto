@@ -6,6 +6,7 @@
 #include "lattice/thread_info.h"
 #include "lattice/cmat_mult.h"
 #include "utils/memory.h"
+#include "utils/print_utils.h"
 #include <complex>
 
 #include <immintrin.h>
@@ -306,6 +307,112 @@ void CoarseDiracOp::siteApplyDslash( float *output,
 	}
 #endif
 
+}
+
+// Apply a single direction of Dslash -- used for coarsening
+void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
+			const CoarseGauge& gauge_in,
+			const CoarseSpinor& spinor_in,
+			const IndexType target_cb,
+			const IndexType dir,
+			const IndexType tid) const
+{
+	IndexType min_site = _thread_limits[tid].min_site;
+	IndexType max_site = _thread_limits[tid].max_site;
+	const int N_colorspin = GetNumColorSpin();
+
+	// Site is output site
+	for(IndexType site=min_site; site < max_site;++site) {
+
+		// Turn site into x,y,z,t coords assuming we run as
+		//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
+
+		IndexType tmp_yzt = site / _n_xh;
+		IndexType xcb = site - _n_xh * tmp_yzt;
+		IndexType tmp_zt = tmp_yzt / _n_y;
+		IndexType y = tmp_yzt - _n_y * tmp_zt;
+		IndexType t = tmp_zt / _n_z;
+		IndexType z = tmp_zt - _n_z * t;
+
+		// x coordinate: mult by 2 and add on offset to turn into
+		// uncheckerboarded index
+		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
+
+		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		const float* gauge_base = gauge_in.GetSiteDataPtr(target_cb,site);
+		const IndexType gdir_offset = gauge_in.GetLinkOffset();
+
+		const float* gauge_link_dir = gauge_base + dir*gdir_offset;
+
+		/* The following case statement selects neighbors.
+		 *  It is culled from the full Dslash
+		 *  It of course would get complicated if some of the neighbors were in a halo
+		 */
+
+		const IndexType source_cb = 1 - target_cb;
+		const float *neigh_spinor = nullptr;
+
+		switch( dir ) {
+		case 0:
+		{
+			IndexType x_plus = (x < _n_x-1 ) ? (x + 1) : 0;
+			x_plus /= 2; // Convert to checkerboard
+			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, x_plus  + _n_xh*(y + _n_y*(z + _n_z*t)));
+		}
+		break;
+		case 1:
+		{
+			IndexType x_minus = ( x > 0 ) ?  (x - 1) : _n_x-1;
+			x_minus /=2; // Covert to checkerboard
+			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, x_minus + _n_xh*(y + _n_y*(z + _n_z*t)));
+		}
+			break;
+		case 2:
+		{
+			IndexType y_plus = ( y < _n_y - 1) ? y+1 : 0;
+			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y_plus + _n_y*(z + _n_z*t)));
+		}
+			break;
+		case 3:
+		{
+			IndexType y_minus = ( y > 0 ) ? y-1 : _n_y - 1;
+			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y_minus + _n_y*(z + _n_z*t)));
+		}
+			break;
+		case 4:
+		{
+			IndexType z_plus = ( z < _n_z - 1) ? z+1 : 0;
+			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_plus + _n_z*t)));
+		}
+
+			break;
+		case 5:
+		{
+			IndexType z_minus = ( z > 0 ) ? z-1 : _n_z - 1;
+			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_minus + _n_z*t)));
+		}
+			break;
+		case 6:
+		{
+			IndexType t_plus = ( t < _n_t - 1) ? t+1 : 0;
+			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_plus)));
+		}
+
+			break;
+		case 7:
+		{
+			IndexType t_minus = ( t > 0 ) ? t-1 : _n_t - 1;
+			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_minus)));
+		}
+			break;
+		default:
+			MasterLog(ERROR,"Invalid direction %d specified in DslashDir", dir);
+			break;
+		}
+
+		// Multiply the link with the neighbor. EasyPeasy?
+		CMatMultNaive(output, gauge_link_dir, neigh_spinor, N_colorspin);
+	} // Loop over sites
 }
 
 inline

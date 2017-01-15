@@ -51,12 +51,20 @@ public:
 				const IndexType dagger,
 				const IndexType tid) const;
 
+	void DslashDir(CoarseSpinor& spinor_out,
+					const CoarseGauge& gauge_in,
+					const CoarseSpinor& spinor_in,
+					const IndexType target_cb,
+					const IndexType dir,
+					const IndexType tid) const;
 
 	void siteApplyDslash( float *output,
 			  	  	  	  	 	 const float* gauge_links[8],
 								 const float* spinor_cb,
 								 const float* neigh_spinors[8],
 								 const IndexType dagger) const;
+
+
 
 	void siteApply( float *output,
 			  	  	  	  	 	 const float* gauge_links[8],

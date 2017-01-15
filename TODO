@@ -1,4 +1,10 @@
+  -- Tests for CoarseDiracOp::DslashDir
+    - do dslash dir in all 8 directions and sum up using AxpyVec (alpha = 1)
+      compare with regular Dslash -- should be equal within rounding
 
+   - Create Trivial Coarse Gauge field (usual way: 6 colors, 2 spins, using eye):
+	DslashDir from CoarseOp should agree with Dslash dir from regular DiracOp.
+) 
 
 Code Fork: 
     Start to go towards more optimized infrastructure, or go towards 3rd level?
