@@ -16,126 +16,6 @@ using namespace MG;
 namespace MGTesting {
 
 
-
-void Block::create(const IndexArray local_lattice_dimensions,
-			const IndexArray block_origin,
-			const IndexArray block_dimensions)
-{
-
-	// Check the lock is feasible: origin must be nonnegative
-	// origin + extent must not be greater than local_lattice size
-	for(int mu=0; mu < n_dim; ++mu) {
-		assert( block_origin[mu] >= 0 );
-		assert( block_origin[mu] + block_dimensions[mu] <= local_lattice_dimensions[mu]);
-	}
-
-	_origin = block_origin;
-	_dimensions = block_dimensions;
-	_num_sites = block_dimensions[X_DIR]*block_dimensions[Y_DIR]*block_dimensions[Z_DIR]*block_dimensions[T_DIR];
-	// Resize the site list
-	_site_list.resize(_num_sites);
-
-	// Loop through the blocks sites and build up a map mapping from block index to
-	// Site index. We can use this for accessing the block sites in the global lattice.
-
-	// Within a block I am not checkerboarding. So lexicographic traversal *INSIDE*
-	// a block.
-
-//#pragma omp parallel for collapse(4) shared(_site_list)
-	for(IndexType t=0; t < _dimensions[T_DIR]; ++t) {
-		for(IndexType z=0; z < _dimensions[Z_DIR]; ++z) {
-			for(IndexType y=0; y < _dimensions[Y_DIR]; ++y) {
-				for(IndexType x=0; x < _dimensions[X_DIR]; ++x) {
-
-
-					IndexArray block_coords = {{x,y,z,t}};
-					IndexArray local_lattice_coords;
-
-					// Offset the block coords by the block origin in the local lattice
-					for(int mu=0; mu < n_dim; ++mu) {
-						local_lattice_coords[mu] = block_coords[mu] + _origin[mu];
-					}
-
-					IndexType block_idx = CoordsToIndex( block_coords, _dimensions);
-					IndexType lattice_idx = CoordsToIndex( local_lattice_coords, local_lattice_dimensions) ;
-
-#if 0
-					std::cout << "Block Coordinates: ("<<_origin[0]<<","<<_origin[1]<<","<<_origin[2]<<","<<_origin[3]<<"): "
-						<< "Coord: ("<<x<<","<<y<<","<<z<<","<<t <<")" << " LatticeCoord: (" << local_lattice_coords[0] <<","
-							<< local_lattice_coords[1] <<"," << local_lattice_coords[2] << "," << local_lattice_coords[3] <<") "
-							<< " computed sitelist index=" << block_idx << " computed lattice site index=" << lattice_idx << std::endl;
-#endif
-
-					_site_list[ block_idx ] = lattice_idx;
-
-				} // x
-			} // y
-
-		} // z
-	}// t
-
-	_created = true; // Mark it as done
-
-}
-
-// Create a list of blocks
-void CreateBlockList(std::vector<Block>& blocklist, IndexArray& blocked_lattice_dimensions, const IndexArray& local_lattice_dimensions, const IndexArray& block_dimensions )
-{
-	// Compute the dimensions of the blocked lattice. Check local lattice is divisible by block size
-	for(int mu=0; mu < n_dim; mu++) {
-		blocked_lattice_dimensions[mu] = local_lattice_dimensions[mu] / block_dimensions[mu];
-		if( blocked_lattice_dimensions[mu] % block_dimensions[mu] != 0 ) {
-			MasterLog(ERROR,"CreateBlockList: block_dimensions[%d]=%d does not divide local_lattice_dimensions[%d]=%d",
-						mu,block_dimensions[mu], mu, local_lattice_dimensions[mu]);
-		}
-	}
-
-	// Compute the number of blocks
-	IndexType num_blocks = 1;
-	for(IndexType mu=0; mu < n_dim; ++mu ) num_blocks *= blocked_lattice_dimensions[mu];
-
-	// The ordering of the blocks *IS* checkerboarded for now, since the coarse lattice
-	// is checkerboarded. But within the blocks things are lexicographic still
-
-	IndexArray blocked_lattice_cb_dims(blocked_lattice_dimensions);
-	blocked_lattice_cb_dims[0]/=n_checkerboard;
-	IndexType num_cb_blocks = num_blocks/n_checkerboard;
-
-	// Now create the blocks: I can loop through the checkerboarded 'coarse sites'
-	// to index the block list in checkerboarded order.
-	blocklist.resize(num_blocks);
-	for(int block_cb=0; block_cb < n_checkerboard; ++block_cb) {
-		for(int block_cbsite=0; block_cbsite < num_cb_blocks; ++block_cbsite ) {
-
-			// Checkerboarded 'coarse site' index
-			unsigned int block_idx = block_cbsite + block_cb*num_cb_blocks;
-
-			/*! FIXME: is this strictly correct? How would I fold in a node checkerboard
-			 *  later? Should I first create a site from the block_cbsite and then depending
-			 *  then combine my node checkerboard with the one in the loop here to work out
-			 *  the global checkerboard? It passes tests currently in a single node
-			 *  setting so I will leave it.
-			 */
-			IndexArray block_coords;
-			IndexToCoords(block_idx, blocked_lattice_dimensions, block_coords);
-
-			// Compute BlockOrigin
-			IndexArray block_origin(block_coords);
-			for(int mu=0; mu < n_dim; ++mu) block_origin[mu]*=block_dimensions[mu];
-
-#if 0
-			std::cout << "Block Cooords=("<<block_coords[0]<<","<<block_coords[1]<<","<<block_coords[2]<<","<< block_coords[3]<<") block_index="<<block_idx
-											<< " block_cb=" << block_cb << " Block Origin=("<< block_origin[0]<<","<< block_origin[1]<<","
-											<< block_origin[2]<<","<<block_origin[3]<<") " <<std::endl;
-#endif
-
-			// Create Block structure
-			blocklist[block_idx].create(local_lattice_dimensions, block_origin, block_dimensions);
-
-		}
-	}
-}
-
 // Implementation -- where possible call the site versions
 //! v *= alpha (alpha is real) over and aggregate in a block, v is a QDP++ Lattice Fermion
 void axBlockAggrQDPXX(const double alpha, LatticeFermion& v, const Block& block, int aggr)
@@ -262,12 +142,12 @@ void restrictSpinorQDPXXFineToCoarse( const std::vector<Block>& blocklist, const
 		const LatticeFermion& ferm_in, CoarseSpinor& out)
 {
 
-	int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
-	int num_coarse_color = out.GetNumColor();
+	const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
+	const int num_coarse_color = out.GetNumColor();
 
 	// Sanity check. The number of sites in the coarse spinor
 	// Has to equal the number of blocks
-	assert( n_checkerboard*num_coarse_cbsites == blocklist.size() );
+	assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
 
 	// The number of vectors has to eaqual the number of coarse colors
 	assert( v.size() == num_coarse_color );
@@ -314,7 +194,7 @@ void restrictSpinorQDPXXFineToCoarse( const std::vector<Block>& blocklist, const
 				// Now aggregate over all the sites in the block -- this will be over a single vector...
 				// NB: The loop indices may be later rerolled, e.g. if we can restrict multiple vectors at once
 				// Then having the coarse_color loop inner will be better.
-				for( IndexType fine_site_idx = 0; fine_site_idx < num_sites_in_block; fine_site_idx++ ) {
+				for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
 
 					// Find the fine site
 					int fine_site = block_sitelist[fine_site_idx];
@@ -355,12 +235,12 @@ void prolongateSpinorCoarseToQDPXXFine(const std::vector<Block>& blocklist,
 									   const CoarseSpinor& coarse_in, LatticeFermion& fine_out)
 {
 		// Prolongate in here
-	int num_coarse_cbsites=coarse_in.GetInfo().GetNumCBSites();
+	IndexType num_coarse_cbsites=coarse_in.GetInfo().GetNumCBSites();
 
-	assert( num_coarse_cbsites == blocklist.size()/2 );
+	assert( num_coarse_cbsites == static_cast<IndexType>(blocklist.size()/2) );
 
-	int num_coarse_color = coarse_in.GetNumColor();
-	assert( v.size() == num_coarse_color );
+	IndexType num_coarse_color = coarse_in.GetNumColor();
+	assert( static_cast<IndexType>(v.size()) == num_coarse_color);
 
 	// NB: Parallelism wise, this is a scatter. Because we are visiting each block
 	// and keeping it fixed we write out all the fine sites in the block which will not
@@ -374,7 +254,7 @@ void prolongateSpinorCoarseToQDPXXFine(const std::vector<Block>& blocklist,
 	// Do this with checkerboarding, because of checkerboarded index for
 	// coarse spinor
 	for(int block_cb = 0; block_cb < n_checkerboard; ++block_cb) {
-		for(int block_cbsite=0; block_cbsite < num_coarse_cbsites; ++block_cbsite ) {
+		for(IndexType block_cbsite=0; block_cbsite < num_coarse_cbsites; ++block_cbsite ) {
 
 			// Our block index is always block_cbsite + block_cb * num_coarse_cbsites
 			IndexType block_idx = block_cbsite + block_cb*num_coarse_cbsites;
@@ -432,8 +312,11 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 
 	int num_coarse_colors = u_coarse.GetNumColor();
 	int num_coarse_colorspin = u_coarse.GetNumColorSpin();
-	int num_coarse_aggregates = num_coarse_colorspin/num_coarse_colors;
+
 	int num_coarse_cbsites = u_coarse.GetInfo().GetNumCBSites();
+	const int n_chiral = 2;
+	const int num_spincolor_per_chiral = (Nc*Ns)/n_chiral;
+	const int num_spin_per_chiral = Ns/n_chiral;
 
 
 
@@ -455,7 +338,7 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 	// Apply DslashDir to each aggregate separately.
 	// DslashDir may mix spins with (1 +/- gamma_mu)
 	for(int j=0; j < num_coarse_colors; ++j) {
-		for(int aggr=0; aggr < num_coarse_aggregates; ++aggr) {
+		for(int aggr=0; aggr < n_chiral; ++aggr) {
 			LatticeFermion tmp=zero;
 			extractAggregateQDPXX(tmp, in_vecs[j], aggr);
 			DslashDirQDPXX(out_vecs[aggr*num_coarse_colors+j], u, tmp, dir);
@@ -463,12 +346,12 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 	}
 
 	// Loop over the coarse sites (blocks)
-	for(unsigned int coarse_cb=0; coarse_cb < 2; ++coarse_cb) {
-		for(unsigned int coarse_cbsite=0; coarse_cbsite < num_coarse_cbsites; ++coarse_cbsite) {
+	for( IndexType coarse_cb=0; coarse_cb < 2; ++coarse_cb) {
+		for( IndexType coarse_cbsite=0; coarse_cbsite < num_coarse_cbsites; ++coarse_cbsite) {
 
 			// Get a Block Index
 			unsigned int block_idx = coarse_cbsite + coarse_cb*num_coarse_cbsites;
-			const Block& block = blocklist[ block_idx ]; // Get teh block
+			const Block& block = blocklist[ block_idx ]; // Get the block
 			auto  block_sitelist = block.getSiteList();
 			auto  num_block_sites = block.getNumSites();
 
@@ -487,12 +370,12 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 				}
 			}
 
-			for(int fine_site_idx = 0; fine_site_idx < num_block_sites; ++fine_site_idx) {
+			for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_block_sites); ++fine_site_idx) {
 
 				const int site = block_sitelist[fine_site_idx];
 
-				for(int aggr_row=0; aggr_row < num_coarse_aggregates; ++aggr_row) {
-					for(int aggr_col=0; aggr_col < num_coarse_aggregates; ++aggr_col ) {
+				for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
+					for(int aggr_col=0; aggr_col <n_chiral; ++aggr_col ) {
 
 						// This is an num_coarse_colors x num_coarse_colors matmul
 						for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
@@ -506,7 +389,7 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 								int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
 
 								// Inner product loop
-								for(int k=0; k < num_coarse_colors; ++k) {
+								for(int k=0; k < num_spincolor_per_chiral; ++k) {
 
 									// [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
 									// [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
@@ -520,7 +403,7 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 									// k / Nc maps to spin_component 0 or 1 in the aggregation
 									// aggr_row*(Ns/2) offsets it to either upper or lower
 									//
-									int spin=k/Nc+aggr_row*(Ns/2);
+									int spin=k/Nc+aggr_row*num_spin_per_chiral;
 
 									// k % Nc maps to color component (0,1,2)
 									int color=k%Nc;
@@ -575,6 +458,8 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 	int num_coarse_colors = cl_coarse.GetNumColor();
 	int num_chiral_components = cl_coarse.GetNumChiral();
 	int num_coarse_cbsites = cl_coarse.GetInfo().GetNumCBSites();
+	const int num_spincolor_per_chiral = (Nc*Ns)/2;
+	const int num_spin_per_chiral = Ns/2;
 
 	// in vecs has size num_coarse_colors = Ncolorspin_c/2
 	// But this mixes both upper and lower spins
@@ -644,7 +529,7 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 			}
 
 
-			for(int fine_site_idx=0; fine_site_idx < num_block_sites; ++fine_site_idx) {
+			for(IndexType fine_site_idx=0; fine_site_idx < static_cast<IndexType>(num_block_sites); ++fine_site_idx) {
 				int site = block_sitelist[fine_site_idx];
 
 				for(int chiral =0; chiral < num_chiral_components; ++chiral) {
@@ -662,7 +547,7 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 
 
 							// Inner product loop
-							for(int k=0; k < num_coarse_colors; ++k) {
+							for(int k=0; k < num_spincolor_per_chiral; ++k) {
 
 								// [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
 								// [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
@@ -674,7 +559,7 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 								// So really I need to just evaluate:  V^H_upper A_upper and V^H_lower B_lower
 								//
 								//
-								int spin=k/Nc + chiral * (Ns/2);  // Upper or lower spin depending on chiral
+								int spin=k/Nc + chiral * num_spin_per_chiral;  // Upper or lower spin depending on chiral
 
 								// k % Nc maps to color component (0,1,2)
 								int color=k%Nc;

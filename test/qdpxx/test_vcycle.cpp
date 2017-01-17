@@ -5,6 +5,7 @@
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"
+#include "lattice/coarse/block.h"
 #include "qdpxx_helpers.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
@@ -31,6 +32,8 @@ TEST(TestVCycle, TestVCycleApply)
 
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 
 	// Parameters
 	float m_q = 0.1;
@@ -78,7 +81,7 @@ TEST(TestVCycle, TestVCycleApply)
 	// Create List Of Blocks
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
 
 	// Orthonormalize the vectors -- I heard once that for GS stability is improved
 	// if you do it twice.
@@ -161,6 +164,8 @@ TEST(TestVCycle, TestVCycleSolve)
 
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 
 
 	float m_q = 0.1;
@@ -202,7 +207,7 @@ TEST(TestVCycle, TestVCycleSolve)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -281,6 +286,8 @@ TEST(TestVCycle, TestVCyclePrec)
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 
 	float m_q = 0.1;
 	float c_sw = 1.25;
@@ -321,7 +328,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);

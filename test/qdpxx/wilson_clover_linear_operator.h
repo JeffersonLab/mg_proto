@@ -18,6 +18,7 @@
 #include "qdpxx_helpers.h"
 #include "dslashm_w.h"
 #include "lattice/coarse/coarse_types.h"
+#include "lattice/coarse/block.h"
 #include "aggregate_block_qdpxx.h"
 
 using namespace QDP;

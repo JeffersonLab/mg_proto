@@ -8,7 +8,7 @@
 
 #include "lattice/coarse/coarse_op.h"
 #include "lattice/coarse/coarse_l1_blas.h"
-
+#include "lattice/coarse/block.h"
 
 #include "qdpxx_helpers.h"
 #include "reunit.h"
@@ -52,8 +52,10 @@ TEST(TestBlocking, TestBlockCreateTrivialSingleBlock )
 	IndexArray block_dims = {{2,2,2,2}};
 	IndexArray local_origin = {{0,0,0,0}};
 	IndexArray local_lattice_dims = {{2,2,2,2}};
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
+	b.create(local_lattice_dims,local_origin, block_dims, node_orig);
 
-	b.create(local_lattice_dims,local_origin, block_dims);
 
 	ASSERT_TRUE( b.isCreated() );
 	ASSERT_EQ( b.getNumSites() , 16 );
@@ -75,14 +77,24 @@ TEST(TestBlocking, TestBlockCreateSingleBlock )
 	IndexArray local_origin = {{0,0,2,2}};
 	IndexArray local_lattice_dims = {{4,4,4,4}};
 
-	b.create(local_lattice_dims,local_origin, block_dims);
+	initQDPXXLattice(local_lattice_dims); // Give me access to site tables
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
+
+	b.create(local_lattice_dims,local_origin, block_dims,node_orig);
 
 	ASSERT_TRUE( b.isCreated() );
 	ASSERT_EQ( b.getNumSites() , 16 );
+
 	auto block_sites = b.getSiteList();
+	auto block_cbsites = b.getCBSiteList();
+
+	ASSERT_EQ( block_sites.size(), block_cbsites.size());
+
 
 	// Go through all the blocks
-	for( int i=0; i < block_sites.size(); ++i) {
+	for( unsigned int i=0; i < block_sites.size(); ++i) {
 
 		// Convert block_idx to coordinates
 		IndexArray block_coords = {{0,0,0,0}};
@@ -91,11 +103,27 @@ TEST(TestBlocking, TestBlockCreateSingleBlock )
 		// Now offset these coords by the local origin, to get coords in local lattice
 		for(int mu=0; mu < n_dim;++mu ) block_coords[mu] += local_origin[mu];
 
+
 		// Convert lattice Coordinates back to a lattice site index
 		IndexType lattice_idx = CoordsToIndex(block_coords, local_lattice_dims);
 
 		// the site_index thus computed should be part of the block site list
 		ASSERT_EQ( block_sites[i], lattice_idx);
+
+		IndexArray gcoords;
+		for(int mu=0; mu < n_dim; ++mu) gcoords[mu] = block_coords[mu]+node_orig[mu];
+		int cb = ( gcoords[0]+gcoords[1]+gcoords[2]+gcoords[3] ) & 1;
+		ASSERT_EQ( block_cbsites[i].cb, cb);
+
+
+		IndexArray cbdims=local_lattice_dims; cbdims[0]/=2;
+		IndexArray cbcoords=block_coords; cbcoords[0]/=2;
+		IndexType cbsite=CoordsToIndex(cbcoords,cbdims);
+
+		ASSERT_EQ( block_cbsites[i].site, cbsite);
+
+
+
 	}
 }
 
@@ -106,8 +134,8 @@ TEST(TestBlocking, TestBlockCreateBadOriginDeath )
 		IndexArray block_dims = {{2,2,2,2}};
 		IndexArray local_origin = {{0,0,3,3}};
 		IndexArray local_lattice_dims = {{4,4,4,4}};
-
-	EXPECT_EXIT( b.create(local_lattice_dims,local_origin, block_dims) ,
+		IndexArray local_latt_origin = {{0,0,0,0}};
+	EXPECT_EXIT( b.create(local_lattice_dims,local_origin, block_dims,local_latt_origin) ,
 			::testing::KilledBySignal(SIGABRT), "Assertion failed:*");
 
 
@@ -120,8 +148,8 @@ TEST(TestBlocking, TestBlockCreateBadOriginNegativeDeath )
 		IndexArray block_dims = {{2,2,2,2}};
 		IndexArray local_origin = {{0,0,-1,0}};
 		IndexArray local_lattice_dims = {{4,4,4,4}};
-
-		EXPECT_EXIT( b.create(local_lattice_dims,local_origin, block_dims) ,
+		IndexArray local_latt_origin = {{0,0,0,0}};
+		EXPECT_EXIT( b.create(local_lattice_dims,local_origin, block_dims,local_latt_origin) ,
 				::testing::KilledBySignal(SIGABRT), "Assertion failed:*");
 
 }
@@ -134,8 +162,10 @@ TEST(TestBlocking, TestCreateBlockList)
 	IndexArray local_lattice_dims = {{4,4,4,4}};
 	IndexArray block_dims = {{2,2,2,2}};
 	IndexArray blocked_lattice_dims;
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
 
-	CreateBlockList(my_blocks,blocked_lattice_dims,local_lattice_dims,block_dims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,local_lattice_dims,block_dims,node_orig);
 
 	// Get checkerboarded dims
 	IndexArray blocked_lattice_cbdims(blocked_lattice_dims);
@@ -164,7 +194,7 @@ TEST(TestBlocking, TestCreateBlockList)
 			for(int mu=0; mu < n_dim; ++mu)  block_origin[mu] *= block_dims[mu];
 
 			// Manually make the block to compare
-			Block compare; compare.create(local_lattice_dims, block_origin, block_dims);
+			Block compare; compare.create(local_lattice_dims, block_origin, block_dims, node_orig);
 
 			// This is what CreateBlockList created
 			Block& from_list = my_blocks[block_idx];
@@ -206,9 +236,11 @@ TEST(TestBlocking, TestBlockListCBOrdering)
 	initQDPXXLattice(local_lattice_dims);
 	IndexArray block_dims = {{1,1,1,1}};
 	IndexArray blocked_lattice_dims;
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
 
 	// Create the blocked list etc
-	CreateBlockList(my_blocks,blocked_lattice_dims,local_lattice_dims,block_dims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,local_lattice_dims,block_dims,node_orig);
 
 	ASSERT_EQ( my_blocks.size(), 16);
 	ASSERT_EQ( blocked_lattice_dims[0],2);
@@ -253,12 +285,16 @@ TEST(TestCoarseQDPXXBlock, TestBlockOrthogonalize)
 	IndexArray blockdims = {{2,2,2,2}};
 
 	initQDPXXLattice(latdims);
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
 
 	// 2) Create the test vectors
 	multi1d<LatticeFermion> vecs(6);
@@ -316,12 +352,15 @@ TEST(TestCoarseQDPXXBlock,TestOrthonormal2)
 	IndexArray blockdims = {{1,1,1,1}}; // Trivial blocking -- can check against site variant
 
 	initQDPXXLattice(latdims);
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
 
 	// 2) Create the test vectors
 	multi1d<LatticeFermion> vecs(6);
@@ -356,11 +395,12 @@ TEST(TestCoarseQDPXXBlock, TestRestrictorTrivial)
 
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
-
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
 
 	// 2) Create the test vectors
 	multi1d<LatticeFermion> vecs(6);
@@ -423,11 +463,12 @@ TEST(TestCoarseQDPXXBlock, TestProlongatorTrivial)
 
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
-
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
 
 	// 2) Create the test vectors
 	multi1d<LatticeFermion> vecs(6);
@@ -484,6 +525,8 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXDslashTrivial)
 
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 
 	multi1d<LatticeColorMatrix> u(Nd);
 
@@ -504,7 +547,7 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXDslashTrivial)
 	// 1) Create the blocklist
 		std::vector<Block> my_blocks;
 		IndexArray blocked_lattice_dims;
-		CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+		CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
 
 		// Do the proper block orthogonalize
 			orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -591,7 +634,8 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXClovTrivial)
 
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
-
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 	multi1d<LatticeColorMatrix> u(Nd);
 
 	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
@@ -631,7 +675,7 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXClovTrivial)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -722,6 +766,8 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseClov)
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 	multi1d<LatticeColorMatrix> u(Nd);
 
 	// Initialize the gauge field
@@ -768,7 +814,7 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseClov)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -849,6 +895,9 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
 	multi1d<LatticeColorMatrix> u(Nd);
 
 	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
@@ -869,7 +918,7 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);

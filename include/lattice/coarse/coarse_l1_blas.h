@@ -26,6 +26,8 @@ void ScaleVec(const std::complex<float>& alpha, CoarseSpinor& x);
 void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpinor& y);
 void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y);
 
+void Gaussian(CoarseSpinor& v);
+
 
 }
 

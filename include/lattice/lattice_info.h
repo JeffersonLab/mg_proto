@@ -1,5 +1,5 @@
-#ifndef LATTICE_H
-#define LATTICE_H
+#ifndef LATTICE_INFO_H
+#define LATTICE_INFO_H
 
 #include <array>
 

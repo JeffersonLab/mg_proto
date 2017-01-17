@@ -10,6 +10,9 @@
 #include "lattice/coarse/coarse_l1_blas.h"
 
 
+// for random numbers:
+#include <random>
+
 namespace MG
 {
 
@@ -368,6 +371,48 @@ void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y) {
 	} // End of Parallel for region
 }
 
+
+/**** NOT 100% sure how to test this easily ******/
+void Gaussian(CoarseSpinor& x)
+{
+	const LatticeInfo& info = x.GetInfo();
+	const IndexType num_colorspin = info.GetNumColors()*info.GetNumSpins();
+	const IndexType num_cbsites = info.GetNumCBSites();
+
+	/* FIXME: This is quick and dirty and nonreproducible. A better source of random
+	 * numbers which is reproducible, and can scale with the number of sites in the
+	 * info nicely and is thread safe is neeeded.
+	 */
+
+	// Create the thread team
+#pragma omp parallel
+	{
+		// Each thread team create its own RNG
+		std::random_device r;
+		std::mt19937_64 twister_engine(r());  // An engine based on a 'truly random seed'
+
+		// A normal distribution centred on 0, with width 1
+		std::normal_distribution<> normal_dist(0.0,1.0);
+
+#pragma omp for collapse(2)
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+			for(int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
+
+				float *x_site_data = x.GetSiteDataPtr(cb,cbsite);
+				for(int cspin=0; cspin < num_colorspin; ++cspin)  {
+
+					// Using the Twister Engine, draw from the normal distribution
+					x_site_data[ RE + n_complex*cspin ] = normal_dist( twister_engine );
+					x_site_data[ IM + n_complex*cspin ] = normal_dist( twister_engine );
+				}
+
+			}
+		}
+
+
+	}
+
+}
 
 
 };

@@ -12,6 +12,7 @@
 #include "clover_term_qdp_w.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_op.h"
+#include "lattice/coarse/block.h"
 #include <vector>
 
 
@@ -21,52 +22,6 @@ using namespace QDP;
 
 
 namespace MGTesting {
-
-class Block {
-public:
-	// I am doing it this way so we can make a std::vector of these...
-	// That  means it needs an argument free constructor
-
-	Block(void) {
-		_created = false;
-		_num_sites = 0;
-	}
-
-	void create(const IndexArray local_lattice_dimensions,
-				const IndexArray block_origin,
-				const IndexArray block_dimensions);
-
-	inline
-	const std::vector<IndexType>& getSiteList(void) const {
-		return _site_list;
-	}
-
-	inline
-	const bool isCreated(void) {
-		return _created;
-	}
-
-	inline
-	unsigned int getNumSites() const {
-		return _num_sites;
-	}
-
-	// Destructor is automatic
-	~Block() {}
-private:
-	IndexArray _origin;
-	IndexArray _dimensions;
-	unsigned int _num_sites;
-	bool _created = false;
-	std::vector<IndexType> _site_list;
-};
-
-
-/* --------- BLOCK BASED STUFF -------------*/
-void CreateBlockList(std::vector<Block>& blocklist,
-		IndexArray& blocked_lattice_dimensions,
-		const IndexArray& local_lattice_dimensions,
-		const IndexArray& block_dimensions );
 
 //! v *= alpha (alpha is real) over and aggregate in a block, v is a QDP++ Lattice Fermion
 void axBlockAggrQDPXX(const double alpha, LatticeFermion& v, const Block& block, int aggr);

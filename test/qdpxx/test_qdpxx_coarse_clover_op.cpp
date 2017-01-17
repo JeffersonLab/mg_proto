@@ -5,6 +5,8 @@
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"
+#include "lattice/coarse/block.h"
+
 #include "qdpxx_helpers.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
@@ -28,6 +30,9 @@ TEST(TestLattice, CoarseLinOpRandomNullVecs)
 
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 
 	float m_q = 0.1;
 	float c_sw = 1.25;
@@ -58,7 +63,7 @@ TEST(TestLattice, CoarseLinOpRandomNullVecs)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -114,6 +119,8 @@ TEST(TestLattice, CoarseLinOpFGMRESInvTrivial)
 
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 
 
 	float m_q = 0.1;
@@ -145,7 +152,7 @@ TEST(TestLattice, CoarseLinOpFGMRESInvTrivial)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -231,6 +238,8 @@ TEST(TestLattice, CoarseLinOpFGMRESInvBlocked)
 
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 
 
 	float m_q = 0.1;
@@ -262,7 +271,7 @@ TEST(TestLattice, CoarseLinOpFGMRESInvBlocked)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims);
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
