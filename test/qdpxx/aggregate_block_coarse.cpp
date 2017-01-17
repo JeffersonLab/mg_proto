@@ -7,8 +7,9 @@
 #include "aggregate_qdpxx.h"
 #include "aggregate_block_coarse.h"
 #include "lattice/constants.h"
-#include "lattice/info.h"
+#include "lattice/lattice_info.h"
 #include "lattice/geometry_utils.h"
+#include "lattice/coarse/coarse_l1_blas.h"
 
 
 using namespace QDP;
@@ -64,20 +65,20 @@ void caxpyBlockAggr(const std::complex<double>& alpha, const CoarseSpinor& x, Co
 		const float *x_site_data = x.GetSiteDataPtr(cbsite.cb, cbsite.site);
 		float *y_site_data = y.GetSiteDataPtr(cbsite.cb, cbsite.site);
 		for(int colorspin=min_cspin; colorspin < max_cspin; ++colorspin) {
-				double ar = real(alpha);
-				double ai = imag(alpha);
-				double xr = x_site_data[ RE + n_complex*colorspin];
-				double xi = x_site_data[ IM + n_complex*colorspin];
+			double ar = real(alpha);
+			double ai = imag(alpha);
+			double xr = x_site_data[ RE + n_complex*colorspin];
+			double xi = x_site_data[ IM + n_complex*colorspin];
 
-				y_site_data[ RE + n_complex*colorspin] += ar*xr - ai*xi;
-				y_site_data[ IM + n_complex*colorspin] += ar*xi + ai*xr;
+			y_site_data[ RE + n_complex*colorspin] += ar*xr - ai*xi;
+			y_site_data[ IM + n_complex*colorspin] += ar*xi + ai*xr;
 
-			}
 		}
-
 	}
 
 }
+
+
 
 //! return || v ||^2 over an aggregate in a block, v is a QDP++ LatticeFermion
 double norm2BlockAggr(const CoarseSpinor& v, const Block& block, int aggr)
@@ -226,7 +227,7 @@ void orthonormalizeBlockAggregates(std::vector<std::shared_ptr<CoarseSpinor>>& v
 
 			// This will be over blocks...
 			// do vecs[0] ... vecs[N]
-			for(int curr_vec=0; curr_vec < vecs.size(); curr_vec++) {
+			for(IndexType curr_vec=0; curr_vec < static_cast<IndexType>(vecs.size()); curr_vec++) {
 
 				// orthogonalize against previous vectors
 				// if curr_vec == 0 this will be skipped
@@ -257,19 +258,18 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 {
 
 	const LatticeInfo& fine_info = fine_in.GetInfo();
-	int num_fine_spins = fine_info.GetNumSpins();
-	int num_fine_colors = fine_info.GetNumColors();
+	const IndexType num_fine_spins = fine_info.GetNumSpins();
 
-	int num_coarse_cbsites = coarse_out.GetInfo().GetNumCBSites();
-	int num_coarse_colors = coarse_out.GetNumColor();
+	const IndexType num_coarse_cbsites = coarse_out.GetInfo().GetNumCBSites();
+	const IndexType num_coarse_colors = coarse_out.GetNumColor();
 
 	// Sanity check. The number of sites in the coarse spinor
 	// Has to equal the number of blocks
-	assert( n_checkerboard*num_coarse_cbsites == blocklist.size() );
+	assert( n_checkerboard*num_coarse_cbsites == static_cast<IndexType>(blocklist.size()) );
 
 	// The number of vectors has to eaqual the number of coarse colors
-	assert( fine_vecs.size() == num_coarse_colors );
-	for(int vec=0; vec < fine_vecs.size(); ++vec) {
+	assert( static_cast<IndexType>(fine_vecs.size()) == num_coarse_colors );
+	for(IndexType vec=0; vec < static_cast<IndexType>(fine_vecs.size()); ++vec) {
 		AssertCompatible( fine_vecs[vec]->GetInfo(), fine_info );
 	}
 
@@ -316,11 +316,11 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 				// Now aggregate over all the sites in the block -- this will be over a single vector...
 				// NB: The loop indices may be later rerolled, e.g. if we can restrict multiple vectors at once
 				// Then having the coarse_color loop inner will be better.
-				for( IndexType fine_site_idx = 0; fine_site_idx < num_sites_in_block; fine_site_idx++ ) {
+				for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
 
 					// Find the fine site
 					const CBSite& fine_site = block_sitelist[fine_site_idx];
-					float *ferm_in_site_data = fine_in.GetSiteDataPtr(fine_site.cb, fine_site.site);
+					const float *ferm_in_site_data = fine_in.GetSiteDataPtr(fine_site.cb, fine_site.site);
 					float *vec_in_site_data = fine_vecs[ coarse_color ]->GetSiteDataPtr(fine_site.cb, fine_site.site);
 
 					// Now loop over the chiral components. These are local in a site at the level of spin
@@ -336,20 +336,20 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 						for(int fine_colorspin=min_fine_cspin; fine_colorspin < max_fine_cspin; ++fine_colorspin) {
 
 
-								//REAL left_r = fine_v[ coarse_color ].elem(fine_site).elem(targ_spin).elem(color).real();
-								// REAL left_i = v[ coarse_color ].elem(fine_site).elem(targ_spin).elem(color).imag();
-								float left_r = vec_in_site_data[RE + n_complex*fine_colorspin];
-								float left_i = vec_in_site_data[IM + n_complex*fine_colorspin];
+							//REAL left_r = fine_v[ coarse_color ].elem(fine_site).elem(targ_spin).elem(color).real();
+							// REAL left_i = v[ coarse_color ].elem(fine_site).elem(targ_spin).elem(color).imag();
+							float left_r = vec_in_site_data[RE + n_complex*fine_colorspin];
+							float left_i = vec_in_site_data[IM + n_complex*fine_colorspin];
 
 
-								// REAL right_r = ferm_in.elem(fine_site).elem(targ_spin).elem(color).real();
-								// REAL right_i = ferm_in.elem(fine_site).elem(targ_spin).elem(color).imag();
-								float right_r = ferm_in_site_data[RE + n_complex*fine_colorspin];
-								float right_i = ferm_in_site_data[IM + n_complex*fine_colorspin];
+							// REAL right_r = ferm_in.elem(fine_site).elem(targ_spin).elem(color).real();
+							// REAL right_i = ferm_in.elem(fine_site).elem(targ_spin).elem(color).imag();
+							float right_r = ferm_in_site_data[RE + n_complex*fine_colorspin];
+							float right_i = ferm_in_site_data[IM + n_complex*fine_colorspin];
 
-								// It is V_j^H  ferm_in so conj(left)*right.
-								coarse_site_spinor[ RE + n_complex*coarse_colorspin ] += left_r * right_r + left_i * right_i;
-								coarse_site_spinor[ IM + n_complex*coarse_colorspin ] += left_r * right_i - right_r * left_i;
+							// It is V_j^H  ferm_in so conj(left)*right.
+							coarse_site_spinor[ RE + n_complex*coarse_colorspin ] += left_r * right_r + left_i * right_i;
+							coarse_site_spinor[ IM + n_complex*coarse_colorspin ] += left_r * right_i - right_r * left_i;
 
 
 						}	 // fine-spincolor
@@ -362,18 +362,18 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 
 //! 'Prolongate' a CoarseSpinor to a QDP++ Fine Spinor
 void prolongateSpinor(const std::vector<Block>& blocklist,
-			          const std::vector<std::shared_ptr<CoarseSpinor> >& fine_v,
-					  const CoarseSpinor& coarse_in, CoarseSpinor& fine_out)
+		const std::vector<std::shared_ptr<CoarseSpinor> >& fine_v,
+		const CoarseSpinor& coarse_in, CoarseSpinor& fine_out)
 {
-		// Prolongate in here
-	int num_coarse_cbsites=coarse_in.GetInfo().GetNumCBSites();
-	assert( num_coarse_cbsites == blocklist.size()/2 );
+	// Prolongate in here
+	IndexType num_coarse_cbsites=coarse_in.GetInfo().GetNumCBSites();
+	assert( num_coarse_cbsites == static_cast<IndexType>(blocklist.size()/2) );
 
-	int num_coarse_color = coarse_in.GetNumColor();
-	assert( fine_v.size() == num_coarse_color );
+	IndexType num_coarse_color = coarse_in.GetNumColor();
+	assert( static_cast<IndexType>(fine_v.size()) == num_coarse_color );
 
 	const LatticeInfo& fine_info = fine_out.GetInfo();
-	for(int vecs = 0; vecs < fine_v.size(); ++vecs) {
+	for(unsigned int vecs = 0; vecs < fine_v.size(); ++vecs) {
 		AssertCompatible( fine_v[vecs]->GetInfo(), fine_info);
 	}
 
@@ -460,17 +460,17 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 {
 	// Dslash triple product in here
 
-	int num_coarse_colors = u_coarse.GetNumColor();
-	int num_coarse_colorspin = u_coarse.GetNumColorSpin();
-	int num_chiral = 2;
-	int num_coarse_cbsites = u_coarse.GetInfo().GetNumCBSites();
+	const IndexType num_coarse_colors = u_coarse.GetNumColor();
+	const IndexType num_coarse_colorspin = u_coarse.GetNumColorSpin();
+	const IndexType num_chiral = 2;
+	const IndexType num_coarse_cbsites = u_coarse.GetInfo().GetNumCBSites();
 
 	// in vecs has size Ncolor_c = num_coarse_colorspin/2
 	// But this mixes both upper and lower spins
 	// Once we deal with those separately we will need num_coarse_colorspin results
 	// And we will need to apply the 'DslashDir' separately to each aggregate
 
-	assert(in_vecs.size() == num_coarse_colors);
+	assert(static_cast<IndexType>(in_vecs.size()) == num_coarse_colors);
 	const LatticeInfo& fine_info = in_vecs[0]->GetInfo();
 
 	const int num_fine_colors = fine_info.GetNumColors();
@@ -510,8 +510,8 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 	} // j
 
 	// Loop over the coarse sites (blocks)
-	for (unsigned int coarse_cb = 0; coarse_cb < 2; ++coarse_cb) {
-		for (unsigned int coarse_cbsite = 0; coarse_cbsite < num_coarse_cbsites;
+	for (IndexType coarse_cb = 0; coarse_cb < n_checkerboard; ++coarse_cb) {
+		for (IndexType coarse_cbsite = 0; coarse_cbsite < num_coarse_cbsites;
 				++coarse_cbsite) {
 
 			// Get a Block Index
@@ -540,7 +540,7 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 			}
 
 			// Loop through the sites of the block
-			for (int fine_site_idx = 0; fine_site_idx < num_block_sites;
+			for (IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_block_sites);
 					++fine_site_idx) {
 
 				// Pick the cbsite
@@ -598,9 +598,9 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 
 									// Right vector
 									REAL64 right_r = outvec_site_data[RE
-											+ n_complex * fine_spincolor];
+																	  + n_complex * fine_spincolor];
 									REAL64 right_i = outvec_site_data[IM
-											+ n_complex * fine_spincolor];
+																	  + n_complex * fine_spincolor];
 
 									// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
 									//
@@ -614,9 +614,9 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 									// REAL64 left_r = in_vecs[matmul_row].elem(site).elem(spin).elem(color).real();
 									// REAL64 left_i = in_vecs[matmul_row].elem(site).elem(spin).elem(color).imag();
 									REAL64 left_r = invec_site_data[RE
-											+ n_complex * fine_spincolor];
+																	+ n_complex * fine_spincolor];
 									REAL64 left_i = invec_site_data[IM
-											+ n_complex * fine_spincolor];
+																	+ n_complex * fine_spincolor];
 
 									// Accumulate inner product V^H_row A_column
 									tmp_link[RE + coarse_link_index] += left_r
@@ -630,16 +630,16 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 					} // aggr_col
 				} // aggr_row
 			} // fine_site_idx
-			  // Zero the link
+			// Zero the link
 
 			for (int row = 0; row < num_coarse_colorspin; ++row) {
 				for (int col = 0; col < num_coarse_colorspin; ++col) {
 					int coarse_link_index = n_complex
 							* (col + num_coarse_colorspin * row);
 					coarse_link[RE + coarse_link_index] = tmp_link[RE
-							+ coarse_link_index];
+																   + coarse_link_index];
 					coarse_link[IM + coarse_link_index] = tmp_link[IM
-							+ coarse_link_index];
+																   + coarse_link_index];
 
 				}
 			}
@@ -653,19 +653,20 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 void clovTripleProduct(const CoarseDiracOp& D_op,
 		const std::vector<Block>& blocklist, const CoarseClover& fine_clov,
 		const std::vector<std::shared_ptr<CoarseSpinor> >& in_fine_vecs,
-		CoarseClover& coarse_clov) {
+		CoarseClover& coarse_clov)
+{
 	// Clover Triple product in here
-	const int num_coarse_colors = coarse_clov.GetNumColor();
-	const int num_chiral_components = coarse_clov.GetNumChiral();
+	const IndexType num_coarse_colors = coarse_clov.GetNumColor();
+	const IndexType num_chiral_components = coarse_clov.GetNumChiral();
 	const LatticeInfo& coarse_info = coarse_clov.GetInfo();
-	const int num_coarse_cbsites = coarse_info.GetNumCBSites();
+	const IndexType num_coarse_cbsites = coarse_info.GetNumCBSites();
 
 	// in vecs has size num_coarse_colors = Ncolorspin_c/2
 	// But this mixes both upper and lower spins
 	// Once we deal with those separately we will need Ncolorspin_c results
 	// And we will need to apply the 'DslashDir' separately to each aggregate
 
-	assert(in_fine_vecs.size() == num_coarse_colors);
+	assert(static_cast<IndexType>(in_fine_vecs.size()) == num_coarse_colors);
 	assert(num_chiral_components == 2);
 
 	const LatticeInfo& fine_info = in_fine_vecs[0]->GetInfo();
@@ -741,7 +742,7 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 				}
 			}
 
-			for (int fine_site_idx = 0; fine_site_idx < num_block_sites;
+			for (IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_block_sites);
 					++fine_site_idx) {
 				const CBSite& cbsite = block_sitelist[fine_site_idx];
 
@@ -787,9 +788,9 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 										+ n_per_chiral * chiral;
 
 								REAL64 right_r = outvecs_site_data[RE
-										+ n_complex * fine_colorspin];
+																   + n_complex * fine_colorspin];
 								REAL64 right_i = outvecs_site_data[IM
-										+ n_complex * fine_colorspin];
+																   + n_complex * fine_colorspin];
 
 								// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
 								//
@@ -801,9 +802,9 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 								//
 								// so index with row % num_coarse_colors = matmul_row
 								REAL64 left_r = invecs_site_data[RE
-										+ n_complex * fine_colorspin];
+																 + n_complex * fine_colorspin];
 								REAL64 left_i = invecs_site_data[IM
-										+ n_complex * fine_colorspin];
+																 + n_complex * fine_colorspin];
 								// Accumulate inner product V^H_row A_column
 								coarse_clov_data[RE + coarse_clov_index] +=
 										left_r * right_r + left_i * right_i;
