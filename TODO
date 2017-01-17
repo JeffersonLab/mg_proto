@@ -1,5 +1,5 @@
  
--- Implement coarse coarse aggregations
+-- Test coarse coarse aggregations
 -- Implement coarse coarse solvers
 -- Implement coarse coarse vcycle
 -- Implement 3 level vcycle (QDP->Coarse->Coarse)
