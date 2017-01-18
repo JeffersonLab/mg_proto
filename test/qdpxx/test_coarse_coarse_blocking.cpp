@@ -11,15 +11,18 @@
 
 #include "qdpxx_helpers.h"
 #include "aggregate_qdpxx.h"
+
 #include "aggregate_block_qdpxx.h"
+#include "aggregate_block_coarse.h"
 
 #include "reunit.h"
 #include "transf.h"
+#include "dslashm_w.h"
 
 #include <cassert>
 #include <memory>
 #include <vector>
-
+#include <cmath>
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
@@ -351,6 +354,565 @@ TEST(TestCoarseCoarse, TestCoarseDslashDir2)
 
 }
 
+TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
+{
+	IndexArray latdims={{4,4,4,4}};
+	IndexArray blockdims={{2,2,2,2}};
+	IndexArray blockdims2={{1,1,1,1}}; // Trivial blocking from coarse-to-coarse
+
+
+
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+	// Create fine gauge field
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Create Fine Basis 1
+	multi1d<LatticeFermion> vecs(6);
+	for(int k=0; k < 6; ++k) {
+		gaussian(vecs[k]);
+	}
+
+	// Someone once said doing this twice is good
+	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+
+	// Do the proper block orthogonalize -- I do it twice... Why not
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+
+	// Next step should be to copy this into the fields needed for gauge and clover ops
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	CoarseGauge u_coarse(info);
+
+	// Generate the triple products directly into the u_coarse
+	for(int mu=0; mu < 8; ++mu) {
+		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
+		dslashTripleProductDirQDPXX(my_blocks, mu, u, vecs, u_coarse);
+	}
+
+	// Now we have u_coarse
+	// Let us coarsen it again
+
+	// We will need a coarse Dirac_op
+	int n_smt = 1;
+	CoarseDiracOp D_op_coarse(info, n_smt);
+
+
+	// We will need some basis vectors. I will use 6 again because we are trying to map an identity
+	std::vector< std::shared_ptr<CoarseSpinor> > coarse_basis_vecs(6);
+	for(int i=0; i < 6; ++i) {
+		coarse_basis_vecs[i] = std::make_shared<CoarseSpinor>(info);
+		ZeroVec( *(coarse_basis_vecs[i]) );
+	}
+
+	// Now Generate Eye:
+	GenerateEye( coarse_basis_vecs );
+	for(int i=0; i < 6; ++i) {
+		double normvec=Norm2Vec( *(coarse_basis_vecs[i]) );
+		double normvec_per_chiral = normvec/(2* info.GetNumSites() );
+
+		MasterLog(INFO, "norm vec[%d]=%16.8e", i,normvec);
+		MasterLog(INFO, "norm vec[%d]=%16.8e", i, normvec_per_chiral);
+	}
+
+	// Generate the blocking
+	std::vector<Block> coarse_blocks;
+	IndexArray blocked_coarse_lattice_dims;
+	CreateBlockList(coarse_blocks, blocked_coarse_lattice_dims, blocked_lattice_dims, blockdims2, node_orig);
+
+	MasterLog(INFO, "Coarse Blocks has size=%d", coarse_blocks.size());
+	ASSERT_EQ( info.GetNumSites(), coarse_blocks.size() );
+
+	for(int block_cb=0; block_cb < n_checkerboard; ++block_cb) {
+		for(int block_cbsite=0; block_cbsite < info.GetNumCBSites(); ++block_cbsite) {
+
+			int block = block_cbsite + block_cb*info.GetNumCBSites();
+
+			auto sitelist = coarse_blocks[block].getCBSiteList();
+			auto otherlist = coarse_blocks[block].getSiteList();
+
+			// I'd like this blocklist to be identical to the other blocklist;
+			for(int blocksite = 0; blocksite < sitelist.size(); ++blocksite ) {
+				CBSite& cbsite = sitelist[blocksite];
+				MasterLog(INFO, "Block cb=%d block_cbsite=%d cb=%d site=%d fullsite=%d",
+						block_cb, block_cbsite, cbsite.cb, cbsite.site, otherlist[blocksite]);
+			}
+
+		}
+	}
+
+	// Check orthonormality of each block:
+	for(IndexType block_idx=0; block_idx < coarse_blocks.size(); ++block_idx) {
+		const Block& the_block = coarse_blocks[ block_idx ];
+		for(IndexType vector=0; vector < static_cast<IndexType>(coarse_basis_vecs.size()); ++vector) {
+
+			for(IndexType vec_prev=0; vec_prev < vector; ++vec_prev) {
+
+				for(IndexType chiral=0; chiral < 2; ++chiral ) {
+					std::complex<double> iprod = innerProductBlockAggr(*(coarse_basis_vecs[vec_prev]),*(coarse_basis_vecs[vector]), the_block, chiral);
+					ASSERT_NEAR( std::norm(iprod), 0, 1.0e-6);
+				}
+			}
+			for(IndexType chiral=0; chiral < 2; ++chiral ) {
+				double norm2_b= norm2BlockAggr(*(coarse_basis_vecs[vector]), the_block, chiral);
+				ASSERT_NEAR( norm2_b, 1, 1.0e-6);
+			}
+
+		}
+	}
+
+
+	LatticeInfo coarse_coarse_info(blocked_coarse_lattice_dims,2,6,NodeInfo());
+	CoarseGauge u_coarse_coarse(coarse_coarse_info);
+
+	for( int mu=0; mu < 8; ++mu) {
+		QDPIO::cout << "Attempting Coarse Triple Product in direction: " << mu << std::endl;
+		dslashTripleProductDir(D_op_coarse, coarse_blocks, mu, u_coarse, coarse_basis_vecs, u_coarse_coarse);
+	}
+
+
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		for(int site = 0; site < info.GetNumCBSites(); ++site) {
+			for(int mu=0; mu < 8 ; ++mu) {
+
+				const float* link_orig = u_coarse.GetSiteDirDataPtr(cb,site,mu);
+				const float* link_new = u_coarse_coarse.GetSiteDirDataPtr(cb,site,mu);
+
+				int num_colorspin=u_coarse.GetNumColorSpin();
+				for(int j=0; j < num_colorspin*num_colorspin; ++j) {
+					double diff_re = std::fabs( link_orig[RE+n_complex*j] - link_new[RE+n_complex*j]);
+					double diff_im = std::fabs( link_orig[IM+n_complex*j] - link_new[IM+n_complex*j]);
+
+					if ( ( diff_re > 5.0e-6) || (diff_im > 5.0e-6) )  {
+					MasterLog(INFO, "dir=%d cb=%d site=%d idx=%d old=(%16.8e,%16.8e) new=(%16.8e, %16.8e) diff=(%16.8e,%16.8e)",
+							mu,cb,site,j, link_orig[RE+n_complex*j], link_orig[IM+n_complex*j],
+							link_new[RE+n_complex*j], link_new[IM + n_complex*j],
+							diff_re,diff_im);
+					}
+					ASSERT_NEAR( diff_re, 0, 5.0e-6);
+					ASSERT_NEAR( diff_im, 0, 5.0e-6);
+				}
+
+
+
+			}
+		}
+
+	}
+
+	// Make a new dirac op.
+	CoarseDiracOp D_op_coarse_coarse(coarse_coarse_info,1);
+
+	// First of all these two dirac ops should now be the same.
+	// The Info's should all be the same
+	AssertCompatible( info, coarse_coarse_info );
+
+	// Second Let us make some test vectors:
+	CoarseSpinor psi(info);
+	Gaussian(psi);
+	CoarseSpinor D_c_psi(info);
+	CoarseSpinor D_cc_psi(info);
+
+	ZeroVec(D_c_psi);
+	ZeroVec(D_cc_psi);
+
+	for(int op = LINOP_OP; op <= LINOP_DAGGER; ++op) {
+
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+				D_op_coarse.Dslash(D_c_psi, u_coarse, psi, cb,op, tid );
+		}
+
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+				D_op_coarse_coarse.Dslash(D_cc_psi, u_coarse_coarse, psi, cb, op, tid);
+		}
+		} // cb
+
+		double norm_psi = sqrt(Norm2Vec(psi));
+		double norm_Dop = sqrt(Norm2Vec(D_c_psi));
+		double norm_Dc_op = sqrt(Norm2Vec(D_cc_psi));
+
+		MasterLog( INFO, " || psi_in || = %16.8e  || D_op_psi_in || = %16.8e || D_op_coarse ||=%16.8e", norm_psi, norm_Dop, norm_Dc_op);
+
+		double norm_diff = sqrt(XmyNorm2Vec(D_cc_psi, D_c_psi));
+
+		MasterLog(INFO, "Op=%d diff=%16.8e relative_diff=%16.8e",op,norm_diff, norm_diff/norm_Dop);
+		ASSERT_NEAR( norm_diff, 0, 1.0e-6);
+	}
+}
+
+TEST(TestCoarseCoarse, TestCoarseTripleProductCloverEyeTrivial)
+{
+	IndexArray latdims={{4,4,4,4}};
+	IndexArray blockdims={{2,2,2,2}};
+	IndexArray blockdims2={{1,1,1,1}}; // Trivial blocking from coarse-to-coarse
+
+
+
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+	// Create fine gauge field
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Create Fine Basis 1
+	multi1d<LatticeFermion> vecs(6);
+	for(int k=0; k < 6; ++k) {
+		gaussian(vecs[k]);
+	}
+
+	// Someone once said doing this twice is good
+	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+
+	// Do the proper block orthogonalize -- I do it twice... Why not
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+
+	// Next step should be to copy this into the fields needed for gauge and clover ops
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	CoarseClover coarse_clover(info);
+
+	// Now need to make a clover op
+	CloverFermActParams clparam;
+	AnisoParam_t aniso;
+
+	// Aniso prarams
+	aniso.anisoP=true;
+	aniso.xi_0 = 1.5;
+	aniso.nu = 0.95;
+	aniso.t_dir = 3;
+
+	// Set up the Clover params
+	clparam.anisoParam = aniso;
+
+	// Some mass
+	clparam.Mass = Real(0.1);
+
+	// Some random clover coeffs
+	clparam.clovCoeffR=Real(1.35);
+	clparam.clovCoeffT=Real(0.8);
+	QDPCloverTerm clov_qdp;
+	clov_qdp.create(u,clparam);
+
+	QDPIO::cout << " Attempting Clover Tripe Product"<<  std::endl;
+	clovTripleProductQDPXX(my_blocks,clov_qdp, vecs, coarse_clover);
+
+
+
+
+	int n_smt = 1;
+	CoarseDiracOp D_op_coarse(info, n_smt);
+
+	QDPIO::cout << "Generating Coarse basis vectors" << std::endl;
+
+	// We will need some basis vectors. I will use 6 again because we are trying to map an identity
+	std::vector< std::shared_ptr<CoarseSpinor> > coarse_basis_vecs(6);
+	for(int i=0; i < 6; ++i) {
+		coarse_basis_vecs[i] = std::make_shared<CoarseSpinor>(info);
+		ZeroVec( *(coarse_basis_vecs[i]) );
+	}
+
+	QDPIO::cout << "Generating Coarse Eye" << std::endl;
+	// Now Generate Eye:
+	GenerateEye( coarse_basis_vecs );
+
+
+	// Generate the blocking
+	QDPIO::cout << "Generating Coarse-Coarse Blocking" << std::endl;
+	std::vector<Block> coarse_blocks;
+	IndexArray blocked_coarse_lattice_dims;
+	CreateBlockList(coarse_blocks, blocked_coarse_lattice_dims, blocked_lattice_dims, blockdims2, node_orig);
+
+
+
+	LatticeInfo coarse_coarse_info(blocked_coarse_lattice_dims,2,6,NodeInfo());
+	CoarseClover coarse_coarse_clover(coarse_coarse_info);
+
+
+	QDPIO::cout << "Attempting Coarse-Coarse Triple Product in direction: " << std::endl;
+	clovTripleProduct(D_op_coarse,
+			coarse_blocks,
+			coarse_clover,
+			coarse_basis_vecs, coarse_coarse_clover);
+
+
+	QDPIO::cout << "Comparing Coarse Clover with new CoarseCoarse CLover...";
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		for(int site = 0; site < info.GetNumCBSites(); ++site) {
+			for(int chiral=0; chiral < 2; ++chiral) {
+
+				const float* clov_orig = coarse_clover.GetSiteChiralDataPtr(cb,site,chiral);
+				const float* clov_new = coarse_coarse_clover.GetSiteChiralDataPtr(cb,site,chiral);
+
+				int num_color=info.GetNumColors();
+				for(int j=0; j < num_color*num_color; ++j) {
+					double diff_re = std::fabs( clov_orig[RE+n_complex*j] - clov_new[RE+n_complex*j]);
+					double diff_im = std::fabs( clov_orig[IM+n_complex*j] - clov_new[IM+n_complex*j]);
+
+					if ( ( diff_re > 5.0e-6) || (diff_im > 5.0e-6) )  {
+					MasterLog(INFO, "chiral=%d cb=%d site=%d idx=%d old=(%16.8e,%16.8e) new=(%16.8e, %16.8e) diff=(%16.8e,%16.8e)",
+							chiral,cb,site,j, clov_orig[RE+n_complex*j], clov_orig[IM+n_complex*j],
+							clov_new[RE+n_complex*j], clov_new[IM + n_complex*j],
+							diff_re,diff_im);
+					}
+					ASSERT_NEAR( diff_re, 0, 5.0e-6);
+					ASSERT_NEAR( diff_im, 0, 5.0e-6);
+				} // j in clover
+			}  // chiral
+		} // site
+	} // cb
+	QDPIO::cout << "OK" << std::endl;
+
+	// Make a new dirac op.
+	CoarseDiracOp D_op_coarse_coarse(coarse_coarse_info,n_smt);
+
+	// First of all these two dirac ops should now be the same.
+	// The Info's should all be the same
+	AssertCompatible( info, coarse_coarse_info );
+
+	// Second Let us make some test vectors:
+	CoarseSpinor psi(info);
+	Gaussian(psi);
+	CoarseSpinor Clov_c_psi(info);
+	CoarseSpinor Clov_cc_psi(info);
+
+	ZeroVec(Clov_c_psi);
+	ZeroVec(Clov_cc_psi);
+
+	for(int op = LINOP_OP; op <= LINOP_DAGGER; ++op) {
+		QDPIO::cout << "Op=" << ((op == LINOP_OP) ? "LINOP " : "DAGGER" ) << std::endl;
+		QDPIO::cout << "   Aoplying Coarse Clover" << std::endl;
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+#pragma omp parallel
+			{
+				int tid = omp_get_thread_num();
+				D_op_coarse.CloverApply(Clov_c_psi, coarse_clover, psi, cb,op, tid );
+			}
+		}
+
+		QDPIO::cout << "   Aoplying Coarse Coarse Clover" << std::endl;
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+#pragma omp parallel
+			{
+				int tid = omp_get_thread_num();
+				D_op_coarse_coarse.CloverApply(Clov_cc_psi, coarse_coarse_clover, psi, cb, op, tid);
+			}
+		} // cb
+
+		double norm_coarse_clov = sqrt(Norm2Vec(Clov_c_psi));
+		double norm_diff = sqrt(XmyNorm2Vec(Clov_cc_psi, Clov_c_psi));
+
+		MasterLog(INFO, "Op=%d diff=%16.8e relative_diff=%16.8e",op,norm_diff, norm_diff/norm_coarse_clov);
+		ASSERT_NEAR( norm_diff, 0, 1.0e-6);
+	}
+}
+
+TEST(TestCoarseCoarse, TestCoarseProlongRestrictTrivial)
+{
+	IndexArray latdims={{4,4,4,4}};
+	IndexArray blockdims={{1,1,1,1}}; // Trivial blocking from coarse-to-coarse
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+	const int N_colors = 6;
+	LatticeInfo info(latdims, 2, N_colors, NodeInfo());
+
+	MasterLog(INFO, "Generating Basis Vecs");
+	std::vector<std::shared_ptr<CoarseSpinor>> vecs(6);
+	for(int vec=0;vec<N_colors;++vec) {
+		vecs[vec] = std::make_shared<CoarseSpinor>(info);
+		Gaussian( *(vecs[vec]) );
+	}
+
+	// Someone once said doing this twice is good
+	QDPIO::cout << "Creating Blocklist and Orthonormalizing Vecs" << std::endl;
+
+	// 1) Create the blocklist -- this is a trivial blocking
+	//    The effect of a restriction is a unitary rotation
+	//    essentially.
+
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+
+	// Do the proper block orthogonalize -- I do it twice... Why not
+	orthonormalizeBlockAggregates(vecs, my_blocks);
+	orthonormalizeBlockAggregates(vecs, my_blocks);
+
+	// Now I should be able to restrict and prolongate back
+	// These are essentially inverse operations as long as
+	// the number of vecs is equal to the number of colors
+
+	// Next step should be to copy this into the fields needed for gauge and clover ops
+	LatticeInfo coarse_info(blocked_lattice_dims, 2, N_colors, NodeInfo());
+
+	CoarseSpinor psi( info );
+	CoarseSpinor R_psi( coarse_info );
+	CoarseSpinor PR_psi( info );
+
+	Gaussian( psi );
+	restrictSpinor(my_blocks,vecs, psi, R_psi );
+	prolongateSpinor(my_blocks, vecs, R_psi, PR_psi);
+
+	double norm_psi = sqrt( Norm2Vec(psi) );
+	double norm_RPpsi = sqrt( Norm2Vec(PR_psi) );
+	double norm_diff = sqrt(XmyNorm2Vec(PR_psi,psi));
+	MasterLog(INFO, " || (P R - 1) psi || = %16.8e", norm_diff);
+	MasterLog(INFO, " || (P R - 1) psi ||/site = %16.8e", norm_diff / info.GetNumSites());
+	ASSERT_LT( norm_diff, 8.0e-6);
+
+}
+
+TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
+{
+	IndexArray latdims={{8,8,8,8}};
+	IndexArray blockdims={{4,4,4,4}};
+	IndexArray blockdims2={{2,2,2,2}}; // Trivial blocking from coarse-to-coarse
+
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+	// Create fine gauge field
+	multi1d<LatticeColorMatrix> u(Nd);
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Now need to make a clover op
+	CloverFermActParams clparam;
+	AnisoParam_t aniso;
+
+	// Aniso prarams
+	aniso.anisoP=true;
+	aniso.xi_0 = 1.5;
+	aniso.nu = 0.95;
+	aniso.t_dir = 3;
+
+	// Set up the Clover params
+	clparam.anisoParam = aniso;
+
+	// Some mass
+	clparam.Mass = Real(0.1);
+
+	// Some random clover coeffs
+	clparam.clovCoeffR=Real(1.35);
+	clparam.clovCoeffT=Real(0.8);
+	QDPCloverTerm clov_qdp;
+	clov_qdp.create(u,clparam);
+
+
+	// Create Fine Basis 1 -- choose not 6 vectors
+	int N_color_1 = 16;
+	multi1d<LatticeFermion> vecs(N_color_1);
+	for(int k=0; k < N_color_1; ++k) {
+		gaussian(vecs[k]);
+	}
+
+	// Someone once said doing this twice is good
+	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+
+	// Do the proper block orthogonalize -- I do it twice... Why not
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	QDPIO::cout << "Creating Level 1 Coarse Gauge Field " << std::endl;
+	// Next step should be to copy this into the fields needed for gauge and clover ops
+	LatticeInfo info(blocked_lattice_dims, 2, N_color_1, NodeInfo());
+	CoarseGauge u_coarse(info);
+	CoarseClover clov_coarse(info);
+
+	// Generate the triple products directly into the u_coarse
+	for(int mu=0; mu < 8; ++mu) {
+		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
+		dslashTripleProductDirQDPXX(my_blocks, mu, u, vecs, u_coarse);
+	}
+
+	QDPIO::cout << "Creating Level 1 Coarse Clover Field " << std::endl;
+	clovTripleProductQDPXX(my_blocks, clov_qdp, vecs, clov_coarse);
+
+	LatticeFermion psi;
+	gaussian(psi);
+	CoarseSpinor  Rpsi(info);
+	QDPIO::cout << "Restricting to Level 1" << std::endl;
+
+	ZeroVec(Rpsi);
+	restrictSpinorQDPXXFineToCoarse( my_blocks, vecs,psi,Rpsi);
+	CoarseSpinor  Dc_Rpsi(info);
+	ZeroVec(Dc_Rpsi);
+
+	CoarseDiracOp Dc_op(info, 1);
+
+	QDPIO::cout << "Applying Coarse Dslash" << std::endl;
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+#pragma omp parallel
+		{
+			int tid=omp_get_thread_num();
+			Dc_op.Dslash(Dc_Rpsi, u_coarse, Rpsi, cb, LINOP_OP, tid);
+		}
+	}
+	QDPIO::cout << "Applying Fake Op" << std::endl;
+	LatticeFermion P_Rpsi = zero;
+	prolongateSpinorCoarseToQDPXXFine( my_blocks, vecs, Rpsi, P_Rpsi);
+	LatticeFermion DP_Rpsi = zero;
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		dslash(DP_Rpsi, u, P_Rpsi, 1, cb);
+	}
+	CoarseSpinor RDP_Rpsi(info);
+	ZeroVec(RDP_Rpsi);
+	restrictSpinorQDPXXFineToCoarse( my_blocks, vecs,DP_Rpsi,RDP_Rpsi);
+	double norm_diff = sqrt(XmyNorm2Vec( RDP_Rpsi, Dc_Rpsi ));
+	double norm_diff_per_site = norm_diff / info.GetNumSites();
+	QDPIO::cout << "|| (RDP - D_c) R_psi || =  " << norm_diff << std::endl;
+	QDPIO::cout << "|| (RDP - D_c) R_psi || / site =  " << norm_diff_per_site << std::endl;
+
+
+}
 
 int main(int argc, char *argv[]) 
 {

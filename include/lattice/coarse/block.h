@@ -63,6 +63,7 @@ private:
 	IndexArray _origin;
 	IndexArray _dimensions;
 	unsigned int _num_sites;
+
 	bool _created = false;
 	std::vector<IndexType> _site_list;
 	std::vector< CBSite > _cbsite_list;

@@ -35,10 +35,13 @@ void Block::create(const IndexArray local_lattice_dimensions,
 
 	_origin = block_origin;
 	_dimensions = block_dimensions;
+
 	_num_sites = block_dimensions[X_DIR]*block_dimensions[Y_DIR]*block_dimensions[Z_DIR]*block_dimensions[T_DIR];
 	// Resize the site list
 	_site_list.resize(_num_sites);
 	_cbsite_list.resize(_num_sites);
+
+	int num_local_cbsites = (local_lattice_dimensions[0]*local_lattice_dimensions[1]*local_lattice_dimensions[2]*local_lattice_dimensions[3])/2;
 
 	// Loop through the blocks sites and build up a map mapping from block index to
 	// Site index. We can use this for accessing the block sites in the global lattice.
@@ -74,20 +77,8 @@ void Block::create(const IndexArray local_lattice_dimensions,
 					_site_list[ block_idx ] = lattice_idx;
 
 					CBSite cbsite;
-
-					// Now sum global coordinates of that lattice site to determine checkerboard
-					int g_coord_sum=0;
-					for(int mu=0; mu < n_dim; ++mu ) {
-						g_coord_sum += (local_lattice_coords[mu] + local_lattice_origin[mu]);
-					}
-					cbsite.cb =  g_coord_sum & 1;
-
-					// Convert coords and dims to a checkerboarded coords and dims
-					IndexArray cb_coords(local_lattice_coords); cb_coords[0] /= 2;
-					IndexArray cb_dims(local_lattice_dimensions); cb_dims[0] /= 2;
-
-					// Convert cb_coords and dims to cbsite index
-					cbsite.site = CoordsToIndex( cb_coords, cb_dims );
+					cbsite.site = lattice_idx % num_local_cbsites;
+					cbsite.cb = lattice_idx / num_local_cbsites;
 
 					_cbsite_list[ block_idx ] = cbsite;
 
@@ -111,7 +102,7 @@ void CreateBlockList(std::vector<Block>& blocklist, IndexArray& blocked_lattice_
 	// Compute the dimensions of the blocked lattice. Check local lattice is divisible by block size
 	for(int mu=0; mu < n_dim; mu++) {
 		blocked_lattice_dimensions[mu] = local_lattice_dimensions[mu] / block_dimensions[mu];
-		if( blocked_lattice_dimensions[mu] % block_dimensions[mu] != 0 ) {
+		if( local_lattice_dimensions[mu] % block_dimensions[mu] != 0 ) {
 			MasterLog(ERROR,"CreateBlockList: block_dimensions[%d]=%d does not divide local_lattice_dimensions[%d]=%d",
 						mu,block_dimensions[mu], mu, local_lattice_dimensions[mu]);
 		}
@@ -130,6 +121,11 @@ void CreateBlockList(std::vector<Block>& blocklist, IndexArray& blocked_lattice_
 
 	// Now create the blocks: I can loop through the checkerboarded 'coarse sites'
 	// to index the block list in checkerboarded order.
+
+	// FIXME: This is a block_cb, block_cbsite loop
+	//        However, block_idx is actually a lexicographic coordinate.???
+	//
+
 	blocklist.resize(num_blocks);
 	for(int block_cb=0; block_cb < n_checkerboard; ++block_cb) {
 		for(int block_cbsite=0; block_cbsite < num_cb_blocks; ++block_cbsite ) {
@@ -144,8 +140,13 @@ void CreateBlockList(std::vector<Block>& blocklist, IndexArray& blocked_lattice_
 			 *  setting so I will leave it.
 			 */
 			IndexArray block_coords;
+#if 1
 			IndexToCoords(block_idx, blocked_lattice_dimensions, block_coords);
-
+#else
+			IndexToCoords(block_cbsite, blocked_lattice_cb_dims, block_coords);
+			block_coords[0] *= 2;
+			block_coords[0] += block_cb;
+#endif
 			// Compute BlockOrigin
 			IndexArray block_origin(block_coords);
 			for(int mu=0; mu < n_dim; ++mu) block_origin[mu]*=block_dimensions[mu];

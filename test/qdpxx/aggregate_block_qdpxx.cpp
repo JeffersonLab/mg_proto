@@ -434,7 +434,6 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 					} // aggr_col
 				} // aggr_row
 			} // fine_site_idx
-			// Zero the link
 
 			for(int row=0; row < num_coarse_colorspin; ++row) {
 				for(int col=0; col < num_coarse_colorspin; ++col) {

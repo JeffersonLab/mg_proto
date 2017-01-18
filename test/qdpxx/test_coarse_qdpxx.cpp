@@ -92,6 +92,7 @@ TEST(TestBlocking, TestBlockCreateSingleBlock )
 
 	ASSERT_EQ( block_sites.size(), block_cbsites.size());
 
+	IndexType num_local_lattice_cb_sites = (local_lattice_dims[0]*local_lattice_dims[1]*local_lattice_dims[2]*local_lattice_dims[3])/2;
 
 	// Go through all the blocks
 	for( unsigned int i=0; i < block_sites.size(); ++i) {
@@ -110,16 +111,10 @@ TEST(TestBlocking, TestBlockCreateSingleBlock )
 		// the site_index thus computed should be part of the block site list
 		ASSERT_EQ( block_sites[i], lattice_idx);
 
-		IndexArray gcoords;
-		for(int mu=0; mu < n_dim; ++mu) gcoords[mu] = block_coords[mu]+node_orig[mu];
-		int cb = ( gcoords[0]+gcoords[1]+gcoords[2]+gcoords[3] ) & 1;
+		int cb = lattice_idx/ num_local_lattice_cb_sites;
+		int cbsite = lattice_idx % num_local_lattice_cb_sites;
+
 		ASSERT_EQ( block_cbsites[i].cb, cb);
-
-
-		IndexArray cbdims=local_lattice_dims; cbdims[0]/=2;
-		IndexArray cbcoords=block_coords; cbcoords[0]/=2;
-		IndexType cbsite=CoordsToIndex(cbcoords,cbdims);
-
 		ASSERT_EQ( block_cbsites[i].site, cbsite);
 
 
@@ -999,7 +994,6 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 	}
 
 }
-
 
 int main(int argc, char *argv[]) 
 {

@@ -215,7 +215,8 @@ void extractAggregate(CoarseSpinor& target, const CoarseSpinor& src, int aggr )
 }
 
 //! Orthonormalize vecs over the spin aggregates within the sites
-void orthonormalizeBlockAggregates(std::vector<std::shared_ptr<CoarseSpinor>>& vecs, const std::vector<Block>& block_list)
+void orthonormalizeBlockAggregates(std::vector<std::shared_ptr<CoarseSpinor>>& vecs,
+		const std::vector<Block>& block_list)
 {
 	int num_blocks = block_list.size();
 
@@ -465,6 +466,9 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 	const IndexType num_chiral = 2;
 	const IndexType num_coarse_cbsites = u_coarse.GetInfo().GetNumCBSites();
 
+	MasterLog(INFO, "DTP: num_coarse_colors=%d num_coarse_colorspin=%d num_coarse_cbsites=%d",
+				num_coarse_colors, num_coarse_colorspin, num_coarse_cbsites);
+
 	// in vecs has size Ncolor_c = num_coarse_colorspin/2
 	// But this mixes both upper and lower spins
 	// Once we deal with those separately we will need num_coarse_colorspin results
@@ -475,9 +479,10 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 
 	const int num_fine_colors = fine_info.GetNumColors();
 	const int num_fine_spins = fine_info.GetNumSpins();
-
 	int n_per_chiral =
 			(num_fine_spins == 4) ? 2 * num_fine_colors : num_fine_colors;
+
+	MasterLog(INFO, "DTP: num_fine_colors=%d, num_fine_spins=%d n_per_chiral=%d", num_fine_colors, num_fine_spins, n_per_chiral);
 
 	// I will need to make a vector of spinors, to which I will have applied
 	// Dslash Dir. These need the info
@@ -486,9 +491,14 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 	std::vector<std::shared_ptr<CoarseSpinor> > out_vecs(num_coarse_colorspin);
 
 	// Hit in_vecs with DslashDir -- this leaves
+
+	MasterLog(INFO, "DTP: There are %d vectors in and %d test vectors", in_vecs.size(), out_vecs.size());
+
 	for (int j = 0; j < num_coarse_colorspin; ++j) {
 		out_vecs[j] = std::make_shared<CoarseSpinor>(coarse_info);
 		ZeroVec(*(out_vecs[j]));
+		double norm_vecs = Norm2Vec( *(out_vecs[j]) );
+		MasterLog(INFO, "DTP: || vec[%d] || = %16.8e", j,norm_vecs);
 	}
 
 	// Apply DslashDir to each aggregate separately.
@@ -496,16 +506,18 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 	for (int j = 0; j < num_coarse_colors; ++j) {
 		for (int chiral = 0; chiral < 2; ++chiral) {
 			CoarseSpinor tmp(fine_info);
-
+			ZeroVec(tmp);
 			extractAggregate(tmp, *(in_vecs[j]), chiral);
+
+			for(int cb=0; cb < n_checkerboard; ++cb) {
 #pragma omp parallel
-			{
-				int tid = omp_get_thread_num();
-				for (int cb = 0; cb < n_checkerboard; ++cb) {
+				{
+					int tid = omp_get_thread_num();
 					D_op.DslashDir(*(out_vecs[chiral * num_coarse_colors + j]),
 							u, tmp, cb, dir, tid);
-				}
-			}	// end parallel
+				} // end_parallel
+			}	// end cb
+
 		} // chiral
 	} // j
 
@@ -517,13 +529,13 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 			// Get a Block Index
 			unsigned int block_idx = coarse_cbsite
 					+ coarse_cb * num_coarse_cbsites;
+
 			const Block& block = blocklist[block_idx]; // Get teh block
+
 			auto block_sitelist = block.getCBSiteList();
 			auto num_block_sites = block.getNumSites();
 
-			// Get teh coarse site for writing
-			float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb,
-					coarse_cbsite, dir);
+
 
 			std::vector<double> tmp_link(
 					n_complex * num_coarse_colorspin * num_coarse_colorspin);
@@ -545,93 +557,50 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 
 				// Pick the cbsite
 				const CBSite& cbsite = block_sitelist[fine_site_idx];
+				for(int row = 0; row < num_coarse_colorspin; ++row) {
+					for(int col=0; col < num_coarse_colorspin; ++col) {
 
-				// Matrix mutliply in chiral space.
-				for (int aggr_row = 0; aggr_row < num_chiral; ++aggr_row) {
-					for (int aggr_col = 0; aggr_col < num_chiral; ++aggr_col) {
+						// Column is going to be the outvec:
+						float *outvec_site_data=out_vecs[col]->GetSiteDataPtr(cbsite.cb,cbsite.site);
 
-						// This is an num_coarse_colors x num_coarse_colors matmul
-						for (int matmul_row = 0; matmul_row < num_coarse_colors;
-								++matmul_row) {
-							float *invec_site_data =
-									in_vecs[matmul_row]->GetSiteDataPtr(
-											cbsite.cb, cbsite.site);
+						// Row in is going to be invec % n_chiral
+						// Because we keep both chiralities in the vec.
+						int vecrow = row % num_coarse_colors;
+						int row_chiral = row / num_coarse_colors;
 
-							for (int matmul_col = 0;
-									matmul_col < num_coarse_colors;
-									++matmul_col) {
+						int coarse_link_index = col + num_coarse_colorspin*row;
+						float *invec_site_data=in_vecs[vecrow]->GetSiteDataPtr(cbsite.cb, cbsite.site);
 
-								// Offset by the aggr_row and aggr_column
-								int row = aggr_row * num_coarse_colors
-										+ matmul_row;
-								int col = aggr_col * num_coarse_colors
-										+ matmul_col;
+						for(int k=0; k < n_per_chiral; ++k) {
+							int fine_colorspin = k + row_chiral*n_per_chiral;
+							// Right vector
+							REAL64 right_r = outvec_site_data[RE
+															  + n_complex * fine_colorspin];
+							REAL64 right_i = outvec_site_data[IM
+															  + n_complex * fine_colorspin];
 
-								float *outvec_site_data =
-										out_vecs[col]->GetSiteDataPtr(cbsite.cb,
-												cbsite.site);
+							REAL64 left_r = invec_site_data[RE
+															+ n_complex * fine_colorspin];
+							REAL64 left_i = invec_site_data[IM
+															+ n_complex * fine_colorspin];
 
-								//Index in coarse link
-								int coarse_link_index = n_complex
-										* (col + num_coarse_colorspin * row);
+							// Accumulate inner product V^H_row A_column
+							tmp_link[RE + n_complex*coarse_link_index] += (left_r * right_r + left_i * right_i);
+							tmp_link[IM + n_complex*coarse_link_index] += (left_r * right_i - right_r * left_i);
 
-								// Inner product loop
-								for (int k = 0; k < n_per_chiral; ++k) {
 
-									// [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
-									// [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
-									//
-									// NB: V^H_upper always multiplies an 'upper' (either A_upper or B_upper)
-									//     V^H_lower always multiplies a 'lower' (either A_lower or B_lower)
-									//
-									// So there is no mixing of spins (ie: V^H_upper with B_lower etc)
-									// So spins are decided by which portion of V^H we use, ie on aggr_row
-									//
-									// k / Nc maps to spin_component 0 or 1 in the aggregation
-									// aggr_row*(Ns/2) offsets it to either upper or lower
-									// But I don't need this now  since I am working with coarse types.
-									// so I can just use k to map in the aggregation as intendede
-									// and aggr_row to map as upper or lower
 
-									int fine_spincolor = k
-											+ aggr_row * n_per_chiral;
+						} //k
 
-									// Right vector
-									REAL64 right_r = outvec_site_data[RE
-																	  + n_complex * fine_spincolor];
-									REAL64 right_i = outvec_site_data[IM
-																	  + n_complex * fine_spincolor];
+					} //col
 
-									// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
-									//
-									// ie a compact storage
-									// rather than:
-									//
-									// [ V^H_upper   0      ]
-									// [  0       V^H_lower ]
-									//
-									// so index with row % num_coarse_colors = matmul_row
-									// REAL64 left_r = in_vecs[matmul_row].elem(site).elem(spin).elem(color).real();
-									// REAL64 left_i = in_vecs[matmul_row].elem(site).elem(spin).elem(color).imag();
-									REAL64 left_r = invec_site_data[RE
-																	+ n_complex * fine_spincolor];
-									REAL64 left_i = invec_site_data[IM
-																	+ n_complex * fine_spincolor];
+				} // row
 
-									// Accumulate inner product V^H_row A_column
-									tmp_link[RE + coarse_link_index] += left_r
-											* right_r + left_i * right_i;
-									tmp_link[IM + coarse_link_index] += left_r
-											* right_i - right_r * left_i;
-								} // k
-
-							} // matmul_col
-						} // matmul_row
-					} // aggr_col
-				} // aggr_row
 			} // fine_site_idx
 			// Zero the link
+			// Get the coarse site for writing
 
+			float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb, coarse_cbsite, dir);
 			for (int row = 0; row < num_coarse_colorspin; ++row) {
 				for (int col = 0; col < num_coarse_colorspin; ++col) {
 					int coarse_link_index = n_complex
@@ -651,7 +620,8 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 
 //! Coarsen the clover term (1 block = 1 site )
 void clovTripleProduct(const CoarseDiracOp& D_op,
-		const std::vector<Block>& blocklist, const CoarseClover& fine_clov,
+		const std::vector<Block>& blocklist,
+		const CoarseClover& fine_clov,
 		const std::vector<std::shared_ptr<CoarseSpinor> >& in_fine_vecs,
 		CoarseClover& coarse_clov)
 {
