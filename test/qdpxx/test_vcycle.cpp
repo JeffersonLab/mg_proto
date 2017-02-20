@@ -93,19 +93,19 @@ TEST(TestVCycle, TestVCycleApply)
 	// This service needs the blocks, the vectors and is a convenience
 	// Function of the M
 	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
-	CoarseClover clov_coarse(info);
+
 	CoarseGauge u_coarse(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
-	M.generateCoarseClover(my_blocks,vecs, clov_coarse);
-	M.generateCoarseGauge(my_blocks,vecs, u_coarse);
+
+	M.generateCoarse(my_blocks,vecs, u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, &clov_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse,  1);
 
 
 	// WE NOW HAVE: M_fine, M_coarse and the information to affect Intergrid
@@ -215,19 +215,17 @@ TEST(TestVCycle, TestVCycleSolve)
 
 	// Create the blocked Clover and Gauge Fields
 	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
-	CoarseClover clov_coarse(info);
 	CoarseGauge u_coarse(info);
 
-	// Coarsen M to compute the coarsened Gauge and Clover fields
-	M.generateCoarseClover(my_blocks,vecs, clov_coarse);
-	M.generateCoarseGauge(my_blocks,vecs, u_coarse);
+
+	M.generateCoarse(my_blocks,vecs, u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, &clov_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
 
 	MRSolverParams presmooth;
 	presmooth.MaxIter=4;
@@ -338,19 +336,150 @@ TEST(TestVCycle, TestVCyclePrec)
 	QDPIO::cout << "NumVecs=" << NumVecs << std::endl;
 
 	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
-	CoarseClover clov_coarse(info);
+
 	CoarseGauge u_coarse(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
-	M.generateCoarseClover(my_blocks,vecs, clov_coarse);
-	M.generateCoarseGauge(my_blocks,vecs, u_coarse);
+	M.generateCoarse(my_blocks,vecs, u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, &clov_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
+
+	MRSolverParams presmooth;
+	presmooth.MaxIter=4;
+	presmooth.RsdTarget = 0.1;
+	presmooth.Omega = 1.1;
+	presmooth.VerboseP = true;
+
+	MRSmoother<LatticeFermion, multi1d<LatticeColorMatrix>> pre_smoother(M,presmooth);
+
+	MRSolverParams postsmooth;
+	postsmooth.MaxIter = 4;
+	postsmooth.RsdTarget = 0.1;
+	postsmooth.Omega = 1.1;
+	postsmooth.VerboseP = true;
+
+	MRSmoother<LatticeFermion, multi1d<LatticeColorMatrix>> post_smoother(M,postsmooth);
+
+	FGMRESParams coarse_solve_params;
+	coarse_solve_params.MaxIter=200;
+	coarse_solve_params.RsdTarget=0.1;
+	coarse_solve_params.VerboseP = false;
+	coarse_solve_params.NKrylov = 10;
+	FGMRESSolverCoarse bottom_solver(M_coarse,coarse_solve_params);
+
+	LinearSolverParamsBase vcycle_params;
+	vcycle_params.MaxIter=1;
+	vcycle_params.RsdTarget =0.1;
+	vcycle_params.VerboseP = true;
+
+	VCycleQDPCoarse2 vcycle( info, my_blocks, vecs, M, pre_smoother, post_smoother, bottom_solver, vcycle_params);
+
+
+	FGMRESParams fine_solve_params;
+	fine_solve_params.MaxIter=200;
+	fine_solve_params.RsdTarget=1.0e-5;
+	fine_solve_params.VerboseP = true;
+	fine_solve_params.NKrylov = 2;
+	FGMRESSolver FGMRESOuter(M,fine_solve_params, &vcycle);
+
+	// Now need to do the coarse test
+	LatticeFermion psi_in, chi_out;
+	gaussian(psi_in);
+	chi_out = zero;
+	QDPIO::cout << "psi_in has norm =" << sqrt(norm2(psi_in)) << std::endl;
+	LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
+	QDPIO::cout << "Returned residue = || r || / || b ||="<< res.resid<< std::endl;
+
+	LatticeFermion r=psi_in;
+	LatticeFermion tmp;
+	M(tmp,chi_out,LINOP_OP);
+	r -= tmp;
+	Double diff=sqrt(norm2(r));
+	Double diff_rel = diff / sqrt(norm2(psi_in));
+	QDPIO::cout << "|| b - A x || = " << diff << std::endl;
+	QDPIO::cout << "|| b - A x || = " << diff_rel << std::endl;
+	ASSERT_EQ( res.resid_type, RELATIVE);
+	ASSERT_LT( res.resid, 1.0e-5);
+	ASSERT_LT( toDouble(diff_rel), 1.0e-5);
+
+}
+
+TEST(TestVCycle, TestVCyclePrec8888)
+{
+	IndexArray latdims={{8,8,8,8}};
+	IndexArray blockdims = {{2,2,2,2}};
+
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+	float m_q = 0.1;
+	float c_sw = 1.25;
+
+	int t_bc=-1; // Antiperiodic t BCs
+
+
+	multi1d<LatticeColorMatrix> u(Nd);
+	for(int mu=0; mu < Nd; ++mu) {
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Create linear operator
+	QDPWilsonCloverLinearOperator M(m_q, c_sw, t_bc,u);
+	LinearSolverParamsBase params;
+	params.MaxIter = 500;
+	params.RsdTarget = 1.0e-5;
+	params.VerboseP = true;
+	BiCGStabSolver<LatticeFermion,multi1d<LatticeColorMatrix> >  BiCGStab(M, params);
+	LatticeFermion b=zero;
+
+	QDPIO::cout << "Generating 6 Null Vectors" << std::endl;
+	const int NumVecs=6;
+	multi1d<LatticeFermion> vecs(NumVecs);
+	for(int k=0; k < NumVecs; ++k) {
+		gaussian(vecs[k]);
+		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE);
+		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
+				<< std::endl;
+	}
+
+
+
+	// Someone once said doing this twice is good
+	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+
+	// Do the proper block orthogonalize
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	// Create the blocked Clover and Gauge Fields
+	QDPIO::cout << "NumVecs=" << NumVecs << std::endl;
+
+	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
+	CoarseGauge u_coarse(info);
+
+	// Coarsen M to compute the coarsened Gauge and Clover fields
+	M.generateCoarse(my_blocks,vecs, u_coarse);
+
+	// Create a coarse operator
+	// FIXME: NB: M could have a method to create a coarsened operator.
+	// However then it would have to allocate u_coarse and clov_coarse
+	// and they would need to be held via some refcounted pointer...
+	// Come back to that
+	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
 
 	MRSolverParams presmooth;
 	presmooth.MaxIter=4;

@@ -53,7 +53,7 @@ void prolongateSpinorCoarseToQDPXXFine(const std::vector<Block>& blocklist, cons
 void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist, int dir, const multi1d<LatticeColorMatrix>& u, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse);
 
 //! Coarsen the clover term (1 block = 1 site )
-void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPCloverTerm& clov,const multi1d<LatticeFermion>& in_vecs, CoarseClover& cl_coarse);
+void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPCloverTerm& clov,const multi1d<LatticeFermion>& in_vecs, CoarseGauge& cl_coarse);
 
 };
 

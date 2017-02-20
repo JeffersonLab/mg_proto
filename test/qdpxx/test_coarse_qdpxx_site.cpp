@@ -10,6 +10,7 @@
 #include "clover_fermact_params_w.h"
 #include "clover_term_qdp_w.h"
 #include "lattice/coarse/coarse_types.h"
+#include "lattice/coarse/coarse_l1_blas.h"
 #include "lattice/coarse/coarse_op.h"
 #include "dslashm_w.h"
 #include <complex>
@@ -113,6 +114,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash)
 	// Next step should be to copy this into the fields needed for gauge and clover ops
 	LatticeInfo info(latdims, 2, 6, NodeInfo());
 	CoarseGauge u_coarse(info);
+	ZeroGauge(u_coarse);
 	for(int mu=0; mu < 8; ++mu) {
 		QDPPropToCoarseGaugeLink(dslash_links[mu],u_coarse, mu);
 	}
@@ -149,8 +151,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash)
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
+		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
+		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
 	}
 
 	// Export Coarse spinor to QDP++ spinors.
@@ -238,10 +240,12 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 
 
 	// Generate the triple products directly into the u_coarse
+	ZeroGauge(u_coarse);
 	for(int mu=0; mu < 8; ++mu) {
 		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
 		dslashTripleProductSiteDirQDPXX(mu, u, in_vecs, u_coarse);
 	}
+
 
 	for(int row=0; row < Ns*Nc; ++row) {
 		int spin_row = row/Nc;
@@ -304,8 +308,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash2)
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
+		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
+		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
 	}
 
 	// Export Coarse spinor to QDP++ spinors.
@@ -447,8 +451,9 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov)
 
 	QDPIO::cout << "Importing Triple product result PropClover into CoarseClover " << std::endl;
 	LatticeInfo info(latdims, 2, 6, NodeInfo());
-	CoarseClover c_clov(info);
-	QDPPropToCoarseClover(tprod_result, c_clov);
+	CoarseGauge c_clov(info);
+	ZeroGauge(c_clov);
+	QDPPropToCoarseGaugeLink(tprod_result, c_clov,8);
 
 	CoarseSpinor s_in(info);
 	QDPSpinorToCoarseSpinor(orig,s_in);
@@ -598,7 +603,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov2)
 
 	// Now test the new packer.
 	LatticeInfo info(latdims, 2, 6, NodeInfo());
-	CoarseClover c_clov(info);
+	CoarseGauge c_clov(info);
+	ZeroGauge(c_clov);
 	clovTripleProductSiteQDPXX(clov_qdp,in_vecs, c_clov);
 
 
@@ -993,7 +999,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXClov3)
 	QDPIO::cout << "Coarsening Clover" << std::endl;
 
 	LatticeInfo info(latdims, 2, 6, NodeInfo());
-	CoarseClover c_clov(info);
+	CoarseGauge c_clov(info);
+	ZeroGauge(c_clov);
 	clovTripleProductSiteQDPXX(clov_qdp, vecs, c_clov);
 
 	for(int op = LINOP_OP; op <= LINOP_DAGGER; ++op ) {
@@ -1088,7 +1095,7 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash3)
 	// Next step should be to copy this into the fields needed for gauge and clover ops
 	LatticeInfo info(latdims, 2, 6, NodeInfo());
 	CoarseGauge u_coarse(info);
-
+	ZeroGauge(u_coarse);
 	// Generate the triple products directly into the u_coarse
 	for(int mu=0; mu < 8; ++mu) {
 		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
@@ -1128,8 +1135,8 @@ TEST(TestCoarseQDPXX, TestCoarseQDPXXDslash3)
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
+		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
+		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
 	}
 
 	// Export Coa            rse spinor to QDP++ spinors.

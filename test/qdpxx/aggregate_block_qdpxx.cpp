@@ -20,26 +20,30 @@ namespace MGTesting {
 //! v *= alpha (alpha is real) over and aggregate in a block, v is a QDP++ Lattice Fermion
 void axBlockAggrQDPXX(const double alpha, LatticeFermion& v, const Block& block, int aggr)
 {
-	auto block_sitelist = block.getSiteList();
+	auto block_sitelist = block.getCBSiteList();
 	int num_sites = block.getNumSites();
 
 #pragma omp parallel for
 	for(int site=0; site < num_sites; ++site) {
-
-		axAggrQDPXX(alpha,v,block_sitelist[site],aggr);
+		const CBSite& cbsite = block_sitelist[site];
+		int qdpsite = rb[ cbsite.cb ].siteTable()[ cbsite.site ];
+		axAggrQDPXX(alpha,v,qdpsite,aggr);
 	}
 }
 
 //! y += alpha * x (alpha is complex) over aggregate in a block, x, y are QDP++ LatticeFermions;
 void caxpyBlockAggrQDPXX(const std::complex<double>& alpha, const LatticeFermion& x, LatticeFermion& y,  const Block& block, int aggr)
 {
-	auto block_sitelist = block.getSiteList();
+	auto block_sitelist = block.getCBSiteList();
 	int num_sites = block.getNumSites();
 
 #pragma omp parallel for
 	for(int site=0; site < num_sites; ++site) {
 		// Map to sites...
-		caxpyAggrQDPXX(alpha,x,y,block_sitelist[site],aggr);
+		const CBSite& cbsite = block_sitelist[site];
+		int qdpsite = rb[ cbsite.cb ].siteTable()[cbsite.site ];
+
+		caxpyAggrQDPXX(alpha,x,y,qdpsite,aggr);
 	}
 
 }
@@ -47,15 +51,18 @@ void caxpyBlockAggrQDPXX(const std::complex<double>& alpha, const LatticeFermion
 //! return || v ||^2 over an aggregate in a block, v is a QDP++ LatticeFermion
 double norm2BlockAggrQDPXX(const LatticeFermion& v, const Block& block, int aggr)
 {
-	auto block_sitelist = block.getSiteList();
+	auto block_sitelist = block.getCBSiteList();
 	int num_sites = block.getNumSites();
 	double block_sum=0;
 
 
 #pragma omp parallel for reduction(+:block_sum)
 	for(int site=0; site < num_sites; ++site) {
+		const CBSite& cbsite = block_sitelist[site];
+		int qdpsite = rb[ cbsite.cb ].siteTable()[cbsite.site ];
+
 		// Map to sites...
-		block_sum += norm2AggrQDPXX(v,block_sitelist[site],aggr);
+		block_sum += norm2AggrQDPXX(v,qdpsite,aggr);
 	}
 
 	return block_sum;
@@ -65,14 +72,17 @@ double norm2BlockAggrQDPXX(const LatticeFermion& v, const Block& block, int aggr
 std::complex<double>
 innerProductBlockAggrQDPXX(const LatticeFermion& left, const LatticeFermion& right, const Block& block, int aggr)
 {
-	auto block_sitelist = block.getSiteList();
+	auto block_sitelist = block.getCBSiteList();
 	int num_sites = block.getNumSites();
 	double real_part=0;
 	double imag_part=0;
 
 #pragma omp parallel for reduction(+:real_part) reduction(+:imag_part)
 	for(int site=0; site < num_sites; ++site) {
-		std::complex<double> site_prod=innerProductAggrQDPXX(left,right,block_sitelist[site],aggr);
+		const CBSite& cbsite = block_sitelist[site];
+		int qdpsite = rb[ cbsite.cb ].siteTable()[cbsite.site ];
+
+		std::complex<double> site_prod=innerProductAggrQDPXX(left,right,qdpsite,aggr);
 		real_part += real(site_prod);
 		imag_part += imag(site_prod);
 	}
@@ -84,12 +94,13 @@ innerProductBlockAggrQDPXX(const LatticeFermion& left, const LatticeFermion& rig
 //! Extract the spins belonging to a given aggregate from QDP++ source vector src, into QDP++ target vector target
 void extractAggregateQDPXX(LatticeFermion& target, const LatticeFermion& src, const Block& block, int aggr )
 {
-	auto block_sitelist = block.getSiteList();
+	auto block_sitelist = block.getCBSiteList();
 	int num_sites = block.getNumSites();
 
 #pragma omp parallel for
 	for(int site=0; site < num_sites; ++site) {
-		int qdpsite = block_sitelist[site];
+		const CBSite& blocksite = block_sitelist[site];
+		const int qdpsite = rb[blocksite.cb].siteTable()[blocksite.site];
 		for(int spin=aggr*Ns/2; spin < (aggr+1)*Ns/2; ++spin) {
 			for(int color=0; color < 3; ++color) {
 				target.elem(qdpsite).elem(spin).elem(color).real() = src.elem(qdpsite).elem(spin).elem(color).real();
@@ -147,27 +158,30 @@ void restrictSpinorQDPXXFineToCoarse( const std::vector<Block>& blocklist, const
 
 	// Sanity check. The number of sites in the coarse spinor
 	// Has to equal the number of blocks
-	assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
+//	assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
 
 	// The number of vectors has to eaqual the number of coarse colors
 	assert( v.size() == num_coarse_color );
 
 	// This will be a loop over blocks
-	for(int block_cb=0; block_cb < n_checkerboard; ++block_cb) {
-		for(int block_cbsite = 0; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
+
+
+	for(int block_cb = 0; block_cb < n_checkerboard; ++block_cb ) {
+		for(int block_cbsite = 0 ; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
+
+			int block_idx = block_cbsite + block_cb*num_coarse_cbsites;
+
 			// The coarse site spinor is where we will write the result
 			float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
-
-			IndexType block_idx = block_cbsite + block_cb*num_coarse_cbsites;
 
 			// Identify the current block
 			const Block& block = blocklist[block_idx];
 
 			// Get the list of fine sites in the blocks
-			auto block_sitelist = block.getSiteList();
+			auto block_sitelist = block.getCBSiteList();
 
 			// and their number -- this is redundant, I could get it from block_sitelist.size()
-			auto num_sites_in_block = block.getNumSites();
+			auto num_sites_in_block = block_sitelist.size();
 
 
 			// Zero the accumulation in the current site
@@ -197,10 +211,14 @@ void restrictSpinorQDPXXFineToCoarse( const std::vector<Block>& blocklist, const
 				for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
 
 					// Find the fine site
-					int fine_site = block_sitelist[fine_site_idx];
+					const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
+					const int fine_site = (rb[ fine_cbsite.cb ].siteTable())[fine_cbsite.site ];
+
 
 					// Now loop over the chiral components. These are local in a site at the level of spin
 					for(int chiral = 0; chiral < 2; ++chiral ) {
+						//						QDPIO::cout << "RESTRICT: block=" << block_idx << " coord=" << fine_cbsite.coords[0] << ", " << fine_cbsite.coords[1]
+						//								<< ", " << fine_cbsite.coords[2] << ", " << fine_cbsite.coords[3] <<" )" << " chiral=" << chiral << std::endl;
 
 						// Identify the color spin component we are accumulating
 						int coarse_colorspin = coarse_color + chiral * num_coarse_color;
@@ -225,7 +243,7 @@ void restrictSpinorQDPXXFineToCoarse( const std::vector<Block>& blocklist, const
 					} // chiral component
 				} // fine site_idx
 			} // coarse_color
-		} // block_cbsite
+		} // block_cbsites
 	} // block_cb
 }
 
@@ -237,7 +255,7 @@ void prolongateSpinorCoarseToQDPXXFine(const std::vector<Block>& blocklist,
 		// Prolongate in here
 	IndexType num_coarse_cbsites=coarse_in.GetInfo().GetNumCBSites();
 
-	assert( num_coarse_cbsites == static_cast<IndexType>(blocklist.size()/2) );
+	// assert( num_coarse_cbsites == static_cast<IndexType>(blocklist.size()/2) );
 
 	IndexType num_coarse_color = coarse_in.GetNumColor();
 	assert( static_cast<IndexType>(v.size()) == num_coarse_color);
@@ -252,29 +270,30 @@ void prolongateSpinorCoarseToQDPXXFine(const std::vector<Block>& blocklist,
 
 	// Loop over the coarse sites (blocks)
 	// Do this with checkerboarding, because of checkerboarded index for
-	// coarse spinor
-	for(int block_cb = 0; block_cb < n_checkerboard; ++block_cb) {
-		for(IndexType block_cbsite=0; block_cbsite < num_coarse_cbsites; ++block_cbsite ) {
 
-			// Our block index is always block_cbsite + block_cb * num_coarse_cbsites
-			IndexType block_idx = block_cbsite + block_cb*num_coarse_cbsites;
+			for(int block_cb = 0; block_cb < n_checkerboard; ++block_cb ) {
+				for(int block_cbsite = 0 ; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
+
+					int block_idx = block_cbsite + block_cb*num_coarse_cbsites;
 
 			const float *coarse_spinor = coarse_in.GetSiteDataPtr(block_cb,block_cbsite);
 
 			// Get the list of sites in the block
-			auto fine_sitelist = blocklist[block_idx].getSiteList();
-			auto num_fine_sitelist = blocklist[block_idx].getNumSites();
+			auto fine_sitelist = blocklist[block_idx].getCBSiteList();
+			auto num_fine_sitelist = fine_sitelist.size();
 
 
 			for( unsigned int fine_site_idx = 0; fine_site_idx < num_fine_sitelist; ++fine_site_idx) {
 
-				int qdpsite = fine_sitelist[fine_site_idx];
+				const CBSite& fine_cbsite = fine_sitelist[fine_site_idx];
+				int qdpsite = (rb[fine_cbsite.cb].siteTable())[ fine_cbsite.site ] ;
 
 
 				for(int fine_spin=0; fine_spin < Ns; ++fine_spin) {
 
 					int chiral = fine_spin < (Ns/2) ? 0 : 1;
-
+		//			QDPIO::cout << "PROLONGATE: block=" << block_idx << " coord=( " << fine_cbsite.coords[0] << ", " << fine_cbsite.coords[1]
+		//												<< ", " << fine_cbsite.coords[2] << ", " << fine_cbsite.coords[3] <<" )" << " fine_spin=" << fine_spin << " chiral=" << chiral << std::endl;
 					for(int fine_color=0; fine_color < Nc; fine_color++ ) {
 
 						fine_out.elem(qdpsite).elem(fine_spin).elem(fine_color).real() = 0;
@@ -297,7 +316,7 @@ void prolongateSpinorCoarseToQDPXXFine(const std::vector<Block>& blocklist,
 					}
 				}
 			}
-		}
+				}
 	}
 
 }
@@ -318,6 +337,8 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 	const int num_spincolor_per_chiral = (Nc*Ns)/n_chiral;
 	const int num_spin_per_chiral = Ns/n_chiral;
 
+	const LatticeInfo& c_info=u_coarse.GetInfo();
+	IndexArray coarse_dims = c_info.GetLatticeDimensions();
 
 
 	// in vecs has size Ncolor_c = num_coarse_colorspin/2
@@ -342,123 +363,268 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 			LatticeFermion tmp=zero;
 			extractAggregateQDPXX(tmp, in_vecs[j], aggr);
 			DslashDirQDPXX(out_vecs[aggr*num_coarse_colors+j], u, tmp, dir);
+
+
 		}
 	}
 
 	// Loop over the coarse sites (blocks)
-	for( IndexType coarse_cb=0; coarse_cb < 2; ++coarse_cb) {
-		for( IndexType coarse_cbsite=0; coarse_cbsite < num_coarse_cbsites; ++coarse_cbsite) {
+	for(int coarse_cb=0; coarse_cb < n_checkerboard; ++coarse_cb) {
+		for(int coarse_cbsite =0; coarse_cbsite < num_coarse_cbsites; ++coarse_cbsite) {
+
+
+
+			int block_idx = coarse_cbsite + coarse_cb*num_coarse_cbsites;
+
+#if 0
+			QDPIO::cout << "TPD: coarse_cb=" << coarse_cb << " coarse_cbsite=" << coarse_cbsite;
+			IndexArray coarse_coords; CBIndexToCoords(coarse_cbsite, coarse_cb, coarse_dims,coarse_coords);
+			QDPIO::cout <<  " coarse_coords=(" << coarse_coords[0]
+						<< ", " << coarse_coords[1]
+						<< ", " << coarse_coords[2]
+						<< ", " << coarse_coords[3] << ") " << std::endl;
+#endif
 
 			// Get a Block Index
-			unsigned int block_idx = coarse_cbsite + coarse_cb*num_coarse_cbsites;
+
 			const Block& block = blocklist[ block_idx ]; // Get the block
-			auto  block_sitelist = block.getSiteList();
-			auto  num_block_sites = block.getNumSites();
 
-			// Get teh coarse site for writing
-			float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb,coarse_cbsite,dir);
 
-			std::vector<double> tmp_link(n_complex*num_coarse_colorspin*num_coarse_colorspin);
+			//  --------------------------------------------
+			//  Now do the faces
+			//  ---------------------------------------------
+			{
+				auto face_sitelist = block.getFaceList(dir);
+				auto  num_sites = face_sitelist.size();
 
-			// Zero the link
-			for(int row=0; row < num_coarse_colorspin; ++row) {
-				for(int col=0; col < num_coarse_colorspin; ++col) {
-					int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
-					tmp_link[RE + coarse_link_index] = 0;
-					tmp_link[IM + coarse_link_index] = 0;
+				float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb,coarse_cbsite, dir);
 
+				// Do the accumulation in double
+				std::vector<double> tmp_link(n_complex*num_coarse_colorspin*num_coarse_colorspin);
+
+				// Zero the link
+				for(int row=0; row < num_coarse_colorspin; ++row) {
+					for(int col=0; col < num_coarse_colorspin; ++col) {
+						int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+						tmp_link[RE + coarse_link_index] = 0;
+						tmp_link[IM + coarse_link_index] = 0;
+
+					}
 				}
+
+				for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites); ++fine_site_idx) {
+
+					CBSite& fine_cbsite = face_sitelist[ fine_site_idx ];
+					int qdp_site = rb[ fine_cbsite.cb ].siteTable()[ fine_cbsite.site ] ;
+					multi1d<int> qdp_coords = Layout::siteCoords(Layout::nodeNumber(), qdp_site);
+
+#if 0
+					QDPIO::cout << "   aggregating fine_cb=" << fine_cbsite.cb << " fine_cbsite=" << fine_cbsite.site
+							<< " coords=(" << qdp_coords[0] << ", " << qdp_coords[1] << ", " << qdp_coords[2] << ", " << qdp_coords[3] << " )"
+							<< std::endl;
+#endif
+
+
+					for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
+						for(int aggr_col=0; aggr_col <n_chiral; ++aggr_col ) {
+
+							// This is an num_coarse_colors x num_coarse_colors matmul
+							for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
+								for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+
+									// Offset by the aggr_row and aggr_column
+									int row = aggr_row*num_coarse_colors + matmul_row;
+									int col = aggr_col*num_coarse_colors + matmul_col;
+
+									//Index in coarse link
+									int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
+
+									// Inner product loop
+									for(int k=0; k < num_spincolor_per_chiral; ++k) {
+
+										// [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
+										// [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
+										//
+										// NB: V^H_upper always multiplies an 'upper' (either A_upper or B_upper)
+										//     V^H_lower always multiplies a 'lower' (either A_lower or B_lower)
+										//
+										// So there is no mixing of spins (ie: V^H_upper with B_lower etc)
+										// So spins are decided by which portion of V^H we use, ie on aggr_row
+										//
+										// k / Nc maps to spin_component 0 or 1 in the aggregation
+										// aggr_row*(Ns/2) offsets it to either upper or lower
+										//
+										int spin=k/Nc+aggr_row*(Ns/2);
+
+										// k % Nc maps to color component (0,1,2)
+										int color=k%Nc;
+
+										// Right vector
+										float right_r = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).real());
+										float right_i = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).imag());
+
+										// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
+										//
+										// ie a compact storage
+										// rather than:
+										//
+										// [ V^H_upper   0      ]
+										// [  0       V^H_lower ]
+										//
+										// so index with row % num_coarse_colors = matmul_row
+										float left_r = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).real());
+										float left_i = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).imag());
+
+										// Accumulate inner product V^H_row A_column
+										tmp_link[RE + coarse_link_index ] += (left_r*right_r + left_i*right_i);
+										tmp_link[IM + coarse_link_index ] += (left_r*right_i - right_r*left_i);
+									} // k
+
+								} // matmul_col
+							} // matmul_row
+						} // aggr_col
+					} // aggr_row
+
+
+				} // fine_site_idx
+
+				for(int row=0; row < num_coarse_colorspin; ++row) {
+					for(int col=0; col < num_coarse_colorspin; ++col) {
+						int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+						coarse_link[RE + coarse_link_index ] += (float)( tmp_link[RE + coarse_link_index] );
+						coarse_link[IM + coarse_link_index ] += (float)( tmp_link[IM + coarse_link_index ] );
+
+					} // rows
+				} // cols
 			}
 
-			for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_block_sites); ++fine_site_idx) {
+			//  --------------------------------------------
+			//  Now do the Not Faces faces
+			//  ---------------------------------------------
+			{
+				auto not_face_sitelist = block.getNotFaceList(dir);
+				auto  num_sites = not_face_sitelist.size();
 
-				const int site = block_sitelist[fine_site_idx];
 
-				for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
-					for(int aggr_col=0; aggr_col <n_chiral; ++aggr_col ) {
+				// Get teh coarse site for writing
+				// Thiis is fixed
+				float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb,coarse_cbsite, 8);
 
-						// This is an num_coarse_colors x num_coarse_colors matmul
-						for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
-							for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+				// Do the accumulation in double
+				std::vector<double> tmp_link(n_complex*num_coarse_colorspin*num_coarse_colorspin);
 
-								// Offset by the aggr_row and aggr_column
-								int row = aggr_row*num_coarse_colors + matmul_row;
-								int col = aggr_col*num_coarse_colors + matmul_col;
+				// Zero the link
+				for(int row=0; row < num_coarse_colorspin; ++row) {
+					for(int col=0; col < num_coarse_colorspin; ++col) {
+						int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+						tmp_link[RE + coarse_link_index] = 0;
+						tmp_link[IM + coarse_link_index] = 0;
 
-								//Index in coarse link
-								int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
-
-								// Inner product loop
-								for(int k=0; k < num_spincolor_per_chiral; ++k) {
-
-									// [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
-									// [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
-									//
-									// NB: V^H_upper always multiplies an 'upper' (either A_upper or B_upper)
-									//     V^H_lower always multiplies a 'lower' (either A_lower or B_lower)
-									//
-									// So there is no mixing of spins (ie: V^H_upper with B_lower etc)
-									// So spins are decided by which portion of V^H we use, ie on aggr_row
-									//
-									// k / Nc maps to spin_component 0 or 1 in the aggregation
-									// aggr_row*(Ns/2) offsets it to either upper or lower
-									//
-									int spin=k/Nc+aggr_row*num_spin_per_chiral;
-
-									// k % Nc maps to color component (0,1,2)
-									int color=k%Nc;
-
-									// Right vector
-									REAL64 right_r = out_vecs[col].elem(site).elem(spin).elem(color).real();
-									REAL64 right_i = out_vecs[col].elem(site).elem(spin).elem(color).imag();
-
-									// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
-									//
-									// ie a compact storage
-									// rather than:
-									//
-									// [ V^H_upper   0      ]
-									// [  0       V^H_lower ]
-									//
-									// so index with row % num_coarse_colors = matmul_row
-									REAL64 left_r = in_vecs[matmul_row].elem(site).elem(spin).elem(color).real();
-									REAL64 left_i = in_vecs[matmul_row].elem(site).elem(spin).elem(color).imag();
-
-									// Accumulate inner product V^H_row A_column
-									tmp_link[RE + coarse_link_index ] += left_r*right_r + left_i*right_i;
-									tmp_link[IM + coarse_link_index ] += left_r*right_i - right_r*left_i;
-								} // k
-
-							} // matmul_col
-						} // matmul_row
-					} // aggr_col
-				} // aggr_row
-			} // fine_site_idx
-
-			for(int row=0; row < num_coarse_colorspin; ++row) {
-				for(int col=0; col < num_coarse_colorspin; ++col) {
-					int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
-					coarse_link[RE + coarse_link_index ] = tmp_link[RE + coarse_link_index];
-					coarse_link[IM + coarse_link_index ] = tmp_link[IM + coarse_link_index ];
-
+					}
 				}
+
+				for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites); ++fine_site_idx) {
+
+					CBSite& fine_cbsite = not_face_sitelist[ fine_site_idx ];
+					int qdp_site = rb[ fine_cbsite.cb ].siteTable()[ fine_cbsite.site ] ;
+					multi1d<int> qdp_coords = Layout::siteCoords(Layout::nodeNumber(), qdp_site);
+
+#if 0
+					QDPIO::cout << "   aggregating fine_cb=" << fine_cbsite.cb << " fine_cbsite=" << fine_cbsite.site
+							<< " coords=(" << qdp_coords[0] << ", " << qdp_coords[1] << ", " << qdp_coords[2] << ", " << qdp_coords[3] << " )"
+							<< std::endl;
+#endif
+
+
+					for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
+						for(int aggr_col=0; aggr_col <n_chiral; ++aggr_col ) {
+
+							// This is an num_coarse_colors x num_coarse_colors matmul
+							for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
+								for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+
+									// Offset by the aggr_row and aggr_column
+									int row = aggr_row*num_coarse_colors + matmul_row;
+									int col = aggr_col*num_coarse_colors + matmul_col;
+
+									//Index in coarse link
+									int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
+
+									// Inner product loop
+									for(int k=0; k < num_spincolor_per_chiral; ++k) {
+
+										// [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
+										// [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
+										//
+										// NB: V^H_upper always multiplies an 'upper' (either A_upper or B_upper)
+										//     V^H_lower always multiplies a 'lower' (either A_lower or B_lower)
+										//
+										// So there is no mixing of spins (ie: V^H_upper with B_lower etc)
+										// So spins are decided by which portion of V^H we use, ie on aggr_row
+										//
+										// k / Nc maps to spin_component 0 or 1 in the aggregation
+										// aggr_row*(Ns/2) offsets it to either upper or lower
+										//
+										int spin=k/Nc+aggr_row*(Ns/2);
+
+										// k % Nc maps to color component (0,1,2)
+										int color=k%Nc;
+
+										// Right vector
+										float right_r = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).real());
+										float right_i = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).imag());
+
+										// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
+										//
+										// ie a compact storage
+										// rather than:
+										//
+										// [ V^H_upper   0      ]
+										// [  0       V^H_lower ]
+										//
+										// so index with row % num_coarse_colors = matmul_row
+										float left_r = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).real());
+										float left_i = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).imag());
+
+										// Accumulate inner product V^H_row A_column
+										tmp_link[RE + coarse_link_index ] += (left_r*right_r + left_i*right_i);
+										tmp_link[IM + coarse_link_index ] += (left_r*right_i - right_r*left_i);
+									} // k
+
+								} // matmul_col
+							} // matmul_row
+						} // aggr_col
+					} // aggr_row
+
+
+				} // fine_site_idx
+
+				for(int row=0; row < num_coarse_colorspin; ++row) {
+					for(int col=0; col < num_coarse_colorspin; ++col) {
+						int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+						coarse_link[RE + coarse_link_index ] += (float)( tmp_link[RE + coarse_link_index] );
+						coarse_link[IM + coarse_link_index ] += (float)( tmp_link[IM + coarse_link_index ] );
+
+					} // rows
+				} // cols
 			}
 
+		} // coarse cbsite
 
-		} // coarse_cbsite
-	} // coarse_cb
+	} //coarse_cb
 
 }
 
 //! Coarsen the clover term (1 block = 1 site )
-void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPCloverTerm& clov,const multi1d<LatticeFermion>& in_vecs, CoarseClover& cl_coarse)
+void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPCloverTerm& clov,const multi1d<LatticeFermion>& in_vecs, CoarseGauge& gauge_clover)
 {
 	// Clover Triple product in here
-	int num_coarse_colors = cl_coarse.GetNumColor();
-	int num_chiral_components = cl_coarse.GetNumChiral();
-	int num_coarse_cbsites = cl_coarse.GetInfo().GetNumCBSites();
-	const int num_spincolor_per_chiral = (Nc*Ns)/2;
-	const int num_spin_per_chiral = Ns/2;
+	int num_coarse_colors = gauge_clover.GetNumColor();
+	int num_chiral_components = 2;
+	int num_coarse_colorspin = num_coarse_colors*num_chiral_components;
+	int num_coarse_cbsites = gauge_clover.GetInfo().GetNumCBSites();
+	const int num_spincolor_per_chiral = (Nc*Ns)/num_chiral_components;
+	const int num_spin_per_chiral = Ns/num_chiral_components;
 
 	// in vecs has size num_coarse_colors = Ncolorspin_c/2
 	// But this mixes both upper and lower spins
@@ -507,34 +673,25 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 
 			int block_idx = coarse_cbsite + coarse_cb*num_coarse_cbsites;
 			const Block& block = blocklist[block_idx];
-			auto block_sitelist = block.getSiteList();
+			auto block_sitelist = block.getCBSiteList();
 			auto num_block_sites = block.getNumSites();
 
 
-			// Zero out both chiral blocks of the result
-			for(int chiral = 0; chiral < num_chiral_components; ++chiral ) {
-				// This is now an Ncomplex*num_coarse_colors x Ncomplex*num_coarse_colors
-				float *coarse_clov = cl_coarse.GetSiteChiralDataPtr(coarse_cb,coarse_cbsite, chiral);
+			float *coarse_clov = gauge_clover.GetSiteDirDataPtr(coarse_cb,coarse_cbsite,8);
 
-				// Zero the link
-				for(int row=0; row < num_coarse_colors; ++row) {
-					for(int col=0; col < num_coarse_colors; ++col) {
-						int coarse_clov_index = n_complex*(col + num_coarse_colors*row);
-						coarse_clov[RE + coarse_clov_index] = 0;
-						coarse_clov[IM + coarse_clov_index] = 0;
-
-					}
-				}
+			// Accumulate into this tmp_link and in double
+			std::vector<double> tmp_link(2*n_complex*num_coarse_colors*num_coarse_colors);
+			for(int j=0; j < 2*n_complex*num_coarse_colors*num_coarse_colors; ++j) {
+				tmp_link[j] = 0;
 			}
 
-
 			for(IndexType fine_site_idx=0; fine_site_idx < static_cast<IndexType>(num_block_sites); ++fine_site_idx) {
-				int site = block_sitelist[fine_site_idx];
+
+				const CBSite& fine_cbsite = block_sitelist[ fine_site_idx ];
+				int site = rb[ fine_cbsite.cb ].siteTable()[ fine_cbsite.site ];
 
 				for(int chiral =0; chiral < num_chiral_components; ++chiral) {
 
-					// This is now an Ncomplex*num_coarse_colors x Ncomplex*num_coarse_colors
-					float *coarse_clov = cl_coarse.GetSiteChiralDataPtr(coarse_cb,coarse_cbsite, chiral);
 
 					// This is an num_coarse_colors x num_coarse_colors matmul
 					for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
@@ -542,7 +699,8 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 
 
 							//Index in coarse link
-							int coarse_clov_index = n_complex*(matmul_col+ num_coarse_colors*matmul_row);
+							int coarse_clov_index = n_complex*( (matmul_col+ num_coarse_colors*matmul_row)
+		                                                        + chiral*num_coarse_colors*num_coarse_colors );
 
 
 							// Inner product loop
@@ -566,8 +724,8 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 								// Right vector - chiral*num_coarse_colors selects A_upper ( chiral=0 ) or B_lower (chiral=1)
 
 								// NB: Out vecs has only NColor members
-								REAL64 right_r = out_vecs[matmul_col].elem(site).elem(spin).elem(color).real();
-								REAL64 right_i = out_vecs[matmul_col].elem(site).elem(spin).elem(color).imag();
+								float right_r = out_vecs[matmul_col].elem(site).elem(spin).elem(color).real();
+								float right_i = out_vecs[matmul_col].elem(site).elem(spin).elem(color).imag();
 
 								// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
 								//
@@ -578,12 +736,12 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 								// [	  0       V^H_lower ]
 								//
 								// so index with row % num_coarse_colors = matmul_row
-								REAL64 left_r = in_vecs[matmul_row ].elem(site).elem(spin).elem(color).real();
-								REAL64 left_i = in_vecs[matmul_row ].elem(site).elem(spin).elem(color).imag();
+								float left_r = in_vecs[matmul_row ].elem(site).elem(spin).elem(color).real();
+								float left_i = in_vecs[matmul_row ].elem(site).elem(spin).elem(color).imag();
 
 								// Accumulate inner product V^H_row A_column
-								coarse_clov[RE + coarse_clov_index ] += left_r*right_r + left_i*right_i;
-								coarse_clov[IM + coarse_clov_index ] += left_r*right_i - right_r*left_i;
+								tmp_link[RE + coarse_clov_index ] += (double)(left_r*right_r + left_i*right_i);
+								tmp_link[IM + coarse_clov_index ] += (double)(left_r*right_i - right_r*left_i);
 							} // k
 
 						} // matmul col
@@ -592,6 +750,24 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 				} // chiral
 
 			}// fine_site_idx
+
+			// accumulate it
+			for(int chiral=0; chiral < num_chiral_components; ++chiral) {
+				int row_col_min = (chiral == 0) ? 0 : num_coarse_colors;
+
+				for(int row=0 ; row < num_coarse_colors; ++row) {
+					for(int col=0; col < num_coarse_colors; ++col) {
+						int outrow = row + row_col_min;
+						int outcol = col + row_col_min;
+						coarse_clov[ RE + n_complex*(outcol + num_coarse_colorspin*outrow) ] += tmp_link[ RE + n_complex*(col + num_coarse_colors*row)
+																										  	 + chiral*n_complex*num_coarse_colors*num_coarse_colors];
+						coarse_clov[ IM + n_complex*(outcol + num_coarse_colorspin*outrow) ] += tmp_link[ IM + n_complex*(col + num_coarse_colors*row)
+																										  + chiral*n_complex*num_coarse_colors*num_coarse_colors];
+
+					} // col
+				} // row
+			} // chiral
+
 		} // coarse_site
 	} // coarse_cb
 

@@ -12,6 +12,9 @@
 #include "utils/memory.h"
 #include "utils/print_utils.h"
 #include <complex>
+#include <cmath>
+#include <cfloat>
+#include <iostream>
 
 #include <immintrin.h>
 namespace MG {
@@ -86,6 +89,21 @@ void CMatMultNaiveAddT(std::complex<float>*y,
 
     		// NB: These are complex multiplies
     		y[row] += A[ N*row + col ] * x[ col ];
+    		if( std::isnan( y[row].real() ) || std::isnan( y[row].imag() ) ) {
+    			std::cout << "y[" << row << "] is Nan-d" << std::endl;
+    			std::cout << "   A = [";
+    			for(int i=0; i < N*N; ++i) {
+    				std::cout << " " << A[ i ];
+    			}
+    			std::cout << std::endl;
+    			std::cout << "   x = [";
+    			    			for(int i=0; i < N; ++i) {
+    			    				std::cout << " " << x[ i ];
+    			    			}
+    			    			std::cout << std::endl;
+    			    			abort();
+
+    		}
     	}
     }
 }

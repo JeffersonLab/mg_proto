@@ -53,7 +53,7 @@ void prolongateSpinorCoarseToQDPXXFine( const multi1d<LatticeFermion>& v, const 
 void dslashTripleProductSiteDirQDPXX(int dir, const multi1d<LatticeColorMatrix>& u, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse);
 
 //! Coarsen the clover term (1 block = 1 site )
-void clovTripleProductSiteQDPXX(const QDPCloverTerm& clov,const multi1d<LatticeFermion>& in_vecs, CoarseClover& cl_coarse);
+void clovTripleProductSiteQDPXX(const QDPCloverTerm& clov,const multi1d<LatticeFermion>& in_vecs, CoarseGauge& cl_coarse);
 
 //! Coarsen one direction of a 'dslash' link, but the vector space is strictly 12x12 and is held in a propagator -- for testing
 void dslashTripleProduct12x12SiteDirQDPXX(int dir, const multi1d<LatticeColorMatrix>& u, const LatticePropagator& in_prop, LatticePropagator& out_prop);

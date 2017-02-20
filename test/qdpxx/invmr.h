@@ -140,7 +140,7 @@ namespace MGTesting  {
 
     	if( VerboseP ) {
 
-    		MasterLog(INFO, "MR Solver: iter=%d || r ||^2 = %16.8e  Target || r ||^2 = %16.8e",k,cp, rsd_sq);
+    		MasterLog(INFO, "MR Solver: iter=%d || r ||^2 = %16.8e  Target || r ||^2 = %16.8e",k,toDouble(cp), toDouble(rsd_sq));
 
     	}
 
@@ -206,7 +206,7 @@ namespace MGTesting  {
     	  cp = norm2(r, s);
     	  if( VerboseP ) {
     		  MasterLog(INFO, "MR Solver: iter=%d || r ||^2 = %16.8e  Target || r^2 || = %16.8e",
-    				  k, toBool(cp), toBool(rsd_sq) );
+    				  k, toDouble(cp), toDouble(rsd_sq) );
     	  }
     	  continueP = (k < MaxIter) && (toBool(cp > rsd_sq));
       }
@@ -230,7 +230,7 @@ namespace MGTesting  {
     	res.resid = toDouble(sqrt(actual_res));
 		if( resid_type == ABSOLUTE ) {
 			if( VerboseP ) {
-				MasterLog(INFO, "MR Solver: Final iters=%d || r ||_accum=16.8e || r ||_actual = %16.8e",
+				MasterLog(INFO, "MR Solver: Final iters=%d || r ||_accum=%16.8e || r ||_actual = %16.8e",
 				    						res.n_count, toDouble(sqrt(cp)), res.resid);
 			}
 		}
@@ -238,7 +238,7 @@ namespace MGTesting  {
 
 			res.resid /= toDouble(sqrt(norm_chi_internal));
 			if( VerboseP ) {
-				MasterLog(INFO, "MR Solver: Final iters=%d || r ||_accum=16.8e || r ||_actual = %16.8e",
+				MasterLog(INFO, "MR Solver: Final iters=%d || r ||_accum=%16.8e || r ||_actual = %16.8e",
 				    						res.n_count, toDouble(sqrt(cp/norm_chi_internal)), res.resid);
 			}
 		}

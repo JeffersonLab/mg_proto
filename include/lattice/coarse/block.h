@@ -19,6 +19,7 @@ struct CBSite
 {
 	IndexType cb;
 	IndexType site;
+	IndexArray coords;
 };
 
 class Block {
@@ -36,14 +37,29 @@ public:
 				const IndexArray block_dimensions,
 				const IndexArray local_lattice_origin);
 
-	inline
-	const std::vector<IndexType>& getSiteList(void) const {
-		return _site_list;
-	}
+	//inline
+	//const std::vector<IndexType>& getSiteList(void) const {
+	//	return _site_list;
+	//}
 
 	inline
 	const std::vector< CBSite >& getCBSiteList(void) const {
 		return _cbsite_list;
+	}
+
+	inline
+	const std::vector< CBSite >& getInnerBodySiteList(void) const {
+		return _inner_body;
+	}
+
+	inline
+	const std::vector< CBSite >& getFaceList(const int dir) const {
+		return _face[dir];
+	}
+
+	inline
+	const std::vector< CBSite>& getNotFaceList(const int dir) const {
+		return _not_face[dir];
 	}
 
 	inline
@@ -56,6 +72,10 @@ public:
 		return _num_sites;
 	}
 
+	inline
+	unsigned int getNumCBSites() const {
+		return _num_cbsites;
+	}
 	// Destructor is automatic
 	~Block() {}
 private:
@@ -63,10 +83,17 @@ private:
 	IndexArray _origin;
 	IndexArray _dimensions;
 	unsigned int _num_sites;
+	unsigned int _num_cbsites;
 
 	bool _created = false;
-	std::vector<IndexType> _site_list;
+	// All the sites in the block
 	std::vector< CBSite > _cbsite_list;
+
+	// Inner Body Sites
+	std::vector< CBSite > _inner_body;
+	std::vector< CBSite > _face[8];
+	std::vector< CBSite > _not_face[8];
+
 };
 
 void CreateBlockList(std::vector<Block>& blocklist,

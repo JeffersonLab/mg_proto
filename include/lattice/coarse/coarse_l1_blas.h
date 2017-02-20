@@ -27,7 +27,7 @@ void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpin
 void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y);
 
 void Gaussian(CoarseSpinor& v);
-
+void ZeroGauge(CoarseGauge& gauge);
 
 }
 

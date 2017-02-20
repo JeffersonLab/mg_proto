@@ -249,6 +249,9 @@ void dslashTripleProductSiteDirQDPXX(int dir, const multi1d<LatticeColorMatrix>&
 		for(int cbsite=0; cbsite < coarse_cbsites; ++cbsite) {
 
 			// This is now an Ncomplex*NumColorspin*NumColorspin array
+			// THis is based on a block being a site. In that case there is no
+			// induced local term and filling out the connection is fine.
+
 			float *coarse_link = u_coarse.GetSiteDirDataPtr(cb,cbsite,dir);
 			int site=rb[cb].siteTable()[cbsite];
 
@@ -343,10 +346,11 @@ void clovTripleProduct12cx12SiteQDPXX(const QDPCloverTerm& clov, const LatticePr
 	out_prop=adj(in_prop)*prop_tmp;
 }
 
-void clovTripleProductSiteQDPXX(const QDPCloverTerm& clov,const multi1d<LatticeFermion>& in_vecs, CoarseClover& cl_coarse)
+void clovTripleProductSiteQDPXX(const QDPCloverTerm& clov,const multi1d<LatticeFermion>& in_vecs, CoarseGauge& cl_coarse)
 {
 	int Ncolor_c = cl_coarse.GetNumColor();
-	int Nchiral_c = cl_coarse.GetNumChiral();
+	int Nchiral_c = 2;
+	int Ncolorspin_c = Ncolor_c*Nchiral_c;
 
 
 	// in vecs has size Ncolor_c = Ncolorspin_c/2
@@ -400,16 +404,17 @@ void clovTripleProductSiteQDPXX(const QDPCloverTerm& clov,const multi1d<LatticeF
 			for(int chiral = 0; chiral < Nchiral_c; ++chiral ) {
 
 				// This is now an Ncomplex*Ncolor_c x Ncomplex*Ncolor_c
-				float *coarse_clov = cl_coarse.GetSiteChiralDataPtr(cb,cbsite, chiral);
+				float *coarse_clov = cl_coarse.GetSiteDirDataPtr(cb,cbsite,8);
 				int site=rb[cb].siteTable()[cbsite];
 
 				// This is an Ncolor_c x Ncolor_c matmul
 				for(int matmul_row=0; matmul_row < Ncolor_c; ++matmul_row) {
 					for(int matmul_col=0; matmul_col < Ncolor_c; ++matmul_col) {
 
+						int c_offset = (chiral == 0) ? 0 : Ncolor_c;
 
 						//Index in coarse link
-						int coarse_clov_index = n_complex*(matmul_col+ Ncolor_c*matmul_row);
+						int coarse_clov_index = n_complex*(matmul_col+c_offset + Ncolorspin_c*(matmul_row+c_offset) );
 
 						// Init inner product
 						coarse_clov[ RE + coarse_clov_index ] = 0;

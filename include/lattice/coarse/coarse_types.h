@@ -129,7 +129,7 @@ namespace MG {
 				_n_spin(lattice_info.GetNumSpins()),
 				_n_colorspin(lattice_info.GetNumColors()*lattice_info.GetNumSpins()),
 				_n_link_offset(n_complex*_n_colorspin*_n_colorspin),
-				_n_site_offset(2*n_dim*_n_link_offset)
+				_n_site_offset((2*n_dim+1)*_n_link_offset)
 
 		{
 			// Check That we have 2 spins
@@ -192,6 +192,7 @@ namespace MG {
 				 *  	mu=5 - Z backward
 				 *      mu=6 - T forward
 				 *      mu=7 - T backward
+				 *      mu=8 - Local Term.
 				 */
 				inline
 				float *GetSiteDirDataPtr(IndexType cb, IndexType site, IndexType mu)

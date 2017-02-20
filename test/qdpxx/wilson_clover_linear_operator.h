@@ -19,6 +19,7 @@
 #include "dslashm_w.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/block.h"
+#include "lattice/coarse/coarse_l1_blas.h"
 #include "aggregate_block_qdpxx.h"
 
 using namespace QDP;
@@ -77,16 +78,30 @@ public:
 		return *_info;
 	}
 
-	void generateCoarseGauge(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse) const
+	void generateCoarse(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse) const
 	{
 		// Generate the triple products directly into the u_coarse
+		ZeroGauge(u_coarse);
+		for(int mu=0; mu < 8; ++mu) {
+			QDPIO::cout << "QDPWilsonCloverLinearOperator: Dslash Triple Product in direction: " << mu << std::endl;
+			dslashTripleProductDirQDPXX(blocklist, mu, _u, in_vecs, u_coarse);
+		}
+		QDPIO::cout << "QDPWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
+		clovTripleProductQDPXX(blocklist, _clov, in_vecs, u_coarse);
+	}
+
+
+	// Caller must zero appropriately
+	void generateCoarseGauge(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse) const
+	{
 		for(int mu=0; mu < 8; ++mu) {
 			QDPIO::cout << "QDPWilsonCloverLinearOperator: Dslash Triple Product in direction: " << mu << std::endl;
 			dslashTripleProductDirQDPXX(blocklist, mu, _u, in_vecs, u_coarse);
 		}
 	}
 
-	void generateCoarseClover(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseClover& coarse_clov) const
+	// Caller must zero appropriately
+	void generateCoarseClover(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& coarse_clov) const
 	{
 		QDPIO::cout << "QDPWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
 		clovTripleProductQDPXX(blocklist, _clov, in_vecs, coarse_clov);

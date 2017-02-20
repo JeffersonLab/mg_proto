@@ -479,10 +479,10 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 
 	const int num_fine_colors = fine_info.GetNumColors();
 	const int num_fine_spins = fine_info.GetNumSpins();
-	int n_per_chiral =
+	int num_spincolor_per_chiral =
 			(num_fine_spins == 4) ? 2 * num_fine_colors : num_fine_colors;
 
-	MasterLog(INFO, "DTP: num_fine_colors=%d, num_fine_spins=%d n_per_chiral=%d", num_fine_colors, num_fine_spins, n_per_chiral);
+	MasterLog(INFO, "DTP: num_fine_colors=%d, num_fine_spins=%d n_per_chiral=%d", num_fine_colors, num_fine_spins, num_spincolor_per_chiral);
 
 	// I will need to make a vector of spinors, to which I will have applied
 	// Dslash Dir. These need the info
@@ -527,91 +527,207 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 				++coarse_cbsite) {
 
 			// Get a Block Index
-			unsigned int block_idx = coarse_cbsite
-					+ coarse_cb * num_coarse_cbsites;
+			unsigned int block_idx = coarse_cbsite + coarse_cb * num_coarse_cbsites;
 
 			const Block& block = blocklist[block_idx]; // Get teh block
 
-			auto block_sitelist = block.getCBSiteList();
-			auto num_block_sites = block.getNumSites();
+			//  --------------------------------------------
+			//  Now do the faces
+			//  ---------------------------------------------
+			{
+				auto face_sitelist = block.getFaceList(dir);
+				auto  num_sites = face_sitelist.size();
 
+				float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb,coarse_cbsite, dir);
 
-
-			std::vector<double> tmp_link(
-					n_complex * num_coarse_colorspin * num_coarse_colorspin);
-
-			// Zero the link
-			for (int row = 0; row < num_coarse_colorspin; ++row) {
-				for (int col = 0; col < num_coarse_colorspin; ++col) {
-					int coarse_link_index = n_complex
-							* (col + num_coarse_colorspin * row);
-					tmp_link[RE + coarse_link_index] = 0;
-					tmp_link[IM + coarse_link_index] = 0;
-
+				// Do the accumulation in double
+				std::vector<double> tmp_link(n_complex*num_coarse_colorspin*num_coarse_colorspin);
+				for(int j=0; j < n_complex*num_coarse_colorspin*num_coarse_colorspin; ++j) {
+						tmp_link[j] = 0;
 				}
-			}
 
-			// Loop through the sites of the block
-			for (IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_block_sites);
-					++fine_site_idx) {
+				for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites); ++fine_site_idx) {
 
-				// Pick the cbsite
-				const CBSite& cbsite = block_sitelist[fine_site_idx];
-				for(int row = 0; row < num_coarse_colorspin; ++row) {
-					for(int col=0; col < num_coarse_colorspin; ++col) {
+					CBSite& fine_cbsite = face_sitelist[ fine_site_idx ];
 
-						// Column is going to be the outvec:
-						float *outvec_site_data=out_vecs[col]->GetSiteDataPtr(cbsite.cb,cbsite.site);
+					for(int aggr_row=0; aggr_row < num_chiral; ++aggr_row) {
+						for(int aggr_col=0; aggr_col <num_chiral; ++aggr_col ) {
 
-						// Row in is going to be invec % n_chiral
-						// Because we keep both chiralities in the vec.
-						int vecrow = row % num_coarse_colors;
-						int row_chiral = row / num_coarse_colors;
+							// This is an num_coarse_colors x num_coarse_colors matmul
+							for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
+								for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
 
-						int coarse_link_index = col + num_coarse_colorspin*row;
-						float *invec_site_data=in_vecs[vecrow]->GetSiteDataPtr(cbsite.cb, cbsite.site);
+									// Offset by the aggr_row and aggr_column
+									int row = aggr_row*num_coarse_colors + matmul_row;
+									int col = aggr_col*num_coarse_colors + matmul_col;
 
-						for(int k=0; k < n_per_chiral; ++k) {
-							int fine_colorspin = k + row_chiral*n_per_chiral;
-							// Right vector
-							REAL64 right_r = outvec_site_data[RE
-															  + n_complex * fine_colorspin];
-							REAL64 right_i = outvec_site_data[IM
-															  + n_complex * fine_colorspin];
+									//Index in coarse link
+									int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
 
-							REAL64 left_r = invec_site_data[RE
-															+ n_complex * fine_colorspin];
-							REAL64 left_i = invec_site_data[IM
-															+ n_complex * fine_colorspin];
+									// Inner product loop
+									for(int k=0; k < num_spincolor_per_chiral; ++k) {
 
-							// Accumulate inner product V^H_row A_column
-							tmp_link[RE + n_complex*coarse_link_index] += (left_r * right_r + left_i * right_i);
-							tmp_link[IM + n_complex*coarse_link_index] += (left_r * right_i - right_r * left_i);
+											// [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
+											// [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
+											//
+											// NB: V^H_upper always multiplies an 'upper' (either A_upper or B_upper)
+											//     V^H_lower always multiplies a 'lower' (either A_lower or B_lower)
+											//
+											// So there is no mixing of spins (ie: V^H_upper with B_lower etc)
+											// So spins are decided by which portion of V^H we use, ie on aggr_row
+											//
+											// k / Nc maps to spin_component 0 or 1 in the aggregation
+											// aggr_row*(Ns/2) offsets it to either upper or lower
+											//
+											int sc=k+aggr_row*num_spincolor_per_chiral;
+
+											// Right vector
+											//float right_r = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).real());
+											//float right_i = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).imag());
+											const float* right_vector_data = out_vecs[col]->GetSiteDataPtr(fine_cbsite.cb,fine_cbsite.site);
+											const float right_r = right_vector_data[RE + sc*n_complex];
+											const float right_i = right_vector_data[IM + sc*n_complex];
+
+											// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
+											//
+											// ie a compact storage
+											// rather than:
+											//
+											// [ V^H_upper   0      ]
+											// [  0       V^H_lower ]
+											//
+											// so index with row % num_coarse_colors = matmul_row
+											// float left_r = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).real());
+											// float left_i = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).imag());
+											const float* left_vector_data = in_vecs[matmul_row]->GetSiteDataPtr(fine_cbsite.cb, fine_cbsite.site);
+											const float left_r = left_vector_data[RE + sc*n_complex] ;
+											const float left_i = left_vector_data[IM + sc*n_complex] ;
+
+											// Accumulate inner product V^H_row A_column
+											tmp_link[RE + coarse_link_index ] += (double)(left_r*right_r + left_i*right_i);
+											tmp_link[IM + coarse_link_index ] += (double)(left_r*right_i - right_r*left_i);
+										} // k
+
+									} // matmul_col
+								} // matmul_row
+							} // aggr_col
+						} // aggr_row
 
 
+					} // fine_site_idx
 
-						} //k
+					for(int row=0; row < num_coarse_colorspin; ++row) {
+						for(int col=0; col < num_coarse_colorspin; ++col) {
+							int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+							coarse_link[RE + coarse_link_index ] += (float)( tmp_link[RE + coarse_link_index] );
+							coarse_link[IM + coarse_link_index ] += (float)( tmp_link[IM + coarse_link_index ] );
 
-					} //col
-
-				} // row
-
-			} // fine_site_idx
-			// Zero the link
-			// Get the coarse site for writing
-
-			float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb, coarse_cbsite, dir);
-			for (int row = 0; row < num_coarse_colorspin; ++row) {
-				for (int col = 0; col < num_coarse_colorspin; ++col) {
-					int coarse_link_index = n_complex
-							* (col + num_coarse_colorspin * row);
-					coarse_link[RE + coarse_link_index] = tmp_link[RE
-																   + coarse_link_index];
-					coarse_link[IM + coarse_link_index] = tmp_link[IM
-																   + coarse_link_index];
-
+						} // rows
+					} // cols
 				}
-			}
+
+				//  --------------------------------------------
+				//  Now do the Not Faces faces
+				//  ---------------------------------------------
+				{
+					auto not_face_sitelist = block.getNotFaceList(dir);
+					auto  num_sites = not_face_sitelist.size();
+
+
+					// Get teh coarse site for writing
+					// Thiis is fixed
+					float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb,coarse_cbsite, 8);
+
+					// Do the accumulation in double
+					std::vector<double> tmp_link(n_complex*num_coarse_colorspin*num_coarse_colorspin);
+
+					// Zero the link
+					for(int row=0; row < num_coarse_colorspin; ++row) {
+						for(int col=0; col < num_coarse_colorspin; ++col) {
+							int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+							tmp_link[RE + coarse_link_index] = 0;
+							tmp_link[IM + coarse_link_index] = 0;
+
+						}
+					}
+
+					for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites); ++fine_site_idx) {
+
+						CBSite& fine_cbsite = not_face_sitelist[ fine_site_idx ];
+
+						for(int aggr_row=0; aggr_row < num_chiral; ++aggr_row) {
+							for(int aggr_col=0; aggr_col <num_chiral; ++aggr_col ) {
+
+								// This is an num_coarse_colors x num_coarse_colors matmul
+								for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
+									for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+
+										// Offset by the aggr_row and aggr_column
+										int row = aggr_row*num_coarse_colors + matmul_row;
+										int col = aggr_col*num_coarse_colors + matmul_col;
+
+										//Index in coarse link
+										int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
+
+										// Inner product loop
+										for(int k=0; k < num_spincolor_per_chiral; ++k) {
+
+
+											// [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
+											// [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
+											//
+											// NB: V^H_upper always multiplies an 'upper' (either A_upper or B_upper)
+											//     V^H_lower always multiplies a 'lower' (either A_lower or B_lower)
+											//
+											// So there is no mixing of spins (ie: V^H_upper with B_lower etc)
+											// So spins are decided by which portion of V^H we use, ie on aggr_row
+											//
+											// k / Nc maps to spin_component 0 or 1 in the aggregation
+											// aggr_row*(Ns/2) offsets it to either upper or lower
+											//
+											int sc=k+aggr_row*num_spincolor_per_chiral;
+
+											// Right vector
+											//float right_r = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).real());
+											//float right_i = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).imag());
+											const float* right_vector_data = out_vecs[col]->GetSiteDataPtr(fine_cbsite.cb,fine_cbsite.site);
+											const float right_r = right_vector_data[RE + sc*n_complex];
+											const float right_i = right_vector_data[IM + sc*n_complex];
+
+											// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
+											//
+											// ie a compact storage
+											// rather than:
+											//
+											// [ V^H_upper   0      ]
+											// [  0       V^H_lower ]
+											//
+											// so index with row % num_coarse_colors = matmul_row
+											// float left_r = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).real());
+											// float left_i = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).imag());
+											const float* left_vector_data = in_vecs[matmul_row]->GetSiteDataPtr(fine_cbsite.cb, fine_cbsite.site);
+											const float left_r = left_vector_data[RE + sc*n_complex] ;
+											const float left_i = left_vector_data[IM + sc*n_complex] ;
+
+											// Accumulate inner product V^H_row A_column
+											tmp_link[RE + coarse_link_index ] += (double)(left_r*right_r + left_i*right_i);
+											tmp_link[IM + coarse_link_index ] += (double)(left_r*right_i - right_r*left_i);
+										} // k
+									} // matmul_col
+								} // matmul_row
+							} // aggr_col
+						} // aggr_row
+					} // fine_site_idx
+
+					for(int row=0; row < num_coarse_colorspin; ++row) {
+						for(int col=0; col < num_coarse_colorspin; ++col) {
+							int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+							coarse_link[RE + coarse_link_index ] += (float)( tmp_link[RE + coarse_link_index] );
+							coarse_link[IM + coarse_link_index ] += (float)( tmp_link[IM + coarse_link_index ] );
+
+						} // rows
+					} // cols
+				}
 
 		} // coarse_cbsite
 	} // coarse_cb
@@ -621,14 +737,16 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 //! Coarsen the clover term (1 block = 1 site )
 void clovTripleProduct(const CoarseDiracOp& D_op,
 		const std::vector<Block>& blocklist,
-		const CoarseClover& fine_clov,
+		const CoarseGauge& fine_gauge_clov,
 		const std::vector<std::shared_ptr<CoarseSpinor> >& in_fine_vecs,
-		CoarseClover& coarse_clov)
+		CoarseGauge& coarse_gauge_clov)
 {
 	// Clover Triple product in here
-	const IndexType num_coarse_colors = coarse_clov.GetNumColor();
-	const IndexType num_chiral_components = coarse_clov.GetNumChiral();
-	const LatticeInfo& coarse_info = coarse_clov.GetInfo();
+	const IndexType num_coarse_colors = coarse_gauge_clov.GetNumColor();
+	const IndexType num_coarse_colorspin = coarse_gauge_clov.GetNumColorSpin();
+
+	const IndexType num_chiral_components = 2;
+	const LatticeInfo& coarse_info = coarse_gauge_clov.GetInfo();
 	const IndexType num_coarse_cbsites = coarse_info.GetNumCBSites();
 
 	// in vecs has size num_coarse_colors = Ncolorspin_c/2
@@ -643,7 +761,7 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 	const int num_fine_colors = fine_info.GetNumColors();
 	const int num_fine_spins = fine_info.GetNumSpins();
 
-	const int n_per_chiral = (num_fine_spins == 4 ) ? 2*num_fine_colors : num_fine_colors;
+	const int num_spincolor_per_chiral = (num_fine_spins == 4 ) ? 2*num_fine_colors : num_fine_colors;
 
 	// out_vecs is the result of applying clover term to in_vecs
 	// NOTE!!!: Unlike with Dslash where (1 +/- gamma_mu) mixes the upper and lower spin components
@@ -653,31 +771,29 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 	// clover_term applied to the upper components while the lower components will hold the results of
 	// clover_term applied to the lower components in the same way in_vector combines upper and lower
 	// components.
-	std::vector<std::shared_ptr<CoarseSpinor>> out_vecs(num_coarse_colors);
+	std::vector<std::shared_ptr<CoarseSpinor>> out_vecs(num_coarse_colorspin);
 
 	// Zero the output
-	for (int j = 0; j < num_coarse_colors; ++j) {
+	for (int j = 0; j < num_coarse_colorspin; ++j) {
 		out_vecs[j] = std::make_shared<CoarseSpinor>(fine_info);
 		ZeroVec(*(out_vecs[j]));
 	}
 
-	// for each in-vector pull out respectively the lower and upper spins
-	// multiply by clover and store in out_vecs. There will be num_coarse_colors*num_chiral_components output
-	// vectors
 	for (int j = 0; j < num_coarse_colors; ++j) {
+		for(int chiral =0; chiral < num_chiral_components; ++chiral ) {
 
-		// Clover term is block diagonal
-		// So I can apply it once, the upper and lower spin components will
-		// be acted on independently. No need to separate the aggregates before
-		// applying
-		CoarseSpinor tmp(fine_info);
+			// Extract the chiral component into a temporary
+			CoarseSpinor tmp(fine_info);
+			ZeroVec(tmp);
+			extractAggregate(tmp, *(in_fine_vecs[j]), chiral);
 
+			// Apply the clover term. This is n_colorspin x n_colorspin
 #pragma omp parallel
-		{
-			int tid = omp_get_thread_num();
-			for (int cb = 0; cb < 2; ++cb) {
-				D_op.CloverApply(*(out_vecs[j]), fine_clov, *(in_fine_vecs[j]),
-						cb, LINOP_OP, tid);
+			{
+				int tid = omp_get_thread_num();
+				for (int cb = 0; cb < 2; ++cb) {
+					D_op.CloverApply(*(out_vecs[j+chiral*num_coarse_colors]), fine_gauge_clov, tmp, cb, LINOP_OP, tid);
+				}
 			}
 		}
 
@@ -688,106 +804,92 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 		for (int coarse_cbsite = 0; coarse_cbsite < num_coarse_cbsites;
 				++coarse_cbsite) {
 
+
+			// Convert the CB site into a block index
 			int block_idx = coarse_cbsite + coarse_cb * num_coarse_cbsites;
-
 			const Block& block = blocklist[block_idx];
-			auto block_sitelist = block.getCBSiteList();
-			auto num_block_sites = block.getNumSites();
 
-			// Zero out both chiral blocks of the result
-			for (int chiral = 0; chiral < num_chiral_components; ++chiral) {
-				// This is now an Ncomplex*num_coarse_colors x Ncomplex*num_coarse_colors
-				float *coarse_clov_data = coarse_clov.GetSiteChiralDataPtr(
-						coarse_cb, coarse_cbsite, chiral);
+			// Get the sitelist in the block (all sites)
+			auto fine_sitelist = block.getCBSiteList();
+			auto num_fine_sites = block.getNumSites();
 
-				// Zero the link
-				for (int row = 0; row < num_coarse_colors; ++row) {
-					for (int col = 0; col < num_coarse_colors; ++col) {
-						int coarse_clov_index = n_complex
-								* (col + num_coarse_colors * row);
-						coarse_clov_data[RE + coarse_clov_index] = 0;
-						coarse_clov_data[IM + coarse_clov_index] = 0;
 
-					}
-				}
+			// Get the coarse clover -- this is the 'local' (dir=8) of the gauge field
+			// Which is an N_colorspin x N_colorspin
+			// Matrix. Caller must initialize this as both the Dslash Dir and this function
+			// write into it.
+			float *coarse_clov_data = coarse_gauge_clov.GetSiteDirDataPtr(coarse_cb, coarse_cbsite, 8);
+
+			// Accumulate into a temporary and zero that out
+			std::vector<double> tmp_result(n_complex*num_coarse_colorspin*num_coarse_colorspin);
+			for(int j=0; j < n_complex*num_coarse_colorspin*num_coarse_colorspin; ++j) {
+				tmp_result[j]=(double)0;
 			}
 
-			for (IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_block_sites);
-					++fine_site_idx) {
-				const CBSite& cbsite = block_sitelist[fine_site_idx];
+			for (IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_fine_sites);
+							++fine_site_idx) {
 
-				for (int chiral = 0; chiral < num_chiral_components; ++chiral) {
+				auto fine_site = fine_sitelist[fine_site_idx];
 
-					// This is now an Ncomplex*num_coarse_colors x Ncomplex*num_coarse_colors
-					float *coarse_clov_data = coarse_clov.GetSiteChiralDataPtr(
-							coarse_cb, coarse_cbsite, chiral);
+				for(int aggr_row=0; aggr_row < num_chiral_components; ++aggr_row) {
+					for(int aggr_col=0; aggr_col <num_chiral_components; ++aggr_col ) {
 
-					// This is an num_coarse_colors x num_coarse_colors matmul
-					for (int matmul_row = 0; matmul_row < num_coarse_colors;
-							++matmul_row) {
+						// This is an num_coarse_colors x num_coarse_colors matmul
+						for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
+							for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
 
-						float* invecs_site_data =
-								in_fine_vecs[matmul_row]->GetSiteDataPtr(
-										cbsite.cb, cbsite.site);
+								// Offset by the aggr_row and aggr_column
+								int row = aggr_row*num_coarse_colors + matmul_row;
+								int col = aggr_col*num_coarse_colors + matmul_col;
 
-						for (int matmul_col = 0; matmul_col < num_coarse_colors;
-								++matmul_col) {
+								//Index in coarse link
+								int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
 
-							//Index in coarse link
-							int coarse_clov_index = n_complex
-									* (matmul_col
-											+ num_coarse_colors * matmul_row);
-							float* outvecs_site_data =
-									out_vecs[matmul_col]->GetSiteDataPtr(
-											cbsite.cb, cbsite.site);
+								// Inner product loop
+								for(int k=0; k < num_spincolor_per_chiral; ++k) {
 
-							// Inner product loop
-							for (int k = 0; k < n_per_chiral; ++k) {
+									int sc=k+aggr_row*num_spincolor_per_chiral;
 
-								// [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
-								// [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
-								//
-								// But
-								//  [ A_upper B_upper ] = [ Clov_upper      0      ] [ V_upper        0    ] = [ A_upper    0    ]
-								//  [ A_lower B_lower ]   [      0      Clov_lower ] [    0       V_lower  ]   [   0     B_lower ]
-								//
-								// So really I need to just evaluate:  V^H_upper A_upper and V^H_lower B_lower
-								//
-								//
-								int fine_colorspin = k
-										+ n_per_chiral * chiral;
+									const float* right_vector_data = out_vecs[col]->GetSiteDataPtr(fine_site.cb,fine_site.site);
+									const float right_r = right_vector_data[RE + sc*n_complex];
+									const float right_i = right_vector_data[IM + sc*n_complex];
 
-								REAL64 right_r = outvecs_site_data[RE
-																   + n_complex * fine_colorspin];
-								REAL64 right_i = outvecs_site_data[IM
-																   + n_complex * fine_colorspin];
+									// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
+									//
+									// ie a compact storage
+									// rather than:
+									//
+									// [ V^H_upper   0      ]
+									// [  0       V^H_lower ]
+									//
+									// so index with row % num_coarse_colors = matmul_row
+									//float left_r = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).real());
+									//float left_i = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).imag());
+									const float* left_vector_data = in_fine_vecs[matmul_row]->GetSiteDataPtr(fine_site.cb, fine_site.site);
+									const float left_r = left_vector_data[ RE + sc*n_complex];
+									const float left_i = left_vector_data[ IM + sc*n_complex];
 
-								// Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
-								//
-								// ie a compact storage
-								// rather than:
-								//
-								// [ V^H_upper   0      ]
-								// [	  0       V^H_lower ]
-								//
-								// so index with row % num_coarse_colors = matmul_row
-								REAL64 left_r = invecs_site_data[RE
-																 + n_complex * fine_colorspin];
-								REAL64 left_i = invecs_site_data[IM
-																 + n_complex * fine_colorspin];
-								// Accumulate inner product V^H_row A_column
-								coarse_clov_data[RE + coarse_clov_index] +=
-										left_r * right_r + left_i * right_i;
-								coarse_clov_data[IM + coarse_clov_index] +=
-										left_r * right_i - right_r * left_i;
-							}								// k
+									// Accumulate inner product V^H_row A_column
+									tmp_result[RE + coarse_link_index ] += (double)(left_r*right_r + left_i*right_i);
+									tmp_result[IM + coarse_link_index ] += (double)(left_r*right_i - right_r*left_i);
+								} // k
 
-						} // matmul col
-					} // matmul row
+							} // matmul_col
+						} // matmul_row
+					} // aggr_col
+				} // aggr_row
+			}// fine site idx
 
-				} // chiral
+			for(int row=0; row < num_coarse_colorspin; ++row) {
+				for(int col=0; col < num_coarse_colorspin; ++col) {
+					int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+					coarse_clov_data[RE + coarse_link_index ] += (float)( tmp_result[RE + coarse_link_index] );
+					coarse_clov_data[IM + coarse_link_index ] += (float)( tmp_result[IM + coarse_link_index ] );
 
-			} // fine_site_idx
+				} // rows
+			} // cols
+
+
 		} // coarse_site
 	} // coarse_cb
 }

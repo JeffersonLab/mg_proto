@@ -79,6 +79,11 @@ public:
 	}
 
 	inline
+	IndexType GetNumColorSpins() const {
+		return _n_spin*_n_color;
+	}
+
+	inline
 	IndexType GetNumCBSites() const {
 		return _n_cb_sites;
 	}

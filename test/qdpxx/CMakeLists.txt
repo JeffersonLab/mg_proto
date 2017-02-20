@@ -12,6 +12,9 @@ target_compile_options(mg_test PUBLIC ${EXT_CXXFLAGS})
 add_executable(test_qdpxx test_qdpxx.cpp)
 target_link_libraries(test_qdpxx  qdpxx_helpers mg gtest_all mg_test ${EXT_LIBS})
 
+add_executable(test_blocking test_blocking.cpp)
+target_link_libraries(test_blocking  qdpxx_helpers mg gtest_all mg_test ${EXT_LIBS})
+
 add_executable(test_coarse_qdpxx test_coarse_qdpxx.cpp)
 target_link_libraries(test_coarse_qdpxx  qdpxx_helpers test_aggregation mg gtest_all mg_test ${EXT_LIBS})
 

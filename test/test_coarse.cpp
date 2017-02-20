@@ -37,7 +37,6 @@ TEST(CoarseDslash, TestSpeed)
 	CoarseSpinor x_spinor(linfo);
 	CoarseSpinor y_spinor(linfo);
 	CoarseGauge gauge(linfo);
-	CoarseClover clov(linfo);
 
 	const int N_iter =100;
 	const int n_smt= 1 ;
@@ -70,31 +69,36 @@ TEST(CoarseDslash, TestSpeed)
 			}
 
 			for(int dir=0; dir < 8; ++dir) {
-				for(int col=0; col < N; col++) {
-									for(int row=0; row < n_complex*N; ++row) {
-										gauge.GetSiteDirDataPtr(0,site,dir)[ row + n_complex*N*col ] = 0.23;
-										gauge.GetSiteDirDataPtr(1,site,dir)[ row + n_complex*N*col ] = 0.23;
-									}
-								}
-			}
+				for(int row=0; row < n_complex*N; ++row) {
+					for(int col=0; col < N; col++) {
 
-			for(int col=0; col < N/2; col++) {
-				for(int row=0; row < (N/2); ++row) {
-					for(int z=0; z < n_complex; ++z ) {
-
-						clov.GetSiteChiralDataPtr(0,site,0)[ z + n_complex*(row + (N/2)*col) ] = 0.23;
-						clov.GetSiteChiralDataPtr(0,site,1)[ z + n_complex*(row + (N/2)*col)   ] = 0.12;
-
+						gauge.GetSiteDirDataPtr(0,site,dir)[ col + n_complex*N*row ] = 0.23;
+						gauge.GetSiteDirDataPtr(1,site,dir)[ col + n_complex*N*row ] = 0.23;
 					}
 				}
 			}
 
-			for(int col=0; col < (N/2); col++) {
-				for(int row=0; row < (N/2); ++row) {
+			for(int row=0; row < (N/2); ++row) {
+				for(int col=0; col < N; col++) {
 					for(int z=0; z < n_complex; ++z ) {
 
-						clov.GetSiteChiralDataPtr(1,site,0)[ z + n_complex*(row + (N/2)*col) ] = 0.23;
-						clov.GetSiteChiralDataPtr(1,site,1)[ z + n_complex*(row + (N/2)*col)   ] = 0.12;
+						// CB=0 Chiral up
+						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
+						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
+
+						// CB=0 Chiral down
+						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
+						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
+
+						// CB=1 Chiral up
+						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
+						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
+
+						// CB=1 Chiral down
+						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
+						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
+
+
 
 					}
 				}
@@ -110,7 +114,7 @@ TEST(CoarseDslash, TestSpeed)
 		double start_time = omp_get_wtime();
 
 		for(int iter = 0; iter < N_iter; ++iter) {
-			D(y_spinor,gauge,clov,x_spinor,0,LINOP_OP,tid);
+			D(y_spinor,gauge,x_spinor,0,LINOP_OP,tid);
 		} // iter
 
 		double end_time = omp_get_wtime();

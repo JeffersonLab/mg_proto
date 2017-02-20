@@ -319,7 +319,7 @@ TEST(TestCoarseCoarse, TestCoarseDslashDir2)
 	{
 		int tid = omp_get_thread_num();
 		for(int cb=0; cb < n_checkerboard; ++cb) {
-			D_op_coarse.Dslash(coarse_d_out, u_coarse, v_c, cb, LINOP_OP, tid);
+			D_op_coarse(coarse_d_out, u_coarse, v_c, cb, LINOP_OP, tid);
 		}
 	}
 
@@ -445,13 +445,12 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 			int block = block_cbsite + block_cb*info.GetNumCBSites();
 
 			auto sitelist = coarse_blocks[block].getCBSiteList();
-			auto otherlist = coarse_blocks[block].getSiteList();
 
 			// I'd like this blocklist to be identical to the other blocklist;
 			for(int blocksite = 0; blocksite < sitelist.size(); ++blocksite ) {
 				CBSite& cbsite = sitelist[blocksite];
-				MasterLog(INFO, "Block cb=%d block_cbsite=%d cb=%d site=%d fullsite=%d",
-						block_cb, block_cbsite, cbsite.cb, cbsite.site, otherlist[blocksite]);
+				MasterLog(INFO, "Block cb=%d block_cbsite=%d cb=%d site=%d",
+						block_cb, block_cbsite, cbsite.cb, cbsite.site);
 			}
 
 		}
@@ -538,13 +537,13 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 #pragma omp parallel
 		{
 			int tid = omp_get_thread_num();
-				D_op_coarse.Dslash(D_c_psi, u_coarse, psi, cb,op, tid );
+				D_op_coarse(D_c_psi, u_coarse, psi, cb,op, tid );
 		}
 
 #pragma omp parallel
 		{
 			int tid = omp_get_thread_num();
-				D_op_coarse_coarse.Dslash(D_cc_psi, u_coarse_coarse, psi, cb, op, tid);
+				D_op_coarse_coarse(D_cc_psi, u_coarse_coarse, psi, cb, op, tid);
 		}
 		} // cb
 
@@ -605,7 +604,8 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductCloverEyeTrivial)
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
-	CoarseClover coarse_clover(info);
+	CoarseGauge coarse_clover(info);
+	ZeroGauge(coarse_clover);
 
 	// Now need to make a clover op
 	CloverFermActParams clparam;
@@ -661,8 +661,8 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductCloverEyeTrivial)
 
 
 	LatticeInfo coarse_coarse_info(blocked_coarse_lattice_dims,2,6,NodeInfo());
-	CoarseClover coarse_coarse_clover(coarse_coarse_info);
-
+	CoarseGauge coarse_coarse_clover(coarse_coarse_info);
+	ZeroGauge(coarse_coarse_clover);
 
 	QDPIO::cout << "Attempting Coarse-Coarse Triple Product in direction: " << std::endl;
 	clovTripleProduct(D_op_coarse,
@@ -676,11 +676,11 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductCloverEyeTrivial)
 		for(int site = 0; site < info.GetNumCBSites(); ++site) {
 			for(int chiral=0; chiral < 2; ++chiral) {
 
-				const float* clov_orig = coarse_clover.GetSiteChiralDataPtr(cb,site,chiral);
-				const float* clov_new = coarse_coarse_clover.GetSiteChiralDataPtr(cb,site,chiral);
+				const float* clov_orig = coarse_clover.GetSiteDirDataPtr(cb,site,8);
+				const float* clov_new = coarse_coarse_clover.GetSiteDirDataPtr(cb,site,8);
 
-				int num_color=info.GetNumColors();
-				for(int j=0; j < num_color*num_color; ++j) {
+				int num_colorspin=info.GetNumColorSpins();
+				for(int j=0; j < num_colorspin*num_colorspin; ++j) {
 					double diff_re = std::fabs( clov_orig[RE+n_complex*j] - clov_new[RE+n_complex*j]);
 					double diff_im = std::fabs( clov_orig[IM+n_complex*j] - clov_new[IM+n_complex*j]);
 
@@ -865,7 +865,7 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 	// Next step should be to copy this into the fields needed for gauge and clover ops
 	LatticeInfo info(blocked_lattice_dims, 2, N_color_1, NodeInfo());
 	CoarseGauge u_coarse(info);
-	CoarseClover clov_coarse(info);
+	ZeroGauge(u_coarse);
 
 	// Generate the triple products directly into the u_coarse
 	for(int mu=0; mu < 8; ++mu) {
@@ -874,7 +874,7 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 	}
 
 	QDPIO::cout << "Creating Level 1 Coarse Clover Field " << std::endl;
-	clovTripleProductQDPXX(my_blocks, clov_qdp, vecs, clov_coarse);
+	clovTripleProductQDPXX(my_blocks, clov_qdp, vecs, u_coarse);
 
 	LatticeFermion psi;
 	gaussian(psi);
@@ -893,7 +893,7 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 #pragma omp parallel
 		{
 			int tid=omp_get_thread_num();
-			Dc_op.Dslash(Dc_Rpsi, u_coarse, Rpsi, cb, LINOP_OP, tid);
+			Dc_op(Dc_Rpsi, u_coarse, Rpsi, cb, LINOP_OP, tid);
 		}
 	}
 	QDPIO::cout << "Applying Fake Op" << std::endl;

@@ -71,19 +71,18 @@ TEST(TestLattice, CoarseLinOpRandomNullVecs)
 
 	// Create the blocked Clover and Gauge Fields
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
-	CoarseClover clov_coarse(info);
 	CoarseGauge u_coarse(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
-	M.generateCoarseClover(my_blocks,vecs, clov_coarse);
-	M.generateCoarseGauge(my_blocks,vecs, u_coarse);
+	M.generateCoarse(my_blocks,vecs, u_coarse);
+
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, &clov_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
 
 	// Now need to do the coarse test
 	LatticeFermion psi_in,tmp1,tmp2;
@@ -160,19 +159,16 @@ TEST(TestLattice, CoarseLinOpFGMRESInvTrivial)
 
 	// Create the blocked Clover and Gauge Fields
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
-	CoarseClover clov_coarse(info);
-	CoarseGauge u_coarse(info);
 
-	// Coarsen M to compute the coarsened Gauge and Clover fields
-	M.generateCoarseClover(my_blocks,vecs, clov_coarse);
-	M.generateCoarseGauge(my_blocks,vecs, u_coarse);
+	CoarseGauge u_coarse(info);
+	M.generateCoarse(my_blocks,vecs, u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, &clov_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
 
 	// Now need to do the coarse test
 	LatticeFermion psi_in,tmp1,tmp2;
@@ -279,19 +275,19 @@ TEST(TestLattice, CoarseLinOpFGMRESInvBlocked)
 
 	// Create the blocked Clover and Gauge Fields
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
-	CoarseClover clov_coarse(info);
+
 	CoarseGauge u_coarse(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
-	M.generateCoarseClover(my_blocks,vecs, clov_coarse);
-	M.generateCoarseGauge(my_blocks,vecs, u_coarse);
+
+	M.generateCoarse(my_blocks,vecs, u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, &clov_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
 
 	// Now need to do the coarse test
 	LatticeFermion psi_in,tmp1,tmp2;

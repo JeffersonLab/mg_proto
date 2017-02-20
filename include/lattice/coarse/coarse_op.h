@@ -30,26 +30,19 @@ public:
 	 */
 
 	void operator()(CoarseSpinor& spinor_out,
-			const CoarseGauge& gauge_in,
-			const CoarseClover& clover_in,
+			const CoarseGauge& gauge_clov_in,
 			const CoarseSpinor& spinor_in,
 			const IndexType target_cb,
 			const IndexType dagger,
 			const IndexType tid) const;
 
 	void CloverApply(CoarseSpinor& spinor_out,
-				const CoarseClover& clov_in,
+				const CoarseGauge& gauge_clov_in,
 				const CoarseSpinor& spinor_in,
 				const IndexType target_cb,
 				const IndexType dagger,
 				const IndexType tid) const;
 
-	void Dslash(CoarseSpinor& spinor_out,
-				const CoarseGauge& gauge_in,
-				const CoarseSpinor& spinor_in,
-				const IndexType target_cb,
-				const IndexType dagger,
-				const IndexType tid) const;
 
 	void DslashDir(CoarseSpinor& spinor_out,
 					const CoarseGauge& gauge_in,
@@ -58,26 +51,19 @@ public:
 					const IndexType dir,
 					const IndexType tid) const;
 
-	void siteApplyDslash( float *output,
-			  	  	  	  	 	 const float* gauge_links[8],
+	void siteApplyDslash( float* output,
+			  	  	  	  	 	 const float* gauge_links[9],
 								 const float* spinor_cb,
 								 const float* neigh_spinors[8],
 								 const IndexType dagger) const;
 
 
 
-	void siteApply( float *output,
-			  	  	  	  	 	 const float* gauge_links[8],
-								 const float* clover_cb_0,
-								 const float* clover_cb_1,
-								 const float* spinor_cb,
-								 const float* neigh_spinors[8],
-								 const IndexType dagger ) const ;
 
-	void siteApplyClover( float *output,
-						  const float* clover_chiral_0,
-						  const float* clover_chiral_1,
-						  const float *input,
+
+	void siteApplyClover( float* output,
+						  const float* clover,
+						  const float* input,
 						  const IndexType dagger) const ;
 
 

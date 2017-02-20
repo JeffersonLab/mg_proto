@@ -30,248 +30,8 @@ using namespace MGTesting;
 using namespace QDP;
 
 
+#include <iostream>
 
-
-
-
-// Test I can create an uninitialized block
-TEST(TestBlocking, TestBlockConstruction )
-{
-	Block b;
-	ASSERT_FALSE( b.isCreated()  );
-	ASSERT_EQ( b.getNumSites() , 0);
-	auto uninitialized_site_list = b.getSiteList();
-	ASSERT_EQ( uninitialized_site_list.size() , 0 );
-	ASSERT_TRUE( uninitialized_site_list.empty() );
-}
-
-// Test I can create a single block which is the whole lattice
-TEST(TestBlocking, TestBlockCreateTrivialSingleBlock )
-{
-	Block b;
-	IndexArray block_dims = {{2,2,2,2}};
-	IndexArray local_origin = {{0,0,0,0}};
-	IndexArray local_lattice_dims = {{2,2,2,2}};
-	IndexArray node_orig=NodeInfo().NodeCoords();
-	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
-	b.create(local_lattice_dims,local_origin, block_dims, node_orig);
-
-
-	ASSERT_TRUE( b.isCreated() );
-	ASSERT_EQ( b.getNumSites() , 16 );
-	auto block_sites = b.getSiteList();
-
-	// This is a loop in a single block.
-	// this is not further checkerboarded at the moment...
-	for( IndexType i=0; i < block_sites.size(); ++i) {
-		// This is a trivial example expect block_site[i] to map to lattice site[i];
-		ASSERT_EQ(i , block_sites[i] );
-	}
-}
-
-// Test I can create a single subblock
-TEST(TestBlocking, TestBlockCreateSingleBlock )
-{
-	Block b;
-	IndexArray block_dims = {{2,2,2,2}};
-	IndexArray local_origin = {{0,0,2,2}};
-	IndexArray local_lattice_dims = {{4,4,4,4}};
-
-	initQDPXXLattice(local_lattice_dims); // Give me access to site tables
-
-	IndexArray node_orig=NodeInfo().NodeCoords();
-	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
-
-	b.create(local_lattice_dims,local_origin, block_dims,node_orig);
-
-	ASSERT_TRUE( b.isCreated() );
-	ASSERT_EQ( b.getNumSites() , 16 );
-
-	auto block_sites = b.getSiteList();
-	auto block_cbsites = b.getCBSiteList();
-
-	ASSERT_EQ( block_sites.size(), block_cbsites.size());
-
-	IndexType num_local_lattice_cb_sites = (local_lattice_dims[0]*local_lattice_dims[1]*local_lattice_dims[2]*local_lattice_dims[3])/2;
-
-	// Go through all the blocks
-	for( unsigned int i=0; i < block_sites.size(); ++i) {
-
-		// Convert block_idx to coordinates
-		IndexArray block_coords = {{0,0,0,0}};
-		IndexToCoords(i,block_dims,block_coords);
-
-		// Now offset these coords by the local origin, to get coords in local lattice
-		for(int mu=0; mu < n_dim;++mu ) block_coords[mu] += local_origin[mu];
-
-
-		// Convert lattice Coordinates back to a lattice site index
-		IndexType lattice_idx = CoordsToIndex(block_coords, local_lattice_dims);
-
-		// the site_index thus computed should be part of the block site list
-		ASSERT_EQ( block_sites[i], lattice_idx);
-
-		int cb = lattice_idx/ num_local_lattice_cb_sites;
-		int cbsite = lattice_idx % num_local_lattice_cb_sites;
-
-		ASSERT_EQ( block_cbsites[i].cb, cb);
-		ASSERT_EQ( block_cbsites[i].site, cbsite);
-
-
-
-	}
-}
-
-TEST(TestBlocking, TestBlockCreateBadOriginDeath )
-{
-
-	Block b;
-		IndexArray block_dims = {{2,2,2,2}};
-		IndexArray local_origin = {{0,0,3,3}};
-		IndexArray local_lattice_dims = {{4,4,4,4}};
-		IndexArray local_latt_origin = {{0,0,0,0}};
-	EXPECT_EXIT( b.create(local_lattice_dims,local_origin, block_dims,local_latt_origin) ,
-			::testing::KilledBySignal(SIGABRT), "Assertion failed:*");
-
-
-}
-
-TEST(TestBlocking, TestBlockCreateBadOriginNegativeDeath )
-{
-
-	Block b;
-		IndexArray block_dims = {{2,2,2,2}};
-		IndexArray local_origin = {{0,0,-1,0}};
-		IndexArray local_lattice_dims = {{4,4,4,4}};
-		IndexArray local_latt_origin = {{0,0,0,0}};
-		EXPECT_EXIT( b.create(local_lattice_dims,local_origin, block_dims,local_latt_origin) ,
-				::testing::KilledBySignal(SIGABRT), "Assertion failed:*");
-
-}
-
-TEST(TestBlocking, TestCreateBlockList)
-{
-	using BlockList = std::vector<Block>;
-
-	BlockList my_blocks;
-	IndexArray local_lattice_dims = {{4,4,4,4}};
-	IndexArray block_dims = {{2,2,2,2}};
-	IndexArray blocked_lattice_dims;
-	IndexArray node_orig=NodeInfo().NodeCoords();
-	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
-
-	CreateBlockList(my_blocks,blocked_lattice_dims,local_lattice_dims,block_dims,node_orig);
-
-	// Get checkerboarded dims
-	IndexArray blocked_lattice_cbdims(blocked_lattice_dims);
-	blocked_lattice_cbdims[0]/=2;
-	unsigned int num_cb_blocks = my_blocks.size()/n_checkerboard;
-
-	ASSERT_EQ( my_blocks.size(), 16);
-	ASSERT_EQ( blocked_lattice_dims[0],2);
-	ASSERT_EQ( blocked_lattice_dims[1],2);
-	ASSERT_EQ( blocked_lattice_dims[2],2);
-	ASSERT_EQ( blocked_lattice_dims[3],2);
-
-	// Check that for all blocks the sites are the same as if I'd just created them
-	for(unsigned int block_cb=0; block_cb < n_checkerboard; ++block_cb) {
-		for( unsigned int block_cbsite=0; block_cbsite < num_cb_blocks; ++block_cbsite ) {
-
-			// Get an index into the list of blocks
-			unsigned int block_idx = block_cbsite + block_cb*num_cb_blocks;
-
-			// Get the coordinate of this block
-			IndexArray block_coord;
-			IndexToCoords(block_idx, blocked_lattice_dims, block_coord);
-
-			// Convert coordinate to origin;
-			IndexArray block_origin(block_coord);
-			for(int mu=0; mu < n_dim; ++mu)  block_origin[mu] *= block_dims[mu];
-
-			// Manually make the block to compare
-			Block compare; compare.create(local_lattice_dims, block_origin, block_dims, node_orig);
-
-			// This is what CreateBlockList created
-			Block& from_list = my_blocks[block_idx];
-
-			// Now compare stuff
-			ASSERT_TRUE( from_list.isCreated() );
-			ASSERT_TRUE( compare.isCreated() );
-
-
-			auto compare_sitelist = compare.getSiteList();
-			auto from_list_sitelist = from_list.getSiteList();
-
-#if 0
-			std::cout << "Block: "<< block_idx << std::endl;
-			std::cout << " \t sites from blocklist[block_idx] = { " <<std::endl;
-			for(unsigned int i=0; i < from_list_sitelist.size(); ++i) {
-				std::cout << from_list_sitelist[i] << " " ;
-			}
-			std::cout << "} " << std::endl;
-			std::cout << " \t sites from compare sitelist     = { " <<std::endl;
-			for(unsigned int i=0; i < from_list_sitelist.size(); ++i) {
-				std::cout << from_list_sitelist[i] << " " ;
-			}
-			std::cout << "} " << std::endl;
-#endif
-			for(unsigned int i=0; i < from_list_sitelist.size(); ++i) {
-				ASSERT_EQ( from_list_sitelist[i], compare_sitelist[i]);
-			}
-		}
-	}
-}
-
-TEST(TestBlocking, TestBlockListCBOrdering)
-{
-	using BlockList = std::vector<Block>;
-
-	BlockList my_blocks;
-	IndexArray local_lattice_dims = {{2,2,2,2}};
-	initQDPXXLattice(local_lattice_dims);
-	IndexArray block_dims = {{1,1,1,1}};
-	IndexArray blocked_lattice_dims;
-	IndexArray node_orig=NodeInfo().NodeCoords();
-	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
-
-	// Create the blocked list etc
-	CreateBlockList(my_blocks,blocked_lattice_dims,local_lattice_dims,block_dims,node_orig);
-
-	ASSERT_EQ( my_blocks.size(), 16);
-	ASSERT_EQ( blocked_lattice_dims[0],2);
-	ASSERT_EQ( blocked_lattice_dims[1],2);
-	ASSERT_EQ( blocked_lattice_dims[2],2);
-	ASSERT_EQ( blocked_lattice_dims[3],2);
-
-	// Get the number of sites in a checkerboard
-	IndexType block_cbsize=my_blocks.size()/n_checkerboard;
-
-	// loop through sites
-	for(IndexType cb =  0; cb < n_checkerboard; ++cb ) {
-		const int* site_table = rb[cb].siteTable().slice();
-
-		for(IndexType cbsite = 0; cbsite < block_cbsize; ++cbsite) {
-			// get the 'coarse site'
-			int block_idx = cbsite + cb*block_cbsize;
-
-			// get the list of sites in the block. There should be only
-			// one site in the block
-			auto blocklist = my_blocks[block_idx].getSiteList();
-			ASSERT_EQ( blocklist.size(), 1);
-
-#if 0
-			QDPIO::cout << "cb=" << cb << " cbsite=" << cbsite << " block_idx=" << block_idx << " ";
-			QDPIO::cout << " blocklist_size=" << blocklist.size() << " blocklist[0]=" << blocklist[0]
-							<< " rb[cb][cbsite]=" << site_table[cbsite] << std::endl << std::flush;
-#endif
-
-			// That site should have the same index as my current blocksite
-			// since each coarse site should be the same as the fine site.
-			ASSERT_EQ( block_idx, blocklist[0]) ;
-		}
-	}
-
-}
 
 
 TEST(TestCoarseQDPXXBlock, TestBlockOrthogonalize)
@@ -341,6 +101,75 @@ TEST(TestCoarseQDPXXBlock, TestBlockOrthogonalize)
 
 }
 
+#if 0
+TEST(TestCoarseQDPXXBlock, TestBlockOrthogonalize8)
+{
+	IndexArray latdims={{8,8,8,8}};   // Fine lattice. Make it 4x4x4x4 so we can block it
+	IndexArray blockdims = {{2,2,2,2}};
+
+	initQDPXXLattice(latdims);
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+
+	// 2) Create the test vectors
+	multi1d<LatticeFermion> vecs(6);
+	for(int vec=0; vec < 6; ++vec) {
+			gaussian(vecs[vec]);
+	}
+
+	// Orthonormalize -- do it twice just to make sure
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	for(int block_idx=0; block_idx < my_blocks.size(); ++block_idx) {
+
+		// Check orthonormality for each block
+		const Block& block = my_blocks[block_idx];
+
+		// Check orthonormality separately for each aggregate
+		for(int aggr=0; aggr < 2; ++aggr ) {
+
+			// Check normalization:
+			for(int curr_vec = 0; curr_vec < 6; ++curr_vec) {
+
+
+				for(int test_vec = 0; test_vec < 6; ++test_vec ) {
+
+					if( test_vec != curr_vec ) {
+						MasterLog(DEBUG, "Checking inner product of pair (%d,%d), block=%d aggr=%d", curr_vec,test_vec, block_idx,aggr);
+						std::complex<double> iprod = innerProductBlockAggrQDPXX(vecs[test_vec],vecs[curr_vec],block, aggr);
+						ASSERT_NEAR( real(iprod), 0, 1.0e-15);
+						ASSERT_NEAR( imag(iprod), 0, 1.0e-15);
+
+					}
+					else {
+
+						std::complex<double> iprod = innerProductBlockAggrQDPXX(vecs[test_vec],vecs[curr_vec], block, aggr);
+						ASSERT_NEAR( real(iprod), 1, 1.0e-15);
+						ASSERT_NEAR( imag(iprod), 0, 1.0e-15);
+
+						MasterLog(DEBUG, "Checking norm2 of vector %d block=%d aggr=%d", curr_vec, block_idx,aggr);
+						double norm = sqrt(norm2BlockAggrQDPXX(vecs[curr_vec],block,aggr));
+						ASSERT_NEAR(norm, 1, 1.0e-15);
+
+					}
+				}
+			}
+		}
+	}
+
+
+}
+#endif
+
 TEST(TestCoarseQDPXXBlock,TestOrthonormal2)
 {
 	IndexArray latdims={{2,2,2,2}};   // Fine lattice. Make it 4x4x4x4 so we can block it
@@ -382,6 +211,7 @@ TEST(TestCoarseQDPXXBlock,TestOrthonormal2)
 		ASSERT_DOUBLE_EQ( toDouble(ndiff), 0);
 	}
 }
+
 
 TEST(TestCoarseQDPXXBlock, TestRestrictorTrivial)
 {
@@ -450,6 +280,7 @@ TEST(TestCoarseQDPXXBlock, TestRestrictorTrivial)
 	}
 
 }
+
 
 TEST(TestCoarseQDPXXBlock, TestProlongatorTrivial)
 {
@@ -551,7 +382,7 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXDslashTrivial)
 	// Next step should be to copy this into the fields needed for gauge and clover ops
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseGauge u_coarse(info);
-
+	ZeroGauge(u_coarse);
 	// Generate the triple products directly into the u_coarse
 	for(int mu=0; mu < 8; ++mu) {
 		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
@@ -592,8 +423,8 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXDslashTrivial)
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
-		D_op_coarse.Dslash(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
+		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
+		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
 	}
 
 	// Export Coa            rse spinor to QDP++ spinors.
@@ -679,7 +510,9 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXClovTrivial)
 	QDPIO::cout << "Coarsening Clover" << std::endl;
 
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
-	CoarseClover c_clov(info);
+	CoarseGauge c_clov(info);
+	ZeroGauge(c_clov);
+
 	clovTripleProductQDPXX(my_blocks, clov_qdp, vecs, c_clov);
 
 	// Now create a LatticeFermion and apply both the QDP++ and the Coarse Clover
@@ -817,7 +650,9 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseClov)
 
 	QDPIO::cout << "Coarsening Clover with Triple Product to create D_c" << std::endl;
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
-	CoarseClover c_clov(info);
+	CoarseGauge c_clov(info);
+	ZeroGauge(c_clov);
+
 	clovTripleProductQDPXX(my_blocks, clov_qdp, vecs, c_clov);
 
 	for(int op = LINOP_OP; op <= LINOP_DAGGER; ++op ) {
@@ -882,9 +717,669 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseClov)
 }
 
 
-TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
+// Test against pencil and paper
+TEST(TestCoarseQDPXXBlock, TestTripleProductT1)
 {
-	IndexArray latdims={{4,4,4,4}};
+	IndexArray latdims={{2,2,2,4}};
+	IndexArray blockdims={{1,1,1,1}};
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+	initQDPXXLattice(latdims);
+
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	QDPIO::cout << "Generating Unit Gauge" << std::endl;
+
+	// Taking Unit Gauge here to remove color from the inner products.
+	// Just check spin structure for now.
+	multi1d<LatticeColorMatrix> u(Nd);
+	for(int mu=0; mu < Nd; ++mu) u[mu] = 1;
+
+	// Now I want to create 6 vectors
+	multi1d<LatticeFermion> vecs(6);
+
+	for(int k=0; k < 6; ++k) {
+		vecs[k] = zero;
+	}
+
+	// Fill out the vector that the spinors for t=0 are  [ (1 0 0), (2 0 0), (3,0,0), (4,0,0) ] on all spatial sites
+	//                                          t=1 are  [ (5,0,0), (6,0,0), (7,0,0), (8,0,0) ] on all spatial sites
+	//                                          t=2 are  [ (9,0,0), (10,0,0), (11,0,0), (12,0,0) ] on all spatial sites
+	//                                          t=3 are  [ (13,0,0), (14,0,0), (15,0,0), (16,0,0) ] on all spatial sites
+	//
+	// I.e. the number on generic t, spin is 1 + 4*t + spin
+
+
+	for(int site=0; site < all.numSiteTable(); ++site) {
+		// Get the t_coordinate of the site
+		multi1d<int> coord = Layout::siteCoords(Layout::nodeNumber(), site);
+		for(int spin=0; spin < 4; ++spin) {
+			int idx = 1 + 4*coord[3] + spin;
+			for(int k=0; k < 6; ++k) {
+				vecs[k].elem(all.start() + site).elem(spin).elem(0).real() = idx;
+			}
+		}
+	}
+
+	// Check the vectors
+	for(int t=0; t < 2; ++t) {
+		multi1d<int> coord(4);
+		coord[0]=0; coord[1]=0; coord[2]=0; coord[3]=t;
+		int site=Layout::linearSiteIndex(coord);
+		QDPIO::cout << "Coord=(0,0,0,"<<t<<") site =" << site <<  "  vec= [ " ;
+		for(int spin=0; spin < 4; ++spin) {
+			for(int color=0; color < 3; ++color ) {
+				QDPIO::cout <<" ( " << vecs[0].elem(site).elem(spin).elem(color).real() << " , " <<
+							vecs[0].elem(site).elem(spin).elem(color).imag()  <<" ) ";
+
+			}
+		}
+		QDPIO::cout << " ] " <<  std::endl;
+	}
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+
+	// Next step should be to copy this into the fields needed for gauge and clover ops
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	CoarseGauge u_coarse(info);
+	ZeroGauge(u_coarse);
+	QDPIO::cout << " Attempting Triple Product in  T+ direction (6): "<< std::endl;
+	dslashTripleProductDirQDPXX(my_blocks, 6, u, vecs, u_coarse);
+
+	// Now check the gauge links on site 0 (x,y,z,t)=0,0,0,0
+	// matrix should be
+	//     A   B
+	//     C   D
+	// where A is a 6x6 matrix  with all elements -6 and B is a matrix with all elements 4
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		for(int cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite) {
+
+
+
+			// turn cb, cbsite into coordinate:
+			IndexArray coords;
+			CBIndexToCoords(cbsite,cb, blocked_lattice_dims, coords);
+
+			int compareA = 0;
+			int compareB = 0;
+			int compareC = 0;
+			int compareD = 0;
+
+			int t=coords[3];
+			switch(t)  {
+			case 0:
+			{
+				compareA = 17;
+				compareB = -23;
+				compareC = -39;
+				compareD = 53;
+			}
+			break;
+			case 1:
+			{
+				compareA = 105;
+				compareB = -127;
+				compareC = -143;
+				compareD = 173;
+			}
+			break;
+			case 2:
+			{
+				compareA = 257;
+				compareB = -295;
+				compareC = -311;
+				compareD = 357;
+			}
+			break;
+			case 3:
+			{
+				compareA = 41;
+				compareB = -95;
+				compareC = -47;
+				compareD = 109;
+
+			}
+			break;
+			default:
+				break;
+			};
+			int num_color = info.GetNumColors();
+			int num_colorspin = 2*num_color;
+
+			// chiral row = 0; chiral col = 0;
+			float* u_coarse_data = u_coarse.GetSiteDirDataPtr(cb,cbsite,6);
+
+			for(int row=0; row < num_color; ++row) {
+				for(int col=0; col < num_color; ++col) {
+					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(col+ num_colorspin*row) ], (float)(compareA) );
+					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(col+ num_colorspin*row) ],  (float)(0));
+				}
+			}
+
+
+			for(int row=0; row < num_color; ++row) {
+				for(int col=0; col < num_color; ++col) {
+
+					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(col+ num_colorspin*(row + num_color)) ], (float)(compareC) );
+					ASSERT_FLOAT_EQ( u_coarse_data[  IM + n_complex*(col+ num_colorspin*(row + num_color)) ],  (float)(0));
+
+				}
+			}
+
+			for(int row=0; row < num_color; ++row) {
+				for(int col=0; col < num_color; ++col) {
+
+					ASSERT_FLOAT_EQ( u_coarse_data[RE + n_complex*(col+num_color + num_colorspin*row)  ], (float)(compareB) );
+					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(col+num_color + num_colorspin*row) ],  (float)(0));
+				}
+			}
+
+			for(int row=0; row < num_color; ++row) {
+				for(int col=0; col < num_color; ++col) {
+
+					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(col+num_color+ num_colorspin*(row + num_color)) ], (float)(compareD) );
+					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(col+num_color + num_colorspin*(row + num_color)) ],  (float)(0));
+				}
+			}
+
+		}
+	}
+
+}
+
+
+#if 0
+// Test against pencil and paper
+TEST(TestCoarseQDPXXBlock, TestTripleProductT2)
+{
+	IndexArray latdims={{2,2,2,4}};
+	IndexArray blockdims={{1,1,1,2}};
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+	initQDPXXLattice(latdims);
+
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	QDPIO::cout << "Generating Unit Gauge" << std::endl;
+
+	// Taking Unit Gauge here to remove color from the inner products.
+	// Just check spin structure for now.
+	multi1d<LatticeColorMatrix> u(Nd);
+	for(int mu=0; mu < Nd; ++mu) u[mu] = 1;
+
+	// Now I want to create 6 vectors
+	multi1d<LatticeFermion> vecs(6);
+
+	for(int k=0; k < 6; ++k) {
+		vecs[k] = zero;
+	}
+
+	// Fill out the vector that the spinors for t=0 are  [ (1 0 0), (2 0 0), (3,0,0), (4,0,0) ] on all spatial sites
+	//                                          t=1 are  [ (5,0,0), (6,0,0), (7,0,0), (8,0,0) ] on all spatial sites
+	//                                          t=2 are  [ (9,0,0), (10,0,0), (11,0,0), (12,0,0) ] on all spatial sites
+	//                                          t=3 are  [ (13,0,0), (14,0,0), (15,0,0), (16,0,0) ] on all spatial sites
+	//
+	// I.e. the number on generic t, spin is 1 + 4*t + spin
+
+
+	for(int site=0; site < all.numSiteTable(); ++site) {
+		// Get the t_coordinate of the site
+		multi1d<int> coord = Layout::siteCoords(Layout::nodeNumber(), site);
+		for(int spin=0; spin < 4; ++spin) {
+			int idx = 1 + 4*coord[3] + spin;
+			for(int k=0; k < 6; ++k) {
+				vecs[k].elem(all.start() + site).elem(spin).elem(0).real() = idx;
+			}
+		}
+	}
+
+	// Check the vectors
+	for(int t=0; t < 2; ++t) {
+		multi1d<int> coord(4);
+		coord[0]=0; coord[1]=0; coord[2]=0; coord[3]=t;
+		int site=Layout::linearSiteIndex(coord);
+		QDPIO::cout << "Coord=(0,0,0,"<<t<<") site =" << site <<  "  vec= [ " ;
+		for(int spin=0; spin < 4; ++spin) {
+			for(int color=0; color < 3; ++color ) {
+				QDPIO::cout <<" ( " << vecs[0].elem(site).elem(spin).elem(color).real() << " , " <<
+							vecs[0].elem(site).elem(spin).elem(color).imag()  <<" ) ";
+
+			}
+		}
+		QDPIO::cout << " ] " <<  std::endl;
+	}
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+
+	// Next step should be to copy this into the fields needed for gauge and clover ops
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	CoarseGauge u_coarse(info);
+	ZeroGauge(u_coarse);
+
+	QDPIO::cout << " Attempting Triple Product in  T+ direction (6): "<< std::endl;
+	dslashTripleProductDirQDPXX(my_blocks, 6, u, vecs, u_coarse);
+
+	// Now check the gauge links on site 0 (x,y,z,t)=0,0,0,0
+	// matrix should be
+	//     A   B
+	//     C   D
+	// where A is a 6x6 matrix  with all elements -6 and B is a matrix with all elements 4
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		for(int cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite) {
+
+
+
+			// turn cb, cbsite into coordinate:
+			IndexArray coords;
+			CBIndexToCoords(cbsite,cb, blocked_lattice_dims, coords);
+
+			int compareA = 0;
+			int compareB = 0;
+			int compareC = 0;
+			int compareD = 0;
+
+			int t=coords[3];
+			switch(t)  {
+			case 0:
+			{
+				compareA = 122;
+				compareB = -150;
+				compareC = -182;
+				compareD = 226;
+			}
+			break;
+
+			case 1:
+			{
+				compareA = 298;
+				compareB = -390;
+				compareC = -358;
+				compareD = 466;
+			}
+			break;
+			default:
+				break;
+			};
+			int num_color = info.GetNumColors();
+			int num_colorspin = 2*num_color;
+
+			// chiral row = 0; chiral col = 0;
+			float* u_coarse_data = u_coarse.GetSiteDirDataPtr(cb,cbsite,6);
+
+			for(int row=0; row < num_color; ++row) {
+				for(int col=0; col < num_color; ++col) {
+					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(col+ num_colorspin*row) ], (float)(compareA) );
+					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(col+ num_colorspin*row) ],  (float)(0));
+				}
+			}
+
+
+			for(int row=0; row < num_color; ++row) {
+				for(int col=0; col < num_color; ++col) {
+
+					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(col+ num_colorspin*(row + num_color)) ], (float)(compareC) );
+					ASSERT_FLOAT_EQ( u_coarse_data[  IM + n_complex*(col+ num_colorspin*(row + num_color)) ],  (float)(0));
+
+				}
+			}
+
+			for(int row=0; row < num_color; ++row) {
+				for(int col=0; col < num_color; ++col) {
+
+					ASSERT_FLOAT_EQ( u_coarse_data[RE + n_complex*(col+num_color + num_colorspin*row)  ], (float)(compareB) );
+					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(col+num_color + num_colorspin*row) ],  (float)(0));
+				}
+			}
+
+			for(int row=0; row < num_color; ++row) {
+				for(int col=0; col < num_color; ++col) {
+
+					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(col+num_color+ num_colorspin*(row + num_color)) ], (float)(compareD) );
+					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(col+num_color + num_colorspin*(row + num_color)) ],  (float)(0));
+				}
+			}
+
+		}
+	}
+
+	{
+		QDPIO::cout << "Testing Restriction" << std::endl;
+		// Now test restriction
+		LatticeFermion pre_R = zero;
+		for(int site=0; site < all.numSiteTable(); ++site) {
+			for(int spin=0; spin < 4; ++spin) {
+				for(int color=0; color < 3; ++color ) {
+					pre_R.elem(site).elem(spin).elem(color).real() = 1;
+				}
+			}
+		}
+
+		CoarseSpinor R_pre_R(info);
+
+		restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, pre_R, R_pre_R);
+
+		// Now block zero comes frome t=0 + t=1 sites
+		// Because all the elements of R_pre_R are 1 this just sums the elements in the spins of the vectors
+		// which are [ 1 + 2 ]+[ 5+ 6 ] for coarse t=0; chirality=0 = 14
+		//           [ 3 + 4 ]+[ 7 + 8 ] for coarse t=0; chirality=1 = 22
+
+		// for t=1 we will have
+		//  ch=0   [ 9 + 10  ] + [13 + 14 ] = 46
+		//  ch=1   [ 11 + 12 ] + [15 + 16]  = 23 + 31 = 54
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+			for(int cbsite=0; cbsite < info.GetNumCBSites();++cbsite) {
+				float* vec_data = R_pre_R.GetSiteDataPtr(cb,cbsite);
+				IndexArray coords;
+				CBIndexToCoords(cbsite,cb,blocked_lattice_dims,coords);
+				int expected_ch0 = 0;
+				int expected_ch1 = 0;
+				if ( coords[3] == 0  )  {
+					expected_ch0 = 14;
+					expected_ch1 = 22;
+				}
+				if( coords[3] == 1 ) {
+					expected_ch0 = 46;
+					expected_ch1 = 54;
+				}
+				for(int cs = 0; cs < R_pre_R.GetNumColorSpin(); ++cs ) {
+					if ( cs < R_pre_R.GetNumColor() ) {
+						ASSERT_FLOAT_EQ( (float)(expected_ch0), vec_data[RE + n_complex*cs]);
+						ASSERT_FLOAT_EQ( (float)(0), vec_data[IM + n_complex*cs]);
+					}
+					else {
+						ASSERT_FLOAT_EQ( (float)(expected_ch1), vec_data[RE + n_complex*cs]);
+						ASSERT_FLOAT_EQ( (float)(0), vec_data[IM + n_complex*cs]);
+					}
+				}
+
+			}
+		}
+
+		QDPIO::cout << "RESTRICTION ASSERTIONS PASSED *********" << std::endl;
+	}
+
+
+	// Now test Prolongation
+	{
+		QDPIO::cout << "Testing Prolongation : " << std::endl;
+		CoarseSpinor pre_P(info);
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+			for(int cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite ) {
+				float* vec_data = pre_P.GetSiteDataPtr( cb, cbsite);
+				for(int cs=0; cs < pre_P.GetNumColorSpin(); ++cs) {
+					vec_data[ RE + n_complex*cs ] = 1;
+					vec_data[ IM + n_complex*cs ] = 0;
+				}
+			}
+		}
+
+		LatticeFermion P_pre_P;
+		prolongateSpinorCoarseToQDPXXFine(my_blocks, vecs, pre_P, P_pre_P);
+
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+			for(int cbsite=0; cbsite < rb[cb].numSiteTable();++cbsite) {
+				int idx = cbsite + cb * rb[cb].numSiteTable();
+
+				multi1d<int> qdp_coords = Layout::siteCoords(Layout::nodeNumber(), idx);
+				int t = qdp_coords[3];
+				int start = 4*t + 1;
+				int expected[4] = { 6*start, 6*(start + 1), 6*(start + 2), 6*(start + 3) };
+
+				for(int spin=0; spin < 4; ++spin ) {
+					for(int color=0; color < 3; ++color ) {
+						float realpart = P_pre_P.elem(idx).elem(spin).elem(color).real();
+						float imagpart = P_pre_P.elem(idx).elem(spin).elem(color).imag();
+						if( color == 0 ) {
+							float expect = (float)(expected[spin]);
+
+							ASSERT_FLOAT_EQ( (float)(expect), realpart );
+							ASSERT_FLOAT_EQ( (float)(0), imagpart );
+						}
+						else {
+							// Other colors
+							ASSERT_FLOAT_EQ( (float)(0), realpart );
+							ASSERT_FLOAT_EQ( (float)(0), imagpart );
+						}
+					}
+				}
+
+			}
+		}
+		QDPIO::cout << "PROLONGATION Tests passed  ******* " << std::endl;
+	}
+
+
+
+	// Now test CoarseDslash
+	int n_smt = 1;
+	CoarseDiracOp D_op_coarse(info, n_smt);
+	CoarseSpinor in(info);
+	CoarseSpinor out(info);
+
+	ZeroVec(in);
+	ZeroVec(out);
+
+	// On each site with a (0,0,0,1) coordinate on the coarse lattice create the vector [1,1,1,1,1 ...,1]
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		for(int cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite) {
+			IndexArray coords;
+			CBIndexToCoords(cbsite,cb, blocked_lattice_dims, coords);
+			if( coords[0]==0 && coords[1] == 0 && coords[2] == 0 && coords[3] == 1) {
+				float *in_data = in.GetSiteDataPtr(cb,cbsite);
+
+				for(int cs=0; cs < in.GetNumColorSpin(); cs++) {
+					in_data[ RE + n_complex*cs ] = 1;
+					in_data[ IM + n_complex*cs ] = 0;
+				}
+			}
+		}
+	}
+
+#pragma omp parallel
+	{
+		int tid = omp_get_thread_num();
+		D_op_coarse.Dslash(out, u_coarse, in, 0, LINOP_OP, tid);
+		D_op_coarse.Dslash(out, u_coarse, in, 1, LINOP_OP, tid);
+	}
+
+	// OK only site (0,0,0,0) should be nonzero
+	// and its value should be 6*(122-150)=-168 for upper chirality and 6*(-182+226) =264 for the lower chirality
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+			for(int cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite) {
+				IndexArray coords;
+				CBIndexToCoords(cbsite,cb, blocked_lattice_dims, coords);
+
+				float *out_data = out.GetSiteDataPtr(cb,cbsite);
+
+
+				if( coords[0]==0 && coords[1] == 0 && coords[2] == 0 && coords[3] == 0) {
+					for(int cs=0; cs < out.GetNumColor(); cs++) {
+						ASSERT_FLOAT_EQ( out_data[ RE + n_complex*cs ], (float)(-168)) ;
+						ASSERT_FLOAT_EQ( out_data[ IM + n_complex*cs ], (float)(0));
+						ASSERT_FLOAT_EQ( out_data[ RE + n_complex*(cs + out.GetNumColor())], (float)(264)) ;
+						ASSERT_FLOAT_EQ( out_data[ IM + n_complex*(cs + out.GetNumColor())], (float)(0));
+					}
+				}
+				else {
+					for(int cs=0; cs < out.GetNumColorSpin(); cs++) {
+						ASSERT_FLOAT_EQ( out_data[ RE + n_complex*cs ], (float)(0)) ;
+						ASSERT_FLOAT_EQ( out_data[ IM + n_complex*cs ], (float)(0));
+					}
+				}
+			}
+		}
+
+
+	LatticeFermion P_in, DP_in;
+	P_in = zero;
+	DP_in= zero;
+	CoarseSpinor RDP_out(info);
+	ZeroVec(RDP_out);
+
+	QDPIO::cout << "Resetting in " << std::endl;
+
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+			for(int cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite ) {
+				float* in_data =in.GetSiteDataPtr( cb, cbsite);
+				for(int cs=0; cs < in.GetNumColorSpin(); ++cs) {
+					in_data[ RE + n_complex*cs ] = 1;
+					in_data[ IM + n_complex*cs ] = 0;
+				}
+			}
+		}
+
+	QDPIO::cout << "Prolongating P_in" << std::endl;
+
+	prolongateSpinorCoarseToQDPXXFine(my_blocks, vecs, in, P_in); // NB: This is not the same as v_f, but rather P R v_f
+
+	QDPIO::cout << "Checking Prolongated P_in" << std::endl;
+
+	// Now we should have that P_in has spin components as per test before i.e.
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		for(int cbsite=0; cbsite < rb[cb].numSiteTable();++cbsite) {
+			int idx = cbsite + cb * rb[cb].numSiteTable();
+
+			multi1d<int> qdp_coords = Layout::siteCoords(Layout::nodeNumber(), idx);
+			int t = qdp_coords[3];
+			int start = 4*t + 1;
+			int expected[4] = { 6*start, 6*(start + 1), 6*(start + 2), 6*(start + 3) };
+
+			for(int spin=0; spin < 4; ++spin ) {
+				for(int color=0; color < 3; ++color ) {
+					float realpart = P_in.elem(idx).elem(spin).elem(color).real();
+					float imagpart = P_in.elem(idx).elem(spin).elem(color).imag();
+					if( color == 0 ) {
+						float expect = (float)(expected[spin]);
+
+						ASSERT_FLOAT_EQ( (float)(expect), realpart );
+						ASSERT_FLOAT_EQ( (float)(0), imagpart );
+					}
+					else {
+						// Other colors
+						ASSERT_FLOAT_EQ( (float)(0), realpart );
+						ASSERT_FLOAT_EQ( (float)(0), imagpart );
+					}
+				}
+			}
+
+		}
+	}
+
+	QDPIO::cout << "Hitting P_in with DslashDir(6)" << std::endl;
+
+
+	DslashDirQDPXX(DP_in, u, P_in, 6);
+
+	QDPIO::cout << "Checking DP_in" << std::endl;
+	// Now we should have that P_in has spin components as per test before i.e.
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		for(int cbsite=0; cbsite < rb[cb].numSiteTable();++cbsite) {
+			int idx = cbsite + cb * rb[cb].numSiteTable();
+
+			for(int spin=0; spin < 4; ++spin ) {
+
+				for(int color=0; color < 3; ++color ) {
+					float realpart = DP_in.elem(idx).elem(spin).elem(color).real();
+					float imagpart = DP_in.elem(idx).elem(spin).elem(color).imag();
+					if( color == 0 ) {
+					//	QDPIO::cout << "cb="<<cb<<" cbsite="<<cbsite<<" spin=" << spin << " color=" << color<< " (" << realpart << " , " << imagpart <<" ) " << std::endl;
+						int expect = -12;
+						if( spin >= 2 ) {
+							expect = 12;
+						}
+
+						ASSERT_FLOAT_EQ( (float)(expect), realpart );
+						ASSERT_FLOAT_EQ( (float)(0), imagpart );
+					}
+					else {
+						// Other colors
+						ASSERT_FLOAT_EQ( (float)(0), realpart );
+						ASSERT_FLOAT_EQ( (float)(0), imagpart );
+					}
+				}
+			}
+
+
+
+		}
+	}
+	QDPIO::cout << "DP Checking completed" << std::endl;
+	QDPIO::cout << "Restricting back" << std::endl;
+
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, DP_in, RDP_out);
+	QDPIO::cout << "Checking Restriction" << std::endl;
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		for(int cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite) {
+			IndexArray coords;
+			CBIndexToCoords(cbsite,cb, blocked_lattice_dims, coords);
+			float *out_data = RDP_out.GetSiteDataPtr(cb,cbsite);
+			float expected_up = -168;
+			float expected_down = 264;
+
+			switch( coords[3] ) {
+			case 0:
+			{
+				expected_up = -168;
+				expected_down = 264;
+			}
+			break;
+			case 1:
+			{
+				expected_up = -552;
+				expected_down = 648;
+			}
+			break;
+			default:
+				abort();
+				break;
+			};
+
+			for(int cs=0; cs < out.GetNumColor(); cs++) {
+				ASSERT_FLOAT_EQ( out_data[ RE + n_complex*cs ], expected_up) ;
+				ASSERT_FLOAT_EQ( out_data[ IM + n_complex*cs ], (float)(0));
+				ASSERT_FLOAT_EQ( out_data[ RE + n_complex*(cs + out.GetNumColor())], expected_down) ;
+				ASSERT_FLOAT_EQ( out_data[ IM + n_complex*(cs + out.GetNumColor())], (float)(0));
+
+			}
+		}
+	}
+	QDPIO::cout << "Restriction checks PASSED ***" << std::endl;
+
+}
+#endif
+
+
+TEST(TestCoarseQDPXXBlock, TestCheckerboardSiteOrder)
+{
+	IndexArray latdims={{2,2,2,2}};
+	LatticeInfo info(latdims,2,6,NodeInfo());
+
+	initQDPXXLattice(latdims);
+
+	int num_cbsites=info.GetNumCBSites();
+
+	for(int cb=0; cb < n_checkerboard; ++cb ) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+			int idx = cbsite + cb*num_cbsites;
+
+			IndexArray my_coords;
+			CBIndexToCoords(cbsite,cb,latdims, my_coords);
+
+			multi1d<int> qdp_coords(Nd);
+			qdp_coords = Layout::siteCoords( Layout::nodeNumber(), idx);
+
+			QDPIO::cout << "cb="<<cb<<" cbsite="<< cbsite << " My_coords=( " << my_coords[0] << "," << my_coords[1]<<","<<my_coords[2] <<"," << my_coords[3] << ")    ";
+			QDPIO::cout << " QDP_coords=( "<< qdp_coords[0] << "," << qdp_coords[1]<<","<< qdp_coords[2] <<"," << qdp_coords[3] << ")    "
+					<< "  my_idx=" << idx << "  qdp::rb[cb].siteTable()[cbsite]=" << rb[cb].siteTable()[cbsite] << std::endl;
+		}
+	}
+}
+
+TEST(TestCoarseQDPXXBlock, TestRestrictProlong)
+{
+	IndexArray latdims={{8,8,8,8}};
 	IndexArray blockdims={{2,2,2,2}};
 
 	initQDPXXLattice(latdims);
@@ -896,16 +1391,264 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 	multi1d<LatticeColorMatrix> u(Nd);
 
 	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
-	for(int mu=0; mu < Nd; ++mu) {
-		gaussian(u[mu]);
-		reunit(u[mu]);
-	}
+	for(int mu=0; mu < 4; ++mu) {
+//		gaussian(u[mu]);
+//		reunit(u[mu]);
+		u[mu]=1;
 
+	}
 
 	// Random Basis vectors
 	multi1d<LatticeFermion> vecs(6);
 	for(int k=0; k < 6; ++k) {
 		gaussian(vecs[k]);
+	}
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+
+	// Do the proper block orthogonalize -- I do it twice... Why not
+	// This should stay real;
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	for(int vec=0; vec < 6; ++vec ) {
+		for(int block = 0; block < my_blocks.size(); ++block) {
+			for(int chiral=0; chiral < 2; ++chiral ) {
+				double nvec = norm2BlockAggrQDPXX(vecs[vec],my_blocks[block],chiral);
+				ASSERT_NEAR( nvec, (double)1, 1.0e-12);
+			}
+		}
+	}
+
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	CoarseSpinor in(info);
+	Gaussian(in);
+	CoarseSpinor out(info);
+	ZeroVec(out);
+
+	LatticeFermion intermediary=zero;
+	prolongateSpinorCoarseToQDPXXFine(my_blocks, vecs, in, intermediary);
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, intermediary, out);
+	for(int ccb=0; ccb < 2; ++ccb) {
+		for(int ccbsite=0; ccbsite < info.GetNumCBSites(); ++ccbsite) {
+			float *site_data = in.GetSiteDataPtr(ccb,ccbsite);
+			float *site_data2 = out.GetSiteDataPtr(ccb,ccbsite);
+			for(int cspin=0; cspin < out.GetNumColorSpin(); ++cspin) {
+//				QDPIO::cout << " in[cb="<< ccb<<"][csite=" << ccbsite <<"][cspin=" << cspin <<"]=("
+//						<< site_data[RE+cspin*n_complex] << ", " << site_data[IM + cspin*n_complex] << ")       "
+//						<< " out[cb="<< ccb<<"][csite=" << ccbsite <<"][cspin=" << cspin <<"]=("
+//												<< site_data2[RE+cspin*n_complex] << ", " << site_data2[IM + cspin*n_complex] << ")" << std::endl;
+
+				ASSERT_NEAR( site_data[RE+cspin*n_complex],site_data2[RE+cspin*n_complex], 1.0e-5 );
+				ASSERT_NEAR( site_data[IM+cspin*n_complex],site_data2[IM+cspin*n_complex], 1.0e-5 );
+
+
+			}
+			//QDPIO::cout << std::endl;
+		}
+	}
+
+}
+
+void zeroImagPart(LatticeFermion& ferm)
+{
+	for(int site=0; site < Layout::sitesOnNode(); ++site ) {
+		for(int spin=0; spin < 4; ++spin)  {
+			for(int color=0; color < 3; ++color ) {
+				if( color == 0 ) {
+					ferm.elem(site).elem(spin).elem(color).imag() = 0; // Keeping it real!
+				}
+				else {
+					ferm.elem(site).elem(spin).elem(color).real() = 0; // Keeping it real!
+					ferm.elem(site).elem(spin).elem(color).imag() = 0; // Keeping it real!
+				}
+			}
+		}
+	}
+}
+
+void zeroImagPart(CoarseSpinor& spinor)
+{
+	const LatticeInfo& info = spinor.GetInfo();
+	const int num_cbsites = info.GetNumCBSites();
+	for(int cb=0; cb < n_checkerboard;++cb) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+			float* s_data = spinor.GetSiteDataPtr(cb,cbsite);
+			for(int cspin=0; cspin < spinor.GetNumColorSpin(); cspin++) {
+				s_data[IM + n_complex*cspin ] = 0;
+			}
+		}
+	}
+}
+void Fill(CoarseSpinor& spinor, const float re, const float im)
+{
+	const LatticeInfo& info = spinor.GetInfo();
+	const int num_cbsites = info.GetNumCBSites();
+	for(int cb=0; cb < n_checkerboard;++cb) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+			float* s_data = spinor.GetSiteDataPtr(cb,cbsite);
+			for(int cspin=0; cspin < spinor.GetNumColorSpin(); cspin++) {
+				s_data[RE + n_complex*cspin ] = re - 0.2*cspin;
+				s_data[IM + n_complex*cspin ] = im + 0.05*cspin;
+			}
+		}
+	}
+}
+
+TEST(TestCoarseQDPXXBlock, TestCoarseDslashNeighbors)
+{
+	IndexArray qdp_latdims={{4,4,4,4}};
+	IndexArray latdims={{2,2,2,4}};
+
+	initQDPXXLattice(latdims);
+
+	LatticeInfo info( latdims, 2, 6, NodeInfo());
+	CoarseGauge u(info);
+
+	int num_cbsites = info.GetNumCBSites();
+	int num_colors = u.GetNumColor();
+	int num_colorspin = u.GetNumColorSpin();
+
+	CoarseSpinor in(info);
+	CoarseSpinor out(info);
+	int n_smt = 1;
+	CoarseDiracOp D_op_coarse(info, n_smt);
+	ZeroVec(in);
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		for(int cbsites=0; cbsites < num_cbsites; ++cbsites) {
+			int qdp_site = rb[cb].siteTable()[cbsites];
+			multi1d<int> coords=Layout::siteCoords(Layout::nodeNumber(), qdp_site);
+			IndexArray coords2;
+			CBIndexToCoords(cbsites,cb,latdims,coords2);
+			ASSERT_EQ( coords[0], coords2[0] );
+			ASSERT_EQ( coords[1], coords2[1] );
+			ASSERT_EQ( coords[2], coords2[2] );
+			ASSERT_EQ( coords[3], coords2[3] );
+			float* v_data = in.GetSiteDataPtr(cb,cbsites);
+			v_data[0] = (float)coords[0];
+			v_data[1] = (float)coords[1];
+			v_data[2] = (float)coords[2];
+			v_data[3] = (float)coords[3];
+			v_data[4] = (float)cb;
+			v_data[5] = (float)cbsites;
+
+		}
+	}
+#if 1
+
+	// Test neighbors in all 8 directions
+	for(int mu=0; mu < 8; ++mu ) {
+		QDPIO::cout << "Testing Dslash Dir=" << mu << std::endl;
+		// Zero Output Vector
+		ZeroVec(out);
+
+		for(int cb=0; cb < n_checkerboard;++cb) {
+			for(int cbsites=0; cbsites < num_cbsites; ++cbsites) {
+				for(int dirs=0; dirs < 8; ++dirs ) {
+					float* u_data = u.GetSiteDirDataPtr(cb,cbsites,dirs);
+					for(int row=0; row < num_colorspin; ++row) {
+						for(int col=0; col < num_colorspin; ++col) {
+							u_data[ RE + n_complex*(col + row*num_colorspin)] = 0;
+							u_data[ IM + n_complex*(col + row*num_colorspin)] = 0;
+
+						} // col
+					} // row
+
+					// Unit matrix in the mu direction
+					if( dirs == mu ) {
+						for(int diag=0; diag < num_colorspin; ++diag ) {
+							u_data[ RE + n_complex*(diag + diag*num_colorspin)] = 1;
+						}
+					}
+				}// dirs
+			} //cbsites
+		} // cb
+
+	#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			D_op_coarse(out, u, in, 0, LINOP_OP, tid);
+			D_op_coarse(out, u, in, 1, LINOP_OP, tid);
+		}
+
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+			for(int cbsites=0; cbsites < num_cbsites; ++cbsites) {
+				const float* out_data = out.GetSiteDataPtr(cb,cbsites);
+				IndexArray my_coords;
+				CBIndexToCoords(cbsites,cb, latdims, my_coords); // Get My Coords
+				IndexArray expected = my_coords;
+				int direct=mu/2;
+				int addend = (mu % 2 == 0 ) ? +1 : -1; // Even numbers: forward neigh, odd numbers backward neight
+				expected[direct] += addend;
+
+				// Wraparound
+				if (expected[direct] < 0) expected[direct] = latdims[direct]-1;
+				if (expected[direct] >= latdims[direct]) expected[direct]=0;
+
+
+				std::cout << "cb = " << cb << " cbsite=" << cbsites << " coord=(" << my_coords[0] << ", " << my_coords[1] << ", "
+						<< my_coords[2] << ", " << my_coords[3] << ")   mu=" << mu << " dir=" << direct << " add=" << addend
+						<< " expected=(" << expected[0] << ", " << expected[1] << ", " << expected[2] << ", " << expected[3] << ")"
+						<< "   got=(" << out_data[0] << ", " << out_data[1] << ", " << out_data[2] << ", " << out_data[3]<<")"
+						<< "   out_cb="<< out_data[4] << " out_site=" << out_data[5] <<std::endl;
+
+				float fexpected[4] = { (float)expected[0], (float)expected[1], (float)expected[2], (float)expected[3] };
+
+				ASSERT_FLOAT_EQ( fexpected[0] , out_data[0] );
+				ASSERT_FLOAT_EQ( fexpected[1] , out_data[1] );
+				ASSERT_FLOAT_EQ( fexpected[2] , out_data[2] );
+				ASSERT_FLOAT_EQ( fexpected[3] , out_data[3] );
+			}
+		}
+	} // mu
+
+#endif
+}
+
+
+TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslashUnitGaugeDir6)
+{
+	IndexArray latdims={{2,2,2,4}};
+	IndexArray blockdims={{1,1,1,2}};
+
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+
+		u[mu] = 1;
+
+	}
+
+
+	// Random Basis vectors
+	multi1d<LatticeFermion> vecs(6);
+
+	MasterLog(INFO,"Generating Eye\n");
+	{
+		LatticePropagator eye=1;
+
+
+		// Pack 'Eye' vectors into to the in_vecs;
+		for(int spin=0; spin < Ns/2; ++spin) {
+			for(int color =0; color < Nc; ++color) {
+				LatticeFermion upper = zero;
+				LatticeFermion lower = zero;
+
+				PropToFerm(eye, lower, color, spin);
+				PropToFerm(eye, upper, color, spin+Ns/2);
+				vecs[color + Nc*spin] = upper + lower;
+			}
+		}
 	}
 	// Someone once said doing this twice is good
 	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
@@ -916,47 +1659,67 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
+	// This should stay real;
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	int num_coarse_cbsites = info.GetNumCBSites();
+
 	CoarseGauge u_coarse(info);
 
-	// Generate the triple products directly into the u_coarse
-	for(int mu=0; mu < 8; ++mu) {
-		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
-		dslashTripleProductDirQDPXX(my_blocks, mu, u, vecs, u_coarse);
-	}
+		// Just do time
+	//for(int mu=6; mu < 8; ++mu) {
+	QDPIO::cout << " Attempting Triple Product in direction: " << 6 << std::endl;
+	ZeroGauge(u_coarse);
+	dslashTripleProductDirQDPXX(my_blocks, 6, u, vecs, u_coarse);
 
 	int n_smt = 1;
 	CoarseDiracOp D_op_coarse(info, n_smt);
 
+#if 0
 	for(int op=LINOP_OP; op <= LINOP_DAGGER; ++op ) {
 
 		int isign = ( op == LINOP_OP ) ? +1 : -1;
+#endif
 
-	// Now create a LatticeFermion and apply both the QDP++ and the Coarse Clover
-	LatticeFermion v_f;
-	gaussian(v_f);
+		int isign = +1;
+		int op = LINOP_OP;
+
 
 	// Coarsen v_f to R(v_f) give us coarse RHS for tests
 	CoarseSpinor v_c(info);
-	QDPIO::cout << "Restricting v_f -> v_c over blocks" << std::endl;
-	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, v_f, v_c);
+	ZeroVec(v_c);
+	int num_coarse_colorspin = v_c.GetNumColorSpin();
+	for(int coarse_cb=0; coarse_cb < n_checkerboard; ++coarse_cb) {
+		for(int coarse_cbsite=0; coarse_cbsite < num_coarse_cbsites;++coarse_cbsite) {
+			float *vec_data =v_c.GetSiteDataPtr(coarse_cb,coarse_cbsite);
+			int idx = coarse_cbsite + coarse_cb*num_coarse_cbsites;
+			IndexArray coords;
+			CBIndexToCoords(coarse_cbsite,coarse_cb,blocked_lattice_dims,coords);
+			if( coords[0]==0 && coords[1]==0 && coords[2]==0 && coords[3] == 1) {
+				vec_data[0]=1; // Single dirac spike at (0,0,0,1)
+			}
+		}
+	}
 
+	//Fill(v_c, 1, 0);
 	// Output
 	CoarseSpinor out(info);
+	ZeroVec(out);
+
 	CoarseSpinor fake_out(info);
+	ZeroVec(fake_out);
 
 	QDPIO::cout << "Applying: out = D_c v_c" << std::endl;
 	// Apply Coarse Op Dslash in Threads
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse.Dslash(out, u_coarse, v_c, 0, op, tid);
-		D_op_coarse.Dslash(out, u_coarse, v_c, 1, op, tid);
+		D_op_coarse(out, u_coarse, v_c, 0, op, tid);
+		D_op_coarse(out, u_coarse, v_c, 1, op, tid);
 	}
 
 
@@ -970,12 +1733,7 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 	// Now apply the Clover Term to form D_f P
 	LatticeFermion D_f_out = zero;
 
-	// Apply Dslash to both CBs, isign=1
-	// Result in m_psiu
-	for(int cb=0; cb < n_checkerboard; ++cb) {
-		dslash(D_f_out, u, P_v_c, isign, cb);
-	}
-
+	DslashDirQDPXX(D_f_out, u, P_v_c, 6);
 
 	QDPIO::cout << "Restricting: D_f_out = R D_f P v_c" << std::endl;
 	// Now restrict back: fake_out = R D_f P  v_c
@@ -983,16 +1741,142 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 
 	QDPIO::cout << "Checking: R D_f P v_c == D_c v_c " <<std::endl;
 	// We should now compare out, with fake_out. For this we need an xmy
-	double norm_diff = sqrt(XmyNorm2Vec(fake_out,out));
-	double norm_diff_per_site = norm_diff / (double)fake_out.GetInfo().GetNumSites();
 
-	MasterLog(INFO, "OP=%d", op);
-	MasterLog(INFO, "Diff Norm = %16.8e", norm_diff);
-	ASSERT_NEAR( norm_diff, 0, 1.e-5 );
-	MasterLog(INFO, "Diff Norm per site = %16.8e", norm_diff_per_site);
-	ASSERT_NEAR( norm_diff_per_site,0,1.e-6);
+
+	for(int ccb=0; ccb < 2; ++ccb) {
+		for(int ccbsite=0; ccbsite < info.GetNumCBSites(); ++ccbsite) {
+			float *fake_data = fake_out.GetSiteDataPtr(ccb,ccbsite);
+			float *out_data = out.GetSiteDataPtr(ccb,ccbsite);
+			for(int cspin=0; cspin < out.GetNumColorSpin(); ++cspin) {
+				QDPIO::cout << " fake_out[cb="<< ccb<<"][csite=" << ccbsite <<"][cspin=" << cspin <<"]=("
+						<< fake_data[RE+cspin*n_complex] << ", " << fake_data[IM + cspin*n_complex] << ")       "
+						<< " out[cb="<< ccb<<"][csite=" << ccbsite <<"][cspin=" << cspin <<"]=("
+												<< out_data[RE+cspin*n_complex] << ", " << out_data[IM + cspin*n_complex] << ")" << std::endl;
+				ASSERT_FLOAT_EQ( fake_data[ RE + cspin*n_complex], out_data[ RE + cspin*n_complex]);
+				ASSERT_FLOAT_EQ( fake_data[ IM + cspin*n_complex], out_data[ IM + cspin*n_complex]);
+
+			}
+			QDPIO::cout << std::endl;
+		}
+	}
+}
+
+TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
+{
+	IndexArray latdims={{8,8,8,8}};
+	IndexArray blockdims={{2,2,2,2}};
+
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+	multi1d<LatticeColorMatrix> u(Nd);
+
+	QDPIO::cout << "Generating Random Gauge with Gaussian Noise" << std::endl;
+	for(int mu=0; mu < Nd; ++mu) {
+		gaussian(u[mu]);
+		reunit(u[mu]);
 	}
 
+
+	// Random Basis vectors
+	multi1d<LatticeFermion> vecs(6);
+
+	for(int k=0; k < 6; ++k) {
+		gaussian(vecs[k]);
+	}
+
+	// Someone once said doing this twice is good
+	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+
+	// Do the proper block orthogonalize -- I do it twice... Why not
+	// This should stay real;
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+
+	// Next step should be to copy this into the fields needed for gauge and clover ops
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	int num_coarse_cbsites = info.GetNumCBSites();
+	CoarseGauge u_coarse(info);
+
+	ZeroGauge(u_coarse);
+	for(int mu=0; mu < 8; ++mu) {
+		QDPIO::cout << " Attempting Triple Product in direction: " << mu << std::endl;
+		dslashTripleProductDirQDPXX(my_blocks, mu, u, vecs, u_coarse);
+	}
+
+	int n_smt = 1;
+	CoarseDiracOp D_op_coarse(info, n_smt);
+
+	for(int op=LINOP_OP; op <= LINOP_DAGGER; ++op ) {
+
+		int isign = ( op == LINOP_OP ) ? +1 : -1;
+
+
+		// Coarsen v_f to R(v_f) give us coarse RHS for tests
+		CoarseSpinor v_c(info);
+		Gaussian(v_c);
+
+		//Fill(v_c, 1, 0);
+		// Output
+		CoarseSpinor out(info);
+		ZeroVec(out);
+
+		CoarseSpinor fake_out(info);
+		ZeroVec(fake_out);
+
+		QDPIO::cout << "Applying: out = D_c v_c" << std::endl;
+		// Apply Coarse Op Dslash in Threads
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			D_op_coarse(out, u_coarse, v_c, 0, op, tid);
+			D_op_coarse(out, u_coarse, v_c, 1, op, tid);
+		}
+
+
+		QDPIO::cout << "Prolongating: P_v_c = P v_c" << std::endl;
+		// Now apply the fake operator:
+		LatticeFermion P_v_c = zero;
+		prolongateSpinorCoarseToQDPXXFine(my_blocks, vecs, v_c, P_v_c); // NB: This is not the same as v_f, but rather P R v_f
+
+
+		QDPIO::cout << "Applying: D_f P_v_c = D_f P v_c" << std::endl;
+		// Now apply the Clover Term to form D_f P
+		LatticeFermion D_f_out = zero;
+
+		dslash(D_f_out,u,P_v_c,isign,0);
+		dslash(D_f_out,u,P_v_c,isign,1);
+
+		QDPIO::cout << "Restricting: D_f_out = R D_f P v_c" << std::endl;
+		// Now restrict back: fake_out = R D_f P  v_c
+		restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, D_f_out, fake_out);
+
+		QDPIO::cout << "Checking: R D_f P v_c == D_c v_c " <<std::endl;
+		// We should now compare out, with fake_out. For this we need an xmy
+
+
+		for(int ccb=0; ccb < 2; ++ccb) {
+			for(int ccbsite=0; ccbsite < info.GetNumCBSites(); ++ccbsite) {
+				float *fake_data = fake_out.GetSiteDataPtr(ccb,ccbsite);
+				float *out_data = out.GetSiteDataPtr(ccb,ccbsite);
+				for(int cspin=0; cspin < out.GetNumColorSpin(); ++cspin) {
+
+					ASSERT_NEAR( fake_data[ RE + cspin*n_complex], out_data[ RE + cspin*n_complex], 5.0e-6);
+					ASSERT_NEAR( fake_data[ IM + cspin*n_complex], out_data[ IM + cspin*n_complex], 5.0e-6);
+
+				} // cspin
+			} // ccbsite
+		} // ccb
+	} // op
 }
 
 int main(int argc, char *argv[]) 

@@ -414,6 +414,25 @@ void Gaussian(CoarseSpinor& x)
 
 }
 
+void ZeroGauge(CoarseGauge& gauge)
+{
+	const LatticeInfo& info = gauge.GetInfo();
+	const int num_cbsites=info.GetNumCBSites();
+	const int num_colorspins = gauge.GetNumColorSpin();
+	for(int cb=0; cb < n_checkerboard; ++cb ) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+
+			// 8 + central piece
+			for(int dir=0; dir < 9; ++dir ) {
+				float* gauge_data=gauge.GetSiteDirDataPtr(cb,cbsite,dir);
+				for(int cs=0; cs < num_colorspins*num_colorspins; ++cs) {
+					gauge_data[RE + n_complex*cs ] = 0;
+					gauge_data[IM + n_complex*cs ] = 0;
+				} //cs
+			} // dir
+		} //cbsite
+	} // cb
+}
 
 };
 

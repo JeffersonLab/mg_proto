@@ -66,9 +66,9 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op, const std::vector<Block>&
 //! Coarsen the clover term (1 block = 1 site ): FIXME: may becme a method of CoarseDiracOp later?
 void clovTripleProduct(const CoarseDiracOp& D_op,
 			const std::vector<Block>& blocklist,
-			const CoarseClover& fine_clov,
+			const CoarseGauge& fine_clov,
 			const std::vector<std::shared_ptr<CoarseSpinor > >& in_fine_vecs,
-			CoarseClover& coarse_clov);
+			CoarseGauge& coarse_clov);
 };
 
 #endif /* TEST_QDPXX_AGGREGATE_QDPXX_H_ */

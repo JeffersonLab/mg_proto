@@ -21,11 +21,9 @@ namespace MGTesting {
 class CoarseWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor,CoarseGauge > {
 public:
 	// Hardwire n_smt=1 for now.
-	CoarseWilsonCloverLinearOperator(const Gauge* gauge_in, const CoarseClover* clover_in, int level) : _u(gauge_in),
-	_clov(clover_in), _the_op( gauge_in->GetInfo(), 1), _level(level)
+	CoarseWilsonCloverLinearOperator(const Gauge* gauge_in, int level) : _u(gauge_in),
+	 _the_op( gauge_in->GetInfo(), 1), _level(level)
 	{
-		AssertCompatible( gauge_in->GetInfo(), clover_in->GetInfo());
-
 
 	}
 
@@ -40,7 +38,6 @@ public:
 			for(int cb=0; cb < n_checkerboard; ++cb) {
 				_the_op(out,      // Output Spinor
 						(*_u),    // Gauge Field
-						(*_clov), // The Coarse Clover Field
 						in,
 						cb,
 						type,
@@ -57,7 +54,6 @@ public:
 	}
 private:
 	const Gauge* _u;
-	const CoarseClover* _clov;
 	const CoarseDiracOp _the_op;
 	const int _level;
 
