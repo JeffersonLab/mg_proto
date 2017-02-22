@@ -933,7 +933,7 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 
 
 	// Create Fine Basis 1 -- choose not 6 vectors
-	int N_color_1 = 6;
+	int N_color_1 = 8;
 	multi1d<LatticeFermion> vecs(N_color_1);
 	for(int k=0; k < N_color_1; ++k) {
 		gaussian(vecs[k]);
@@ -996,7 +996,7 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 	}
     // Time to make coarse coarse
 
-    int N_color_2 = 6;
+    int N_color_2 =16;
 	MasterLog(INFO, "Generating L2 Basis Vecs");
 	std::vector<std::shared_ptr<CoarseSpinor>> vecs_l2(N_color_2);
 	for(int vec=0;vec<N_color_2;++vec) {
@@ -1051,7 +1051,7 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 	double normDiffPerSite = normDiff/(info_l2.GetNumSites());
 	MasterLog(INFO, "|| (D_cc - R D_c P) psi = %16.8e\n", normDiffPerSite);
 
-
+	ASSERT_LE( normDiffPerSite, 5.0e-6);
 
 }
 

@@ -15,6 +15,7 @@
 #include "dslashm_w.h"
 #include <complex>
 #include <omp.h>
+
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;

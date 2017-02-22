@@ -260,10 +260,17 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 {
 
 	const LatticeInfo& fine_info = fine_in.GetInfo();
-	const IndexType num_fine_spins = fine_info.GetNumSpins();
+	const LatticeInfo& coarse_info = coarse_out.GetInfo();
 
-	const IndexType num_coarse_cbsites = coarse_out.GetInfo().GetNumCBSites();
-	const IndexType num_coarse_colors = coarse_out.GetNumColor();
+	const IndexType num_fine_spins = fine_info.GetNumSpins();
+	const IndexType num_fine_colors =fine_info.GetNumColors();
+	const IndexType num_fine_colorspins = num_fine_spins*num_fine_colors;
+
+	const IndexType num_coarse_spins = coarse_info.GetNumSpins();
+	const IndexType num_coarse_colors = coarse_info.GetNumColors();
+	const IndexType num_coarse_colorspins = num_coarse_spins*num_coarse_colors;
+
+	const IndexType num_coarse_cbsites = coarse_info.GetNumCBSites();
 
 	// Sanity check. The number of sites in the coarse spinor
 	// Has to equal the number of blocks
@@ -271,6 +278,8 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 
 	// The number of vectors has to eaqual the number of coarse colors
 	assert( static_cast<IndexType>(fine_vecs.size()) == num_coarse_colors );
+
+
 	for(IndexType vec=0; vec < static_cast<IndexType>(fine_vecs.size()); ++vec) {
 		AssertCompatible( fine_vecs[vec]->GetInfo(), fine_info );
 	}
@@ -278,6 +287,7 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 	// This will be a loop over blocks
 	for(int block_cb=0; block_cb < n_checkerboard; ++block_cb) {
 		for(int block_cbsite = 0; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
+
 			IndexType block_idx = block_cbsite + block_cb*num_coarse_cbsites;
 
 			// The coarse site spinor is where we will write the result
@@ -332,7 +342,7 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 						int coarse_colorspin = coarse_color + chiral * num_coarse_colors;
 
 						// If the fine vector is 4 component, lump them together
-						int fine_n_per_chiral = ( num_fine_spins == 4 ) ? 2*num_coarse_colors : num_coarse_colors;
+						int fine_n_per_chiral = ( num_fine_spins == 4 ) ? 2*num_fine_colors : num_fine_colors;
 						int min_fine_cspin = chiral*fine_n_per_chiral;
 						int max_fine_cspin = (chiral+1)*fine_n_per_chiral;
 						for(int fine_colorspin=min_fine_cspin; fine_colorspin < max_fine_cspin; ++fine_colorspin) {
@@ -367,21 +377,29 @@ void prolongateSpinor(const std::vector<Block>& blocklist,
 		const std::vector<std::shared_ptr<CoarseSpinor> >& fine_v,
 		const CoarseSpinor& coarse_in, CoarseSpinor& fine_out)
 {
+		const LatticeInfo& fine_info = fine_out.GetInfo();
+		const LatticeInfo& coarse_info = coarse_in.GetInfo();
+
+		const IndexType num_fine_spins = fine_info.GetNumSpins();
+		const IndexType num_fine_colors =fine_info.GetNumColors();
+		const IndexType num_fine_colorspins = num_fine_spins*num_fine_colors;
+
+		const IndexType num_coarse_spins = coarse_info.GetNumSpins();
+		const IndexType num_coarse_colors = coarse_info.GetNumColors();
+		const IndexType num_coarse_colorspins = num_coarse_spins*num_coarse_colors;
+
 	// Prolongate in here
-	IndexType num_coarse_cbsites=coarse_in.GetInfo().GetNumCBSites();
+	IndexType num_coarse_cbsites=coarse_info.GetNumCBSites();
 	assert( num_coarse_cbsites == static_cast<IndexType>(blocklist.size()/2) );
 
-	IndexType num_coarse_color = coarse_in.GetNumColor();
-	assert( static_cast<IndexType>(fine_v.size()) == num_coarse_color );
 
-	const LatticeInfo& fine_info = fine_out.GetInfo();
+	assert( static_cast<IndexType>(fine_v.size()) == num_coarse_colors );
+
 	for(unsigned int vecs = 0; vecs < fine_v.size(); ++vecs) {
 		AssertCompatible( fine_v[vecs]->GetInfo(), fine_info);
 	}
 
-	IndexType num_fine_colors = fine_info.GetNumColors();
-	IndexType num_fine_spins = fine_info.GetNumSpins();
-	IndexType n_per_chiral = (num_fine_spins == 4 ) ? 2*num_fine_colors : num_fine_colors;
+	IndexType n_fine_per_chiral = (num_fine_spins == 4 ) ? 2*num_fine_colors : num_fine_colors;
 
 
 	// NB: Parallelism wise, this is a scatter. Because we are visiting each block
@@ -418,25 +436,26 @@ void prolongateSpinor(const std::vector<Block>& blocklist,
 				//for(int fine_spin=0; fine_spin < Ns; ++fine_spin) {
 				for(int chiral =0; chiral < 2; ++chiral ) {
 
-					for(int fine_color=0; fine_color < n_per_chiral; fine_color++ ) {
+					for(int fine_color=0; fine_color < n_fine_per_chiral; fine_color++ ) {
 
 						//fine_out.elem(qdpsite).elem(fine_spin).elem(fine_color).real() = 0;
 						//fine_out.elem(qdpsite).elem(fine_spin).elem(fine_color).imag() = 0;
-						int fine_colorspin  = fine_color + n_per_chiral*chiral;
+						int fine_colorspin  = fine_color + n_fine_per_chiral*chiral;
 
 						fine_site_data[ RE + n_complex*fine_colorspin ] = 0;
 						fine_site_data[ IM + n_complex*fine_colorspin ] = 0;
 
-						for(int coarse_color = 0; coarse_color < num_coarse_color; coarse_color++) {
+						for(int coarse_color = 0; coarse_color < num_coarse_colors; coarse_color++) {
 
 							//REAL left_r = v[coarse_color].elem(qdpsite).elem(fine_spin).elem(fine_color).real();
 							// REAL left_i = v[coarse_color].elem(qdpsite).elem(fine_spin).elem(fine_color).imag();
 							const float* vec_in_data = fine_v[coarse_color]->GetSiteDataPtr( cbsite.cb, cbsite.site);
 
+							int coarse_colorspin = coarse_color + chiral*num_coarse_colors; // coarse_color(chiral) is the row
+
 							float left_r = vec_in_data[RE + n_complex*fine_colorspin]; // Fine_color(chiral) is row, coarse_color is column
 							float left_i = vec_in_data[IM + n_complex*fine_colorspin];
 
-							int coarse_colorspin = coarse_color + chiral*num_coarse_color; // coarse_color(chiral) is the row
 							float right_r = coarse_spinor[ RE + n_complex*coarse_colorspin];
 							float right_i = coarse_spinor[ IM + n_complex*coarse_colorspin];
 
