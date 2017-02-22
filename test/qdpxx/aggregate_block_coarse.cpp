@@ -11,6 +11,7 @@
 #include "lattice/geometry_utils.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 
+#include<omp.h>
 
 using namespace QDP;
 using namespace MG;
@@ -466,9 +467,6 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 	const IndexType num_chiral = 2;
 	const IndexType num_coarse_cbsites = u_coarse.GetInfo().GetNumCBSites();
 
-	MasterLog(INFO, "DTP: num_coarse_colors=%d num_coarse_colorspin=%d num_coarse_cbsites=%d",
-				num_coarse_colors, num_coarse_colorspin, num_coarse_cbsites);
-
 	// in vecs has size Ncolor_c = num_coarse_colorspin/2
 	// But this mixes both upper and lower spins
 	// Once we deal with those separately we will need num_coarse_colorspin results
@@ -482,40 +480,35 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 	int num_spincolor_per_chiral =
 			(num_fine_spins == 4) ? 2 * num_fine_colors : num_fine_colors;
 
-	MasterLog(INFO, "DTP: num_fine_colors=%d, num_fine_spins=%d n_per_chiral=%d", num_fine_colors, num_fine_spins, num_spincolor_per_chiral);
 
 	// I will need to make a vector of spinors, to which I will have applied
 	// Dslash Dir. These need the info
 	const LatticeInfo& coarse_info = u_coarse.GetInfo();
 
+
 	std::vector<std::shared_ptr<CoarseSpinor> > out_vecs(num_coarse_colorspin);
-
-	// Hit in_vecs with DslashDir -- this leaves
-
-	MasterLog(INFO, "DTP: There are %d vectors in and %d test vectors", in_vecs.size(), out_vecs.size());
-
 	for (int j = 0; j < num_coarse_colorspin; ++j) {
-		out_vecs[j] = std::make_shared<CoarseSpinor>(coarse_info);
+		out_vecs[j] = std::make_shared<CoarseSpinor>(fine_info);
 		ZeroVec(*(out_vecs[j]));
-		double norm_vecs = Norm2Vec( *(out_vecs[j]) );
-		MasterLog(INFO, "DTP: || vec[%d] || = %16.8e", j,norm_vecs);
 	}
 
+	CoarseSpinor tmp(fine_info);
 	// Apply DslashDir to each aggregate separately.
 	// DslashDir may mix spins with (1 +/- gamma_mu)
 	for (int j = 0; j < num_coarse_colors; ++j) {
 		for (int chiral = 0; chiral < 2; ++chiral) {
-			CoarseSpinor tmp(fine_info);
 			ZeroVec(tmp);
+			CoarseSpinor& out = *( out_vecs[chiral*num_coarse_colors + j] );
+
 			extractAggregate(tmp, *(in_vecs[j]), chiral);
 
 			for(int cb=0; cb < n_checkerboard; ++cb) {
 #pragma omp parallel
 				{
 					int tid = omp_get_thread_num();
-					D_op.DslashDir(*(out_vecs[chiral * num_coarse_colors + j]),
-							u, tmp, cb, dir, tid);
-				} // end_parallel
+					D_op.DslashDir(out,	u, tmp, cb, dir, tid);
+				}
+
 			}	// end cb
 
 		} // chiral
@@ -537,6 +530,8 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 			{
 				auto face_sitelist = block.getFaceList(dir);
 				auto  num_sites = face_sitelist.size();
+
+
 
 				float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb,coarse_cbsite, dir);
 
@@ -787,14 +782,9 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 			ZeroVec(tmp);
 			extractAggregate(tmp, *(in_fine_vecs[j]), chiral);
 
-			// Apply the clover term. This is n_colorspin x n_colorspin
-#pragma omp parallel
-			{
-				int tid = omp_get_thread_num();
 				for (int cb = 0; cb < 2; ++cb) {
-					D_op.CloverApply(*(out_vecs[j+chiral*num_coarse_colors]), fine_gauge_clov, tmp, cb, LINOP_OP, tid);
+					D_op.CloverApply(*(out_vecs[j+chiral*num_coarse_colors]), fine_gauge_clov, tmp, cb, LINOP_OP, 0);
 				}
-			}
 		}
 
 	}

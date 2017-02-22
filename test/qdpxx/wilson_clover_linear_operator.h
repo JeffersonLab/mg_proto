@@ -80,12 +80,27 @@ public:
 
 	void generateCoarse(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse) const
 	{
+		const LatticeInfo& info = u_coarse.GetInfo();
+		int num_colorspin = info.GetNumColorSpins();
+
 		// Generate the triple products directly into the u_coarse
 		ZeroGauge(u_coarse);
 		for(int mu=0; mu < 8; ++mu) {
 			QDPIO::cout << "QDPWilsonCloverLinearOperator: Dslash Triple Product in direction: " << mu << std::endl;
 			dslashTripleProductDirQDPXX(blocklist, mu, _u, in_vecs, u_coarse);
 		}
+
+		for(int cb=0; cb < n_checkerboard; ++cb) {
+			for(int cbsite=0; cbsite < u_coarse.GetInfo().GetNumCBSites(); ++cbsite) {
+				for(int mu=0; mu < 9; ++mu) {
+					float* link=u_coarse.GetSiteDirDataPtr(cb,cbsite,mu);
+					for(int j=0; j < n_complex*num_colorspin*num_colorspin; ++j) {
+						link[j] *= -0.5;
+					}
+				}
+			}
+		}
+
 		QDPIO::cout << "QDPWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
 		clovTripleProductQDPXX(blocklist, _clov, in_vecs, u_coarse);
 	}

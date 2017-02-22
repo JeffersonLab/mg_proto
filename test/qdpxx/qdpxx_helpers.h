@@ -38,8 +38,6 @@ namespace MGTesting {
 	void CoarseGaugeLinkToQDPProp(const CoarseGauge& coarse_in,
 	     			QDP::LatticePropagator& qdpxx_out, IndexType dir);
 
-	void QDPPropToCoarseClover(const QDP::LatticePropagator& qdpxx_in,
-							   CoarseClover& coarse_out);
 
 
 

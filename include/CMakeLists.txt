@@ -9,7 +9,6 @@ install (FILES lattice/aggregation.h
                lattice/coarse/coarse_op.h
                lattice/coarse/thread_limits.h
                lattice/coarse/coarse_types.h 
-               lattice/coarse/fine_op.h      
          DESTINATION include/lattice)
          
 install (FILES utils/print_utils.h

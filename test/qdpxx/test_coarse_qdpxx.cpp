@@ -1,3 +1,4 @@
+#include <omp.h>
 #include "gtest/gtest.h"
 #include "../test_env.h"
 #include "../mock_nodeinfo.h"

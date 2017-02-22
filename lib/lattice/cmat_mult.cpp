@@ -50,12 +50,14 @@ void CMatMultNaive(float* y,
 	const std::complex<float>* xc = reinterpret_cast<const std::complex<float>*>(x);
 
 	if( N == 6 ) {
+
 		CMatMultNaiveT<6>(yc, Ac, xc);
 	}
 	else if( N == 8 ) {
 		CMatMultNaiveT<8>(yc, Ac, xc);
 	}
 	else if ( N == 12 ) {
+
 		CMatMultNaiveT<12>(yc, Ac, xc);
 	}
 	else if ( N == 16 ) {
