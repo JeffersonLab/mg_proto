@@ -954,11 +954,11 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 	QDPIO::cout << "Creating Level 1 Coarse Gauge Field " << std::endl;
 	// Next step should be to copy this into the fields needed for gauge and clover ops
 	LatticeInfo info(blocked_lattice_dims, 2, N_color_1, NodeInfo());
-	CoarseGauge u_coarse(info);
-	ZeroGauge(u_coarse);
+	std::shared_ptr<CoarseGauge> u_coarse = std::make_shared<CoarseGauge>(info);
+	ZeroGauge(*u_coarse);
 
-	D_fine.generateCoarse(my_blocks,vecs,u_coarse);
-	CoarseWilsonCloverLinearOperator D_coarse(&u_coarse, 1);
+	D_fine.generateCoarse(my_blocks,vecs,*u_coarse);
+	CoarseWilsonCloverLinearOperator D_coarse(u_coarse, 1);
 
 
 	{
@@ -1015,11 +1015,11 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 	orthonormalizeBlockAggregates(vecs_l2, my_blocks_l2);
 
 	LatticeInfo info_l2(blocked_lattice_dims_l2, 2, N_color_2, NodeInfo());
-	CoarseGauge u_coarse_coarse(info_l2);
-	D_coarse.generateCoarse(my_blocks_l2, vecs_l2, u_coarse_coarse);
+	std::shared_ptr<CoarseGauge> u_coarse_coarse=std::make_shared<CoarseGauge>(info_l2);
+	D_coarse.generateCoarse(my_blocks_l2, vecs_l2, *u_coarse_coarse);
 
 
-	CoarseWilsonCloverLinearOperator D_coarse_coarse(&u_coarse_coarse,2);
+	CoarseWilsonCloverLinearOperator D_coarse_coarse(u_coarse_coarse,2);
 	CoarseSpinor  psi_2(info_l2); // Coarse Coarse
 	CoarseSpinor  out_2(info_l2); // Coarse Coarse
 

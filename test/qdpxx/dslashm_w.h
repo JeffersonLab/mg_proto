@@ -1,5 +1,5 @@
-#ifndef TEST_QDPXX_DSLASH_M_W_H
-#define TEST_QDPXX_DSLASH_M_W_H
+#ifndef TEST_QDPXX_DSLASH_M_W_H_
+#define TEST_QDPXX_DSLASH_M_W_H_
 
 #ifndef QDP_INCLUDE
 #include "qdp.h"
@@ -21,4 +21,4 @@ void dslash(LatticeFermionD& chi,
 	    int isign, int cb);
 };
 
-#endif
+#endif /* TEST_QDPXX_DSLASH_M_W_H_ */

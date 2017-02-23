@@ -1,6 +1,6 @@
 // -*- C++ -*-
-#ifndef __mesfield_h__
-#define __mesfield_h__
+#ifndef TEST_QDPXX_MESFIELD_H_
+#define TEST_QDPXX_MESFIELD_H_
 
 #include <qdp.h>
 
@@ -36,4 +36,4 @@ namespace MGTesting {
 
 }
 
-#endif
+#endif /* TEST_QDPXX_MESFIELD_H_ */

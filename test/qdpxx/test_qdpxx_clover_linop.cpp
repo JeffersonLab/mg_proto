@@ -43,7 +43,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvMR)
 	params.RsdTarget = 0.02;
 	params.Omega = 1.1;
 	params.VerboseP = true;
-	MRSolver<Spinor,Gauge>  MR(M, params);
+	MRSolver MR(M, params);
 	Spinor b;
 	gaussian(b);
 	Spinor x=zero;
@@ -58,7 +58,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvMR)
 	ASSERT_EQ( res.resid_type, RELATIVE);
 
 	params.MaxIter = 6;
-	MRSmoother<Spinor,Gauge> MRS(M,params);
+	MRSmoother MRS(M,params);
 	x=zero;
 	MRS(x,b);
 	// Compute residuum:
@@ -100,7 +100,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvBiCGStab)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver<Spinor,Gauge>  BiCGStab(M, params);
+	BiCGStabSolver  BiCGStab(M, params);
 	Spinor b;
 	gaussian(b);
 	Spinor x=zero;
@@ -144,7 +144,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvBiCGStabZeroRHS)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver<Spinor,Gauge>  BiCGStab(M, params);
+	BiCGStabSolver  BiCGStab(M, params);
 
 	// Special Test to solver for Zero RHS for nullspace
 	Spinor b=zero;
@@ -244,7 +244,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvRightPrecFGMRES)
 	mr_params.MaxIter = 20;
 	mr_params.VerboseP = true;
 
-	MRSolver<Spinor,Gauge> MR(M, mr_params);
+	MRSolver MR(M, mr_params);
 
 	FGMRESParams params;
 	params.MaxIter = 500;

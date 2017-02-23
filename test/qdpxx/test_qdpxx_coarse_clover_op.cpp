@@ -18,6 +18,9 @@
 #include "coarse_wilson_clover_linear_operator.h"
 #include "invbicgstab.h"
 #include "invfgmres_coarse.h"
+#include "invmr.h"
+#include "invmr_coarse.h"
+#include "invbicgstab_coarse.h"
 
 using namespace MG;
 using namespace MGTesting;
@@ -71,10 +74,10 @@ TEST(TestLattice, CoarseLinOpRandomNullVecs)
 
 	// Create the blocked Clover and Gauge Fields
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
-	CoarseGauge u_coarse(info);
+	std::shared_ptr<CoarseGauge> u_coarse = std::make_shared<CoarseGauge>(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
-	M.generateCoarse(my_blocks,vecs, u_coarse);
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
 
 
 	// Create a coarse operator
@@ -82,7 +85,7 @@ TEST(TestLattice, CoarseLinOpRandomNullVecs)
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
 
 	// Now need to do the coarse test
 	LatticeFermion psi_in,tmp1,tmp2;
@@ -109,6 +112,336 @@ TEST(TestLattice, CoarseLinOpRandomNullVecs)
 		QDPIO::cout << "|| coarse_out - fake_coarse_out ||/||coarse_out||=" <<rel_diff <<std::endl;
 		ASSERT_LT( rel_diff, 3.0e-7);
 	}
+
+
+}
+
+
+TEST(TestLattice, CoarseLinOpMRInv)
+{
+	IndexArray latdims={{4,4,4,4}};
+	IndexArray blockdims = {{1,1,1,1}};
+
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+
+	float m_q = 0.1;
+	float c_sw = 1.25;
+
+	int t_bc=-1; // Antiperiodic t BCs
+
+
+	multi1d<LatticeColorMatrix> u(Nd);
+	for(int mu=0; mu < Nd; ++mu) {
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Create linear operator
+	QDPWilsonCloverLinearOperator M(m_q, c_sw, t_bc,u);
+
+	const int NumVecs=6;
+	multi1d<LatticeFermion> vecs(NumVecs);
+	for(int k=0; k < NumVecs; ++k) {
+		gaussian(vecs[k]);
+	}
+
+
+
+	// Someone once said doing this twice is good
+	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+
+	// Do the proper block orthogonalize
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	// Create the blocked Clover and Gauge Fields
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+
+	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
+
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
+
+	// Create a coarse operator
+	// FIXME: NB: M could have a method to create a coarsened operator.
+	// However then it would have to allocate u_coarse and clov_coarse
+	// and they would need to be held via some refcounted pointer...
+	// Come back to that
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
+
+	// Now need to do the coarse test
+	LatticeFermion psi_in,tmp1,tmp2;
+	gaussian(psi_in);
+	QDPIO::cout << "psi_in has norm=" << sqrt(norm2(psi_in)) << std::endl;
+
+
+	CoarseSpinor psi_in_coarse(info);
+
+	// Do the solve
+	// restrict psi_in to create the test vector
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, psi_in, psi_in_coarse);
+
+
+
+	CoarseSpinor coarse_solution(info);
+
+	CoarseSpinor solution_check(info);
+
+	MRSolverParams p;
+	p.MaxIter=500;
+	p.Omega=1.1;
+	p.RsdTarget = 1.0e-5;
+	p.VerboseP = true;
+
+	// Create an FGMRES Solver for the coarse Op
+
+
+	MRSolverCoarse CoarseMR( M_coarse, p );
+
+	ZeroVec(coarse_solution);
+	CoarseMR(coarse_solution, psi_in_coarse);
+
+	M_coarse(solution_check, coarse_solution, LINOP_OP);
+
+	double diff_norm = XmyNorm2Vec(solution_check,psi_in_coarse);
+		double psi_norm = Norm2Vec(psi_in_coarse);
+		double rel_diff = sqrt(diff_norm/psi_norm);
+		QDPIO::cout << "|| b - Ax ||=" << sqrt(diff_norm) <<std::endl;
+		QDPIO::cout << "|| b - Ax ||/|| b ||=" <<rel_diff <<std::endl;
+		ASSERT_LT( rel_diff, 5.0e-5);
+
+	LatticeFermion  solution_out;
+	prolongateSpinorCoarseToQDPXXFine(my_blocks,vecs,coarse_solution,solution_out);
+
+	LatticeFermion r;
+	M(r,solution_out,LINOP_OP);
+	r -= psi_in;
+	Double norm_r = sqrt(norm2(r));
+	Double rel_norm_r = norm_r / sqrt(norm2(psi_in));
+	QDPIO::cout << " Fine Level: || M (Px) - b || = " << norm_r << std::endl;
+	QDPIO::cout << " Fine Level: || M (Px) - b || = " << rel_norm_r << std::endl;
+	ASSERT_LT( toDouble(rel_norm_r), 5.0e-5);
+
+}
+
+TEST(TestLattice, CoarseLinOpMRSmoother)
+{
+	IndexArray latdims={{4,4,4,4}};
+	IndexArray blockdims = {{1,1,1,1}};
+
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+
+	float m_q = 0.1;
+	float c_sw = 1.25;
+
+	int t_bc=-1; // Antiperiodic t BCs
+
+
+	multi1d<LatticeColorMatrix> u(Nd);
+	for(int mu=0; mu < Nd; ++mu) {
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Create linear operator
+	QDPWilsonCloverLinearOperator M(m_q, c_sw, t_bc,u);
+
+	const int NumVecs=6;
+	multi1d<LatticeFermion> vecs(NumVecs);
+	for(int k=0; k < NumVecs; ++k) {
+		gaussian(vecs[k]);
+	}
+
+
+
+	// Someone once said doing this twice is good
+	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+
+	// Do the proper block orthogonalize
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	// Create the blocked Clover and Gauge Fields
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+
+	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
+
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
+
+	// Create a coarse operator
+	// FIXME: NB: M could have a method to create a coarsened operator.
+	// However then it would have to allocate u_coarse and clov_coarse
+	// and they would need to be held via some refcounted pointer...
+	// Come back to that
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
+
+	// Now need to do the coarse test
+	LatticeFermion psi_in,smooth_out;
+	gaussian(psi_in);
+	QDPIO::cout << "psi_in has norm=" << sqrt(norm2(psi_in)) << std::endl;
+
+
+	CoarseSpinor psi_in_coarse(info);
+	CoarseSpinor smooth_out_coarse(info);
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, psi_in, psi_in_coarse);
+
+
+	MRSolverParams p;
+	p.MaxIter=5;
+	p.Omega=1.1;
+	p.RsdTarget = 1.0e-5;
+	p.VerboseP = true;
+
+	// Create an FGMRES Solver for the coarse Op
+
+	MRSmoother FineMRSmoother( M, p);
+	MRSmootherCoarse CoarseMRSmoother( M_coarse, p );
+
+	smooth_out = zero; // Zero fine solution
+	ZeroVec(smooth_out_coarse); // Zero Coarse solution
+
+	FineMRSmoother(smooth_out,psi_in);
+	CoarseMRSmoother(smooth_out_coarse,psi_in_coarse);
+	LatticeFermion  P_smooth_out;
+	prolongateSpinorCoarseToQDPXXFine(my_blocks,vecs,smooth_out_coarse,P_smooth_out);
+
+	LatticeFermion diff = smooth_out - P_smooth_out;
+	Double norm_diff = norm2(diff);
+	Double rel_norm_diff = norm2(diff)/norm2(smooth_out);
+	QDPIO::cout << "|| v_fine - P v_coarse ||=" << sqrt(norm_diff) <<std::endl;
+	QDPIO::cout << "|| v_fine - P v_coarse ||/|| v_fine ||=" << sqrt(rel_norm_diff) <<std::endl;
+
+}
+
+TEST(TestLattice, CoarseLinOpBiCGStabInv)
+{
+	IndexArray latdims={{4,4,4,4}};
+	IndexArray blockdims = {{1,1,1,1}};
+
+	initQDPXXLattice(latdims);
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+
+	float m_q = 0.1;
+	float c_sw = 1.25;
+
+	int t_bc=-1; // Antiperiodic t BCs
+
+
+	multi1d<LatticeColorMatrix> u(Nd);
+	for(int mu=0; mu < Nd; ++mu) {
+		gaussian(u[mu]);
+		reunit(u[mu]);
+	}
+
+	// Create linear operator
+	QDPWilsonCloverLinearOperator M(m_q, c_sw, t_bc,u);
+
+	const int NumVecs=6;
+	multi1d<LatticeFermion> vecs(NumVecs);
+	for(int k=0; k < NumVecs; ++k) {
+		gaussian(vecs[k]);
+	}
+
+
+
+	// Someone once said doing this twice is good
+	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+
+	// Do the proper block orthogonalize
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	// Create the blocked Clover and Gauge Fields
+	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+
+	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
+
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
+
+	// Create a coarse operator
+	// FIXME: NB: M could have a method to create a coarsened operator.
+	// However then it would have to allocate u_coarse and clov_coarse
+	// and they would need to be held via some refcounted pointer...
+	// Come back to that
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
+
+	// Now need to do the coarse test
+	LatticeFermion psi_in,tmp1,tmp2;
+	gaussian(psi_in);
+	QDPIO::cout << "psi_in has norm=" << sqrt(norm2(psi_in)) << std::endl;
+
+
+	CoarseSpinor psi_in_coarse(info);
+
+	// Do the solve
+	// restrict psi_in to create the test vector
+	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, psi_in, psi_in_coarse);
+
+
+
+	CoarseSpinor coarse_solution(info);
+
+	CoarseSpinor solution_check(info);
+
+	LinearSolverParamsBase p;
+	p.MaxIter=500;
+	p.RsdTarget = 1.0e-5;
+	p.VerboseP = true;
+
+	// Create an FGMRES Solver for the coarse Op
+
+
+	BiCGStabSolverCoarse CoarseBiCG( M_coarse, p );
+
+	ZeroVec(coarse_solution);
+	CoarseBiCG(coarse_solution, psi_in_coarse);
+
+	M_coarse(solution_check, coarse_solution, LINOP_OP);
+
+	double diff_norm = XmyNorm2Vec(solution_check,psi_in_coarse);
+		double psi_norm = Norm2Vec(psi_in_coarse);
+		double rel_diff = sqrt(diff_norm/psi_norm);
+		QDPIO::cout << "|| b - Ax ||=" << sqrt(diff_norm) <<std::endl;
+		QDPIO::cout << "|| b - Ax ||/|| b ||=" <<rel_diff <<std::endl;
+		ASSERT_LT( rel_diff, 5.0e-5);
+
+	LatticeFermion  solution_out;
+	prolongateSpinorCoarseToQDPXXFine(my_blocks,vecs,coarse_solution,solution_out);
+
+	LatticeFermion r;
+	M(r,solution_out,LINOP_OP);
+	r -= psi_in;
+	Double norm_r = sqrt(norm2(r));
+	Double rel_norm_r = norm_r / sqrt(norm2(psi_in));
+	QDPIO::cout << " Fine Level: || M (Px) - b || = " << norm_r << std::endl;
+	QDPIO::cout << " Fine Level: || M (Px) - b || = " << rel_norm_r << std::endl;
+	ASSERT_LT( toDouble(rel_norm_r), 5.0e-5);
+
 }
 
 TEST(TestLattice, CoarseLinOpFGMRESInvTrivial)
@@ -160,15 +493,16 @@ TEST(TestLattice, CoarseLinOpFGMRESInvTrivial)
 	// Create the blocked Clover and Gauge Fields
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
 
-	CoarseGauge u_coarse(info);
-	M.generateCoarse(my_blocks,vecs, u_coarse);
+	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
+
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
 
 	// Now need to do the coarse test
 	LatticeFermion psi_in,tmp1,tmp2;
@@ -276,18 +610,18 @@ TEST(TestLattice, CoarseLinOpFGMRESInvBlocked)
 	// Create the blocked Clover and Gauge Fields
 	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
 
-	CoarseGauge u_coarse(info);
+	std::shared_ptr<CoarseGauge> u_coarse= std::make_shared<CoarseGauge>(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
 
-	M.generateCoarse(my_blocks,vecs, u_coarse);
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
 
 	// Now need to do the coarse test
 	LatticeFermion psi_in,tmp1,tmp2;

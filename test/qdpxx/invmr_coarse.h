@@ -1,20 +1,27 @@
 /*! \file
  *  \brief Minimal-Residual (MR) for a generic fermion Linear Operator
  */
+#ifndef TEST_QDPXX_INVMR_COARSE_H_
+#define TEST_QDPXX_INVMR_COARSE_H_
 
-#ifndef TEST_QDPXX_INVMR_H_
-#define TEST_QDPXX_INVMR_H_
 
-#include "qdp.h"
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
 #include "mr_params.h"
+#include "lattice/coarse/coarse_types.h"
+#include "lattice/coarse/coarse_l1_blas.h"
+
+#include "utils/print_utils.h"
+
+#include <complex>
 
 using namespace MG;
-using namespace QDP;
 
 namespace MGTesting  {
+
+	using DComplex = std::complex<double>;
+	using FComplex = std::complex<float>;
 
   //! Minimal-residual (MR) algorithm for a generic Linear Operator 
   /*! \ingroup invert
@@ -67,24 +74,29 @@ namespace MGTesting  {
    * @{
    */
 
-  template<typename Spinor, typename Gauge>
+
   LinearSolverResults
-  InvMR_a(const LinearOperator<Spinor,Gauge>& M,
-	  const Spinor& chi,
-	  Spinor& psi,
-	  const Real& OmegaRelax,
-	  const Real& RsdTarget, 
+  InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
+	  const CoarseSpinor& chi,
+	  CoarseSpinor& psi,
+	  const double& OmegaRelax,
+	  const double& RsdTarget,
 	  int MaxIter, 
 	  IndexType OpType,
 	  ResiduumType resid_type,
 	  bool VerboseP,
 	  bool TerminateOnResidua)
   {
+	 const LatticeInfo& info = chi.GetInfo();
+	 {
+		 const LatticeInfo& M_info = M.GetInfo();
+		 AssertCompatible( M_info, info );
+		 const LatticeInfo& psi_info = psi.GetInfo();
+		 AssertCompatible( psi_info, info );
+	 }
 
 	if( MaxIter < 0 ) {
-		QDPIO::cerr << "MR: Invalid Value: MaxIter < 0 " << std::endl;
-		QDP_abort(1);
-
+		MasterLog(ERROR,"MR: Invalid Value: MaxIter < 0 ");
 	}
 
     LinearSolverResults res;
@@ -96,76 +108,68 @@ namespace MGTesting  {
     	return res;
     }
 
-
-
-
     res.resid_type = resid_type;
 
+    CoarseSpinor Mr(info);
+    CoarseSpinor chi_internal(info);
 
-
-
-
-
-
-    Spinor Mr;
-    Spinor chi_internal;
-
-    // Hack for here.
-    Subset& s = all;
-
-    Complex a;
+    DComplex a;
     DComplex c;
-    Double d;
+    double d;
     int k=0;
 
-    chi_internal[s] = chi;
-    /*  r[0]  :=  Chi - M . Psi[0] */
-        /*  r  :=  M . Psi  */
-        M(Mr, psi, OpType);
 
-        Spinor r;
-        r[s]= chi_internal - Mr;
+    // chi_internal[s] = chi;
+    CopyVec(chi_internal, chi);
+
+    /*  r[0]  :=  Chi - M . Psi[0] */
+    /*  r  :=  M . Psi  */
+    M(Mr, psi, OpType);
+
+    CoarseSpinor r(info);
+    // r[s]= chi_internal - Mr;
+    XmyzVec(chi_internal,Mr,r);
 
         
-    Double norm_chi_internal;
-    Double rsd_sq;
-    Double cp;
+    double norm_chi_internal;
+    double rsd_sq;
+    double cp;
 
     if( TerminateOnResidua ) {
-    	norm_chi_internal = norm2(chi_internal, s);
-    	rsd_sq = Double(RsdTarget)*Double(RsdTarget);
+    	norm_chi_internal = Norm2Vec(chi_internal);
+    	rsd_sq = RsdTarget*RsdTarget;
 
     	if( resid_type == RELATIVE ) {
     		rsd_sq *= norm_chi_internal;
     	}
 
     	/*  Cp = |r[0]|^2 */
-    	Double cp = norm2(r,s);                 /* 2 Nc Ns  flops */
+    	double cp = Norm2Vec(r);                 /* 2 Nc Ns  flops */
 
     	if( VerboseP ) {
 
-    		MasterLog(INFO, "MR Solver: iter=%d || r ||^2 = %16.8e  Target || r ||^2 = %16.8e",k,toDouble(cp), toDouble(rsd_sq));
+    		MasterLog(INFO, "MR Solver: iter=%d || r ||^2 = %16.8e  Target || r ||^2 = %16.8e",k,cp, rsd_sq);
 
     	}
 
     	/*  IF |r[0]| <= RsdMR |Chi| THEN RETURN; */
-    	if ( toBool(cp  <=  rsd_sq) )
+    	if ( cp  <=  rsd_sq )
     	{
     		res.n_count = 0;
-    		res.resid   = toDouble(sqrt(cp));
+    		res.resid   = sqrt(cp);
     		if( resid_type == ABSOLUTE ) {
     			if( VerboseP ) {
     				MasterLog(INFO, "MR Solver: Final iters=0 || r ||_accum=16.8e || r ||_actual = %16.8e",
-    						toDouble(sqrt(cp)), res.resid);
+    						sqrt(cp), res.resid);
 
     			}
     		}
     		else {
 
-    			res.resid /= toDouble(sqrt(norm_chi_internal));
+    			res.resid /= sqrt(norm_chi_internal);
     			if( VerboseP ) {
     				MasterLog(INFO, "MR Solver: Final iters=0 || r ||/|| b ||_accum=16.8e || r ||/|| b ||_actual = %16.8e",
-    						toDouble(sqrt(cp/norm_chi_internal)), res.resid);
+    						sqrt(cp/norm_chi_internal), res.resid);
     			}
     		}
 
@@ -186,10 +190,10 @@ namespace MGTesting  {
       /*  Mr = M * r  */
       M(Mr, r, OpType);
       /*  c = < M.r, r > */
-      c = innerProduct(Mr, r, s);
+      c = InnerProductVec(Mr, r);
     
       /*  d = | M.r | ** 2  */
-      d = norm2(Mr, s);
+      d = Norm2Vec(Mr);
 
       /*  a = c / d */
       a = c / d;
@@ -198,21 +202,25 @@ namespace MGTesting  {
       a = a * OmegaRelax;
 
       /*  Psi[k] += a[k-1] r[k-1] ; */
-      psi[s] += r * a;
+      //psi[s] += r * a;
+      FComplex af( (float)a.real(), (float)a.imag() );
+      AxpyVec(af,r,psi);
 
       /*  r[k] -= a[k-1] M . r[k-1] ; */
-      r[s] -= Mr * a;
+      // r[s] -= Mr * a;
+      FComplex maf(-af.real(), -af.imag());
+      AxpyVec(maf,Mr,r);
 
 
       if( TerminateOnResidua ) {
 
     	  /*  cp  =  | r[k] |**2 */
-    	  cp = norm2(r, s);
+    	  cp = Norm2Vec(r);
     	  if( VerboseP ) {
     		  MasterLog(INFO, "MR Solver: iter=%d || r ||^2 = %16.8e  Target || r^2 || = %16.8e",
-    				  k, toDouble(cp), toDouble(rsd_sq) );
+    				  k, cp, rsd_sq );
     	  }
-    	  continueP = (k < MaxIter) && (toBool(cp > rsd_sq));
+    	  continueP = (k < MaxIter) && (cp > rsd_sq);
       }
       else {
     	  if( VerboseP ) {
@@ -230,20 +238,21 @@ namespace MGTesting  {
 
 
     	M(Mr, psi, OpType);
-    	Double actual_res = norm2(chi_internal - Mr,s);
-    	res.resid = toDouble(sqrt(actual_res));
+    	//Double actual_res = norm2(chi_internal - Mr,s);
+    	double actual_res = XmyNorm2Vec(chi_internal,Mr);
+    	res.resid = sqrt(actual_res);
 		if( resid_type == ABSOLUTE ) {
 			if( VerboseP ) {
 				MasterLog(INFO, "MR Solver: Final iters=%d || r ||_accum=%16.8e || r ||_actual = %16.8e",
-				    						res.n_count, toDouble(sqrt(cp)), res.resid);
+				    						res.n_count, sqrt(cp), res.resid);
 			}
 		}
 		else {
 
-			res.resid /= toDouble(sqrt(norm_chi_internal));
+			res.resid /= sqrt(norm_chi_internal);
 			if( VerboseP ) {
 				MasterLog(INFO, "MR Solver: Final iters=%d || r ||_accum=%16.8e || r ||_actual = %16.8e",
-				    						res.n_count, toDouble(sqrt(cp/norm_chi_internal)), res.resid);
+				    						res.n_count, sqrt(cp/norm_chi_internal), res.resid);
 			}
 		}
     }
@@ -251,42 +260,46 @@ namespace MGTesting  {
   }
 
 
-  class MRSolver : public LinearSolver< QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > {
-  public:
-	  MRSolver(const LinearOperator<QDP::LatticeFermion,
-			                        QDP::multi1d<QDP::LatticeColorMatrix> >& M,
-									const MG::LinearSolverParamsBase& params) : _M(M),
-	  _params(static_cast<const MRSolverParams&>(params)){}
 
-	  LinearSolverResults operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in, ResiduumType resid_type = RELATIVE) const {
-		  return  InvMR_a(_M, in, out, Real(_params.Omega), Real(_params.RsdTarget),
+
+  class MRSolverCoarse : public LinearSolver<CoarseSpinor,CoarseGauge> {
+  public:
+	  MRSolverCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
+			  	     const MG::LinearSolverParamsBase& params) : _M(M),
+					 _params(static_cast<const MRSolverParams&>(params)){}
+
+	  LinearSolverResults operator()(CoarseSpinor& out,
+			  	  	  	  	  	  	 const CoarseSpinor& in,
+									 ResiduumType resid_type = RELATIVE) const {
+		  return  InvMR_T(_M, in, out, _params.Omega, _params.RsdTarget,
 				  _params.MaxIter, LINOP_OP, resid_type, _params.VerboseP , true);
 
 	  }
 
   private:
-	  const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> >& _M;
+	  const LinearOperator<CoarseSpinor,CoarseGauge>& _M;
 	  const MRSolverParams& _params;
 
   };
 
 
-  class MRSmoother : public Smoother<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > {
+  class MRSmootherCoarse : public Smoother<CoarseSpinor,CoarseGauge> {
   public:
-	  MRSmoother(const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > & M, const MG::LinearSolverParamsBase& params) : _M(M),
-	  _params(static_cast<const MRSolverParams&>(params)){}
+	  MRSmootherCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
+			  	  	   const MG::LinearSolverParamsBase& params) : _M(M),
+					   _params(static_cast<const MRSolverParams&>(params)){}
 
-	  void operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in) const {
-		  InvMR_a(_M, in, out, Real(_params.Omega), Real(_params.RsdTarget),
+	  void operator()(CoarseSpinor& out, const CoarseSpinor& in) const {
+		  InvMR_T(_M, in, out, _params.Omega, _params.RsdTarget,
 				  _params.MaxIter, LINOP_OP,  ABSOLUTE, _params.VerboseP , false );
 
 	  }
 
   private:
-	  const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> >& _M;
+	  const LinearOperator<CoarseSpinor,CoarseGauge>& _M;
 	  const MRSolverParams& _params;
 
   };
 }
 
-#endif /* TEST_QDPXX_INVMR_H_ */
+#endif /* TEST_QDPXX_INVMR_COARSE_H_ */

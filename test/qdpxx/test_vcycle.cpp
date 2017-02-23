@@ -59,7 +59,7 @@ TEST(TestVCycle, TestVCycleApply)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver<LatticeFermion,multi1d<LatticeColorMatrix> >  BiCGStab(M, params);
+	BiCGStabSolver  BiCGStab(M, params);
 
 	// Zero RHS
 	LatticeFermion b=zero;
@@ -94,18 +94,18 @@ TEST(TestVCycle, TestVCycleApply)
 	// Function of the M
 	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
 
-	CoarseGauge u_coarse(info);
+	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
 
-	M.generateCoarse(my_blocks,vecs, u_coarse);
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse,  1);
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse,  1);
 
 
 	// WE NOW HAVE: M_fine, M_coarse and the information to affect Intergrid
@@ -119,7 +119,7 @@ TEST(TestVCycle, TestVCycleApply)
 	presmooth.VerboseP = true;
 
 	// MR Smoother holds only references
-	MRSmoother<LatticeFermion, multi1d<LatticeColorMatrix>> the_smoother(M,presmooth);
+	MRSmoother the_smoother(M,presmooth);
 
 
 	// Set up the CoarseSolver
@@ -186,7 +186,7 @@ TEST(TestVCycle, TestVCycleSolve)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver<LatticeFermion,multi1d<LatticeColorMatrix> >  BiCGStab(M, params);
+	BiCGStabSolver   BiCGStab(M, params);
 	LatticeFermion b=zero;
 
 	QDPIO::cout << "Generating 6 Null Vectors" << std::endl;
@@ -215,17 +215,17 @@ TEST(TestVCycle, TestVCycleSolve)
 
 	// Create the blocked Clover and Gauge Fields
 	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
-	CoarseGauge u_coarse(info);
+	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
 
 
-	M.generateCoarse(my_blocks,vecs, u_coarse);
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
 
 	MRSolverParams presmooth;
 	presmooth.MaxIter=4;
@@ -233,7 +233,7 @@ TEST(TestVCycle, TestVCycleSolve)
 	presmooth.Omega = 1.1;
 	presmooth.VerboseP = true;
 
-	MRSmoother<LatticeFermion, multi1d<LatticeColorMatrix>> the_smoother(M,presmooth);
+	MRSmoother the_smoother(M,presmooth);
 
 	FGMRESParams coarse_solve_params;
 	coarse_solve_params.MaxIter=200;
@@ -305,7 +305,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver<LatticeFermion,multi1d<LatticeColorMatrix> >  BiCGStab(M, params);
+	BiCGStabSolver BiCGStab(M, params);
 	LatticeFermion b=zero;
 
 	QDPIO::cout << "Generating 6 Null Vectors" << std::endl;
@@ -337,17 +337,17 @@ TEST(TestVCycle, TestVCyclePrec)
 
 	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
 
-	CoarseGauge u_coarse(info);
+	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
-	M.generateCoarse(my_blocks,vecs, u_coarse);
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
 
 	MRSolverParams presmooth;
 	presmooth.MaxIter=4;
@@ -355,7 +355,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	presmooth.Omega = 1.1;
 	presmooth.VerboseP = true;
 
-	MRSmoother<LatticeFermion, multi1d<LatticeColorMatrix>> pre_smoother(M,presmooth);
+	MRSmoother pre_smoother(M,presmooth);
 
 	MRSolverParams postsmooth;
 	postsmooth.MaxIter = 4;
@@ -363,7 +363,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	postsmooth.Omega = 1.1;
 	postsmooth.VerboseP = true;
 
-	MRSmoother<LatticeFermion, multi1d<LatticeColorMatrix>> post_smoother(M,postsmooth);
+	MRSmoother post_smoother(M,postsmooth);
 
 	FGMRESParams coarse_solve_params;
 	coarse_solve_params.MaxIter=200;
@@ -438,7 +438,7 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver<LatticeFermion,multi1d<LatticeColorMatrix> >  BiCGStab(M, params);
+	BiCGStabSolver BiCGStab(M, params);
 	LatticeFermion b=zero;
 
 	QDPIO::cout << "Generating 6 Null Vectors" << std::endl;
@@ -469,17 +469,17 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	QDPIO::cout << "NumVecs=" << NumVecs << std::endl;
 
 	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
-	CoarseGauge u_coarse(info);
+	std::shared_ptr<CoarseGauge> u_coarse = std::make_shared<CoarseGauge>(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
-	M.generateCoarse(my_blocks,vecs, u_coarse);
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
 
 	// Create a coarse operator
 	// FIXME: NB: M could have a method to create a coarsened operator.
 	// However then it would have to allocate u_coarse and clov_coarse
 	// and they would need to be held via some refcounted pointer...
 	// Come back to that
-	CoarseWilsonCloverLinearOperator M_coarse(&u_coarse, 1);
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
 
 	MRSolverParams presmooth;
 	presmooth.MaxIter=4;
@@ -487,7 +487,7 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	presmooth.Omega = 1.1;
 	presmooth.VerboseP = true;
 
-	MRSmoother<LatticeFermion, multi1d<LatticeColorMatrix>> pre_smoother(M,presmooth);
+	MRSmoother pre_smoother(M,presmooth);
 
 	MRSolverParams postsmooth;
 	postsmooth.MaxIter = 4;
@@ -495,7 +495,7 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	postsmooth.Omega = 1.1;
 	postsmooth.VerboseP = true;
 
-	MRSmoother<LatticeFermion, multi1d<LatticeColorMatrix>> post_smoother(M,postsmooth);
+	MRSmoother post_smoother(M,postsmooth);
 
 	FGMRESParams coarse_solve_params;
 	coarse_solve_params.MaxIter=200;

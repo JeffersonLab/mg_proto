@@ -1,14 +1,7 @@
  
--- Implement coarse coarse solvers (MR, BICGStab)
 -- Implement coarse coarse vcycle
 -- Implement 3 level vcycle (QDP->Coarse->Coarse)
 -- Aniso back into fine operator
-
--- NOTE: DEBUG: 8x8x8x8 lattice with 2x2x2x2 blocking gives bad results for fake operator
-                8x8x8x8 lattice with 4x4x4x4 blocking is fine (coarse grid is 2x2x2x2)
-	        8x8x8x8 lattice with 1x1x1x1 blocking is fine (coarse grid is 8x8x8x8)
-
-Investigate.. this
 
 ====== Done for Prototype Milestone
 

@@ -1,7 +1,7 @@
 // -*- C++ -*-
 
-#ifndef __clover_fermact_params_w_h__
-#define __clover_fermact_params_w_h__
+#ifndef TEST_QDPXX_CLOVER_FERMACT_PARAMS_W_H_
+#define TEST_QDPXX_CLOVER_FERMACT_PARAMS_W_H_
 
 #include  <qdp.h>
 using namespace QDP;
@@ -53,4 +53,4 @@ struct CloverFermActParams
 };
 
 };
-#endif
+#endif /* TEST_QDPXX_CLOVER_FERMACT_PARAMS_W_H_ */

@@ -339,6 +339,113 @@ void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpin
 	} // End of Parallel for region
 }
 
+
+void BiCGStabPUpdate(const std::complex<float>& beta,
+					 const CoarseSpinor& r,
+					 const std::complex<float>& omega,
+					 const CoarseSpinor& v,
+					 CoarseSpinor& p)
+{
+	const LatticeInfo& r_info = r.GetInfo();
+	const LatticeInfo& p_info = p.GetInfo();
+	const LatticeInfo& v_info = v.GetInfo();
+
+	AssertCompatible(r_info, p_info);
+	AssertCompatible(v_info, r_info);
+
+	IndexType num_cbsites = p_info.GetNumCBSites();
+	IndexType num_colorspin = p.GetNumColorSpin();
+
+#pragma omp parallel for collapse(2)
+	for(int cb=0; cb < 2; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+
+
+
+			// Identify the site
+			const float* r_site_data = r.GetSiteDataPtr(cb,cbsite);
+			const float* v_site_data = v.GetSiteDataPtr(cb,cbsite);
+			float* p_site_data = p.GetSiteDataPtr(cb,cbsite);
+
+			// Sum difference over the colorspins
+			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+
+
+				const std::complex<float> c_p( p_site_data[RE + n_complex*cspin],
+									           p_site_data[IM + n_complex*cspin]);
+
+				const std::complex<float> c_r( r_site_data[RE + n_complex*cspin],
+										       r_site_data[IM + n_complex*cspin]);
+
+				const std::complex<float> c_v( v_site_data[RE + n_complex*cspin],
+										       v_site_data[IM + n_complex*cspin]);
+
+
+				std::complex<float> res = c_r + beta*(c_p - omega*c_v);
+
+				p_site_data[ RE + n_complex*cspin] = res.real();
+				p_site_data[ IM + n_complex*cspin] = res.imag();
+
+			}
+
+		}
+	} // End of Parallel for region
+}
+
+
+void BiCGStabXUpdate(const std::complex<float>& omega,
+					 const CoarseSpinor& r,
+					 const std::complex<float>& alpha,
+					 const CoarseSpinor& p,
+					 CoarseSpinor& x)
+{
+	const LatticeInfo& r_info = r.GetInfo();
+	const LatticeInfo& p_info = p.GetInfo();
+	const LatticeInfo& x_info = x.GetInfo();
+
+	AssertCompatible(r_info, p_info);
+	AssertCompatible(x_info, r_info);
+
+	IndexType num_cbsites = x_info.GetNumCBSites();
+	IndexType num_colorspin = x.GetNumColorSpin();
+
+#pragma omp parallel for collapse(2)
+	for(int cb=0; cb < 2; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+
+
+
+			// Identify the site
+			const float* r_site_data = r.GetSiteDataPtr(cb,cbsite);
+			const float* p_site_data = p.GetSiteDataPtr(cb,cbsite);
+			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
+
+			// Sum difference over the colorspins
+			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+
+
+				const std::complex<float> c_p( p_site_data[RE + n_complex*cspin],
+									           p_site_data[IM + n_complex*cspin]);
+
+				const std::complex<float> c_r( r_site_data[RE + n_complex*cspin],
+										       r_site_data[IM + n_complex*cspin]);
+
+				const std::complex<float> res =  omega*c_r + alpha*c_p;
+
+				x_site_data[ RE + n_complex*cspin] += res.real();
+				x_site_data[ IM + n_complex*cspin] += res.imag();
+
+			}
+
+		}
+	} // End of Parallel for region
+}
+
+
+
+
+
+
 void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y) {
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
@@ -371,6 +478,42 @@ void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y) {
 	} // End of Parallel for region
 }
 
+void XmyzVec(const CoarseSpinor&x, const CoarseSpinor& y,
+			CoarseSpinor& z) {
+	const LatticeInfo& x_info = x.GetInfo();
+	const LatticeInfo& y_info = y.GetInfo();
+	const LatticeInfo& z_info = z.GetInfo();
+
+	AssertCompatible(x_info, y_info);
+	AssertCompatible(z_info, x_info);
+
+
+	IndexType num_cbsites = x_info.GetNumCBSites();
+	IndexType num_colorspin = x.GetNumColorSpin();
+
+#pragma omp parallel for collapse(2)
+	for(int cb=0; cb < 2; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+
+
+
+			// Identify the site
+			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
+			const float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
+			float* z_site_data = z.GetSiteDataPtr(cb,cbsite);
+
+			// Sum difference over the colorspins
+			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+
+
+				z_site_data[ RE + n_complex*cspin] = x_site_data[ RE + n_complex*cspin] - y_site_data[ RE + n_complex * cspin];
+				z_site_data[ IM + n_complex*cspin] = x_site_data[ IM + n_complex*cspin] - y_site_data[ IM + n_complex * cspin];
+
+			}
+
+		}
+	} // End of Parallel for region
+}
 
 /**** NOT 100% sure how to test this easily ******/
 void Gaussian(CoarseSpinor& x)

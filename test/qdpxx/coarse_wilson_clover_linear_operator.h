@@ -24,7 +24,7 @@ namespace MGTesting {
 class CoarseWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor,CoarseGauge > {
 public:
 	// Hardwire n_smt=1 for now.
-	CoarseWilsonCloverLinearOperator(const Gauge* gauge_in, int level) : _u(gauge_in),
+	CoarseWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : _u(gauge_in),
 	 _the_op( gauge_in->GetInfo(), 1), _level(level)
 	{
 
@@ -71,7 +71,7 @@ public:
 		return _u->GetInfo();
 	}
 private:
-	const Gauge* _u;
+	const std::shared_ptr<Gauge> _u;
 	const CoarseDiracOp _the_op;
 	const int _level;
 

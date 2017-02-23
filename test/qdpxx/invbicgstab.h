@@ -2,6 +2,9 @@
  *  \brief Conjugate-Gradient algorithm for a generic Linear Operator
  */
 
+#ifndef TEST_QDPXX_INVBICGSTAB_H_
+#define TEST_QDPXX_INVBICGSTAB_H_
+
 #include "qdp.h"
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
@@ -248,10 +251,12 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
   return ret;
 }
 
-template<typename Spinor, typename Gauge>
- class BiCGStabSolver : public LinearSolver<Spinor,Gauge> {
- public:
-	 	 BiCGStabSolver(const LinearOperator<Spinor,Gauge>& M, const LinearSolverParamsBase& params) : _M(M),
+
+class BiCGStabSolver : public LinearSolver<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > {
+public:
+	using Spinor = QDP::LatticeFermion;
+	using Gauge = QDP::multi1d< QDP::LatticeColorMatrix> ;
+	BiCGStabSolver(const LinearOperator<Spinor,Gauge>& M, const LinearSolverParamsBase& params) : _M(M),
 	  _params(params){}
 
 	  LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const {
@@ -266,3 +271,6 @@ template<typename Spinor, typename Gauge>
  };
 
 }  // end namespace MGTEsting
+
+#endif /* TEST_QDPXX_INVBICGSTAB_H_ */
+
