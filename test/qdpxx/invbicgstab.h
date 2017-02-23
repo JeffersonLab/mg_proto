@@ -33,17 +33,17 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
 
   bool convP = false;	
 
+  const int level=A.GetLevel();
   if( MaxIter <= 0 ) {
-  		QDPIO::cerr << "BiCGStab: Invalid Value: MaxIter <= 0 " << std::endl;
-  		QDP_abort(1);
-
-  }
+  		MasterLog(ERROR,"BiCGStab: level=%d Invalid Value: MaxIter <= 0 ",level);
+  	  }
 
   ret.n_count = MaxIter;
 	
   if( VerboseP ) {
-	  QDPIO::cout << "BiCGStab Solver Staring: " << std::endl;
+	  MasterLog(INFO,"BiCGStab: level=%d Solver Staring",level);
   }
+
   Double chi_sq =  norm2(chi,s);
   Double rsd_sq = RsdTarget*RsdTarget;
 
@@ -69,9 +69,7 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
   // Check if solution is already good enough
   Double r_norm = norm2(r,s);
   if( VerboseP ) {
-	  QDPIO::cout << "BiCGStab: iter=0" << " || r ||^2=" << r_norm
-			  << " Target || r ||^2=" << rsd_sq << std::endl;
-
+	  MasterLog(INFO,"BiCGStab: level=%d iter=0 || r ||^2=%16.8e Target || r ||^2=%16.8e",level,toDouble(r_norm), toDouble(rsd_sq));
   }
 
   if ( toBool(r_norm  <=  rsd_sq) )
@@ -80,17 +78,14 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
 	  ret.resid   = toDouble(sqrt(r_norm));
 	  if ( resid_type == ABSOLUTE ) {
 		  if( VerboseP ) {
-			  QDPIO::cout << "BiCGStab: Final Absolute Residua: || r ||_accum = " << sqrt(r_norm)
-  	  		  										<< " || r ||_actual = "
-													<< ret.resid << std::endl;
+			  MasterLog(INFO,"BiCGStab: level=%d  Final Absolute Residua: || r ||_accum=%16.8e || r ||_actual=%16.8e ",level,
+					  	  toDouble(sqrt(r_norm)), ret.resid);
 		  }
 	  }
 	  else {
 		  ret.resid /= toDouble(sqrt(chi_sq));
 		  if( VerboseP ) {
-			  QDPIO::cout << "BiCGStab: Final Relative Residua: || r ||/|| b ||_accum = " << sqrt(r_norm/chi_sq)
-  		  								<< " || r ||/|| b ||_actual = "
-										<< ret.resid << std::endl;
+			  MasterLog(INFO, "BiCGStab: level=%d Final Relative Residua: || r ||/|| b ||_accum=%16.8e || r ||/|| b ||_actual=%16.8e ", level, toDouble(r_norm/chi_sq), ret.resid);
 		  }
 	  }
 	  return ret;
@@ -124,7 +119,7 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
 
 
     if( toBool( real(rho) == 0 ) && toBool( imag(rho) == 0 ) ) {
-      QDPIO::cout << "BiCGStab breakdown: rho = 0" << std::endl;
+      MasterLog(INFO,"BiCGStab: level=%d breakdown: rho = 0", level);
       QDP_abort(1);
     }
 
@@ -153,8 +148,7 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
 
 
     if( toBool( real(ctmp) == 0 ) && toBool( imag(ctmp) == 0 ) ) {
-      QDPIO::cout << "BiCGStab breakdown: <r_0|v> = 0" << std::endl;
-      QDP_abort(1);
+      MasterLog(ERROR,"BiCGStab: level=%d breakdown: <r_0|v> = 0",level);
     }
 
     alpha = rho / ctmp;
@@ -177,8 +171,7 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
 
 
     if( toBool(t_norm == 0) ) { 
-      QDPIO::cerr << "Breakdown || Ms || = || t || = 0 " << std::endl;
-      QDP_abort(1);
+      MasterLog(ERROR,"BiCGStab: level=%d Breakdown || Ms || = || t || = 0 ",level);
     }
 
     // accumulate <t | s > = <t | r> into omega
@@ -205,8 +198,8 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
 
     r_norm = norm2(r,s);
     if( VerboseP ) {
-     	  QDPIO::cout << "BiCGStab: iter=" << k << " || r ||^2=" << r_norm
-     			  	  << " Target || r ||^2=" << rsd_sq<< std::endl;
+     	MasterLog(INFO, "BiCGStab: level=%d iter=%d || r ||^2=%16.8e Target || r ||^2=%16.8e",level,k, toDouble(r_norm), toDouble(rsd_sq));
+
 
        }
 
@@ -233,18 +226,16 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
   	ret.resid = toDouble(sqrt(actual_res));
   	if ( resid_type == ABSOLUTE ) {
   		if( VerboseP ) {
-  		QDPIO::cout << "BiCGStab: Final Absolute Residua: || r ||_accum = " << sqrt(r_norm)
-  		  						<< " || r ||_actual = "
-  								<< ret.resid << std::endl;
+  		MasterLog(INFO,"BiCGStab: level=%d Final Absolute Residua: || r ||_accum=%16.8e  || r ||_actual=%16.8e ",
+  					level, toDouble(sqrt(r_norm)),ret.resid);
   		}
   	}
   	else {
 
   		ret.resid /= toDouble(sqrt(chi_sq));
   		if( VerboseP ) {
-  			QDPIO::cout << "BiCGStab: Final Relative Residua: || r ||/|| b ||_accum = " << sqrt(r_norm/chi_sq)
-  						<< " || r ||/|| b ||_actual = "
-						<< ret.resid << std::endl;
+  			MasterLog(INFO,"BiCGStab: level=%d Final Relative Residua: || r ||/|| b ||_accum=%16.8e  || r ||/|| b ||_actual=%16.8e ",
+  					level, toDouble(sqrt(r_norm/chi_sq)), ret.resid );
   		}
   	}
 

@@ -168,9 +168,10 @@ namespace MGTesting {
 
  	 {
  		 ndim_cycle = 0;
+ 		 int level = A.GetLevel();
 
  		 if( VerboseP ) {
- 			 MasterLog(INFO,"FLEXIBLE ARNOLDI COARSE: Flexible Arnoldi Cycle: ");
+ 			 MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Flexible Arnoldi Cycle: ",level);
  		 }
 
 
@@ -189,7 +190,7 @@ namespace MGTesting {
 
 #ifdef DEBUG_SOLVER
  			 {
- 				 MasterLog(DEBUG, "norm of Z_j = %16.8e norm of V_j = %16.8e", Norm2Vec(*(Z[j])), Norm2Vec(*(V[j])));
+ 				 MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%d norm of Z_j = %16.8e norm of V_j = %16.8e",level, Norm2Vec(*(Z[j])), Norm2Vec(*(V[j])));
  			 }
 #endif
  			 CoarseSpinor w( Z[j]->GetInfo() );
@@ -208,7 +209,7 @@ namespace MGTesting {
 
  			 double wnorm=sqrt(Norm2Vec(w));               //  NORM
 #ifdef DEBUG_SOLVER
- 			 MasterLog(DEBUG, "j=%d wnorm=%16.8e\n", j, wnorm);
+ 			 MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%d j=%d wnorm=%16.8e\n", level, j, wnorm);
 #endif
 
  			 H(j,j+1) = std::complex<double>(wnorm,0);
@@ -220,7 +221,7 @@ namespace MGTesting {
  				 // If wnorm = 0 exactly, then we have converged exactly
  				 // Replay Givens rots here, how to test?
  				 if( VerboseP ) {
- 					 MasterLog(INFO,"FLEXIBLE ARNOLDI COARSE: Converged at iter = %d ",j+1);
+ 					 MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Converged at iter = %d ",level, j+1);
  				 }
  				 ndim_cycle = j;
  				 return;
@@ -248,14 +249,14 @@ namespace MGTesting {
  			 // j-ndeflate+1 is the 1 based human readable iteration count
 
  			 if ( VerboseP ) {
- 				 MasterLog(INFO,"FLEXIBLE ARNOLDI COARSE: Iter=%d || r || = %16.8e Target=%16.8e",
+ 				 MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Iter=%d || r || = %16.8e Target=%16.8e",level,
  						 	 	 	 	 	 	 	 	 	 	 	 	 j+1, accum_resid,rsd_target);
 
  			 }
  			 ndim_cycle = j+1;
  			 if ( toBool( accum_resid <= rsd_target ) ) {
  				 if ( VerboseP ) {
- 					 MasterLog(INFO,"FLEXIBLE ARNOLDI COARSE: Cycle Converged at iter = %d",j+1);
+ 					 MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Cycle Converged at iter = %d",level, j+1);
  				 }
  				 return;
  			 } // if
@@ -339,13 +340,14 @@ namespace MGTesting {
     	const LatticeInfo&  out_info = out.GetInfo();
     	AssertCompatible( in_info, _A.GetInfo());
     	AssertCompatible( out_info, _A.GetInfo());
+    	int level = _A.GetLevel();
 
     	// Compute ||r||
     	CoarseSpinor r( in_info ); ZeroVec(r);                                                     // BLAS: ZERO
 #ifdef DEBUG_SOLVER
     	{
     		double tmp_norm_r = sqrt(Norm2Vec(r));
-    		MasterLog(MG::DEBUG, "norm_rhs=%16.8e r_norm=%16.8e", norm_rhs, tmp_norm_r);
+    		MasterLog(MG::DEBUG, "FGMRES: level=%d norm_rhs=%16.8e r_norm=%16.8e", level, norm_rhs, tmp_norm_r);
     	}
 #endif
     	CoarseSpinor tmp(in_info ); ZeroVec(tmp);                                                     // BLAS: COPY
@@ -354,7 +356,7 @@ namespace MGTesting {
     	{
     		double tmp_norm_in = sqrt(Norm2Vec(in));
     		double tmp_norm_r = sqrt(Norm2Vec(r));
-    		MasterLog(MG::DEBUG, "After copy: in_norm=%16.8e r_norm=%16.8e", tmp_norm_in, tmp_norm_r);
+    		MasterLog(MG::DEBUG, "FGMRES: level=%d After copy: in_norm=%16.8e r_norm=%16.8e", level, tmp_norm_in, tmp_norm_r);
     	}
 #endif
 
@@ -368,7 +370,7 @@ namespace MGTesting {
     	// Initialize iterations
     	int iters_total = 0;
     	if ( _params.VerboseP ) {
-    		MasterLog(INFO,"FGMRES COARSE Solve: iters=%d || r ||=%16.8e Target || r ||=%16.8e", iters_total, r_norm,target);
+    		MasterLog(INFO,"FGMRES: level=%d iters=%d || r ||=%16.8e Target || r ||=%16.8e", level, iters_total, r_norm,target);
     	}
 
     	if( r_norm < target )  {
@@ -376,13 +378,13 @@ namespace MGTesting {
     		res.resid = r_norm ;
     		if( resid_type == ABSOLUTE ) {
     			if( _params.VerboseP ) {
-    				MasterLog(INFO,"FGMRES COARSE Solve Converged: iters=0  Final Absolute || r ||=%16.8e",res.resid);
+    				MasterLog(INFO,"FGMRES: level=%d  Solve Converged: iters=0  Final Absolute || r ||=%16.8e",level, res.resid);
     			}
     		}
     		else {
     			res.resid /= norm_rhs;
     			if( _params.VerboseP ) {
-    				MasterLog(INFO,"FGMRES COARSE Solve Converged: iters=0  Final Absolute || r ||/|| b ||=%16.8e",res.resid);
+    				MasterLog(INFO,"FGMRES: level=%d Solve Converged: iters=0  Final Absolute || r ||/|| b ||=%16.8e", level, res.resid);
     			}
     		}
     		return res;
@@ -465,7 +467,7 @@ namespace MGTesting {
     		// Update total iters
     		iters_total += iters_this_cycle;
     		if ( _params.VerboseP ) {
-    			MasterLog(INFO, "FGMRES COARSE: iter=%d || r ||=%16.8e target=%16.8e", iters_total, r_norm, target);
+    			MasterLog(INFO, "FGMRES: level=%d iter=%d || r ||=%16.8e target=%16.8e", level, iters_total, r_norm, target);
     		}
 
     		// Check if we are done either via convergence, or runnign out of iterations
@@ -485,12 +487,12 @@ namespace MGTesting {
     	res.resid = r_norm ;
     	if( resid_type == ABSOLUTE ) {
 
-        	MasterLog(INFO,"FGMRES COARSE: Done. Cycles=%d, Iters=%d || r ||=%16.8e",
+        	MasterLog(INFO,"FGMRES: level=%d Done. Cycles=%d, Iters=%d || r ||=%16.8e",level,
         	n_cycles,iters_total, res.resid, _params.RsdTarget);
     	}
     	else {
     		res.resid /= norm_rhs ;
-        	MasterLog(INFO,"FGMRES COARSE: Done. Cycles=%d, Iters=%d || r ||/|| b ||=%16.8e",
+        	MasterLog(INFO,"FGMRES: level=%d Done. Cycles=%d, Iters=%d || r ||/|| b ||=%16.8e",level,
         	n_cycles,iters_total, res.resid, _params.RsdTarget);
     	}
     	return res;

@@ -161,6 +161,7 @@ namespace MGTesting {
  		 const Subset& s = all;      // Linear Operator Subset
  		 ndim_cycle = 0;
 
+ 		 int level = A.GetLevel();
 
  		 // Work by columns:
  		 for(int j=0; j < n_krylov; ++j) {
@@ -219,7 +220,7 @@ namespace MGTesting {
 
  			 if ( VerboseP ) {
 
- 				 MasterLog(INFO,"FLEXIBLE ARNOLDI: Iter=%d  || r ||=%16.8e  Target=%16.8e",
+ 				 MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Iter=%d  || r ||=%16.8e  Target=%16.8e",level,
  						 	 j+1, toDouble(accum_resid), toDouble(rsd_target));
 
  			 }
@@ -290,6 +291,7 @@ namespace MGTesting {
     {
     	LinearSolverResults res; // Value to return
     	res.resid_type = resid_type;
+    	int level = _A.GetLevel();
 
     	const Subset s = all;
 
@@ -313,7 +315,7 @@ namespace MGTesting {
     	// Initialize iterations
     	int iters_total = 0;
     	if ( _params.VerboseP ) {
-    		MasterLog(INFO, "FGMRES Solve: iters=%d  || r ||=%16.8e  Target=%16.8e",
+    		MasterLog(INFO, "FGMRES: level=%d iters=%d  || r ||=%16.8e  Target=%16.8e",level,
     				iters_total, toDouble(r_norm), toDouble(target));
 
     	}
@@ -323,14 +325,14 @@ namespace MGTesting {
     		res.resid = toDouble( r_norm );
     		if( resid_type == ABSOLUTE ) {
     			if( _params.VerboseP ) {
-    		  		MasterLog(INFO, "FGMRES Solve Converged: iters=%d  Final (absolute) || r ||=%16.8e",
+    		  		MasterLog(INFO, "FGMRES: level=%d Solve Converged: iters=%d  Final (absolute) || r ||=%16.8e",level,
     		    				res.resid);
     			}
     		}
     		else {
     			res.resid /= toDouble( norm_rhs );
     			if( _params.VerboseP ) {
-       		  		MasterLog(INFO, "FGMRES Solve Converged: iters=%d  Final (relative) || r ||/|| b ||=%16.8e",
+       		  		MasterLog(INFO, "FGMRES: level=%d Solve Converged: iters=%d  Final (relative) || r ||/|| b ||=%16.8e",level,
         		    				res.resid);
     			}
     		}
@@ -423,7 +425,7 @@ namespace MGTesting {
     		// Update total iters
     		iters_total += iters_this_cycle;
     		if ( _params.VerboseP ) {
-    			MasterLog(INFO, "FGMRES: iter=%d || r ||=%16.8e target=%16.8e", iters_total, toDouble(r_norm), toDouble(target));
+    			MasterLog(INFO, "FGMRES: level=%d iter=%d || r ||=%16.8e target=%16.8e", level, iters_total, toDouble(r_norm), toDouble(target));
     		}
 
     		// Check if we are done either via convergence, or runnign out of iterations
@@ -444,12 +446,12 @@ namespace MGTesting {
     	res.resid = toDouble( r_norm );
     	if( resid_type == ABSOLUTE ) {
 
-        	MasterLog(INFO,"FGMRES: Done. Cycles=%d, Iters=%d || r ||=%16.8e",
+        	MasterLog(INFO,"FGMRES: level=%d  Solve Done. Cycles=%d, Iters=%d || r ||=%16.8e",level,
         	        	n_cycles,iters_total, res.resid, _params.RsdTarget);
     	}
     	else {
     		res.resid /= toDouble( norm_rhs ) ;
-    		MasterLog(INFO,"FGMRES: Done. Cycles=%d, Iters=%d || r ||/|| b ||=%16.8e",
+    		MasterLog(INFO,"FGMRES: level=%d  Solve Done. Cycles=%d, Iters=%d || r ||/|| b ||=%16.8e",level,
     		        	n_cycles,iters_total, res.resid, _params.RsdTarget);  	}
     	return res;
 

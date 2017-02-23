@@ -339,6 +339,73 @@ void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpin
 	} // End of Parallel for region
 }
 
+void YpeqxVec(const CoarseSpinor& x, CoarseSpinor& y)
+{
+	const LatticeInfo& x_info = x.GetInfo();
+	const LatticeInfo& y_info = y.GetInfo();
+	AssertCompatible(x_info, y_info);
+
+
+	IndexType num_cbsites = x_info.GetNumCBSites();
+	IndexType num_colorspin = x.GetNumColorSpin();
+
+#pragma omp parallel for collapse(2)
+	for(int cb=0; cb < 2; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+
+
+
+			// Identify the site
+			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
+			float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
+
+			// Sum difference over the colorspins
+			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+
+
+
+				y_site_data[ RE + n_complex*cspin] += x_site_data[ RE + n_complex*cspin ];
+				y_site_data[ IM + n_complex*cspin] += x_site_data[ IM + n_complex*cspin ];
+
+			}
+
+		}
+	} // End of Parallel for region
+}
+
+void YmeqxVec(const CoarseSpinor& x, CoarseSpinor& y)
+{
+	const LatticeInfo& x_info = x.GetInfo();
+	const LatticeInfo& y_info = y.GetInfo();
+	AssertCompatible(x_info, y_info);
+
+
+	IndexType num_cbsites = x_info.GetNumCBSites();
+	IndexType num_colorspin = x.GetNumColorSpin();
+
+#pragma omp parallel for collapse(2)
+	for(int cb=0; cb < 2; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+
+
+
+			// Identify the site
+			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
+			float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
+
+			// Sum difference over the colorspins
+			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+
+
+
+				y_site_data[ RE + n_complex*cspin] -= x_site_data[ RE + n_complex*cspin ];
+				y_site_data[ IM + n_complex*cspin] -= x_site_data[ IM + n_complex*cspin ];
+
+			}
+
+		}
+	} // End of Parallel for region
+}
 
 void BiCGStabPUpdate(const std::complex<float>& beta,
 					 const CoarseSpinor& r,

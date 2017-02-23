@@ -5,8 +5,8 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_VCYCLE_QDPXX_COARSE_H_
-#define TEST_QDPXX_VCYCLE_QDPXX_COARSE_H_
+#ifndef TEST_QDPXX_VCYCLE_COARSE_H_
+#define TEST_QDPXX_VCYCLE_COARSE_H_
 #include "qdp.h"
 #include "lattice/constants.h"
 #include "lattice/coarse/coarse_types.h"
@@ -15,54 +15,63 @@
 #include "invmr.h"
 #include "invfgmres_coarse.h"
 #include "fgmres_common.h"
-#include "aggregate_block_qdpxx.h"
+#include "aggregate_block_coarse.h"
 #include "utils/print_utils.h"
 using namespace QDP;
 using namespace MG;
 
 namespace MGTesting {
 
-class VCycleQDPCoarse2 : public LinearSolver<LatticeFermion, multi1d<LatticeColorMatrix> >
+class VCycleCoarse : public LinearSolver<CoarseSpinor,CoarseGauge>
 {
 public:
-	LinearSolverResults operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type = RELATIVE ) const
+	LinearSolverResults operator()(CoarseSpinor& out, const CoarseSpinor& in, ResiduumType resid_type = RELATIVE ) const
 	{
+
+		const LatticeInfo& info=out.GetInfo();
+		{
+			const LatticeInfo& info_in = in.GetInfo();
+			const LatticeInfo& M_info = _M_fine.GetInfo();
+			AssertCompatible(info, info_in);
+			AssertCompatible(info, M_info);
+		}
 
 		LinearSolverResults res;
 
-		LatticeFermion tmp;  // Use these to compute residua
-		LatticeFermion r;    //
+		CoarseSpinor tmp(info);  // Use these to compute residua
+		CoarseSpinor r(info);    //
 
 		int level = _M_fine.GetLevel();
 
-		Double norm_in, norm_r;
+		double norm_in, norm_r;
 
 
 		// Initialize
-		out = zero;  // Work with zero intial guess
-		r = in;
-		norm_r = sqrt(norm2(r));
+		ZeroVec(out);  // Work with zero intial guess
+		CopyVec(r,in);
+		norm_r = sqrt(Norm2Vec(r));
 		norm_in = norm_r;
 
-		Double target = _param.RsdTarget;
+		double target = _param.RsdTarget;
 		if ( resid_type == RELATIVE ) {
 			target *= norm_r;
 		}
 
 		// Check if converged already
-		if ( toBool ( norm_r <= target ) || _param.MaxIter <= 0  ) {
+		if (  norm_r <= target || _param.MaxIter <= 0  ) {
 			res.resid_type = resid_type;
 			res.n_count = 0;
-			res.resid = toDouble(norm_r);
+			res.resid = norm_r;
 			if( resid_type == RELATIVE ) {
-				res.resid /= toDouble(norm_r);
+				res.resid /= norm_r;
 			}
 			return res;
 		}
 
 		if( _param.VerboseP ) {
-			MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d Initial || r ||=%16.8e  Target=%16.8e", level, toDouble(norm_r), toDouble(target));
+			MasterLog(INFO, "VCYCLE (COARSE->COARSE): level=%d Initial || r ||=%16.8e  Target=%16.8e", level, norm_r, target);
 		}
+
 		// At this point we have to do at least one iteration
 		int iter = 0;
 
@@ -72,79 +81,88 @@ public:
 			++iter;
 
 
-			LatticeFermion delta = zero;
+			CoarseSpinor delta(info);
+			ZeroVec(delta);
 
 			// Smoother does not compute a residuum
 			_pre_smoother(delta,r);
 
 			// Update solution
-			out += delta;
+			// out += delta;
+			YpeqxVec(delta,out);
 
 			// Update residuum
 			_M_fine(tmp,delta, LINOP_OP);
-			r -= tmp;
+
+			// r -= tmp;
+			YmeqxVec(tmp,r);
 
 			if ( _param.VerboseP ) {
-				Double norm_pre_presmooth=sqrt(norm2(r));
-				MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d After Presmoothing || r ||=%16.8e", level, iter, toDouble(norm_pre_presmooth));
+				double norm_pre_presmooth=sqrt(Norm2Vec(r));
+				MasterLog(INFO, "VCYCLE (COARSE->COARSE): level=%d iter=%d After Presmoothing || r ||=%16.8e", level, iter, toDouble(norm_pre_presmooth));
 			}
 
 			CoarseSpinor coarse_in(_coarse_info);
 
 			// Coarsen r
-			restrictSpinorQDPXXFineToCoarse(_my_blocks, _vecs, r,coarse_in);
+			restrictSpinor(_my_blocks, _vecs, r,coarse_in);
 
 			CoarseSpinor coarse_delta(_coarse_info);
 			ZeroVec(coarse_delta);
 			LinearSolverResults coarse_res =_bottom_solver(coarse_delta,coarse_in);
 
 			// Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
-			prolongateSpinorCoarseToQDPXXFine(_my_blocks, _vecs, coarse_delta, delta);
+			prolongateSpinor(_my_blocks, _vecs, coarse_delta, delta);
 
 			// Update solution
-			out += delta;
+			//			out += delta;
+			YpeqxVec(delta,out);
 
 			// Update residuum
 			_M_fine(tmp, delta, LINOP_OP);
-			r -= tmp;
+			// r -= tmp;
+			YmeqxVec(tmp,r);
 
 			if( _param.VerboseP ) {
-				Double norm_pre_postsmooth = sqrt(norm2(r));
-				MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d Before Post-smoothing || r ||=%16.8e", level, iter, toDouble(norm_pre_postsmooth));
+				double norm_pre_postsmooth = sqrt(Norm2Vec(r));
+				MasterLog(INFO, "VCYCLE (COARSE->COARSE): level=%d iter=%d Before Post-smoothing || r ||=%16.8e", level, iter, toDouble(norm_pre_postsmooth));
 			}
 
-			delta = zero;
+			// delta = zero;
+			ZeroVec(delta);
 			_post_smoother(delta,r);
 
 			// Update full solution
-			out += delta;
+			// out += delta;
+			YpeqxVec(delta,out);
 			_M_fine(tmp,delta,LINOP_OP);
-			r -= tmp;
-			norm_r = sqrt(norm2(r));
+			//r -= tmp;
+			YmeqxVec(tmp,r);
+			norm_r = sqrt(Norm2Vec(r));
 
 			if( _param.VerboseP ) {
-				MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d || r ||=%16.8e target=%16.8e", level, iter, toDouble(norm_r), toDouble(target));
+				MasterLog(INFO, "VCYCLE (COARSE->COARSE): level=%d iter=%d || r ||=%16.8e target=%16.8e", level, iter, toDouble(norm_r), toDouble(target));
 			}
 
 			// Check convergence
-			continueP = ( iter < _param.MaxIter ) &&  toBool( norm_r > target );
+			continueP = ( iter < _param.MaxIter ) &&  ( norm_r > target );
 		}
 
 		res.resid_type = resid_type;
 		res.n_count = iter;
-		res.resid=toDouble(norm_r);
+		res.resid= norm_r;
 		if( resid_type == RELATIVE ) {
-			res.resid /= toDouble(norm_in);
+			res.resid /= norm_in;
 		}
 		return res;
 	}
 
-	VCycleQDPCoarse2(const LatticeInfo& coarse_info,
-					 const std::vector<Block>& my_blocks,
-					 const multi1d<LatticeFermion>& vecs,
-					 const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>>& M_fine,
-					 const MRSmoother<LatticeFermion,multi1d<LatticeColorMatrix>>& pre_smoother,
-					 const MRSmoother<LatticeFermion,multi1d<LatticeColorMatrix>>& post_smoother,
+	VCycleCoarse(const LatticeInfo& coarse_info,
+				const std::vector<Block>& my_blocks,
+				const std::vector<std::shared_ptr<CoarseSpinor> >& vecs,
+					 const LinearOperator<CoarseSpinor, CoarseGauge>& M_fine,
+					 const MRSmootherCoarse& pre_smoother,
+					 const MRSmootherCoarse& post_smoother,
 					 const FGMRESSolverCoarse& bottom_solver,
 					 const LinearSolverParamsBase& param) : _coarse_info(coarse_info),
 							 	 	 	 	 	 	 	 	_my_blocks(my_blocks),
@@ -159,10 +177,10 @@ public:
 private:
 	const LatticeInfo& _coarse_info;
 	const std::vector<Block>& _my_blocks;
-	const multi1d<LatticeFermion>& _vecs;
-	const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>>& _M_fine;
-	const MRSmoother<LatticeFermion,multi1d<LatticeColorMatrix>>& _pre_smoother;
-	const MRSmoother<LatticeFermion,multi1d<LatticeColorMatrix>>& _post_smoother;
+	const std::vector< std::shared_ptr<CoarseSpinor> >& _vecs;
+	const LinearOperator< CoarseSpinor, CoarseGauge>& _M_fine;
+	const MRSmootherCoarse& _pre_smoother;
+	const MRSmootherCoarse& _post_smoother;
 	const FGMRESSolverCoarse& _bottom_solver;
 	const LinearSolverParamsBase& _param;
 };

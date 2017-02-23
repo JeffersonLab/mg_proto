@@ -81,8 +81,9 @@ namespace MGTesting  {
 	  bool TerminateOnResidua)
   {
 
+	  int level = M.GetLevel();
 	if( MaxIter < 0 ) {
-		QDPIO::cerr << "MR: Invalid Value: MaxIter < 0 " << std::endl;
+		MasterLog(ERROR,"MR: level=%d Invalid Value: MaxIter < 0 ", level);
 		QDP_abort(1);
 
 	}
@@ -144,7 +145,7 @@ namespace MGTesting  {
 
     	if( VerboseP ) {
 
-    		MasterLog(INFO, "MR Solver: iter=%d || r ||^2 = %16.8e  Target || r ||^2 = %16.8e",k,toDouble(cp), toDouble(rsd_sq));
+    		MasterLog(INFO, "MR: level=%d iter=%d || r ||^2 = %16.8e  Target || r ||^2 = %16.8e",level,k,toDouble(cp), toDouble(rsd_sq));
 
     	}
 
@@ -155,7 +156,7 @@ namespace MGTesting  {
     		res.resid   = toDouble(sqrt(cp));
     		if( resid_type == ABSOLUTE ) {
     			if( VerboseP ) {
-    				MasterLog(INFO, "MR Solver: Final iters=0 || r ||_accum=16.8e || r ||_actual = %16.8e",
+    				MasterLog(INFO, "MR: level=%d Final iters=0 || r ||_accum=16.8e || r ||_actual = %16.8e", level,
     						toDouble(sqrt(cp)), res.resid);
 
     			}
@@ -164,7 +165,7 @@ namespace MGTesting  {
 
     			res.resid /= toDouble(sqrt(norm_chi_internal));
     			if( VerboseP ) {
-    				MasterLog(INFO, "MR Solver: Final iters=0 || r ||/|| b ||_accum=16.8e || r ||/|| b ||_actual = %16.8e",
+    				MasterLog(INFO, "MR: level=%d Final iters=0 || r ||/|| b ||_accum=16.8e || r ||/|| b ||_actual = %16.8e",level,
     						toDouble(sqrt(cp/norm_chi_internal)), res.resid);
     			}
     		}
@@ -209,14 +210,14 @@ namespace MGTesting  {
     	  /*  cp  =  | r[k] |**2 */
     	  cp = norm2(r, s);
     	  if( VerboseP ) {
-    		  MasterLog(INFO, "MR Solver: iter=%d || r ||^2 = %16.8e  Target || r^2 || = %16.8e",
+    		  MasterLog(INFO, "MR: level=% iter=%d || r ||^2 = %16.8e  Target || r^2 || = %16.8e",level,
     				  k, toDouble(cp), toDouble(rsd_sq) );
     	  }
     	  continueP = (k < MaxIter) && (toBool(cp > rsd_sq));
       }
       else {
     	  if( VerboseP ) {
-    		  MasterLog(INFO, "MR Solver: iter=%d",k);
+    		  MasterLog(INFO, "MR: level=%d iter=%d",level,k);
     	  }
     	  continueP =  (k < MaxIter);
       }
@@ -234,7 +235,7 @@ namespace MGTesting  {
     	res.resid = toDouble(sqrt(actual_res));
 		if( resid_type == ABSOLUTE ) {
 			if( VerboseP ) {
-				MasterLog(INFO, "MR Solver: Final iters=%d || r ||_accum=%16.8e || r ||_actual = %16.8e",
+				MasterLog(INFO, "MR: level=%d Final iters=%d || r ||_accum=%16.8e || r ||_actual = %16.8e",level,
 				    						res.n_count, toDouble(sqrt(cp)), res.resid);
 			}
 		}
@@ -242,7 +243,7 @@ namespace MGTesting  {
 
 			res.resid /= toDouble(sqrt(norm_chi_internal));
 			if( VerboseP ) {
-				MasterLog(INFO, "MR Solver: Final iters=%d || r ||_accum=%16.8e || r ||_actual = %16.8e",
+				MasterLog(INFO, "MR: level=%d Final iters=%d || r ||_accum=%16.8e || r ||_actual = %16.8e", level,
 				    						res.n_count, toDouble(sqrt(cp/norm_chi_internal)), res.resid);
 			}
 		}

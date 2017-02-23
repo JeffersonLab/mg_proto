@@ -274,8 +274,12 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 
 	// Sanity check. The number of sites in the coarse spinor
 	// Has to equal the number of blocks
-	assert( n_checkerboard*num_coarse_cbsites == static_cast<IndexType>(blocklist.size()) );
+	// assert( n_checkerboard*num_coarse_cbsites == static_cast<IndexType>(blocklist.size()) );
+	if ( n_checkerboard * num_coarse_cbsites !=  static_cast<IndexType>(blocklist.size()) ) {
+		MasterLog(ERROR, "restrictSpinor error: n_checkerboard=%d num_coarse_cbsites=%d blocklist_size=%d",
+				n_checkerboard,num_coarse_cbsites,blocklist.size());
 
+	}
 	// The number of vectors has to eaqual the number of coarse colors
 	assert( static_cast<IndexType>(fine_vecs.size()) == num_coarse_colors );
 

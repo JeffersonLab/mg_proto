@@ -1,3 +1,9 @@
+8/23/17 - Single Node: Recursive v-cycle added into test_vcycle
+	  - Create VCycleCoarse from L1->L2 with unpreconditioned FGMRES Bottom Solver
+          - Use this as Preconditioner for L1 FGMRES solver
+          - Create VCycleQDPXXCoarse2 from L0->L1 with L1 preconditioned FGMRES solver
+	  - Solver converges, both for random and unit gauge.
+
 8/23/17- Single Node: Coarse BiCGStab and MR added
 	 Templates removed from fine QDPXX BiCGStab and MR solvers.
 

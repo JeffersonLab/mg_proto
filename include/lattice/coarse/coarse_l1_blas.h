@@ -24,6 +24,8 @@ void CopyVec(CoarseSpinor& x, const CoarseSpinor& y);
 void ScaleVec(const float alpha, CoarseSpinor& x);
 void ScaleVec(const std::complex<float>& alpha, CoarseSpinor& x);
 void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpinor& y);
+void YpeqxVec(const CoarseSpinor& x, CoarseSpinor& y);
+void YmeqxVec(const CoarseSpinor& x, CoarseSpinor& y);
 void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y);
 void XmyzVec(const CoarseSpinor& x, const CoarseSpinor& y, CoarseSpinor& z);
 void Gaussian(CoarseSpinor& v);

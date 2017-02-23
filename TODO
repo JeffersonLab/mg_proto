@@ -1,7 +1,6 @@
- 
--- Implement coarse coarse vcycle
--- Implement 3 level vcycle (QDP->Coarse->Coarse)
--- Aniso back into fine operator
+-- Test on small isotropic config? 
+
+-- Aniso back into fine operator -- already in Clover, but put back in Dslash?
 
 ====== Done for Prototype Milestone
 

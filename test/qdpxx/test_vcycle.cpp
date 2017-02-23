@@ -19,6 +19,12 @@
 #include "invfgmres.h"
 #include "invfgmres_coarse.h"
 #include "vcycle_qdpxx_coarse.h"
+#include "invbicgstab_coarse.h"
+#include "invmr_coarse.h"
+#include "vcycle_coarse.h"
+
+
+#include <memory>
 
 using namespace MG;
 using namespace MGTesting;
@@ -428,8 +434,9 @@ TEST(TestVCycle, TestVCyclePrec8888)
 
 	multi1d<LatticeColorMatrix> u(Nd);
 	for(int mu=0; mu < Nd; ++mu) {
-		gaussian(u[mu]);
-		reunit(u[mu]);
+	// gaussian(u[mu]);
+	//	reunit(u[mu]);
+		u[mu]=1.0;
 	}
 
 	// Create linear operator
@@ -516,8 +523,214 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	fine_solve_params.MaxIter=200;
 	fine_solve_params.RsdTarget=1.0e-5;
 	fine_solve_params.VerboseP = true;
-	fine_solve_params.NKrylov = 2;
+	fine_solve_params.NKrylov = 5;
 	FGMRESSolver FGMRESOuter(M,fine_solve_params, &vcycle);
+
+	// Now need to do the coarse test
+	LatticeFermion psi_in, chi_out;
+	gaussian(psi_in);
+	chi_out = zero;
+	QDPIO::cout << "psi_in has norm =" << sqrt(norm2(psi_in)) << std::endl;
+	LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
+	QDPIO::cout << "Returned residue = || r || / || b ||="<< res.resid<< std::endl;
+
+	LatticeFermion r=psi_in;
+	LatticeFermion tmp;
+	M(tmp,chi_out,LINOP_OP);
+	r -= tmp;
+	Double diff=sqrt(norm2(r));
+	Double diff_rel = diff / sqrt(norm2(psi_in));
+	QDPIO::cout << "|| b - A x || = " << diff << std::endl;
+	QDPIO::cout << "|| b - A x || = " << diff_rel << std::endl;
+	ASSERT_EQ( res.resid_type, RELATIVE);
+	ASSERT_LT( res.resid, 1.0e-5);
+	ASSERT_LT( toDouble(diff_rel), 1.0e-5);
+
+}
+
+TEST(TestVCycle, TestVCycle2Level)
+{
+	IndexArray latdims={{8,8,8,8}};
+	IndexArray blockdims = {{2,2,2,2}};
+
+
+	initQDPXXLattice(latdims);
+
+	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+	float m_q = 0.1;
+	float c_sw = 1.25;
+
+	int t_bc=-1; // Antiperiodic t BCs
+
+
+	multi1d<LatticeColorMatrix> u(Nd);
+	for(int mu=0; mu < Nd; ++mu) {
+		u[mu]=1;
+		//gaussian(u[mu]);
+		//reunit(u[mu]);
+	}
+
+	// Create linear operator
+	QDPWilsonCloverLinearOperator M(m_q, c_sw, t_bc,u);
+	LinearSolverParamsBase params;
+	params.MaxIter = 500;
+	params.RsdTarget = 1.0e-5;
+	params.VerboseP = true;
+	BiCGStabSolver BiCGStab(M, params);
+	LatticeFermion b=zero;
+
+	QDPIO::cout << "Generating 6 Null Vectors" << std::endl;
+	const int NumVecs=6;
+	multi1d<LatticeFermion> vecs(NumVecs);
+	for(int k=0; k < NumVecs; ++k) {
+		gaussian(vecs[k]);
+		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE);
+		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
+				<< std::endl;
+	}
+
+
+
+	// Someone once said doing this twice is good
+	QDPIO::cout << "Orthonormalizing Nullvecs" << std::endl;
+
+	// 1) Create the blocklist
+	std::vector<Block> my_blocks;
+	IndexArray blocked_lattice_dims;
+	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+
+	// Do the proper block orthogonalize
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
+
+	QDPIO::cout << "Creating Level 1 LinearOperator" <<std::endl;
+
+	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
+	std::shared_ptr<CoarseGauge> u_coarse = std::make_shared<CoarseGauge>(info);
+	M.generateCoarse(my_blocks,vecs, *u_coarse);
+	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
+	BiCGStabSolverCoarse BiCGStabL1( M_coarse, params);  // Use this to solve for zero vecs
+
+	QDPIO::cout << "Level 1: Linear Operator and BiCGStab Solver Created" << std::endl;
+
+	QDPIO::cout << "Creating Level 2 Vectors" <<std::endl;
+
+	//---------------------------------------------------
+	// Now make a second level
+	//---------------------------------------------------
+	const int NumVecs2 = 8;
+	std::vector<std::shared_ptr<CoarseSpinor> >  vecs_l2(NumVecs2);
+	CoarseSpinor zero_l2(info);
+	ZeroVec(zero_l2);
+	for(int k=0; k < NumVecs2; ++k) {
+		vecs_l2[k] = std::make_shared<CoarseSpinor>(info);
+		Gaussian( *(vecs_l2[k]) );
+		LinearSolverResults res = BiCGStabL1(*(vecs_l2[k]), zero_l2,ABSOLUTE);
+		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
+						<< std::endl;
+	}
+
+	QDPIO::cout << "L2: Orthonormzlizing Nullvecs" << std::endl;
+	std::vector<Block> my_blocks_l2;
+	IndexArray blocked_lattice_dims2;
+	CreateBlockList(my_blocks_l2, blocked_lattice_dims2, blocked_lattice_dims, blockdims, node_orig);
+
+	// Do the proper block orthogonalize
+	orthonormalizeBlockAggregates(vecs_l2, my_blocks_l2);
+	orthonormalizeBlockAggregates(vecs_l2, my_blocks_l2);
+
+	QDPIO::cout << "Creating Level 2 LinearOperator" <<std::endl;
+
+	LatticeInfo info2(blocked_lattice_dims2, 2, NumVecs2, NodeInfo());
+	std::shared_ptr<CoarseGauge> u_coarse_coarse = std::make_shared<CoarseGauge>(info2);
+	M_coarse.generateCoarse(my_blocks_l2,vecs_l2, *u_coarse_coarse);
+	CoarseWilsonCloverLinearOperator M_coarse_coarse(u_coarse_coarse, 2);
+
+	QDPIO::cout << "Done" << std::endl;
+
+	QDPIO::cout << "Creating Level 2 Vcycle" << std::endl;
+
+	QDPIO::cout << "  ... creating L1 PreSmoother" << std::endl;
+	MRSolverParams presmooth_12_params;
+	presmooth_12_params.MaxIter=4;
+	presmooth_12_params.RsdTarget = 0.1;
+	presmooth_12_params.Omega = 1.1;
+	presmooth_12_params.VerboseP = true;
+	MRSmootherCoarse pre_smoother_12(M_coarse, presmooth_12_params);
+
+	QDPIO::cout << "  ... creating L2 (bottom) FGMRES Solver." << std::endl;
+	FGMRESParams l2_solve_params;
+	l2_solve_params.MaxIter=200;
+	l2_solve_params.RsdTarget=0.1;
+	l2_solve_params.VerboseP = false;
+	l2_solve_params.NKrylov = 10;
+	FGMRESSolverCoarse l2_solver(M_coarse_coarse,l2_solve_params,nullptr); // Bottom solver, no preconditioner
+
+	QDPIO::cout << "  ... creating L1 PostSmoother" << std::endl;
+	MRSolverParams postsmooth_12_params;
+	postsmooth_12_params.MaxIter=4;
+	postsmooth_12_params.RsdTarget = 0.1;
+	postsmooth_12_params.Omega = 1.1;
+	postsmooth_12_params.VerboseP = true;
+	MRSmootherCoarse post_smoother_12(M_coarse, postsmooth_12_params);
+
+	QDPIO::cout << " ... creating L1 -> L2 VCycle" << std::endl;
+	LinearSolverParamsBase vcycle_12_params;
+	vcycle_12_params.MaxIter=1;
+	vcycle_12_params.RsdTarget =0.1;
+	vcycle_12_params.VerboseP = true;
+
+
+	VCycleCoarse vcycle12( info2, my_blocks_l2, vecs_l2, M_coarse, pre_smoother_12, post_smoother_12, l2_solver, vcycle_12_params);
+	QDPIO::cout << " ... done" << std::endl << std::endl;
+
+	QDPIO::cout << "  ... creating L0 PreSmoother" << std::endl;
+	MRSolverParams presmooth_01_params;
+	presmooth_01_params.MaxIter=4;
+	presmooth_01_params.RsdTarget = 0.1;
+	presmooth_01_params.Omega = 1.1;
+	presmooth_01_params.VerboseP = true;
+	MRSmoother pre_smoother_01(M, presmooth_01_params);
+
+	QDPIO::cout << "  ... creating L1 FGMRES Solver -- preconditioned with L1->L2 Vcycle" << std::endl;
+	FGMRESParams l1_solve_params;
+	l1_solve_params.MaxIter=200;
+	l1_solve_params.RsdTarget=0.1;
+	l1_solve_params.VerboseP = false;
+	l1_solve_params.NKrylov = 10;
+	FGMRESSolverCoarse l1_solver(M_coarse,l1_solve_params,&vcycle12); // Bottom solver, no preconditioner
+
+	QDPIO::cout << "  ... creating L0 Post Smoother" << std::endl;
+	MRSolverParams postsmooth_01_params;
+	postsmooth_01_params.MaxIter=4;
+	postsmooth_01_params.RsdTarget = 0.1;
+	postsmooth_01_params.Omega = 1.1;
+	postsmooth_01_params.VerboseP = true;
+	MRSmoother post_smoother_01(M, postsmooth_01_params);
+
+	QDPIO::cout << " ... creating L0 -> L1 Vcycle Preconitioner " << std::endl;
+	LinearSolverParamsBase vcycle_01_params;
+	vcycle_01_params.MaxIter=1;
+	vcycle_01_params.RsdTarget =0.1;
+	vcycle_01_params.VerboseP = true;
+
+	VCycleQDPCoarse2 vcycle_01( info, my_blocks, vecs, M, pre_smoother_01, post_smoother_01, l1_solver, vcycle_01_params);
+	QDPIO::cout << " ... Done" << std::endl;
+
+
+	QDPIO::cout << "Creating Outer Solver with L0->L1 VCycle Preconditioner" << std::endl;
+	FGMRESParams fine_solve_params;
+	fine_solve_params.MaxIter=200;
+	fine_solve_params.RsdTarget=1.0e-5;
+	fine_solve_params.VerboseP = true;
+	fine_solve_params.NKrylov = 5;
+	FGMRESSolver FGMRESOuter(M,fine_solve_params, &vcycle_01);
+
+	QDPIO::cout << "*** Recursive VCycle Structure + Solver Created" << std::endl;
 
 	// Now need to do the coarse test
 	LatticeFermion psi_in, chi_out;

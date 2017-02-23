@@ -32,7 +32,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
   using DComplex = std::complex<double>;
   using FComplex = std::complex<float>;
-
+  const int level = A.GetLevel();
   const LatticeInfo& info = A.GetInfo();
 
   {
@@ -48,13 +48,13 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
   bool convP = false;	
 
   if( MaxIter <= 0 ) {
-  		MasterLog(ERROR,"BiCGStab: Invalid Value: MaxIter <= 0 ");
+  		MasterLog(ERROR,"BiCGStab: level=%d Invalid Value: MaxIter <= 0 ",level);
   }
 
   ret.n_count = MaxIter;
 	
   if( VerboseP ) {
-	 MasterLog(INFO, "BiCGStab Solver Staring: ");
+	 MasterLog(INFO, "BiCGStab: level=%d Solver Staring: ", level);
   }
 
   double chi_sq =  Norm2Vec(chi);
@@ -85,7 +85,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
   double r_norm = Norm2Vec(r);
 
   if( VerboseP ) {
-	  MasterLog(INFO,"BiCGStab: iter=0 || r ||^2=%16.8e Target || r ||^2=%16.8e",r_norm,rsd_sq);
+	  MasterLog(INFO,"BiCGStab: level=%d iter=0 || r ||^2=%16.8e Target || r ||^2=%16.8e",level,r_norm,rsd_sq);
   }
 
   if ( r_norm  <=  rsd_sq )
@@ -94,15 +94,15 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 	  ret.resid   = sqrt(r_norm);
 	  if ( resid_type == ABSOLUTE ) {
 		  if( VerboseP ) {
-			  MasterLog(INFO,"BiCGStab: Final Absolute Residua: || r ||_accum = %16.8e  || r ||_actual = %16.8e",
-													sqrt(r_norm), ret.resid);
+			  MasterLog(INFO,"BiCGStab: level=%d Final Absolute Residua: || r ||_accum = %16.8e  || r ||_actual = %16.8e",
+													level,sqrt(r_norm), ret.resid);
 		  }
 	  }
 	  else {
 		  ret.resid /= sqrt(chi_sq);
 		  if( VerboseP ) {
-			  MasterLog(INFO, "BiCGStab: Final Relative Residua: || r ||/|| b ||_accum = %16.8e || r ||/|| b ||_actual = %16.8e ",
-										 sqrt(r_norm/chi_sq),ret.resid);
+			  MasterLog(INFO, "BiCGStab: level=%d Final Relative Residua: || r ||/|| b ||_accum = %16.8e || r ||/|| b ||_actual = %16.8e ",
+										 level,sqrt(r_norm/chi_sq),ret.resid);
 		  }
 	  }
 	  return ret;
@@ -133,7 +133,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 
     if( real(rho) == 0  &&  imag(rho) == 0  ) {
-      MasterLog(ERROR, "BiCGStab breakdown: rho = 0");
+      MasterLog(ERROR, "BiCGStab: level=%d breakdown: rho = 0", level);
     }
 
     // beta = ( rho_{k+1}/rho_{k})(alpha/omega)
@@ -163,7 +163,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 
     if( real(ctmp) == 0  &&  imag(ctmp) == 0  ) {
-      MasterLog(ERROR,"BiCGStab breakdown: <r_0|v> = 0");
+      MasterLog(ERROR,"BiCGStab: level=%d breakdown: <r_0|v> = 0",level);
     }
 
     alpha = rho / ctmp;
@@ -187,7 +187,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 
     if( t_norm == 0 ) {
-      MasterLog(ERROR, "Breakdown || Ms || = || t || = 0 ");
+      MasterLog(ERROR, "BiCGStab: level=%d Breakdown || Ms || = || t || = 0 ",level);
     }
 
     // accumulate <t | s > = <t | r> into omega
@@ -214,7 +214,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
     r_norm = Norm2Vec(r);
     if( VerboseP ) {
-     	  MasterLog(INFO,"BiCGStab: iter=%d || r ||^2=%16.8e  Target || r ||^2=%16.8e", k, r_norm, rsd_sq);
+     	  MasterLog(INFO,"BiCGStab: level=%d iter=%d || r ||^2=%16.8e  Target || r ||^2=%16.8e",level, k, r_norm, rsd_sq);
 
        }
 
@@ -239,7 +239,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
   	ret.resid = sqrt(actual_res);
   	if ( resid_type == ABSOLUTE ) {
   		if( VerboseP ) {
-  			MasterLog(INFO,"BiCGStab: Final Absolute Residua: || r ||_accum = %16.8e || r ||_actual = %16.8e",
+  			MasterLog(INFO,"BiCGStab: level=%d Final Absolute Residua: || r ||_accum = %16.8e || r ||_actual = %16.8e",level,
   					sqrt(r_norm), ret.resid);
   		}
   	}
@@ -247,7 +247,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
   		ret.resid /= sqrt(chi_sq);
   		if( VerboseP ) {
-  			MasterLog(INFO,"BiCGStab: Final Relative Residua: || r ||/|| b ||_accum = %16.8e || r ||/|| b ||_actual = %16.8e", sqrt(r_norm/chi_sq),ret.resid);
+  			MasterLog(INFO,"BiCGStab: level=%d Final Relative Residua: || r ||/|| b ||_accum = %16.8e || r ||/|| b ||_actual = %16.8e", level, sqrt(r_norm/chi_sq),ret.resid);
   		}
   	}
 
