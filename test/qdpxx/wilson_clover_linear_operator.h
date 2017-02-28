@@ -23,9 +23,8 @@
 #include "aggregate_block_qdpxx.h"
 
 using namespace QDP;
-using namespace MGTesting;
-
-namespace MG {
+using namespace MG;
+namespace MGTesting {
 
 
 class QDPWilsonCloverLinearOperator : public LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix> > {

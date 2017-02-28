@@ -209,7 +209,7 @@ TEST(TestCoarseQDPXXBlock,TestOrthonormal2)
 		Double ndiff = norm2(compare_vecs[vec] -vecs[vec]);
 
 		QDPIO::cout << "Ndiff["<<vec<<"] = " << ndiff << std::endl;
-		ASSERT_DOUBLE_EQ( toDouble(ndiff), 0);
+		ASSERT_NEAR( toDouble(ndiff), 0, 1.0e-28);
 	}
 }
 
@@ -1548,7 +1548,7 @@ TEST(TestCoarseQDPXXBlock, TestCoarseDslashNeighbors)
 
 		for(int cb=0; cb < n_checkerboard;++cb) {
 			for(int cbsites=0; cbsites < num_cbsites; ++cbsites) {
-				for(int dirs=0; dirs < 8; ++dirs ) {
+				for(int dirs=0; dirs < 9; ++dirs ) {
 					float* u_data = u.GetSiteDirDataPtr(cb,cbsites,dirs);
 					for(int row=0; row < num_colorspin; ++row) {
 						for(int col=0; col < num_colorspin; ++col) {
@@ -1578,7 +1578,7 @@ TEST(TestCoarseQDPXXBlock, TestCoarseDslashNeighbors)
 		for(int cb=0; cb < n_checkerboard; ++cb) {
 			for(int cbsites=0; cbsites < num_cbsites; ++cbsites) {
 				const float* out_data = out.GetSiteDataPtr(cb,cbsites);
-				IndexArray my_coords;
+				IndexArray my_coords={{0,0,0,0}};
 				CBIndexToCoords(cbsites,cb, latdims, my_coords); // Get My Coords
 				IndexArray expected = my_coords;
 				int direct=mu/2;
@@ -1593,15 +1593,19 @@ TEST(TestCoarseQDPXXBlock, TestCoarseDslashNeighbors)
 				std::cout << "cb = " << cb << " cbsite=" << cbsites << " coord=(" << my_coords[0] << ", " << my_coords[1] << ", "
 						<< my_coords[2] << ", " << my_coords[3] << ")   mu=" << mu << " dir=" << direct << " add=" << addend
 						<< " expected=(" << expected[0] << ", " << expected[1] << ", " << expected[2] << ", " << expected[3] << ")"
-						<< "   got=(" << out_data[0] << ", " << out_data[1] << ", " << out_data[2] << ", " << out_data[3]<<")"
-						<< "   out_cb="<< out_data[4] << " out_site=" << out_data[5] <<std::endl;
+						<< "   got=(" << out_data[0] << ", " << out_data[1]
+						<< ", " << out_data[2] << ", " << out_data[3]<<")"
+						<< "   out_cb="<< out_data[4]<< " out_site=" << out_data[5] <<std::endl;
 
-				float fexpected[4] = { (float)expected[0], (float)expected[1], (float)expected[2], (float)expected[3] };
+				float fexpected[4] = { (float)expected[0],
+						(float)expected[1],
+						(float)expected[2],
+						(float)expected[3] };
 
-				ASSERT_FLOAT_EQ( fexpected[0] , out_data[0] );
-				ASSERT_FLOAT_EQ( fexpected[1] , out_data[1] );
-				ASSERT_FLOAT_EQ( fexpected[2] , out_data[2] );
-				ASSERT_FLOAT_EQ( fexpected[3] , out_data[3] );
+				ASSERT_NEAR( fexpected[0] , out_data[0], 1.0e-10 );
+				ASSERT_NEAR( fexpected[1] , out_data[1], 1.0e-10 );
+				ASSERT_NEAR( fexpected[2] , out_data[2], 1.0e-10 );
+				ASSERT_NEAR( fexpected[3] , out_data[3], 1.0e-10 );
 			}
 		}
 	} // mu

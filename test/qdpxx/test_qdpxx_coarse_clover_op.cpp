@@ -110,7 +110,7 @@ TEST(TestLattice, CoarseLinOpRandomNullVecs)
 		double rel_diff = sqrt(diff_norm/coarse_out_norm);
 		QDPIO::cout << "|| coarse_out - fake_coarse_out ||=" << sqrt(diff_norm) <<std::endl;
 		QDPIO::cout << "|| coarse_out - fake_coarse_out ||/||coarse_out||=" <<rel_diff <<std::endl;
-		ASSERT_LT( rel_diff, 3.0e-7);
+		ASSERT_LT( rel_diff, 5.0e-7);
 	}
 
 

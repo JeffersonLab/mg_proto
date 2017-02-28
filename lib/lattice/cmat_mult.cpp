@@ -156,21 +156,20 @@ void CMatMultNaiveCoeffAddT(std::complex<float>*y,
 				   const std::complex<float>* A,
 				   const std::complex<float>* x)
 {
-	std::complex<float> tmp[N]; // This temporary should be explicitly aligned
 
     for(IndexType row=0; row < N; ++row) {
     	// Zero out result of row x col product
-    	tmp[row]=std::complex<float>(0,0);
+    	std::complex<float> tmp=std::complex<float>(0,0);
 
     	// Accumulate row x col product
     	for(IndexType col=0; col < N; ++col) {
 
     		// NB: These are complex multiplies
-    		tmp[row] += A[ N*row + col ] * x[ col ];
+    		tmp += A[ N*row + col ] * x[ col ];
     	}
 
     	// Multiply it by alpha
-    	y[row] += alpha*tmp[row];
+    	y[row] += alpha*tmp;
     }
 }
 

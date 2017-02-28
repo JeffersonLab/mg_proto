@@ -20,6 +20,6 @@ TEST(TestLattice, TestLatticeInitialization)
 
 int main(int argc, char *argv[]) 
 {
-	return MGTesting::TestMain(&argc, argv);
+	return ::MGTesting::TestMain(&argc, argv);
 }
 

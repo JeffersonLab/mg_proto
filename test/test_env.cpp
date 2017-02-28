@@ -3,6 +3,7 @@
 
 #include "utils/initialize.h"
 
+using namespace MG;
 
 namespace MGTesting {
 
@@ -11,12 +12,12 @@ namespace MGTesting {
 	 */
 	TestEnv::TestEnv(int  *argc, char ***argv)
 	{
-		MG::initialize(argc,argv);
+		::MG::initialize(argc,argv);
 	}
 
 	TestEnv::~TestEnv() {
 		/* Tear down QMP */
-		MG::finalize();
+		::MG::finalize();
 	}
 
 	/* This is a convenience routine to setup the test environment for GTest and its layered test environments */
