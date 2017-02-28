@@ -804,10 +804,13 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 			CoarseSpinor tmp(fine_info);
 			ZeroVec(tmp);
 			extractAggregate(tmp, *(in_fine_vecs[j]), chiral);
-
+#pragma omp parallel
+			{
+				int tid = omp_get_thread_num();
 				for (int cb = 0; cb < 2; ++cb) {
-					D_op.CloverApply(*(out_vecs[j+chiral*num_coarse_colors]), fine_gauge_clov, tmp, cb, LINOP_OP, 0);
+					D_op.CloverApply(*(out_vecs[j+chiral*num_coarse_colors]), fine_gauge_clov, tmp, cb, LINOP_OP, tid);
 				}
+			}
 		}
 
 	}

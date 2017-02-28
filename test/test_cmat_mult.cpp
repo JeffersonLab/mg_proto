@@ -89,6 +89,8 @@ TEST(CMatMult, TestCorrectness)
 #endif
 }
 
+#if 0
+// Not using mat mult vrow now
 TEST(CMatMultVrow, TestCorrectness)
 {
 	const int N = 24;
@@ -534,6 +536,7 @@ MG::MasterLog(MG::INFO, "Warming Up");
 }
 
 
+#endif
 #endif
 #endif
 

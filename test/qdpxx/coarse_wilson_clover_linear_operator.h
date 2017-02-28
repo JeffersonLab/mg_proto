@@ -34,6 +34,10 @@ public:
 
 	void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const {
 
+#pragma omp parallel
+		{
+
+			int tid=omp_get_thread_num();
 
 			for(int cb=0; cb < n_checkerboard; ++cb) {
 				_the_op(out,      // Output Spinor
@@ -41,9 +45,9 @@ public:
 						in,
 						cb,
 						type,
-						0);
+						tid);
 			}
-
+		}
 	}
 
 	void generateCoarse(const std::vector<Block>& blocklist, const std::vector< std::shared_ptr<CoarseSpinor> > in_vecs, CoarseGauge& u_coarse) const
