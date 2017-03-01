@@ -34,11 +34,11 @@ public:
 
 
 	T& operator()(int row, int col) {
-		return _data[ row + _Nrow*col ];
+		return _data[ col + _Ncol*row ];
 	}
 
 	const T& operator()(int row, int col) const {
-		return _data[ row + _Nrow*col];
+		return _data[ col + _Ncol*row];
 	}
 
 	void resize(int Ncol, int Nrow) {
