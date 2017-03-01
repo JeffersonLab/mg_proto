@@ -1,5 +1,5 @@
-#ifndef NODEINFO_H
-#define NODEINFO_H
+#ifndef INCLUDE_LATTICE_NODEINFO_H
+#define INCLUDE_LATTICE_NODEINFO_H
 
 #include "lattice/constants.h"
 #include <vector>

@@ -12,7 +12,7 @@
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
-#include "fgmres_common.h"
+#include "lattice/fgmres_common.h"
 
 using namespace MG;
 using namespace QDP;

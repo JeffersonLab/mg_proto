@@ -5,8 +5,8 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_MR_PARAMS_H_
-#define TEST_QDPXX_MR_PARAMS_H_
+#ifndef INCLUDE_LATTICE_MR_PARAMS_H_
+#define INCLUDE_LATTICE_MR_PARAMS_H_
 
 #include "lattice/solver.h"
 

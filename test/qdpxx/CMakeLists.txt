@@ -6,8 +6,8 @@ add_library(qdpxx_helpers qdpxx_helpers.h reunit.h reunit.cpp
 			transf.h transf.cpp dslashm_w.h dslashm_w.cpp qdpxx_helpers.cpp 
 			clover_fermact_params_w.h clover_term_qdp_w.h mesfield.h mesfield.cpp)
 			
-add_library(test_aggregation aggregate_block_coarse.h 
-			aggregate_block_coarse.cpp aggregate_qdpxx.h aggregate_qdpxx.cpp 
+add_library(test_aggregation 
+			aggregate_qdpxx.h aggregate_qdpxx.cpp 
 			aggregate_block_qdpxx.h aggregate_block_qdpxx.cpp)
 			
 target_compile_options(mg_test PUBLIC ${EXT_CXXFLAGS})

@@ -1,14 +1,14 @@
 /*! \file
  *  \brief Minimal-Residual (MR) for a generic fermion Linear Operator
  */
-#ifndef TEST_QDPXX_INVMR_COARSE_H_
-#define TEST_QDPXX_INVMR_COARSE_H_
+#ifndef INCLUDE_LATTICE_INVMR_COARSE_H_
+#define INCLUDE_LATTICE_INVMR_COARSE_H_
 
 
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
-#include "mr_params.h"
+#include "lattice/mr_params.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 
@@ -16,12 +16,8 @@
 
 #include <complex>
 
-using namespace MG;
 
-namespace MGTesting  {
-
-	using DComplex = std::complex<double>;
-	using FComplex = std::complex<float>;
+namespace MG  {
 
   //! Minimal-residual (MR) algorithm for a generic Linear Operator 
   /*! \ingroup invert
@@ -115,8 +111,8 @@ namespace MGTesting  {
     CoarseSpinor Mr(info);
     CoarseSpinor chi_internal(info);
 
-    DComplex a;
-    DComplex c;
+    std::complex<double> a;
+    std::complex<double> c;
     double d;
     int k=0;
 
@@ -205,12 +201,12 @@ namespace MGTesting  {
 
       /*  Psi[k] += a[k-1] r[k-1] ; */
       //psi[s] += r * a;
-      FComplex af( (float)a.real(), (float)a.imag() );
+      std::complex<float> af( (float)a.real(), (float)a.imag() );
       AxpyVec(af,r,psi);
 
       /*  r[k] -= a[k-1] M . r[k-1] ; */
       // r[s] -= Mr * a;
-      FComplex maf(-af.real(), -af.imag());
+      std::complex<float> maf(-af.real(), -af.imag());
       AxpyVec(maf,Mr,r);
 
 

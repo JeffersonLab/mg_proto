@@ -4,19 +4,18 @@
  *  Created on: Dec 9, 2016
  *      Author: bjoo
  */
-#include "aggregate_qdpxx.h"
-#include "aggregate_block_coarse.h"
+
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/geometry_utils.h"
 #include "lattice/coarse/coarse_l1_blas.h"
-
+#include "lattice/coarse/aggregate_block_coarse.h"
+#include <cassert>
 #include<omp.h>
 
-using namespace QDP;
-using namespace MG;
 
-namespace MGTesting {
+
+namespace MG {
 
 
 // Implementation -- where possible call the site versions
@@ -274,7 +273,7 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 
 	// Sanity check. The number of sites in the coarse spinor
 	// Has to equal the number of blocks
-	// assert( n_checkerboard*num_coarse_cbsites == static_cast<IndexType>(blocklist.size()) );
+	//assert( n_checkerboard*num_coarse_cbsites == static_cast<IndexType>(blocklist.size()) );
 	if ( n_checkerboard * num_coarse_cbsites !=  static_cast<IndexType>(blocklist.size()) ) {
 		MasterLog(ERROR, "restrictSpinor error: n_checkerboard=%d num_coarse_cbsites=%d blocklist_size=%d",
 				n_checkerboard,num_coarse_cbsites,blocklist.size());

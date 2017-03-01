@@ -5,26 +5,25 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_INVFGMRES_COARSE_H_
-#define TEST_QDPXX_INVFGMRES_COARSE_H_
+#ifndef INCLUDE_LATTICE_INVFGMRES_COARSE_H_
+#define INCLUDE_LATTICE_INVFGMRES_COARSE_H_
 
-#include "qdp.h"
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
 #include <complex>
+#include "lattice/array2d.h"
+#include <vector>
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 #include "utils/print_utils.h"
 
 #undef DEBUG_SOLVER
 
-#include "fgmres_common.h"
+#include "lattice/fgmres_common.h"
 
-using namespace MG;
-using namespace QDP;
 
-namespace MGTesting {
+namespace MG {
 
 
 
@@ -83,7 +82,7 @@ namespace MGTesting {
 	  *  \param  H   the Matrix Input
 	  */
 
-	 Givens(int col, const multi2d<std::complex<double>>& H) : col_(col)
+	 Givens(int col, const Array2d<std::complex<double>>& H) : col_(col)
  {
 		 std::complex<double> f = H(col_,col_);
 		 std::complex<double> g = H(col_,col_+1);
@@ -120,7 +119,7 @@ namespace MGTesting {
 	  *  \param  H   the matrix
 	  */
 
-	 void operator()(int col,  multi2d<std::complex<double>>& H) {
+	 void operator()(int col,  Array2d<std::complex<double>>& H) {
 		 if ( col == col_ ) {
 			 // We've already done this column and know the answer
 			 H(col_,col_) = r_;
@@ -136,11 +135,11 @@ namespace MGTesting {
 	 }
 
 	 /*! Apply rotation to Column Vector v */
-	 void operator()(multi1d<std::complex<double>>& v) {
-		 std::complex<double> a =  v(col_);
-		 std::complex<double> b =  v(col_+1);
-		 v(col_) = conj(c_)*a + conj(s_)*b;
-		 v(col_+1) =  -s_*a + c_*b;
+	 void operator()(std::vector<std::complex<double>>& v) {
+		 std::complex<double> a =  v[col_];
+		 std::complex<double> b =  v[col_+1];
+		 v[col_] = conj(c_)*a + conj(s_)*b;
+		 v[col_+1] =  -s_*a + c_*b;
 
 	 }
 
@@ -157,11 +156,11 @@ namespace MGTesting {
 			 const double& rsd_target,
 			 const LinearOperator<CoarseSpinor,CoarseGauge>& A,     // Operator
 			 const LinearSolver<CoarseSpinor,CoarseGauge>* M,  // Preconditioner
-			 multi1d<CoarseSpinor*>& V,                 // Nuisance: Need constructor free way to make these. Init functions?
-			 multi1d<CoarseSpinor*>& Z,
-			 multi2d<std::complex<double>>& H,
-			 multi1d< Givens* >& givens_rots,
-			 multi1d<std::complex<double>>& c,
+			 std::vector<CoarseSpinor*>& V,                 // Nuisance: Need constructor free way to make these. Init functions?
+			 std::vector<CoarseSpinor*>& Z,
+			 Array2d<std::complex<double>>& H,
+			 std::vector< Givens* >& givens_rots,
+			 std::vector<std::complex<double>>& c,
 			 int& ndim_cycle,
 			 ResiduumType resid_type,
 			 bool VerboseP )
@@ -502,11 +501,11 @@ namespace MGTesting {
 
     void FlexibleArnoldi(int n_krylov,
 			 const double rsd_target,
-			 multi1d<CoarseSpinor*>& V,
-			 multi1d<CoarseSpinor*>& Z,
-			 multi2d<std::complex<double>>& H,
-			 multi1d< FGMRESCoarse::Givens* >& givens_rots,
-			 multi1d<std::complex<double>>& c,
+			 std::vector<CoarseSpinor*>& V,
+			 std::vector<CoarseSpinor*>& Z,
+			 Array2d<std::complex<double>>& H,
+			 std::vector< FGMRESCoarse::Givens* >& givens_rots,
+			 std::vector<std::complex<double>>& c,
 			 int&  ndim_cycle,
 			 ResiduumType resid_type) const
     {
@@ -520,9 +519,9 @@ namespace MGTesting {
     }
 
 
-    void LeastSquaresSolve(const multi2d<std::complex<double>>& H,
-    		const multi1d<std::complex<double>>& rhs,
-			multi1d<std::complex<double>>& eta,
+    void LeastSquaresSolve(const Array2d<std::complex<double>>& H,
+    		const std::vector<std::complex<double>>& rhs,
+			std::vector<std::complex<double>>& eta,
 			int n_cols) const
 
     {
@@ -548,11 +547,11 @@ namespace MGTesting {
 
     // These can become state variables, as they will need to be
     // handed around
-    mutable multi2d<std::complex<double>> H_; // The H matrix
-    mutable multi2d<std::complex<double>> R_; // R = H diagonalized with Givens rotations
-    mutable multi1d<CoarseSpinor*> V_;  // K(A)
-    mutable multi1d<CoarseSpinor*> Z_;  // K(MA)
-    mutable multi1d< FGMRESCoarse::Givens* > givens_rots_;
+    mutable Array2d<std::complex<double>> H_; // The H matrix
+    mutable Array2d<std::complex<double>> R_; // R = H diagonalized with Givens rotations
+    mutable std::vector<CoarseSpinor*> V_;  // K(A)
+    mutable std::vector<CoarseSpinor*> Z_;  // K(MA)
+    mutable std::vector< FGMRESCoarse::Givens* > givens_rots_;
 
     // This is the c = V^H_{k+1} r vector (c is frommers Notation)
     // For regular FGMRES I need to keep only the basis transformed
@@ -567,8 +566,8 @@ namespace MGTesting {
     // and set  my little g = Q^H and then as I do the Arnoldi
     // I can then work it with the Givens rotations...
 
-    mutable multi1d<std::complex<double>> c_;
-    mutable multi1d<std::complex<double>> eta_;
+    mutable std::vector<std::complex<double>> c_;
+    mutable std::vector<std::complex<double>> eta_;
 
   };
 

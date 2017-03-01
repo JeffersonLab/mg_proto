@@ -50,6 +50,52 @@ public:
 		_info = new LatticeInfo( latdims, 4,3,NodeInfo());
 	}
 
+	QDPWilsonCloverLinearOperator(float m_q, float u0, float xi0, float nu, float c_sw_r, float c_sw_t,
+			int t_bc, const Gauge& gauge_in ) : _t_bc(t_bc)
+	{
+		_u.resize(Nd);
+
+		// Copy in the gauge field
+		for(int mu=0; mu < Nd; ++mu) {
+			_u[mu] = gauge_in[mu];
+		}
+
+		// Apply boundary
+		_u[Nd-1] *= where(Layout::latticeCoordinate(Nd-1) == (Layout::lattSize()[Nd-1]-1),
+			                        Integer(_t_bc), Integer(1));
+
+		// Set up and create the clover term
+		// Use the unscaled links, because the scale factors will play
+		// Into the clover calc.
+
+		_params.Mass =  Real(m_q);
+		_params.clovCoeffR = Real(c_sw_r);
+		_params.clovCoeffT = Real(c_sw_t);
+		_params.u0 = u0;
+		_params.anisoParam.anisoP = true;
+		_params.anisoParam.t_dir = 3;
+		_params.anisoParam.xi_0 = xi0;
+		_params.anisoParam.nu = nu;
+
+		_clov.create(_u,_params);  // Make the clover term
+
+
+		// Now scale the links for use in the dslash
+		// By the anisotropy.
+		Real aniso_scale_fac = Real( nu/xi0 );
+		for(int mu=0; mu < Nd; ++mu) {
+			if ( mu != 3 ) {
+				_u[mu] *= aniso_scale_fac;
+			}
+		}
+		IndexArray latdims = {{ QDP::Layout::subgridLattSize()[0],
+								QDP::Layout::subgridLattSize()[1],
+								QDP::Layout::subgridLattSize()[2],
+								QDP::Layout::subgridLattSize()[3] }};
+
+		_info = new LatticeInfo(latdims,4, 3, NodeInfo());
+	}
+
 	~QDPWilsonCloverLinearOperator() {
 		delete _info;
 	}

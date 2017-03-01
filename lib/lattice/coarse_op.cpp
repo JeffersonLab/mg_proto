@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include "lattice/coarse/coarse_op.h"
-#include "lattice/thread_info.h"
 #include "lattice/cmat_mult.h"
 #include "utils/memory.h"
 #include "utils/print_utils.h"
@@ -12,6 +11,7 @@
 
 #include <immintrin.h>
 
+//#include "../../include/lattice/thread_info.h.bak"
 #include "lattice/geometry_utils.h"
 namespace MG {
 

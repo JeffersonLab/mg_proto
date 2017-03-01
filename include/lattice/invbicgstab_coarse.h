@@ -2,8 +2,8 @@
  *  \brief Conjugate-Gradient algorithm for a generic Linear Operator
  */
 
-#ifndef TEST_QDPXX_INVBICGSTAB_COARSE_H_
-#define TEST_QDPXX_INVBICGSTAB_COARSE_H_
+#ifndef INCLUDE_LATTICE_INVBICGSTAB_COARSE_H_
+#define INCLUDE_LATTICE_INVBICGSTAB_COARSE_H_
 
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
@@ -13,10 +13,9 @@
 #include "lattice/coarse/coarse_l1_blas.h"
 #include "utils/print_utils.h"
 
-using namespace MG;
 
 
-namespace MGTesting {
+namespace MG {
 
 LinearSolverResults
 InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,

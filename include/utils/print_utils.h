@@ -1,5 +1,5 @@
-#ifndef  PRINT_UTILS_H
-#define  PRINT_UTILS_H
+#ifndef  INCLUDE_LATTICE_PRINT_UTILS_H
+#define  INCLUDE_LATTICE_PRINT_UTILS_H
 
 namespace MG {
 	     /*! some log levels */

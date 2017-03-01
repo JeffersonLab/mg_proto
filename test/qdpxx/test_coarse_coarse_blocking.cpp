@@ -9,12 +9,12 @@
 #include "lattice/coarse/block.h"
 #include "utils/print_utils.h"
 #include "wilson_clover_linear_operator.h"
-#include "coarse_wilson_clover_linear_operator.h"
+#include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
 #include "qdpxx_helpers.h"
 #include "aggregate_qdpxx.h"
 
 #include "aggregate_block_qdpxx.h"
-#include "aggregate_block_coarse.h"
+#include "lattice/coarse/aggregate_block_coarse.h"
 
 #include "reunit.h"
 #include "transf.h"

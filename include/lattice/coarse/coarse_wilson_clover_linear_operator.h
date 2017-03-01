@@ -5,8 +5,8 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_COARSE_WILSON_CLOVER_LINEAR_OPERATOR_H_
-#define TEST_QDPXX_COARSE_WILSON_CLOVER_LINEAR_OPERATOR_H_
+#ifndef INCLUDE_LATTICE_COARSE_COARSE_WILSON_CLOVER_LINEAR_OPERATOR_H_
+#define INCLUDE_LATTICE_COARSE_COARSE_WILSON_CLOVER_LINEAR_OPERATOR_H_
 
 #include <vector>
 #include <memory>
@@ -15,11 +15,12 @@
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_op.h"
 #include "lattice/linear_operator.h"
-#include "aggregate_block_coarse.h"
+#include "lattice/coarse/aggregate_block_coarse.h"
+#include "utils/print_utils.h"
 #include <omp.h>
-using namespace MG;
 
-namespace MGTesting {
+
+namespace MG {
 
 class CoarseWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor,CoarseGauge > {
 public:
@@ -58,12 +59,12 @@ public:
 		// Generate the triple products directly into the u_coarse
 		ZeroGauge(u_coarse);
 		for(int mu=0; mu < 8; ++mu) {
-			QDPIO::cout << "QDPWilsonCloverLinearOperator: Dslash Triple Product in direction: " << mu << std::endl;
+			MasterLog(INFO,"CoarseCloverLinearOperator: Dslash Triple Product in direction:%d",mu);
 			dslashTripleProductDir(_the_op,blocklist, mu, (*_u), in_vecs, u_coarse);
 		}
 
 
-		QDPIO::cout << "QDPWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
+		MasterLog(INFO,"CoarseCloverLinearOperator: Clover Triple Product");
 		clovTripleProduct(_the_op, blocklist, (*_u), in_vecs, u_coarse);
 	}
 

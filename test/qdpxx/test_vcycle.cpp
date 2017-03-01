@@ -14,14 +14,14 @@
 
 #include "reunit.h"
 #include "wilson_clover_linear_operator.h"
-#include "coarse_wilson_clover_linear_operator.h"
+#include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
 #include "invbicgstab.h"
 #include "invfgmres.h"
-#include "invfgmres_coarse.h"
+#include "lattice/invfgmres_coarse.h"
 #include "vcycle_qdpxx_coarse.h"
-#include "invbicgstab_coarse.h"
-#include "invmr_coarse.h"
-#include "vcycle_coarse.h"
+#include "lattice/invbicgstab_coarse.h"
+#include "lattice/invmr_coarse.h"
+#include "lattice/coarse/vcycle_coarse.h"
 
 
 #include <memory>

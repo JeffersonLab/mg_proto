@@ -13,8 +13,8 @@
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
 #include "invmr.h"
-#include "invfgmres_coarse.h"
-#include "fgmres_common.h"
+#include "lattice/invfgmres_coarse.h"
+#include "lattice/fgmres_common.h"
 #include "aggregate_block_qdpxx.h"
 #include "utils/print_utils.h"
 using namespace QDP;

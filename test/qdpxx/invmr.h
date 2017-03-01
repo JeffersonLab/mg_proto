@@ -9,7 +9,7 @@
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
-#include "mr_params.h"
+#include "lattice/mr_params.h"
 
 using namespace MG;
 using namespace QDP;

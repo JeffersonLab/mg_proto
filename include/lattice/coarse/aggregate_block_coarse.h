@@ -5,23 +5,18 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_AGGREGATE_BLOCK_H_
-#define TEST_QDPXX_AGGREGATE_BLOCK_H_
+#ifndef INCLUDE_LATTICE_COARSE_AGGREGATE_BLOCK_COARSE_H_
+#define INCLUDE_LATTICE_COARSE_AGGREGATE_BLOCK_COARSE_H_
 
-#include "qdp.h"
-#include "clover_term_qdp_w.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_op.h"
 #include "lattice/coarse/block.h"
 #include <vector>
 #include <memory>
 
-using namespace MG;
-using namespace MGTesting;
-using namespace QDP;
 
 
-namespace MGTesting {
+namespace MG {
 
 
 /* --------- COARSE COARSE BLOCK STUFF COming here ------------- */

@@ -6,7 +6,7 @@
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 #include "lattice/coarse/block.h"
-
+#include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
 #include "qdpxx_helpers.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
@@ -15,12 +15,12 @@
 
 #include "reunit.h"
 #include "wilson_clover_linear_operator.h"
-#include "coarse_wilson_clover_linear_operator.h"
+
 #include "invbicgstab.h"
-#include "invfgmres_coarse.h"
+#include "lattice/invfgmres_coarse.h"
 #include "invmr.h"
-#include "invmr_coarse.h"
-#include "invbicgstab_coarse.h"
+#include "lattice/invmr_coarse.h"
+#include "lattice/invbicgstab_coarse.h"
 
 using namespace MG;
 using namespace MGTesting;

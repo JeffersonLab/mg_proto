@@ -5,8 +5,8 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_COARSE_L1_BLAS_H_
-#define TEST_QDPXX_COARSE_L1_BLAS_H_
+#ifndef INCLUDE_LATTICE_COARSE_COARSE_L1_BLAS_H_
+#define INCLUDE_LATTICE_COARSE_COARSE_L1_BLAS_H_
 
 #include <complex>
 #include "lattice/coarse/coarse_types.h"

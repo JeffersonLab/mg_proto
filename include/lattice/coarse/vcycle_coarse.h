@@ -5,22 +5,20 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_VCYCLE_COARSE_H_
-#define TEST_QDPXX_VCYCLE_COARSE_H_
-#include "qdp.h"
+#ifndef INCLUDE_LATTICE_COARSE_VCYCLE_COARSE_H_
+#define INCLUDE_LATTICE_COARSE_VCYCLE_COARSE_H_
+
 #include "lattice/constants.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
-#include "invmr.h"
-#include "invfgmres_coarse.h"
-#include "fgmres_common.h"
-#include "aggregate_block_coarse.h"
+#include "lattice/invmr_coarse.h"
+#include "lattice/invfgmres_coarse.h"
+#include "lattice/fgmres_common.h"
+#include "lattice/coarse/aggregate_block_coarse.h"
 #include "utils/print_utils.h"
-using namespace QDP;
-using namespace MG;
 
-namespace MGTesting {
+namespace MG {
 
 class VCycleCoarse : public LinearSolver<CoarseSpinor,CoarseGauge>
 {

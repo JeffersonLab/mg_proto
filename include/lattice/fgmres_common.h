@@ -5,15 +5,14 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_FGMRES_COMMON_H_
-#define TEST_QDPXX_FGMRES_COMMON_H_
+#ifndef INCLUDE_LATTICE_FGMRES_COMMON_H_
+#define INCLUDE_LATTICE_FGMRES_COMMON_H_
 
-#include "qdp.h"
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
 
-namespace MGTesting {
+namespace MG {
 
 //! Params for FGMRESDR inverter
  /*! \ingroup invert */

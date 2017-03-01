@@ -1,5 +1,5 @@
-#ifndef  CONSTANTS_H
-#define CONSTANTS_H
+#ifndef INCLUDE_LATTICE_CONSTANTS_H
+#define INCLUDE_LATTICE_CONSTANTS_H
 
 #include <array>
 

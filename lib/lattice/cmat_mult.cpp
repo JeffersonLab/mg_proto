@@ -2,12 +2,6 @@
 #include <omp.h>
 #include <cstdio>
 
-#include "lattice/thread_info.h"
-
-
-
-
-
 #include "lattice/cmat_mult.h"
 #include "utils/memory.h"
 #include "utils/print_utils.h"
@@ -17,6 +11,8 @@
 #include <iostream>
 
 #include <immintrin.h>
+
+//#include "../../include/lattice/thread_info.h.bak"
 namespace MG {
 
 template<const int N>
