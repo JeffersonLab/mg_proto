@@ -35,6 +35,12 @@ message(STATUS "QDPXX LDFLAGS are: ${QDPXX_CXX_LINK_FLAGS}")
 execute_process(COMMAND ${QDPXX_CONFIG} --libs
 			OUTPUT_VARIABLE QDPXX_CXX_LIBRARIES OUTPUT_STRIP_TRAILING_WHITESPACE )
 message(STATUS "QDP++ LIBS are: ${QDPXX_CXX_LIBRARIES}")
+
+
+# Get Parallel Arch
+execute_process(COMMAND ${QDPXX_CONFIG} --parallel-arch
+	OUTPUT_VARIABLE QDPXX_PARALLEL_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE )
+message(STATUS "QDP++ Parallel Architecture is ${QDPXX_PARALLEL_ARCH}") 
  
 #Turn the various strings into lists for appending
 separate_arguments(QDPXX_CXX_COMPILE_FLAGS)

@@ -69,10 +69,10 @@ void Block::create(const IndexArray local_lattice_dimensions,
 #endif
 #if 1
 	// Looop through the sites in the blocks.
-	for(IndexType t=0; t < _dimensions[T_DIR]; ++t) {
-		for(IndexType z=0; z < _dimensions[Z_DIR]; ++z) {
-			for(IndexType y=0; y < _dimensions[Y_DIR]; ++y) {
-				for(IndexType x=0; x < _dimensions[X_DIR]; ++x) {
+	for(IndexType t=0; t < block_dimensions[T_DIR]; ++t) {
+		for(IndexType z=0; z < block_dimensions[Z_DIR]; ++z) {
+			for(IndexType y=0; y < block_dimensions[Y_DIR]; ++y) {
+				for(IndexType x=0; x < block_dimensions[X_DIR]; ++x) {
 
 
 					// Convert the 'in-block' coordinates to fine coordinates by adding origin
@@ -81,7 +81,7 @@ void Block::create(const IndexArray local_lattice_dimensions,
 
 					// Offset the block coords by the block origin in the local lattice
 					for(int mu=0; mu < n_dim; ++mu) {
-						local_lattice_coords[mu] = in_block_coords[mu] + _origin[mu];
+						local_lattice_coords[mu] = in_block_coords[mu] + block_origin[mu];
 					}
 
 					// There is no requirement for a checkerboard ordering in the block itself.
@@ -89,21 +89,16 @@ void Block::create(const IndexArray local_lattice_dimensions,
 					// will contain multile checkeboards  -- so just a simple CoordsToIndex here
 					// to convert to a linear index.
 
-					IndexType index_in_block = CoordsToIndex(in_block_coords, _dimensions);
+					IndexType index_in_block = CoordsToIndex(in_block_coords, block_dimensions);
 
 					// But now, I want to convert the fine lattice site in local_lattice_coords
 					// into a CB & CBSite pair
 
 					CBSite fine_cbsite;
-					CoordsToCBIndex(local_lattice_coords, local_lattice_dimensions, fine_cbsite.cb, fine_cbsite.site);
+					CoordsToCBIndex(local_lattice_coords, local_lattice_dimensions, local_lattice_origin, fine_cbsite.cb, fine_cbsite.site);
 				    fine_cbsite.coords = local_lattice_coords;
 
-#if 0
-					std::cout << "Block Coordinates: ("<<_origin[0]<<","<<_origin[1]<<","<<_origin[2]<<","<<_origin[3]<<"): "
-						<< "Coord: ("<<x<<","<<y<<","<<z<<","<<t <<")" << " LatticeCoord: (" << local_lattice_coords[0] <<","
-							<< local_lattice_coords[1] <<"," << local_lattice_coords[2] << "," << local_lattice_coords[3] <<") "
-							<< " cb=" << fine_cbsite.cb << " site=" << fine_cbsite.site << std::endl;
-#endif
+
 					_cbsite_list[ index_in_block ] = fine_cbsite;
 
 					bool in_face[8]={false,false,false,false,false,false,false,false};
@@ -150,8 +145,12 @@ void Block::create(const IndexArray local_lattice_dimensions,
 }
 
 // Create a list of blocks
-void CreateBlockList(std::vector<Block>& blocklist, IndexArray& coarse_lattice_dimensions, const IndexArray& fine_lattice_dimensions, const IndexArray& block_dimensions,
-		const IndexArray& local_lattice_origin)
+void CreateBlockList(std::vector<Block>& blocklist,  // vector of 'Block structures' (write/create)
+		IndexArray& coarse_lattice_dimensions,    // Local (per MPI) process dimensions of the coarse lattice (fine_local_dims/blocksizes)
+		IndexArray& coarse_lattice_origin,			// The local (per MPI) origin of the coarse lattice
+		const IndexArray& fine_lattice_dimensions,  // The dimensions (local) of the fine lattice
+		const IndexArray& block_dimensions,         // the dimensions of the blocks
+		const IndexArray& fine_lattice_origin)     // The origin of the local fine lattice on the node
 {
 	// Compute the dimensions of the blocked lattice. Check local lattice is divisible by block size
 	for(int mu=0; mu < n_dim; mu++) {
@@ -159,6 +158,12 @@ void CreateBlockList(std::vector<Block>& blocklist, IndexArray& coarse_lattice_d
 		if( fine_lattice_dimensions[mu] % block_dimensions[mu] != 0 ) {
 			MasterLog(ERROR,"CreateBlockList: block_dimensions[%d]=%d does not divide local_lattice_dimensions[%d]=%d",
 						mu,block_dimensions[mu], mu, fine_lattice_dimensions[mu]);
+		}
+		coarse_lattice_origin[mu] = fine_lattice_origin[mu] / block_dimensions[mu];
+		if( fine_lattice_origin[mu] % block_dimensions[mu] != 0) {
+			MasterLog(ERROR,"CreateBlockList: block_dimensions[%d]=%d does not divide local_lattice_origin[%d]=%d",
+							mu,block_dimensions[mu], mu, fine_lattice_origin[mu]);
+
 		}
 	}
 
@@ -185,7 +190,7 @@ void CreateBlockList(std::vector<Block>& blocklist, IndexArray& coarse_lattice_d
 	for(int coarse_cb=0; coarse_cb < n_checkerboard; ++coarse_cb) {
 		for(int coarse_cbsite=0; coarse_cbsite < num_coarse_cb_sites; ++coarse_cbsite ) {
 
-			// Global index in the list of blocks. cbsite fastest
+			//  index in the list of blocks. cbsite fastest
 			unsigned int block_idx = coarse_cbsite + coarse_cb*num_coarse_cb_sites;
 
 			/*! FIXME: is this strictly correct? How would I fold in a node checkerboard
@@ -195,12 +200,13 @@ void CreateBlockList(std::vector<Block>& blocklist, IndexArray& coarse_lattice_d
 			 *  setting so I will leave it.
 			 */
 
-			// convert cb/site to coordinates
+			// convert cb/site to *local* coarse coordinates
 
 			IndexArray coarse_coords;
-			CBIndexToCoords(coarse_cbsite, coarse_cb, coarse_lattice_dimensions, coarse_coords);
+			CBIndexToCoords(coarse_cbsite, coarse_cb, coarse_lattice_dimensions, coarse_lattice_origin, coarse_coords);
 
-			// Compute BlockOrigin
+			// Compute *local* block origin
+			// This is just the local coarse coordinates multiplied by the block dimension
 			IndexArray block_origin(coarse_coords);
 			for(int mu=0; mu < n_dim; ++mu) block_origin[mu]*=block_dimensions[mu];
 
@@ -211,7 +217,7 @@ void CreateBlockList(std::vector<Block>& blocklist, IndexArray& coarse_lattice_d
 #endif
 
 			// Create Block structure
-			blocklist[block_idx].create(fine_lattice_dimensions, block_origin, block_dimensions,local_lattice_origin);
+			blocklist[block_idx].create(fine_lattice_dimensions, block_origin, block_dimensions,fine_lattice_origin);
 
 		}
 	}

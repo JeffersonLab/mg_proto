@@ -167,7 +167,7 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 
 
 
-#if 0
+#if 1
 		x_plus /= 2; // Convert to checkerboard
 		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;

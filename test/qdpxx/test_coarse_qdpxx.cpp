@@ -50,7 +50,8 @@ TEST(TestCoarseQDPXXBlock, TestBlockOrthogonalize)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig, latdims,blockdims,node_orig);
 
 	// 2) Create the test vectors
 	multi1d<LatticeFermion> vecs(6);
@@ -185,7 +186,8 @@ TEST(TestCoarseQDPXXBlock,TestOrthonormal2)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims, blocked_lattice_orig, latdims,blockdims, node_orig);
 
 	// 2) Create the test vectors
 	multi1d<LatticeFermion> vecs(6);
@@ -226,7 +228,8 @@ TEST(TestCoarseQDPXXBlock, TestRestrictorTrivial)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims, blocked_lattice_orig, latdims,blockdims, node_orig);
 
 	// 2) Create the test vectors
 	multi1d<LatticeFermion> vecs(6);
@@ -250,7 +253,7 @@ TEST(TestCoarseQDPXXBlock, TestRestrictorTrivial)
 	}
 
 
-    LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+    LatticeInfo info(blocked_lattice_orig, blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseSpinor coarse_block(info);
 	CoarseSpinor coarse_site(info);
 
@@ -295,7 +298,8 @@ TEST(TestCoarseQDPXXBlock, TestProlongatorTrivial)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims, node_orig);
 
 	// 2) Create the test vectors
 	multi1d<LatticeFermion> vecs(6);
@@ -307,7 +311,7 @@ TEST(TestCoarseQDPXXBlock, TestProlongatorTrivial)
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
-    LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+    LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseSpinor coarse_block(info);
 
 	LatticeFermion fine_in;
@@ -374,14 +378,15 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXDslashTrivial)
 	// 1) Create the blocklist
 		std::vector<Block> my_blocks;
 		IndexArray blocked_lattice_dims;
-		CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+		IndexArray blocked_lattice_orig;
+		CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims, node_orig);
 
 		// Do the proper block orthogonalize
 			orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 			orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseGauge u_coarse(info);
 	ZeroGauge(u_coarse);
 	// Generate the triple products directly into the u_coarse
@@ -502,7 +507,8 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXClovTrivial)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims, blocked_lattice_orig, latdims,blockdims, node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -510,7 +516,7 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXClovTrivial)
 
 	QDPIO::cout << "Coarsening Clover" << std::endl;
 
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig, blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseGauge c_clov(info);
 	ZeroGauge(c_clov);
 
@@ -643,14 +649,15 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseClov)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims, node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 	QDPIO::cout << "Coarsening Clover with Triple Product to create D_c" << std::endl;
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseGauge c_clov(info);
 	ZeroGauge(c_clov);
 
@@ -779,10 +786,11 @@ TEST(TestCoarseQDPXXBlock, TestTripleProductT1)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims, node_orig);
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseGauge u_coarse(info);
 	ZeroGauge(u_coarse);
 	QDPIO::cout << " Attempting Triple Product in  T+ direction (6): "<< std::endl;
@@ -800,7 +808,7 @@ TEST(TestCoarseQDPXXBlock, TestTripleProductT1)
 
 			// turn cb, cbsite into coordinate:
 			IndexArray coords;
-			CBIndexToCoords(cbsite,cb, blocked_lattice_dims, coords);
+			CBIndexToCoords(cbsite,cb, blocked_lattice_dims, node_orig, coords);
 
 			int compareA = 0;
 			int compareB = 0;
@@ -1366,7 +1374,7 @@ TEST(TestCoarseQDPXXBlock, TestCheckerboardSiteOrder)
 			int idx = cbsite + cb*num_cbsites;
 
 			IndexArray my_coords;
-			CBIndexToCoords(cbsite,cb,latdims, my_coords);
+			CBIndexToCoords(cbsite,cb,latdims, info.GetLatticeOrigin(), my_coords);
 
 			multi1d<int> qdp_coords(Nd);
 			qdp_coords = Layout::siteCoords( Layout::nodeNumber(), idx);
@@ -1408,7 +1416,8 @@ TEST(TestCoarseQDPXXBlock, TestRestrictProlong)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	// This should stay real;
@@ -1424,7 +1433,7 @@ TEST(TestCoarseQDPXXBlock, TestRestrictProlong)
 		}
 	}
 
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseSpinor in(info);
 	Gaussian(in);
 	CoarseSpinor out(info);
@@ -1523,7 +1532,7 @@ TEST(TestCoarseQDPXXBlock, TestCoarseDslashNeighbors)
 			int qdp_site = rb[cb].siteTable()[cbsites];
 			multi1d<int> coords=Layout::siteCoords(Layout::nodeNumber(), qdp_site);
 			IndexArray coords2;
-			CBIndexToCoords(cbsites,cb,latdims,coords2);
+			CBIndexToCoords(cbsites,cb,latdims,info.GetLatticeOrigin(),coords2);
 			ASSERT_EQ( coords[0], coords2[0] );
 			ASSERT_EQ( coords[1], coords2[1] );
 			ASSERT_EQ( coords[2], coords2[2] );
@@ -1579,7 +1588,7 @@ TEST(TestCoarseQDPXXBlock, TestCoarseDslashNeighbors)
 			for(int cbsites=0; cbsites < num_cbsites; ++cbsites) {
 				const float* out_data = out.GetSiteDataPtr(cb,cbsites);
 				IndexArray my_coords={{0,0,0,0}};
-				CBIndexToCoords(cbsites,cb, latdims, my_coords); // Get My Coords
+				CBIndexToCoords(cbsites,cb, latdims,info.GetLatticeOrigin(),my_coords); // Get My Coords
 				IndexArray expected = my_coords;
 				int direct=mu/2;
 				int addend = (mu % 2 == 0 ) ? +1 : -1; // Even numbers: forward neigh, odd numbers backward neight
@@ -1661,7 +1670,8 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslashUnitGaugeDir6)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	// This should stay real;
@@ -1670,7 +1680,7 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslashUnitGaugeDir6)
 
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 	int num_coarse_cbsites = info.GetNumCBSites();
 
 	CoarseGauge u_coarse(info);
@@ -1703,7 +1713,7 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslashUnitGaugeDir6)
 			float *vec_data =v_c.GetSiteDataPtr(coarse_cb,coarse_cbsite);
 			int idx = coarse_cbsite + coarse_cb*num_coarse_cbsites;
 			IndexArray coords;
-			CBIndexToCoords(coarse_cbsite,coarse_cb,blocked_lattice_dims,coords);
+			CBIndexToCoords(coarse_cbsite,coarse_cb,blocked_lattice_dims,info.GetLatticeOrigin(),coords);
 			if( coords[0]==0 && coords[1]==0 && coords[2]==0 && coords[3] == 1) {
 				vec_data[0]=1; // Single dirac spike at (0,0,0,1)
 			}
@@ -1799,7 +1809,8 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	// This should stay real;
@@ -1808,7 +1819,7 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 	int num_coarse_cbsites = info.GetNumCBSites();
 	CoarseGauge u_coarse(info);
 

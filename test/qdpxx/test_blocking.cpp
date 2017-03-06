@@ -80,7 +80,8 @@ TEST(TestBlocking, TestBlockCreateSingleBlock )
 {
 	Block b;
 	IndexArray block_dims = {{2,2,2,2}};
-	IndexArray local_origin = {{0,0,2,2}};
+	IndexArray local_block_origin = {{0,0,2,2}};
+	IndexArray local_lattice_origin = {{0,0,0,0}};
 	IndexArray local_lattice_dims = {{4,4,4,4}};
 
 	initQDPXXLattice(local_lattice_dims); // Give me access to site tables
@@ -88,7 +89,7 @@ TEST(TestBlocking, TestBlockCreateSingleBlock )
 	IndexArray node_orig=NodeInfo().NodeCoords();
 	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
 
-	b.create(local_lattice_dims,local_origin, block_dims,node_orig);
+	b.create(local_lattice_dims,local_block_origin, block_dims,node_orig);
 
 	ASSERT_TRUE( b.isCreated() );
 	ASSERT_EQ( b.getNumSites() , 16 );
@@ -108,11 +109,11 @@ TEST(TestBlocking, TestBlockCreateSingleBlock )
 		IndexToCoords(i,block_dims, i_coords);
 
 		// Convert block to lattice coords by offsetting origin
-		for(int mu=0;  mu < n_dim; ++ mu ) i_coords[mu] += local_origin[mu];
+		for(int mu=0;  mu < n_dim; ++ mu ) i_coords[mu] += local_block_origin[mu];
 
 		// Convert coords to cb and site
 		CBSite i_site;
-		CoordsToCBIndex(i_coords, local_lattice_dims, i_site.cb, i_site.site);
+		CoordsToCBIndex(i_coords, local_lattice_dims, local_lattice_origin, i_site.cb, i_site.site);
 
 		// Should match the one from the block cbsites.
 
@@ -291,11 +292,12 @@ TEST(TestBlocking, TestCreateBlockList)
 	IndexArray local_lattice_dims = {{4,4,4,4}};
 	IndexArray block_dims = {{2,2,2,2}};
 	IndexArray blocked_lattice_dims;
+	IndexArray blocked_lattice_origin;
 	IndexArray node_orig=NodeInfo().NodeCoords();
 	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
 
 	// Create a blocklist.
-	CreateBlockList(my_blocks,blocked_lattice_dims,local_lattice_dims,block_dims,node_orig);
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_origin,local_lattice_dims,block_dims,node_orig);
 	unsigned int num_cb_blocks = my_blocks.size()/n_checkerboard;
 
 	ASSERT_EQ( my_blocks.size(), 16);
@@ -316,7 +318,7 @@ TEST(TestBlocking, TestCreateBlockList)
 
 			// Now we want to turn the block_cbsite, block_cb into a coordinate
 			IndexArray block_coords;
-			CBIndexToCoords(block_cbsite, block_cb, blocked_lattice_dims, block_coords);
+			CBIndexToCoords(block_cbsite, block_cb, blocked_lattice_dims,node_orig,block_coords);
 
 			// Convert coordinate to a block origin
 			IndexArray block_origin(block_coords);
@@ -367,6 +369,7 @@ TEST(TestBlocking, TestBlockListCBOrdering)
 	initQDPXXLattice(local_lattice_dims);
 	IndexArray block_dims = {{1,1,1,1}};
 	IndexArray blocked_lattice_dims;
+	IndexArray blocked_lattice_origin;
 	IndexArray node_orig=NodeInfo().NodeCoords();
 	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=local_lattice_dims[mu];
 
@@ -374,7 +377,7 @@ TEST(TestBlocking, TestBlockListCBOrdering)
 	// Notably the blocked list should be the same as the
 	// unblocked lattice because the blocking is trivial
 
-	CreateBlockList(my_blocks,blocked_lattice_dims,
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_origin,
 				local_lattice_dims,block_dims,node_orig);
 
 	ASSERT_EQ( my_blocks.size(), 16);

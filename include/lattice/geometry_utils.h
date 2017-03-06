@@ -84,11 +84,39 @@ namespace MG {
 
 	}
 
+	inline
+	void CBIndexToCoords(const int cbsite, const int cb, const IndexArray& lattice_size, const IndexArray& origin, IndexArray& coords)
+	{
+		IndexArray cb_lattice_size(lattice_size); cb_lattice_size[0] /= 2; // Size of checkberboarded lattice
+		IndexToCoords( cbsite, cb_lattice_size, coords);
+		coords[0] *= 2; // Convert to noncheckerboarded
+#if 0
+		// See if we need to offset this
+		int tmpcb = (coords[0]+coords[1]+coords[2]+coords[3])&1;
+		if (tmpcb != cb ) coords[0] += 1;
+#endif
+		coords[0] += (cb + coords[1]+coords[2]+coords[3]+origin[0]+origin[1]+origin[2]+origin[3])&1;
+
+	}
 	// Coords and Dims are uncheckerboarded.
 	inline
 	void CoordsToCBIndex(const IndexArray& coords, const IndexArray& dims, int& cb, int &cbsite)
 	{
 		cb = (coords[0]+coords[1]+coords[2]+coords[3]) & 1;
+
+		IndexArray cb_dims(dims); cb_dims[0] /= 2;
+		IndexArray cb_coords(coords); cb_coords[0] /= 2;
+
+		cbsite = CoordsToIndex(cb_coords, cb_dims);
+
+	}
+
+	// Coords and Dims are uncheckerboarded.
+	inline
+	void CoordsToCBIndex(const IndexArray& coords, const IndexArray& dims, const IndexArray& origin, int& cb, int &cbsite)
+	{
+
+		cb = (coords[0]+coords[1]+coords[2]+coords[3] + origin[0] + origin[1]+origin[2]+origin[3]) & 1;
 
 		IndexArray cb_dims(dims); cb_dims[0] /= 2;
 		IndexArray cb_coords(coords); cb_coords[0] /= 2;

@@ -1,8 +1,8 @@
-if ( MG_QMP_COMMS ) 
+if ( MG_QMP_COMMS OR MG_QDPXX_PARALLEL ) 
 	set(NODEINFO_IMPL  lattice/nodeinfo_qmp.cpp)
-else( MG_QMP_COMMS )
+else( MG_QMP_COMMS OR MG_QDPXX_PARALLEL )
 	set(NODEINFO_IMPL  lattice/nodeinfo_single.cpp)
-endif( MG_QMP_COMMS ) 
+endif( MG_QMP_COMMS OR MG_QDPXX_PARALLEL ) 
 
 set( MEMORY_IMPL utils/memory_posix.cpp)
 

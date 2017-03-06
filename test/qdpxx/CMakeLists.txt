@@ -35,3 +35,7 @@ target_link_libraries(test_vcycle test_aggregation qdpxx_helpers mg gtest_all mg
 
 add_executable(test_coarse_coarse_blocking test_coarse_coarse_blocking.cpp)
 target_link_libraries(test_coarse_coarse_blocking  qdpxx_helpers test_aggregation mg gtest_all mg_test ${EXT_LIBS})
+
+if( MG_QDPXX_PARALLEL ) 
+  add_subdirectory( qdpxx_parallel ) 
+endif (MG_QDPXX_PARALLEL ) 

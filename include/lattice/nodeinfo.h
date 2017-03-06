@@ -2,6 +2,7 @@
 #define INCLUDE_LATTICE_NODEINFO_H
 
 #include "lattice/constants.h"
+#include "utils/print_utils.h"
 #include <vector>
 
 namespace MG {
@@ -51,6 +52,8 @@ namespace MG {
     {
     	return _neighbor_ids[dim][dir];
     }
+
+
 
   /* These are protected, so mock object can inherit */
   /* I don't like inheriting data, and this is for testing */

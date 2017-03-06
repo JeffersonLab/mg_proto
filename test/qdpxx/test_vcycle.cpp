@@ -87,7 +87,8 @@ TEST(TestVCycle, TestVCycleApply)
 	// Create List Of Blocks
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Orthonormalize the vectors -- I heard once that for GS stability is improved
 	// if you do it twice.
@@ -98,7 +99,7 @@ TEST(TestVCycle, TestVCycleApply)
 	// Create the blocked Clover and Gauge Fields
 	// This service needs the blocks, the vectors and is a convenience
 	// Function of the M
-	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, NumVecs, NodeInfo());
 
 	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
 
@@ -213,14 +214,15 @@ TEST(TestVCycle, TestVCycleSolve)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 	// Create the blocked Clover and Gauge Fields
-	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, NumVecs, NodeInfo());
 	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
 
 
@@ -332,7 +334,8 @@ TEST(TestVCycle, TestVCyclePrec)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims, node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -341,7 +344,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	// Create the blocked Clover and Gauge Fields
 	QDPIO::cout << "NumVecs=" << NumVecs << std::endl;
 
-	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, NumVecs, NodeInfo());
 
 	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
 
@@ -466,7 +469,8 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims, node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -475,7 +479,7 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	// Create the blocked Clover and Gauge Fields
 	QDPIO::cout << "NumVecs=" << NumVecs << std::endl;
 
-	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, NumVecs, NodeInfo());
 	std::shared_ptr<CoarseGauge> u_coarse = std::make_shared<CoarseGauge>(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
@@ -601,7 +605,8 @@ TEST(TestVCycle, TestVCycle2Level)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims, node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims, node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -609,7 +614,7 @@ TEST(TestVCycle, TestVCycle2Level)
 
 	QDPIO::cout << "Creating Level 1 LinearOperator" <<std::endl;
 
-	LatticeInfo info(blocked_lattice_dims, 2, NumVecs, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, NumVecs, NodeInfo());
 	std::shared_ptr<CoarseGauge> u_coarse = std::make_shared<CoarseGauge>(info);
 	M.generateCoarse(my_blocks,vecs, *u_coarse);
 	CoarseWilsonCloverLinearOperator M_coarse(u_coarse, 1);
@@ -637,7 +642,8 @@ TEST(TestVCycle, TestVCycle2Level)
 	QDPIO::cout << "L2: Orthonormzlizing Nullvecs" << std::endl;
 	std::vector<Block> my_blocks_l2;
 	IndexArray blocked_lattice_dims2;
-	CreateBlockList(my_blocks_l2, blocked_lattice_dims2, blocked_lattice_dims, blockdims, node_orig);
+	IndexArray blocked_lattice_orig2;
+	CreateBlockList(my_blocks_l2, blocked_lattice_dims2, blocked_lattice_orig2, blocked_lattice_dims, blockdims, node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregates(vecs_l2, my_blocks_l2);
@@ -645,7 +651,7 @@ TEST(TestVCycle, TestVCycle2Level)
 
 	QDPIO::cout << "Creating Level 2 LinearOperator" <<std::endl;
 
-	LatticeInfo info2(blocked_lattice_dims2, 2, NumVecs2, NodeInfo());
+	LatticeInfo info2(blocked_lattice_orig2, blocked_lattice_dims2, 2, NumVecs2, NodeInfo());
 	std::shared_ptr<CoarseGauge> u_coarse_coarse = std::make_shared<CoarseGauge>(info2);
 	M_coarse.generateCoarse(my_blocks_l2,vecs_l2, *u_coarse_coarse);
 	CoarseWilsonCloverLinearOperator M_coarse_coarse(u_coarse_coarse, 2);

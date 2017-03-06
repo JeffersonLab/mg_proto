@@ -35,7 +35,7 @@ namespace MG
 		/* Process args here -- first step is to get the processor geomerty */
 		while( i < my_argc ) {
 #ifdef MG_QMP_COMMS
-			if (std::string(my_argv[i]).compare("-geom") == 0 ) {
+			if (std::string(argv[i]).compare("-geom") == 0 ) {
 			      proc_geometry[0] = std::atoi((*argv)[i+1]);
 			      proc_geometry[1] = std::atoi((*argv)[i+2]);
 			      proc_geometry[2] = std::atoi((*argv)[i+3]);

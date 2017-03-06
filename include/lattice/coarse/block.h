@@ -30,6 +30,7 @@ public:
 	Block(void) {
 		_created = false;
 		_num_sites = 0;
+		_num_cbsites = 0;
 	}
 
 	void create(const IndexArray local_lattice_dimensions,
@@ -63,7 +64,7 @@ public:
 	}
 
 	inline
-	const bool isCreated(void) {
+	bool isCreated(void) {
 		return _created;
 	}
 
@@ -97,7 +98,8 @@ private:
 };
 
 void CreateBlockList(std::vector<Block>& blocklist,
-					IndexArray& blocked_lattice_dimensions,
+					IndexArray& coarse_lattice_dimensions,
+					IndexArray& coarse_lattice_origin,
 					const IndexArray& local_lattice_dimensions,
 					const IndexArray& block_dimensions,
 					const IndexArray& local_lattice_origin);

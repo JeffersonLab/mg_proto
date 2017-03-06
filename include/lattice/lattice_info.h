@@ -107,6 +107,46 @@ public:
 	const NodeInfo& GetNodeInfo(void) const{
 		return _node_info;
 	}
+
+
+	/*! Convenience function to convert Local Dims to Global dims based on Process grid */
+	inline
+	void LocalDimsToGlobalDims(IndexArray& global_dims, const IndexArray& local_dims)
+	{
+		const IndexArray& pe_dims =_node_info.NodeDims();
+		for(int dim=0; dim < n_dim; ++dim) {
+			global_dims[dim] = local_dims[dim]*pe_dims[dim];
+		}
+	}
+
+	/*! Convenience function to convert Local Dims to Global dims based on Process grid */
+	inline
+	void GlobalDimsToLocalDims(IndexArray& local_dims, const IndexArray& global_dims)
+	{
+		const IndexArray& pe_dims=_node_info.NodeDims();
+		for(int dim=0; dim < n_dim; ++dim) {
+			if( global_dims[dim] % pe_dims[dim] != 0 ) {
+				MasterLog(ERROR, "PE Dims (%d) do not divide Global Dims (%d) in dir %d",
+						pe_dims[dim], global_dims[dim], dim);
+
+			}
+			local_dims[dim] = global_dims[dim]/pe_dims[dim];
+		}
+	}
+
+	inline void LocalCoordToGlobalCoord(IndexArray& global_coord, const IndexArray& local_coord)
+	{
+		for(int dim=0; dim < n_dim; ++dim) {
+			global_coord[dim] = local_coord[dim] + _lat_origin[dim];
+		}
+	}
+
+	inline void GlobalCoordToLocalCoord(IndexArray& local_coord, const IndexArray& global_coord)
+	{
+		for(int dim=0; dim < n_dim; ++dim) {
+			local_coord[dim] = global_coord[dim] - _lat_origin[dim];
+		}
+	}
 private:
 	IndexArray _lat_origin;
 	IndexArray _lat_dims;         // The lattice dimensions (COPIED In)

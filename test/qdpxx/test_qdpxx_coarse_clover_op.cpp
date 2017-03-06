@@ -66,14 +66,15 @@ TEST(TestLattice, CoarseLinOpRandomNullVecs)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 	// Create the blocked Clover and Gauge Fields
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 	std::shared_ptr<CoarseGauge> u_coarse = std::make_shared<CoarseGauge>(info);
 
 	// Coarsen M to compute the coarsened Gauge and Clover fields
@@ -157,14 +158,15 @@ TEST(TestLattice, CoarseLinOpMRInv)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 	// Create the blocked Clover and Gauge Fields
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 
 	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
 
@@ -272,14 +274,15 @@ TEST(TestLattice, CoarseLinOpMRSmoother)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 	// Create the blocked Clover and Gauge Fields
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 
 	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
 
@@ -370,14 +373,15 @@ TEST(TestLattice, CoarseLinOpBiCGStabInv)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 	// Create the blocked Clover and Gauge Fields
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 
 	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
 
@@ -484,14 +488,15 @@ TEST(TestLattice, CoarseLinOpFGMRESInvTrivial)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 	// Create the blocked Clover and Gauge Fields
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 
 	std::shared_ptr<CoarseGauge> u_coarse=std::make_shared<CoarseGauge>(info);
 
@@ -601,14 +606,15 @@ TEST(TestLattice, CoarseLinOpFGMRESInvBlocked)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_orig;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_orig,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
 
 	// Create the blocked Clover and Gauge Fields
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_orig,blocked_lattice_dims, 2, 6, NodeInfo());
 
 	std::shared_ptr<CoarseGauge> u_coarse= std::make_shared<CoarseGauge>(info);
 

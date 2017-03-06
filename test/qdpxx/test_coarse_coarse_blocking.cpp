@@ -284,7 +284,8 @@ TEST(TestCoarseCoarse, TestCoarseDslashDir2)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_origin;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_origin,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -292,7 +293,7 @@ TEST(TestCoarseCoarse, TestCoarseDslashDir2)
 
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_origin, blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseGauge u_coarse(info);
 	ZeroGauge(u_coarse);
 
@@ -421,7 +422,8 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_origin;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_origin,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -429,7 +431,7 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_origin, blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseGauge u_coarse(info);
 	ZeroGauge(u_coarse);
 
@@ -467,7 +469,8 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 	// Generate the blocking
 	std::vector<Block> coarse_blocks;
 	IndexArray blocked_coarse_lattice_dims;
-	CreateBlockList(coarse_blocks, blocked_coarse_lattice_dims, blocked_lattice_dims, blockdims2, node_orig);
+	IndexArray blocked_coarse_lattice_origin;
+	CreateBlockList(coarse_blocks, blocked_coarse_lattice_dims, blocked_coarse_lattice_origin, blocked_lattice_dims, blockdims2, node_orig);
 
 	MasterLog(INFO, "Coarse Blocks has size=%d", coarse_blocks.size());
 	ASSERT_EQ( info.GetNumSites(), coarse_blocks.size() );
@@ -513,7 +516,7 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 	}
 
 
-	LatticeInfo coarse_coarse_info(blocked_coarse_lattice_dims,2,6,NodeInfo());
+	LatticeInfo coarse_coarse_info(blocked_coarse_lattice_origin,blocked_coarse_lattice_dims,2,6,NodeInfo());
 	CoarseGauge u_coarse_coarse(coarse_coarse_info);
 	ZeroGauge(u_coarse_coarse);
 	for( int mu=0; mu < 8; ++mu) {
@@ -649,7 +652,8 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductCloverEyeTrivial)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_origin;
+	CreateBlockList(my_blocks,blocked_lattice_dims, blocked_lattice_origin, latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -679,7 +683,7 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductCloverEyeTrivial)
 	clov_qdp.create(u,clparam);
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo info(blocked_lattice_dims, 2, 6, NodeInfo());
+	LatticeInfo info(blocked_lattice_origin,blocked_lattice_dims, 2, 6, NodeInfo());
 	CoarseGauge coarse_clover(info);
 	ZeroGauge(coarse_clover);
 	QDPIO::cout << " Attempting Clover Tripe Product"<<  std::endl;
@@ -709,11 +713,12 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductCloverEyeTrivial)
 	QDPIO::cout << "Generating Coarse-Coarse Blocking" << std::endl;
 	std::vector<Block> coarse_blocks;
 	IndexArray blocked_coarse_lattice_dims;
-	CreateBlockList(coarse_blocks, blocked_coarse_lattice_dims, blocked_lattice_dims, blockdims2, node_orig);
+	IndexArray blocked_coarse_lattice_origin;
+	CreateBlockList(coarse_blocks, blocked_coarse_lattice_dims, blocked_coarse_lattice_origin, blocked_lattice_dims, blockdims2, node_orig);
 
 
 
-	LatticeInfo coarse_coarse_info(blocked_coarse_lattice_dims,2,6,NodeInfo());
+	LatticeInfo coarse_coarse_info(blocked_coarse_lattice_origin, blocked_coarse_lattice_dims,2,6,NodeInfo());
 	CoarseGauge coarse_coarse_clover(coarse_coarse_info);
 	ZeroGauge(coarse_coarse_clover);
 
@@ -820,7 +825,8 @@ TEST(TestCoarseCoarse, TestCoarseProlongRestrictTrivial)
 
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_origin;
+	CreateBlockList(my_blocks,blocked_lattice_dims, blocked_lattice_origin,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	orthonormalizeBlockAggregates(vecs, my_blocks);
@@ -831,7 +837,7 @@ TEST(TestCoarseCoarse, TestCoarseProlongRestrictTrivial)
 	// the number of vecs is equal to the number of colors
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo coarse_info(blocked_lattice_dims, 2, N_colors, NodeInfo());
+	LatticeInfo coarse_info(blocked_lattice_origin, blocked_lattice_dims, 2, N_colors, NodeInfo());
 
 	CoarseSpinor psi( info );
 	CoarseSpinor R_psi( coarse_info );
@@ -877,7 +883,8 @@ TEST(TestCoarseCoarse, TestCoarseRestrictProlong)
 
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_origin;
+	CreateBlockList(my_blocks,blocked_lattice_dims, blocked_lattice_origin,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	orthonormalizeBlockAggregates(vecs, my_blocks);
@@ -888,7 +895,7 @@ TEST(TestCoarseCoarse, TestCoarseRestrictProlong)
 	// the number of vecs is equal to the number of colors
 
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo coarse_info(blocked_lattice_dims, 2, N_colors, NodeInfo());
+	LatticeInfo coarse_info(blocked_lattice_origin,blocked_lattice_dims, 2, N_colors, NodeInfo());
 
 	CoarseSpinor psi( coarse_info );
 	CoarseSpinor P_psi( info );
@@ -945,7 +952,8 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks;
 	IndexArray blocked_lattice_dims;
-	CreateBlockList(my_blocks,blocked_lattice_dims,latdims,blockdims,node_orig);
+	IndexArray blocked_lattice_origin;
+	CreateBlockList(my_blocks,blocked_lattice_dims,blocked_lattice_origin,latdims,blockdims,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	orthonormalizeBlockAggregatesQDPXX(vecs, my_blocks);
@@ -953,7 +961,7 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 
 	QDPIO::cout << "Creating Level 1 Coarse Gauge Field " << std::endl;
 	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo info(blocked_lattice_dims, 2, N_color_1, NodeInfo());
+	LatticeInfo info(blocked_lattice_origin,blocked_lattice_dims, 2, N_color_1, NodeInfo());
 	std::shared_ptr<CoarseGauge> u_coarse = std::make_shared<CoarseGauge>(info);
 	ZeroGauge(*u_coarse);
 
@@ -1008,13 +1016,14 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 	// 1) Create the blocklist
 	std::vector<Block> my_blocks_l2;
 	IndexArray blocked_lattice_dims_l2;
-	CreateBlockList(my_blocks_l2,blocked_lattice_dims_l2,blocked_lattice_dims,blockdims2,node_orig);
+	IndexArray blocked_lattice_orig_12;
+	CreateBlockList(my_blocks_l2,blocked_lattice_dims_l2,blocked_lattice_orig_12, blocked_lattice_dims,blockdims2,node_orig);
 
 	// Do the proper block orthogonalize -- I do it twice... Why not
 	orthonormalizeBlockAggregates(vecs_l2, my_blocks_l2);
 	orthonormalizeBlockAggregates(vecs_l2, my_blocks_l2);
 
-	LatticeInfo info_l2(blocked_lattice_dims_l2, 2, N_color_2, NodeInfo());
+	LatticeInfo info_l2(blocked_lattice_orig_12, blocked_lattice_dims_l2, 2, N_color_2, NodeInfo());
 	std::shared_ptr<CoarseGauge> u_coarse_coarse=std::make_shared<CoarseGauge>(info_l2);
 	D_coarse.generateCoarse(my_blocks_l2, vecs_l2, *u_coarse_coarse);
 
