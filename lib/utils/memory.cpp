@@ -88,7 +88,7 @@ namespace MG {
 			}
 			else {
 				if( regular_alloc(&ret_val, num_bytes,alignment) != 0 ) {
-					MasterLog(ERROR, "REgular Memory Allocation Failed" );
+					MasterLog(ERROR, "Regular Memory Allocation Failed" );
 				}
 				regular_mmap[ret_val] = num_bytes; // Add to memory map
 				current_regular += num_bytes;

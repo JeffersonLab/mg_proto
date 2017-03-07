@@ -10,6 +10,7 @@
 #include <random>
 #include "../../test_env.h"
 
+#include "lattice/spinor_halo.h"
 
 using namespace MG; 
 using namespace MGTesting;
@@ -28,6 +29,19 @@ TEST(TestLatticeParallel, TestLatticeInitialization)
 
 }
 
+TEST(TestLatticeParallel, TestSpinorHaloCreate)
+{
+	 IndexArray latdims={{4,4,4,4}};
+	  NodeInfo node;
+	  LatticeInfo info(latdims, 4, 3, node);
+	  ASSERT_EQ( node.NumNodes(), 2);
+	  IndexArray gdims;
+	  info.LocalDimsToGlobalDims(gdims,latdims);
+	  ASSERT_EQ( gdims[3],8);
+	  initQDPXXLattice(gdims);
+	  SpinorHalo halo(info); // Create then Destroy.
+
+}
 
 
 
