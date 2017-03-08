@@ -6,7 +6,7 @@
  */
 
 #include "MG_config.h"
-#ifdef MG_QMP_COMMS
+#ifdef MG_QMP_INIT
 #include <qmp.h>
 #endif
 
@@ -25,7 +25,7 @@ namespace MG
 	void initialize(int *argc, char ***argv)
 	{
 		// Process args
-#ifdef MG_QMP_COMMS
+#ifdef MG_QMP_INIT
 		int proc_geometry[4] = {1,1,1,1}; // Default processor geometry
 #endif
 
@@ -34,7 +34,7 @@ namespace MG
 
 		/* Process args here -- first step is to get the processor geomerty */
 		while( i < my_argc ) {
-#ifdef MG_QMP_COMMS
+#ifdef MG_QMP_INIT
 			if (std::string(argv[i]).compare("-geom") == 0 ) {
 			      proc_geometry[0] = std::atoi((*argv)[i+1]);
 			      proc_geometry[1] = std::atoi((*argv)[i+2]);
@@ -52,7 +52,7 @@ namespace MG
 		}
 
 		/* Initialize QMP here */
-#if defined(MG_QMP_COMMS)
+#if defined(MG_QMP_INIT)
 		QMP_thread_level_t prv;
 		if( QMP_init_msg_passing(argc, argv, QMP_THREAD_SINGLE, &prv) != QMP_SUCCESS ) {
 			std::cout << "Failed to initialize QMP" << std::endl;
@@ -71,7 +71,7 @@ namespace MG
 		MasterLog(INFO, "Declared QMP Topology: %d %d %d %d\n",
 				  proc_geometry[0], proc_geometry[1], proc_geometry[2], proc_geometry[3]);
 #elif defined(MG_USE_QDPXX)
-		MasterLog(INFO, "Initializing QDP++");
+		// MasterLog(INFO, "Initializing QDP++");
 		QDP::QDP_initialize(argc,argv);
 		MasterLog(INFO, "QDP++ Initialized");
 #endif
@@ -82,21 +82,23 @@ namespace MG
 	{
 		MasterLog(INFO, "Finalizing Memory");
 		MG::FinalizeMemory();
-#if defined(MG_QMP_COMMS)
+#if defined(MG_QMP_INIT)
 		MasterLog(INFO, "Finalizing QMP");
 		QMP_finalize_msg_passing();
 #elif defined(MG_USE_QDPXX)
 		MasterLog(INFO, "Finalizing QDP++");
 		QDP::QDP_finalize();
 #endif
-		MasterLog(INFO, "All Finalizations done. Bye!");
+
 	}
 
 	void abort(void)
 	{
 		MG::FinalizeMemory();
-#ifdef MG_QMP_COMMS
+#if defined(MG_QMP_INIT)
 		QMP_abort(1);
+#elif defined(MG_USE_QDPXX)
+		QDP::QDP_abort(1);
 #else
 		std::abort();
 #endif

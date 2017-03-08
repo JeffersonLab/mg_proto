@@ -39,7 +39,7 @@ TEST(TestLatticeParallel, TestSpinorHaloCreate)
 	  info.LocalDimsToGlobalDims(gdims,latdims);
 	  ASSERT_EQ( gdims[3],8);
 	  initQDPXXLattice(gdims);
-	  SpinorHalo halo(info); // Create then Destroy.
+	  SpinorHaloCB halo(info); // Create then Destroy.
 
 }
 

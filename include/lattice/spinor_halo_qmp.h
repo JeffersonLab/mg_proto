@@ -19,10 +19,10 @@ using namespace MG;
 namespace MGTesting {
 
 
-class SpinorHalo {
+class SpinorHaloCB {
 public:
-	SpinorHalo(const LatticeInfo& info);
-	~SpinorHalo();
+	SpinorHaloCB(const LatticeInfo& info);
+	~SpinorHaloCB();
 
 	bool LocalDir(int mu );
 	bool AmIPtMin();
@@ -43,8 +43,8 @@ public:
 
 	void ProgressComms();
 
-	float* GetSendToDirBuf(int mu);
-	float* GetRecvFromDirBuf(int mu);
+	float* GetSendToDirBuf(int mu) { return _send_to_dir[mu]; }
+	float* GetRecvFromDirBuf(int mu) { return _recv_from_dir[mu]; }
 
 
 private:

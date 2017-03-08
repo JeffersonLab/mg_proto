@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <cstdarg>
 
-#ifdef QMP_COMMS
+#ifdef MG_QMP_COMMS
 #include "qmp.h"
 #endif
 
@@ -68,7 +68,7 @@ namespace MG {
 #pragma omp master
 		{
 			if( level <= current_log_level ) {
-#ifdef QMP_COMMS
+#ifdef MG_QMP_COMMS
 				int size = QMP_get_number_of_nodes();
 				int rank = QMP_get_node_number();
 #else
@@ -106,7 +106,7 @@ namespace MG {
 #pragma omp master
     	{
 
-#ifdef QMP_COMMS
+#ifdef MG_QMP_COMMS
     		if ( QMP_is_primary_node() )  {
 #endif
     			if( level <= current_log_level ) {
@@ -124,7 +124,7 @@ namespace MG {
     				MG::abort();
     			} /* if level == ERROR */
 
-#ifdef QMP_COMMS
+#ifdef MG_QMP_COMMS
     		} /* if ( QMP_is_primary_node())  */
 #endif
     	} /* End OMP MASTER REGION */

@@ -39,3 +39,11 @@ target_link_libraries(test_coarse_coarse_blocking  qdpxx_helpers test_aggregatio
 if( MG_QDPXX_PARALLEL ) 
   add_subdirectory( qdpxx_parallel ) 
 endif (MG_QDPXX_PARALLEL ) 
+
+
+add_test( NAME CoarseQDPXXSite COMMAND ./test_coarse_qdpxx_site -geom 1 1 1 1)
+add_test( NAME CoarseQDPXXBlock COMMAND ./test_coarse_qdpxx -geom 1 1 1 1)
+add_test( NAME QDPXXCloverLinop COMMAND ./test_qdpxx_clover_linop -geom 1 1 1 1 )
+add_test( NAME QDPXXCoarseCloverLinop COMMAND ./test_qdpxx_coarse_clover_op -geom 1 1 1 1 )
+add_test( NAME QDPXXCoarseVCycle COMMAND ./test_vcycle -geom 1 1 1 1)
+add_test( NAME CoarseCoarseBlocking COMMAND ./test_coarse_coarse_blocking -geom 1 1 1 1)

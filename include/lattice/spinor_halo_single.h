@@ -17,10 +17,10 @@ using namespace MG;
 namespace MGTesting {
 
 
-class SpinorHalo {
+class SpinorHaloCB {
 public:
-	SpinorHalo(const LatticeInfo& info){}
-	~SpinorHalo(){}
+	SpinorHaloCB(const LatticeInfo& info){}
+	~SpinorHaloCB(){}
 
 	bool LocalDir(int mu ) { return true; }
 	bool AmIPtMin() { return true; }
