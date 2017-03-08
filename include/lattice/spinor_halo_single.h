@@ -19,7 +19,7 @@ namespace MGTesting {
 
 class SpinorHaloCB {
 public:
-	SpinorHaloCB(const LatticeInfo& info){}
+	SpinorHaloCB(const LatticeInfo& info): _info(info){}
 	~SpinorHaloCB(){}
 
 	bool LocalDir(int mu ) { return true; }
@@ -45,7 +45,15 @@ public:
 
 	float* GetSendToDirBuf(int mu) { return nullptr; }
 	float* GetRecvFromDirBuf(int mu) { return nullptr; }
+	int numSitesInFace() { return 0; }
+	// FIXME: Ist his wrong?
+	// We can still have sites in the face just because there is no comms
 
+	const LatticeInfo& GetInfo() const {
+		return _info;
+	}
+private:
+	const LatticeInfo& _info;
 }; // SpinorHalo class
 
 } // MG Testing Namespace

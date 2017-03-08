@@ -64,6 +64,9 @@ public:
 	float* GetRecvFromDirBuf(int mu) { return _recv_from_dir[mu]; }
 	int    NumSitesInFace(int mu) { return _n_face_dir[mu]; }
 
+	const LatticeInfo& GetInfo() const {
+		return _latt_info;
+	}
 private:
 
 	const LatticeInfo& _latt_info;

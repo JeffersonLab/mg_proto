@@ -13,6 +13,7 @@
 #include "utils/memory.h"
 #include "utils/print_utils.h"
 
+
 using namespace MG;
 
 namespace MG {
@@ -119,6 +120,7 @@ namespace MG {
 		const IndexType _n_spin;
 		const IndexType _n_colorspin;
 		const IndexType _n_site_offset;
+
 	};
 
 

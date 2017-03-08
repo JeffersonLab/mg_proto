@@ -13,6 +13,7 @@
 #include "lattice/cmat_mult.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/thread_limits.h"
+#include "lattice/spinor_halo.h"
 
 namespace MG {
 
@@ -83,6 +84,10 @@ public:
 		return _n_spin;
 	}
 
+	inline
+	MGTesting::SpinorHaloCB& GetSpinorHalo() {
+		return _halo;
+	}
 private:
 	const LatticeInfo& _lattice_info;
 	const IndexType _n_color;
@@ -103,6 +108,7 @@ private:
 	const IndexType _n_z;
 	const IndexType _n_t;
 
+	MGTesting::SpinorHaloCB _halo;
 
 
 };

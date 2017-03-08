@@ -27,7 +27,8 @@ CoarseDiracOp::CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt)
 	  _n_x( l_info.GetLatticeDimensions()[0] ),
 	  _n_y( l_info.GetLatticeDimensions()[1] ),
 	  _n_z( l_info.GetLatticeDimensions()[2] ),
-	  _n_t( l_info.GetLatticeDimensions()[3] )
+	  _n_t( l_info.GetLatticeDimensions()[3] ),
+	  _halo( l_info )
 {
 #pragma omp parallel
 	{
