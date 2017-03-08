@@ -24,10 +24,27 @@ public:
 	SpinorHaloCB(const LatticeInfo& info);
 	~SpinorHaloCB();
 
-	bool LocalDir(int mu );
-	bool AmIPtMin();
-	bool AmIPtMax();
-	int NumNonLocalDirs();
+	bool
+	LocalDir(int d) {
+		return _local_dir[d];
+	}
+
+
+	bool
+	AmIPtMin() {
+		return _am_i_pt_min;
+	}
+
+	bool
+	AmIPtMax() {
+		return _am_i_pt_max;
+	}
+
+	int
+	NumNonLocalDirs() {
+		return _num_nonlocal_dir;
+	}
+
 
 	void StartSendToDir(int mu);
 	void FinishSendToDir(int mu);
@@ -45,7 +62,7 @@ public:
 
 	float* GetSendToDirBuf(int mu) { return _send_to_dir[mu]; }
 	float* GetRecvFromDirBuf(int mu) { return _recv_from_dir[mu]; }
-
+	int    NumSitesInFace(int mu) { return _n_face_dir[mu]; }
 
 private:
 

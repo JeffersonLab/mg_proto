@@ -95,18 +95,14 @@ _node_info(info.GetNodeInfo())
 			_msgmem_recv_from_dir[2*mu + MG_BACKWARD] = QMP_declare_msgmem(_recv_from_dir[2*mu+MG_BACKWARD], _face_in_bytes[mu]);
 			_msgmem_recv_from_dir[2*mu+ MG_FORWARD] = QMP_declare_msgmem(_recv_from_dir[2*mu+MG_FORWARD], _face_in_bytes[mu]);
 
-			_mh_recv_from_dir[2*mu+MG_BACKWARD] = QMP_declare_receive_from(_msgmem_recv_from_dir[2*mu+MG_BACKWARD],
-																				_node_info.NeighborNode(mu,MG_BACKWARD),0);
+			_mh_recv_from_dir[2*mu+MG_BACKWARD] = QMP_declare_receive_relative(_msgmem_recv_from_dir[2*mu+MG_BACKWARD],mu,0,0);
 
-			_mh_recv_from_dir[2*mu+MG_FORWARD] = QMP_declare_receive_from(_msgmem_recv_from_dir[2*mu+MG_FORWARD],
-																				_node_info.NeighborNode(mu,MG_FORWARD), 0);
+			_mh_recv_from_dir[2*mu+MG_FORWARD] = QMP_declare_receive_relative(_msgmem_recv_from_dir[2*mu+MG_FORWARD],mu,1, 0);
 
-			_mh_send_to_dir[2*mu+MG_BACKWARD] = QMP_declare_send_to(_msgmem_send_to_dir[2*mu+MG_BACKWARD],
-																	_node_info.NeighborNode(mu,MG_BACKWARD), 0);
+			_mh_send_to_dir[2*mu+MG_BACKWARD] = QMP_declare_send_relative(_msgmem_send_to_dir[2*mu+MG_BACKWARD],mu,0, 0);
 
 
-			_mh_send_to_dir[2*mu+MG_FORWARD] = QMP_declare_send_to(_msgmem_send_to_dir[2*mu+MG_FORWARD],
-																	_node_info.NeighborNode(mu,MG_FORWARD), 0);
+			_mh_send_to_dir[2*mu+MG_FORWARD] = QMP_declare_send_relative(_msgmem_send_to_dir[2*mu+MG_FORWARD],mu,1,0);
 
 		}
 
@@ -120,18 +116,19 @@ _node_info(info.GetNodeInfo())
 		if( ! _local_dir[mu] ) {
 			_nonlocal_dir[ _num_nonlocal_dir ] = mu;
 
-			_mh_recv_all_dir[2*_num_nonlocal_dir+MG_BACKWARD] = QMP_declare_receive_from(_msgmem_recv_from_dir[2*mu+MG_BACKWARD],
-					_node_info.NeighborNode(mu,MG_BACKWARD),0);
+			_mh_recv_all_dir[2*_num_nonlocal_dir+MG_BACKWARD] = QMP_declare_receive_relative(_msgmem_recv_from_dir[2*mu+MG_BACKWARD],
+					mu, 0,0 );
 
-			_mh_recv_all_dir[2*_num_nonlocal_dir+MG_FORWARD] = QMP_declare_receive_from(_msgmem_recv_from_dir[2*mu+MG_FORWARD],
-					_node_info.NeighborNode(mu,MG_FORWARD), 0);
+			_mh_send_all_dir[2*_num_nonlocal_dir+MG_FORWARD] = QMP_declare_send_relative(_msgmem_send_to_dir[2*mu+MG_FORWARD],
+								mu,1,0);
 
-			_mh_send_all_dir[2*_num_nonlocal_dir+MG_BACKWARD] = QMP_declare_send_to(_msgmem_send_to_dir[2*mu+MG_BACKWARD],
-					_node_info.NeighborNode(mu,MG_BACKWARD), 0);
+			_mh_recv_all_dir[2*_num_nonlocal_dir+MG_FORWARD] = QMP_declare_receive_relative(_msgmem_recv_from_dir[2*mu+MG_FORWARD],
+					mu,1, 0);
+
+			_mh_send_all_dir[2*_num_nonlocal_dir+MG_BACKWARD] = QMP_declare_send_relative(_msgmem_send_to_dir[2*mu+MG_BACKWARD],
+					mu,0, 0);
 
 
-			_mh_send_all_dir[2*_num_nonlocal_dir+MG_FORWARD] = QMP_declare_send_to(_msgmem_send_to_dir[2*mu+MG_FORWARD],
-					_node_info.NeighborNode(mu,MG_FORWARD), 0);
 
 		_num_nonlocal_dir++;
 		}
@@ -205,29 +202,6 @@ SpinorHaloCB::~SpinorHaloCB()
 	}
 }
 
-inline
-bool
-SpinorHaloCB::LocalDir(int d) {
-	return _local_dir[d];
-}
-
-inline
-bool
-SpinorHaloCB::AmIPtMin() {
-	return _am_i_pt_min;
-}
-
-inline
-bool
-SpinorHaloCB::AmIPtMax() {
-	return _am_i_pt_max;
-}
-
-inline
-int
-SpinorHaloCB::NumNonLocalDirs() {
-	return _num_nonlocal_dir;
-}
 
 void
 SpinorHaloCB::StartSendToDir(int mu)

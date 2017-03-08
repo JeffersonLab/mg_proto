@@ -15,35 +15,236 @@
 using namespace MG; 
 using namespace MGTesting;
 
-TEST(TestLatticeParallel, TestLatticeInitialization)
-{
-
-  IndexArray latdims={{4,4,4,4}};
-  NodeInfo node;
-  LatticeInfo lat(latdims, 4, 3, node);
-  ASSERT_EQ( node.NumNodes(), 2);
-  IndexArray gdims;
-  lat.LocalDimsToGlobalDims(gdims,latdims);
-  ASSERT_EQ( gdims[3],8);
-  initQDPXXLattice(gdims);
-
-}
 
 TEST(TestLatticeParallel, TestSpinorHaloCreate)
 {
 	 IndexArray latdims={{4,4,4,4}};
 	  NodeInfo node;
 	  LatticeInfo info(latdims, 4, 3, node);
-	  ASSERT_EQ( node.NumNodes(), 2);
 	  IndexArray gdims;
 	  info.LocalDimsToGlobalDims(gdims,latdims);
-	  ASSERT_EQ( gdims[3],8);
 	  initQDPXXLattice(gdims);
 	  SpinorHaloCB halo(info); // Create then Destroy.
+}
+
+TEST(TestSpinorHalo, TestDirectionShift)
+{
+	IndexArray latdims={{4,4,4,4}};
+	NodeInfo node;
+	LatticeInfo info(latdims,2,4,node);
+	IndexArray gdims;
+	info.LocalDimsToGlobalDims(gdims,latdims);
+	initQDPXXLattice(gdims);
+	SpinorHaloCB halo(info);
+
+	// My Node ID
+	int my_node = node.NodeID();
+
+	for(int dir=0; dir < n_dim; ++dir) {
+		if( ! halo.LocalDir(dir) ) {
+
+
+			int num_sites = halo.NumSitesInFace(dir);
+			int num_elem = num_sites*info.GetNumColorSpins();
+
+			// Forward send: 8xmy_node + MG_FORWARD
+			float *buffer = halo.GetSendToDirBuf(2*dir + MG_FORWARD);
+			float value = (float)(8*my_node + 2*dir + MG_FORWARD);
+
+			LocalLog(INFO, "Filling Forward T-DIR buffer with %lf", value);
+#pragma omp parallel for
+			for(int idx=0; idx < num_elem; ++idx) {
+				buffer[idx] = value;
+			}
+
+			// Backward send: 8xmy_node + 2*dir + MG_BACKWARD
+			buffer = halo.GetSendToDirBuf(2*dir + MG_BACKWARD);
+			value  = (float)(8*my_node + 2*dir + MG_BACKWARD);
+			LocalLog(INFO, "Filling Backward T-DIR buffer with %lf", value);
+#pragma omp parallel for
+			for(int idx=0; idx < num_elem; ++idx) {
+				buffer[idx] = value;
+			}
+
+
+		} // ! halo.LocalDIr()
+		else {
+			// Assert buffer is null for local directions
+			LocalLog(INFO,"Asserting buffers in dir %d are NULL", dir);
+			ASSERT_EQ( halo.GetSendToDirBuf( 2*dir + MG_BACKWARD), nullptr) ;
+			ASSERT_EQ( halo.GetSendToDirBuf( 2*dir + MG_FORWARD), nullptr) ;
+		}
+	} // dir
+
+
+	for(int dir=0; dir < n_dim; ++dir ) {
+		if( ! halo.LocalDir(dir) ) {
+
+			// This test is executed in a grid of 1x1x1x2 so
+			MasterLog(INFO,"Staring Backward Recvs in dir %d",dir);
+			halo.StartRecvFromDir(2*dir+MG_BACKWARD);
+
+			MasterLog(INFO, "Starting Forward T Recvs in dir %d",dir);
+			halo.StartRecvFromDir(2*dir+MG_FORWARD);
+
+			MasterLog(INFO, "Starting Forward T sends in dir %d",dir);
+			halo.StartSendToDir(2*dir + MG_FORWARD);
+
+			MasterLog(INFO, "Starting Backward T sends in dir %d",dir);
+			halo.StartSendToDir(2*dir + MG_BACKWARD);
+
+			MasterLog(INFO, "FInishing Forward T Sends in dir %d",dir);
+			halo.FinishSendToDir(2*dir + MG_FORWARD);
+
+			MasterLog(INFO, "Finishing BAckward T Sends in dir %d", dir);
+			halo.FinishSendToDir(2*dir + MG_BACKWARD);
+
+			MasterLog(INFO, "Finishing receives from T backward in dir %d", dir);
+			halo.FinishRecvFromDir(2*dir + MG_BACKWARD);
+
+			MasterLog(INFO, "Finishing receives from T Forward in dir %d", dir);
+			halo.FinishRecvFromDir(2*dir+ MG_FORWARD);
+		}
+	}
+
+	for(int dir = 0; dir < n_dim; ++dir) {
+		if ( ! halo.LocalDir(dir) ) {
+
+			// Comms should be finished.
+			// Check that we got the right data.
+			int forward_node = node.NeighborNode(dir,MG_FORWARD);
+			int back_node = node.NeighborNode(dir, MG_BACKWARD);
+
+			// Forward neighbor will have sent backwards.
+			float forw_value = (float)(8*forward_node + 2*dir + MG_BACKWARD);
+
+			// Backward neighbor will have sent his data forward
+			float back_value = (float)(8*back_node + 2*dir + MG_FORWARD);
+
+			float *buffer = halo.GetRecvFromDirBuf(2*dir + MG_FORWARD);
+			int num_elem = info.GetNumColorSpins()*halo.NumSitesInFace(dir);
+
+			LocalLog(INFO, "Checking Forward buffer contains %lf (expected)", forw_value);
+			for(int i=0; i < num_elem; ++i) {
+				ASSERT_FLOAT_EQ(buffer[i], forw_value);
+			}
+
+			LocalLog(INFO, "Checking Backward buffer contains %lf (expected)", back_value);
+			buffer = halo.GetRecvFromDirBuf(2*dir + MG_BACKWARD);
+			for(int i=0; i < num_elem; ++i) {
+				ASSERT_FLOAT_EQ(buffer[i], back_value);
+
+			}
+
+
+		}
+		else {
+			// Buffers are null for nonlocal directions
+			ASSERT_EQ( halo.GetRecvFromDirBuf(2*dir + MG_BACKWARD), nullptr );
+			ASSERT_EQ( halo.GetRecvFromDirBuf(2*dir + MG_BACKWARD), nullptr) ;
+
+		}
+	}
 
 }
 
+TEST(TestSpinorHalo, TestCommAll)
+{
+	IndexArray latdims={{4,4,4,4}};
+	NodeInfo node;
+	LatticeInfo info(latdims,2,4,node);
+	IndexArray gdims;
+	info.LocalDimsToGlobalDims(gdims,latdims);
+	initQDPXXLattice(gdims);
+	SpinorHaloCB halo(info);
 
+	// My Node ID
+	int my_node = node.NodeID();
+
+	for(int dir=0; dir < n_dim; ++dir) {
+		if( ! halo.LocalDir(dir) ) {
+
+
+			int num_sites = halo.NumSitesInFace(dir);
+			int num_elem = num_sites*info.GetNumColorSpins();
+
+			// Forward send: 8xmy_node + MG_FORWARD
+			float *buffer = halo.GetSendToDirBuf(2*dir + MG_FORWARD);
+			float value = (float)(8*my_node + 2*dir + MG_FORWARD);
+
+			LocalLog(INFO, "Filling Forward  buffer in dir  %d with %lf", dir,value);
+#pragma omp parallel for
+			for(int idx=0; idx < num_elem; ++idx) {
+				buffer[idx] = value;
+			}
+
+			// Backward send: 8xmy_node + 2*dir + MG_BACKWARD
+			buffer = halo.GetSendToDirBuf(2*dir + MG_BACKWARD);
+			value  = (float)(8*my_node + 2*dir + MG_BACKWARD);
+			LocalLog(INFO, "Filling Backward buffer in dir %d with %lf",dir, value);
+#pragma omp parallel for
+			for(int idx=0; idx < num_elem; ++idx) {
+				buffer[idx] = value;
+			}
+
+
+		} // ! halo.LocalDIr()
+		else {
+			// Assert buffer is null for local directions
+			LocalLog(INFO,"Asserting buffers in dir %d are NULL", dir);
+			ASSERT_EQ( halo.GetSendToDirBuf( 2*dir + MG_BACKWARD), nullptr) ;
+			ASSERT_EQ( halo.GetSendToDirBuf( 2*dir + MG_FORWARD), nullptr) ;
+		}
+	} // dir
+
+
+
+
+			halo.StartAllRecvs();
+			halo.StartAllSends();
+			halo.FinishAllSends();
+			halo.FinishAllRecvs();
+
+	for(int dir = 0; dir < n_dim; ++dir) {
+		if ( ! halo.LocalDir(dir) ) {
+
+			// Comms should be finished.
+			// Check that we got the right data.
+			int forward_node = node.NeighborNode(dir,MG_FORWARD);
+			int back_node = node.NeighborNode(dir, MG_BACKWARD);
+
+			// Forward neighbor will have sent backwards.
+			float forw_value = (float)(8*forward_node + 2*dir + MG_BACKWARD);
+
+			// Backward neighbor will have sent his data forward
+			float back_value = (float)(8*back_node + 2*dir + MG_FORWARD);
+
+			float *buffer = halo.GetRecvFromDirBuf(2*dir + MG_FORWARD);
+			int num_elem = info.GetNumColorSpins()*halo.NumSitesInFace(dir);
+
+			LocalLog(INFO, "Checking Forward buffer in dir %d contains %lf (expected)",dir, forw_value);
+			for(int i=0; i < num_elem; ++i) {
+				ASSERT_FLOAT_EQ(buffer[i], forw_value);
+			}
+
+			LocalLog(INFO, "Checking Backward buffer in dir %d contains %lf (expected)",dir, back_value);
+			buffer = halo.GetRecvFromDirBuf(2*dir + MG_BACKWARD);
+			for(int i=0; i < num_elem; ++i) {
+				ASSERT_FLOAT_EQ(buffer[i], back_value);
+
+			}
+
+
+		}
+		else {
+			// Buffers are null for nonlocal directions
+			ASSERT_EQ( halo.GetRecvFromDirBuf(2*dir + MG_BACKWARD), nullptr );
+			ASSERT_EQ( halo.GetRecvFromDirBuf(2*dir + MG_BACKWARD), nullptr) ;
+
+		}
+	}
+
+}
 
 int main(int argc, char *argv[]) 
 {
