@@ -84,10 +84,19 @@ public:
 		return _n_spin;
 	}
 
+
+
 	inline
-	MGTesting::SpinorHaloCB& GetSpinorHalo() {
-		return _halo;
-	}
+		MGTesting::SpinorHaloCB& GetSpinorHalo() {
+			return _halo;
+		}
+	inline
+		const MGTesting::SpinorHaloCB& GetSpinorHalo() const {
+			return _halo;
+		}
+
+
+	void packFace( const CoarseSpinor& spinor, IndexType cb, IndexType mu, IndexType fb);
 private:
 	const LatticeInfo& _lattice_info;
 	const IndexType _n_color;

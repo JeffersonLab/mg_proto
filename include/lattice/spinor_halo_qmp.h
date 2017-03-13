@@ -25,23 +25,23 @@ public:
 	~SpinorHaloCB();
 
 	bool
-	LocalDir(int d) {
+	LocalDir(int d) const {
 		return _local_dir[d];
 	}
 
 
 	bool
-	AmIPtMin() {
+	AmIPtMin()  const {
 		return _am_i_pt_min;
 	}
 
 	bool
-	AmIPtMax() {
+	AmIPtMax() const {
 		return _am_i_pt_max;
 	}
 
 	int
-	NumNonLocalDirs() {
+	NumNonLocalDirs() const {
 		return _num_nonlocal_dir;
 	}
 
@@ -62,7 +62,11 @@ public:
 
 	float* GetSendToDirBuf(int mu) { return _send_to_dir[mu]; }
 	float* GetRecvFromDirBuf(int mu) { return _recv_from_dir[mu]; }
-	int    NumSitesInFace(int mu) { return _n_face_dir[mu]; }
+
+	const float* GetSendToDirBuf(int mu) const { return _send_to_dir[mu]; }
+	const float* GetRecvFromDirBuf(int mu) const { return _recv_from_dir[mu]; }
+
+	int    NumSitesInFace(int mu) const { return _n_face_dir[mu]; }
 
 	const LatticeInfo& GetInfo() const {
 		return _latt_info;

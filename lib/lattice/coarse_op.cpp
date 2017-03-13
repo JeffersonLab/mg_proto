@@ -442,5 +442,63 @@ void CoarseDiracOp::siteApplyClover( float* output,
 
 }
 
+
+void
+CoarseDiracOp::packFace(const CoarseSpinor& spinor,
+						IndexType cb, //CB to back
+						IndexType mu,
+						IndexType fb)
+{
+	const IndexArray& latt_dims = _lattice_info.GetLatticeDimensions();
+	const IndexArray& latt_cb_dims = _lattice_info.GetCBLatticeDimensions();
+	IndexArray coords;
+
+
+
+	// Grab the buffer from the Halo
+	float* buffer = _halo.GetSendToDirBuf(2*mu + fb);
+
+	int num_color_spins = _lattice_info.GetNumColorSpins();
+	int buffer_site_offset = n_complex*num_color_spins;
+	int buffer_sites = _halo.NumSitesInFace(mu);
+
+	// Loop through the sites in the buffer
+#pragma omp parallel for
+	for(int site =0; site < buffer_sites; ++site) {
+		int local_cb = (cb  + _lattice_info.GetCBOrigin())&1;
+
+		// I need to convert the face site index
+		// into a body site index in the required checkerboard.
+		coords[mu]= (fb == MG_BACKWARD ) ? 0 : latt_dims[mu]-1;
+		if( mu == 0 ) {
+			// X direction is special
+			IndexArray x_cb_dims(latt_cb_dims); x_cb_dims[Y_DIR]/=2;
+
+			IndexToCoords3(site,x_cb_dims,X_DIR,coords);
+			coords[Y_DIR] *= 2;
+			coords[Y_DIR] += ((local_cb + coords[X_DIR]+coords[Z_DIR] + coords[T_DIR])&1);
+			coords[X_DIR] /=2; // Convert back to checkerboarded X_coord
+		}
+		else {
+			// The Muth coordinate is eithe 0, or the last coordinate
+			IndexToCoords3(site,latt_cb_dims,mu,coords);
+		}
+		int body_site = CoordsToIndex(coords,latt_cb_dims);
+		float* buffersite = &buffer[site*buffer_site_offset];
+		// Grab the body site
+		const float* bodysite = spinor.GetSiteDataPtr(cb,body_site);
+
+		// Copy body site into buffer site
+		// This is likely to be done in a thread, so
+		// use SIMD if you can.
+#pragma omp simd
+		for(int cspin_idx=0; cspin_idx < n_complex*num_color_spins; ++cspin_idx) {
+			buffersite[cspin_idx] = bodysite[cspin_idx];
+		} // Finish copying
+
+	} // finish loop over sites.
+
+}
+
 } // Namespace
 

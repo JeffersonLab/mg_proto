@@ -69,6 +69,50 @@ namespace MG {
 		return ret_val;
 	}
 
+		inline
+		void IndexToCoords3(unsigned int index,
+				          const IndexArray& dims,
+						  const int mu,
+					  	  IndexArray& coords)
+		{
+		// I want to convert site index to
+			int ind = index;
+
+			// Get the other coordinates that we don't have
+			for(int dir=0; dir < n_dim; ++dir ) {
+				if( dir != mu ) {
+
+					// On the last direction we'd look at r = coord[n]/dim[n] = 0
+					// since coord[n] is always less than dim[n]
+					// so the algorithm should terminate correctly
+					int r = ind / dims[dir];
+					coords[dir] = ind -dims[dir]*r;
+					ind = r;
+				}
+			}
+
+		}
+
+
+		inline
+		unsigned int CoordsToIndex3(const IndexArray& coords,
+									const int mu,
+									const IndexArray& dims)
+		{
+
+			int pos=0;
+			int coords3[3];
+			int dims3[3];
+			for(int d=0; d < n_dim; ++d) {
+				if( d != mu ) {
+					coords3[pos] = coords[d];
+					dims3[pos]=coords[d];
+					pos++;
+				}
+			}
+			return coords3[0]+dims3[0]*(coords3[1]+dims3[1]*coords3[2]);
+		}
+
 	inline
 	void CBIndexToCoords(const int cbsite, const int cb, const IndexArray& lattice_size, IndexArray& coords)
 	{
