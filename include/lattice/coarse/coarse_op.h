@@ -35,7 +35,7 @@ public:
 			const CoarseSpinor& spinor_in,
 			const IndexType target_cb,
 			const IndexType dagger,
-			const IndexType tid) const;
+			const IndexType tid) const ;
 
 	void CloverApply(CoarseSpinor& spinor_out,
 				const CoarseGauge& gauge_clov_in,
@@ -96,7 +96,32 @@ public:
 		}
 
 
-	void packFace( const CoarseSpinor& spinor, IndexType cb, IndexType mu, IndexType fb);
+	void packFace( const CoarseSpinor& spinor, IndexType cb, IndexType mu, IndexType fb) const;
+
+	const float*
+	GetNeighborXPlus(int x, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
+
+	const float*
+	GetNeighborXMinus(int x, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
+
+	const float*
+	GetNeighborYPlus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
+
+	const float*
+	GetNeighborYMinus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const ;
+
+	const float*
+	GetNeighborZPlus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
+
+	const float*
+	GetNeighborZMinus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
+
+	const float*
+	GetNeighborTPlus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const ;
+
+	const float*
+	GetNeighborTMinus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
+
 private:
 	const LatticeInfo& _lattice_info;
 	const IndexType _n_color;
@@ -117,7 +142,7 @@ private:
 	const IndexType _n_z;
 	const IndexType _n_t;
 
-	MGTesting::SpinorHaloCB _halo;
+	mutable  MGTesting::SpinorHaloCB _halo;
 
 
 };

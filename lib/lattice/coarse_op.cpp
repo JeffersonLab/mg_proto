@@ -114,7 +114,32 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
-//	std::cout << "target_cb =" << target_cb << " min_site=" << min_site << " max_site=" << max_site << std::endl;
+// 	Synchronous for now -- maybe change to comms compute overlap later
+	// We are in an OMP region.
+
+	if( _halo.NumNonLocalDirs() > 0 ) {
+
+
+		for(int mu=0; mu < n_dim; ++mu) {
+			// Pack face usese omp for internally
+			if ( ! _halo.LocalDir(mu) ) {
+				packFace(spinor_in,1-target_cb,mu,MG_BACKWARD);
+				packFace(spinor_in,1-target_cb,mu,MG_FORWARD);
+			}
+		}
+
+		// Make sure faces are packed
+#pragma omp barrier
+#pragma omp master
+		{
+			_halo.StartAllRecvs();
+			_halo.StartAllSends();
+			_halo.FinishAllSends();
+			_halo.FinishAllRecvs();
+		}
+#pragma omp barrier
+	}
+
 
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
@@ -173,15 +198,26 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
-			spinor_in.GetSiteDataPtr(source_cb, x_plus  + _n_xh*(y + _n_y*(z + _n_z*t))),
-			spinor_in.GetSiteDataPtr(source_cb, x_minus + _n_xh*(y + _n_y*(z + _n_z*t))),
-			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y_plus + _n_y*(z + _n_z*t))),
-			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y_minus + _n_y*(z + _n_z*t))),
-			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_plus + _n_z*t))),
-			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_minus + _n_z*t))),
-			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_plus))),
-			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_minus))),
+				GetNeighborXPlus(x,y,z,t,source_cb,spinor_in),
+				GetNeighborXMinus(x,y,z,t,source_cb,spinor_in),
+				GetNeighborYPlus(xcb,y,z,t,source_cb,spinor_in),
+				GetNeighborYMinus(xcb,y,z,t,source_cb,spinor_in),
+				GetNeighborZPlus(xcb,y,z,t, source_cb,spinor_in),
+				GetNeighborZMinus(xcb,y,z,t,source_cb,spinor_in),
+				GetNeighborTPlus(xcb,y,z,t,source_cb,spinor_in),
+				GetNeighborTMinus(xcb,y,z,t,source_cb,spinor_in)
 		};
+
+
+//			spinor_in.GetSiteDataPtr(source_cb, x_plus  + _n_xh*(y + _n_y*(z + _n_z*t))),
+//			spinor_in.GetSiteDataPtr(source_cb, x_minus + _n_xh*(y + _n_y*(z + _n_z*t))),
+//			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y_plus + _n_y*(z + _n_z*t))),
+//			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y_minus + _n_y*(z + _n_z*t))),
+//			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_plus + _n_z*t))),
+//			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_minus + _n_z*t))),
+//			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_plus))),
+//			spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_minus))),
+//		};
 #else
 		IndexArray latdims=spinor_in.GetInfo().GetLatticeDimensions();
 		int xf_cb, xf_site; CoordsToCBIndex({{x_plus,y,z,t}}, latdims, xf_cb, xf_site);
@@ -208,6 +244,181 @@ void CoarseDiracOp::operator()(CoarseSpinor& spinor_out,
 	}
 
 }
+
+inline
+const float*
+CoarseDiracOp::GetNeighborXPlus(int x, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
+{
+
+	if ( x < _n_x - 1 ) {
+
+		return spinor_in.GetSiteDataPtr(source_cb, ((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t)));
+	}
+	else {
+
+		if(_halo.LocalDir(X_DIR) )  {
+			return spinor_in.GetSiteDataPtr(source_cb, 0 + _n_xh*(y + _n_y*(z + _n_z*t)));
+		}
+		else {
+			int n_colorspin  = spinor_in.GetNumColorSpin();
+			int index = n_colorspin*n_complex*((y + _n_y*(z + _n_z*t))/2);
+			return  &( _halo.GetRecvFromDirBuf(2*X_DIR + MG_FORWARD)[index]);
+		}
+	}
+}
+
+inline
+const float*
+CoarseDiracOp::GetNeighborXMinus(int x, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
+{
+	if ( x > 0 ) {
+		return spinor_in.GetSiteDataPtr(source_cb, ((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t)));
+	}
+	else {
+		if ( _halo.LocalDir(X_DIR) ) {
+			return spinor_in.GetSiteDataPtr(source_cb, ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t)));
+		}
+		else {
+			// Get the buffer
+			int n_colorspin = spinor_in.GetNumColorSpin();
+			int index = n_complex*n_colorspin*((y + _n_y*(z + _n_z*t))/2);
+
+			return  &(_halo.GetRecvFromDirBuf(2*X_DIR + MG_BACKWARD)[index]);
+		}
+	}
+}
+
+inline
+const float*
+CoarseDiracOp::GetNeighborYPlus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
+{
+
+	if ( y < _n_y - 1 ) {
+
+		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*((y+1) + _n_y*(z + _n_z*t)));
+	}
+	else {
+
+		if(_halo.LocalDir(Y_DIR) )  {
+			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*(0 + _n_y*(z + _n_z*t)));
+		}
+		else {
+			int n_colorspin  = spinor_in.GetNumColorSpin();
+			int index = n_colorspin*n_complex*(x_cb + _n_xh*(z + _n_z*t));
+			return  &( _halo.GetRecvFromDirBuf(2*Y_DIR + MG_FORWARD)[index]);
+		}
+	}
+}
+
+inline
+const float*
+CoarseDiracOp::GetNeighborYMinus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
+{
+
+	if ( y > 0  ) {
+
+		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*((y-1) + _n_y*(z + _n_z*t)));
+	}
+	else {
+
+		if(_halo.LocalDir(Y_DIR) )  {
+			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t)));
+		}
+		else {
+			int n_colorspin  = spinor_in.GetNumColorSpin();
+			int index = n_colorspin*n_complex*(x_cb + _n_xh*(z + _n_z*t));
+			return  &( _halo.GetRecvFromDirBuf(2*Y_DIR + MG_BACKWARD)[index]);
+		}
+	}
+}
+
+inline
+const float*
+CoarseDiracOp::GetNeighborZPlus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
+{
+
+	if ( z < _n_z - 1 ) {
+
+		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*(y + _n_y*((z+1) + _n_z*t)));
+	}
+	else {
+
+		if(_halo.LocalDir(Z_DIR) )  {
+			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*(y + _n_y*(0 + _n_z*t)));
+		}
+		else {
+			int n_colorspin  = spinor_in.GetNumColorSpin();
+			int index = n_colorspin*n_complex*(x_cb + _n_xh*(y + _n_y*t));
+			return  &( _halo.GetRecvFromDirBuf(2*Z_DIR + MG_FORWARD)[index]);
+		}
+	}
+}
+
+inline
+const float*
+CoarseDiracOp::GetNeighborZMinus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
+{
+
+	if ( z > 0  ) {
+
+		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*(y + _n_y*((z-1) + _n_z*t)));
+	}
+	else {
+
+		if(_halo.LocalDir(Z_DIR) )  {
+			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t)));
+		}
+		else {
+			int n_colorspin  = spinor_in.GetNumColorSpin();
+			int index = n_colorspin*n_complex*(x_cb + _n_xh*(y + _n_y*t));
+			return  &( _halo.GetRecvFromDirBuf(2*Z_DIR + MG_BACKWARD)[index]);
+		}
+	}
+}
+inline
+const float*
+CoarseDiracOp::GetNeighborTPlus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
+{
+
+	if ( t < _n_t - 1 ) {
+
+		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*(y + _n_y*(z + _n_z*(t+1))));
+	}
+	else {
+
+		if(_halo.LocalDir(T_DIR) )  {
+			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*(y + _n_y*z));
+		}
+		else {
+			int n_colorspin  = spinor_in.GetNumColorSpin();
+			int index = n_colorspin*n_complex*(x_cb + _n_xh*(y + _n_y*z));
+			return  &( _halo.GetRecvFromDirBuf(2*T_DIR + MG_FORWARD)[index]);
+		}
+	}
+}
+
+inline
+const float*
+CoarseDiracOp::GetNeighborTMinus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
+{
+
+	if ( t > 0  ) {
+
+		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*(y + _n_y*(z + _n_z*(t-1))));
+	}
+	else {
+
+		if(_halo.LocalDir(T_DIR) )  {
+			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1))));
+		}
+		else {
+			int n_colorspin  = spinor_in.GetNumColorSpin();
+			int index = n_colorspin*n_complex*(x_cb + _n_xh*(y + _n_y*z));
+			return  &( _halo.GetRecvFromDirBuf(2*T_DIR + MG_BACKWARD)[index]);
+		}
+	}
+}
+
 
 
 inline
@@ -447,7 +658,7 @@ void
 CoarseDiracOp::packFace(const CoarseSpinor& spinor,
 						IndexType cb, //CB to back
 						IndexType mu,
-						IndexType fb)
+						IndexType fb) const
 {
 	const IndexArray& latt_dims = _lattice_info.GetLatticeDimensions();
 	const IndexArray& latt_cb_dims = _lattice_info.GetCBLatticeDimensions();
@@ -463,7 +674,7 @@ CoarseDiracOp::packFace(const CoarseSpinor& spinor,
 	int buffer_sites = _halo.NumSitesInFace(mu);
 
 	// Loop through the sites in the buffer
-#pragma omp parallel for
+#pragma omp for
 	for(int site =0; site < buffer_sites; ++site) {
 		int local_cb = (cb  + _lattice_info.GetCBOrigin())&1;
 

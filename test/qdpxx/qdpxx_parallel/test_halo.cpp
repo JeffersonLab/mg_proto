@@ -47,14 +47,18 @@ TEST(TestHalo, TestDiracOpFacePack)
 
 	for(int cb=0; cb < n_checkerboard; ++cb) {
 
+#pragma omp parallel
+		{
 
-		for(int mu=0; mu < n_dim; ++mu) {
-			if(! d_op.GetSpinorHalo().LocalDir( mu )) {
-				d_op.packFace(spinor,cb,mu,MG_BACKWARD);
-				d_op.packFace(spinor,cb,mu,MG_FORWARD);
+			// Face packers use OMP for internally
+			for(int mu=0; mu < n_dim; ++mu) {
+				if(! d_op.GetSpinorHalo().LocalDir( mu )) {
+					d_op.packFace(spinor,cb,mu,MG_BACKWARD);
+					d_op.packFace(spinor,cb,mu,MG_FORWARD);
+				}
 			}
-		}
 
+		}
 		const SpinorHaloCB& halo = d_op.GetSpinorHalo();
 		int site_offset =  n_complex*info.GetNumColorSpins();
 
@@ -158,7 +162,7 @@ TEST(TestHalo, TestDiracOpFacePack)
 TEST(TestHalo, TestDiracOpFaceTransf)
 {
 	// Check the Halo is initialized properly in a coarse Dirac Op
-	IndexArray latdims={{4,4,4,4}};
+	IndexArray latdims={{6,4,4,4}};
 	NodeInfo node;
 	LatticeInfo info(latdims,2,2,node);
 	IndexArray gdims;
@@ -187,10 +191,13 @@ TEST(TestHalo, TestDiracOpFaceTransf)
 	for(int cb=0; cb < n_checkerboard; ++cb) {
 
 
-		for(int mu=0; mu < n_dim; ++mu) {
-			if(! halo.LocalDir( mu )) {
-				d_op.packFace(spinor,cb,mu,MG_BACKWARD);
-				d_op.packFace(spinor,cb,mu,MG_FORWARD);
+#pragma omp parallel
+		{
+			for(int mu=0; mu < n_dim; ++mu) {
+				if(! halo.LocalDir( mu )) {
+					d_op.packFace(spinor,cb,mu,MG_BACKWARD);
+					d_op.packFace(spinor,cb,mu,MG_FORWARD);
+				}
 			}
 		}
 
