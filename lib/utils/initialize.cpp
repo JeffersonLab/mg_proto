@@ -97,8 +97,7 @@ namespace MG
 		MG::FinalizeMemory();
 #if defined(MG_QMP_INIT)
 		QMP_abort(1);
-#elif defined(MG_USE_QDPXX)
-		QDP::QDP_abort(1);
+
 #else
 		std::abort();
 #endif

@@ -22,11 +22,12 @@ public:
 	SpinorHaloCB(const LatticeInfo& info): _info(info){}
 	~SpinorHaloCB(){}
 
-	bool LocalDir(int mu ) { return true; }
-	bool AmIPtMin() { return true; }
-	bool AmIPtMax() { return true; }
+	bool
+	LocalDir(int mu ) const { return true; }
+	bool AmIPtMin() const { return true; }
+	bool AmIPtMax() const { return true; }
 
-	int NumNonLocalDirs() { return 0; }
+	int NumNonLocalDirs() const { return 0; }
 
 	void StartSendToDir(int mu) { }
 	void FinishSendToDir(int mu) { }
@@ -43,9 +44,12 @@ public:
 	void ProgressComms(){}
 
 
-	float* GetSendToDirBuf(int mu) { return nullptr; }
-	float* GetRecvFromDirBuf(int mu) { return nullptr; }
-	int numSitesInFace() { return 0; }
+	float* GetSendToDirBuf(int mu)  { return nullptr; }
+	float* GetRecvFromDirBuf(int mu)  { return nullptr; }
+	const float* GetSendToDirBuf(int mu) const { return nullptr; }
+	const float* GetRecvFromDirBuf(int mu) const { return nullptr; }
+
+	int NumSitesInFace(int mu) const { return 0; }
 	// FIXME: Ist his wrong?
 	// We can still have sites in the face just because there is no comms
 

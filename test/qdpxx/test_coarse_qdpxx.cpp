@@ -172,6 +172,8 @@ TEST(TestCoarseQDPXXBlock, TestBlockOrthogonalize8)
 }
 #endif
 
+
+// THis tests fails if the number of theads is more than the number of sites?
 TEST(TestCoarseQDPXXBlock,TestOrthonormal2)
 {
 	IndexArray latdims={{2,2,2,2}};   // Fine lattice. Make it 4x4x4x4 so we can block it
