@@ -1,14 +1,15 @@
 #include "gtest/gtest.h"
+#include "../../test_env.h"
+#include "../qdpxx_utils.h"
+
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/nodeinfo.h"
 
 #include "utils/print_utils.h"
 #include "lattice/geometry_utils.h"
-#include "../qdpxx_helpers.h"
 #include <vector>
 #include <random>
-#include "../../test_env.h"
 
 #include "lattice/spinor_halo.h"
 #include "lattice/coarse/coarse_op.h"

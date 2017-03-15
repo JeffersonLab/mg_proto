@@ -5,17 +5,16 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_QDPXX_HELPERS_H_
-#define TEST_QDPXX_QDPXX_HELPERS_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_QDPXX_HELPERS_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_QDPXX_HELPERS_H_
 
 #include <qdp.h>
 #include "lattice/constants.h"
 #include "lattice/coarse/coarse_types.h"
-#include "clover_term_qdp_w.h"
 
 
-namespace MGTesting {
-	void initQDPXXLattice(const MG::IndexArray& latdims);
+namespace MG {
+
 
 	// Convert a QDP++ Spinor into a Coarse Spinor Datatype.
 	// Geometries, Spins, Colors, must match
@@ -28,8 +27,8 @@ namespace MGTesting {
 	     			QDP::LatticeFermion& qdpxx_out);
 
 
-	void QDPGaugeLinksToCoarseGaugeLinks( const multi1d<LatticeColorMatrix>& qdp_u_in, CoarseGauge& gauge_out);
-	void CoarseGaugeLinksToQDPGaugeLinks( const CoarseGauge& gauge_in, multi1d<LatticeColorMatrix>& qdp_u_out );
+	void QDPGaugeLinksToCoarseGaugeLinks( const QDP::multi1d<QDP::LatticeColorMatrix>& qdp_u_in, CoarseGauge& gauge_out);
+	void CoarseGaugeLinksToQDPGaugeLinks( const CoarseGauge& gauge_in, QDP::multi1d<QDP::LatticeColorMatrix>& qdp_u_out );
 
 
 	void QDPPropToCoarseGaugeLink(const QDP::LatticePropagator& qdpxx_in,

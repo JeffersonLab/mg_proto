@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "../test_env.h"
 #include "../mock_nodeinfo.h"
+#include "qdpxx_utils.h"
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/coarse_types.h"
@@ -8,17 +9,15 @@
 #include "lattice/coarse/coarse_l1_blas.h"
 #include "lattice/coarse/block.h"
 #include "utils/print_utils.h"
-#include "wilson_clover_linear_operator.h"
+#include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"
 #include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
-#include "qdpxx_helpers.h"
-#include "aggregate_qdpxx.h"
+#include "lattice/fine_qdpxx/qdpxx_helpers.h"
+#include "lattice/fine_qdpxx/aggregate_qdpxx.h"
 
-#include "aggregate_block_qdpxx.h"
+#include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
 #include "lattice/coarse/aggregate_block_coarse.h"
-
-#include "reunit.h"
-#include "transf.h"
-#include "dslashm_w.h"
+#include "lattice/fine_qdpxx/transf.h"
+#include "lattice/fine_qdpxx/dslashm_w.h"
 
 #include <cassert>
 #include <memory>

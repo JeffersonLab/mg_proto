@@ -1,14 +1,14 @@
 #include "gtest/gtest.h"
 #include "../test_env.h"
 #include "../mock_nodeinfo.h"
+#include "qdpxx_utils.h"
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
-#include "qdpxx_helpers.h"
-#include "reunit.h"
-#include "wilson_clover_linear_operator.h"
-#include "invmr.h"
-#include "invbicgstab.h"
-#include "invfgmres.h"
+#include "lattice/fine_qdpxx/qdpxx_helpers.h"
+#include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"
+#include "lattice/fine_qdpxx/invmr.h"
+#include "lattice/fine_qdpxx/invbicgstab.h"
+#include "lattice/fine_qdpxx/invfgmres.h"
 
 using namespace MG;
 using namespace MGTesting;

@@ -5,14 +5,15 @@
  *      Author: bjoo
  */
 
-#include "aggregate_qdpxx.h"
+#include "lattice/fine_qdpxx/aggregate_qdpxx.h"
+#include "lattice/fine_qdpxx/transf.h"
+
 #include "lattice/constants.h"
-#include "transf.h"
 
 using namespace QDP;
-using namespace MG;
 
-namespace MGTesting {
+
+namespace MG {
 
 
 // Apply a single direction of Dslash

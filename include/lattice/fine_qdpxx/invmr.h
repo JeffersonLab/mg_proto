@@ -2,8 +2,8 @@
  *  \brief Minimal-Residual (MR) for a generic fermion Linear Operator
  */
 
-#ifndef TEST_QDPXX_INVMR_H_
-#define TEST_QDPXX_INVMR_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_INVMR_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_INVMR_H_
 
 #include "qdp.h"
 #include "lattice/constants.h"
@@ -11,10 +11,9 @@
 #include "lattice/solver.h"
 #include "lattice/mr_params.h"
 
-using namespace MG;
 using namespace QDP;
 
-namespace MGTesting  {
+namespace MG  {
 
   //! Minimal-residual (MR) algorithm for a generic Linear Operator 
   /*! \ingroup invert

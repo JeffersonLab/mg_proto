@@ -10,7 +10,7 @@
 
 #include "lattice/solver.h"
 
-namespace MGTesting {
+namespace MG {
 
 class MRSolverParams : public MG::LinearSolverParamsBase {
  public:

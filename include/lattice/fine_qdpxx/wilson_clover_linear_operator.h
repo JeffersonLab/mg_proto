@@ -5,26 +5,26 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_WILSON_CLOVER_LINEAR_OPERATOR_H_
-#define TEST_QDPXX_WILSON_CLOVER_LINEAR_OPERATOR_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_WILSON_CLOVER_LINEAR_OPERATOR_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_WILSON_CLOVER_LINEAR_OPERATOR_H_
 
 /*!
  * Wrap a QDP++ linear operator, so as to provide the interface
  * with new types
  */
 #include "lattice/linear_operator.h"
-#include "clover_fermact_params_w.h"
-#include "clover_term_qdp_w.h"
-#include "qdpxx_helpers.h"
-#include "dslashm_w.h"
+#include "lattice/fine_qdpxx/clover_fermact_params_w.h"
+#include "lattice/fine_qdpxx/clover_term_qdp_w.h"
+#include "lattice/fine_qdpxx/qdpxx_helpers.h"
+#include "lattice/fine_qdpxx/dslashm_w.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/block.h"
 #include "lattice/coarse/coarse_l1_blas.h"
-#include "aggregate_block_qdpxx.h"
+#include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
 
 using namespace QDP;
-using namespace MG;
-namespace MGTesting {
+
+namespace MG {
 
 
 class QDPWilsonCloverLinearOperator : public LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix> > {
@@ -110,7 +110,7 @@ public:
 
 		for(int cb=0; cb < n_checkerboard;++cb)  {
 			_clov.apply(out, in, isign, cb );       // CB -> CB
-			MGTesting::dslash(tmp, _u, in, isign, cb);    // (1-CB) -> C
+			MG::dslash(tmp, _u, in, isign, cb);    // (1-CB) -> C
 			out[rb[cb]] += mhalf*tmp;
 		}
 	}
@@ -170,8 +170,8 @@ private:
 
 	const int _t_bc;
 	Gauge _u;
-	MGTesting::CloverFermActParams _params;
-	MGTesting::QDPCloverTerm _clov;
+	MG::CloverFermActParams _params;
+	MG::QDPCloverTerm _clov;
 	LatticeInfo *_info;
 
 

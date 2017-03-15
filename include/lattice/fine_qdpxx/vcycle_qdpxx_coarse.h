@@ -5,22 +5,22 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_VCYCLE_QDPXX_COARSE_H_
-#define TEST_QDPXX_VCYCLE_QDPXX_COARSE_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_VCYCLE_QDPXX_COARSE_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_VCYCLE_QDPXX_COARSE_H_
 #include "qdp.h"
 #include "lattice/constants.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
-#include "invmr.h"
+#include "lattice/fine_qdpxx/invmr.h"
 #include "lattice/invfgmres_coarse.h"
 #include "lattice/fgmres_common.h"
-#include "aggregate_block_qdpxx.h"
+#include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
 #include "utils/print_utils.h"
 using namespace QDP;
 using namespace MG;
 
-namespace MGTesting {
+namespace MG {
 
 class VCycleQDPCoarse2 : public LinearSolver<LatticeFermion, multi1d<LatticeColorMatrix> >
 {

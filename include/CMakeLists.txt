@@ -25,4 +25,19 @@ install (FILES utils/initialize.h
 			   utils/memory.h 
 			   utils/print_utils.h 
 		 DESTINATION include/utils)
+		 
+install (FILES fine_qdpxx/aggregate_block_qdpxx.h
+			   fine_qdpxx/aggregate_qdpxx.h
+			   fine_qdpxx/clover_fermact_params_w.h
+			   fine_qdpxx/clover_term_qdp_w.h
+			   fine_qdpxx/dslashm_w.h
+			   fine_qdpxx/invbicgstab.h
+			   fine_qdpxx/infgmres.h
+			   fine_qdpxx/invmr.h
+			   fine_qdpxx/mesfield.h
+			   fine_qdpxx/qdpxx_helpers.h
+			   fine_qdpxx/transf.h
+			   fine_qdpxx/vcycle_qdpxx_coarse.h
+			   fine_qdpxx/wilson_clover_linear_operator.h
+		 DESTINATION include/fine_qdpxx)
             

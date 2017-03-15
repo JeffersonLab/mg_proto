@@ -5,20 +5,18 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_AGGREGATE_QDPXX_H_
-#define TEST_QDPXX_AGGREGATE_QDPXX_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_AGGREGATE_QDPXX_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_AGGREGATE_QDPXX_H_
 
 #include "qdp.h"
-#include "clover_term_qdp_w.h"
+#include "lattice/fine_qdpxx/clover_term_qdp_w.h"
 #include "lattice/coarse/coarse_types.h"
 
 
-using namespace MG;
-using namespace MGTesting;
 using namespace QDP;
 
 
-namespace MGTesting {
+namespace MG {
 
 //! Apply a single direction of Dslash
 void DslashDirQDPXX(LatticeFermion& out, const multi1d<LatticeColorMatrix>& u, const LatticeFermion& in, int dir);

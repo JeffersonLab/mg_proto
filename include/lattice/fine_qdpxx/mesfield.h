@@ -1,12 +1,12 @@
 // -*- C++ -*-
-#ifndef TEST_QDPXX_MESFIELD_H_
-#define TEST_QDPXX_MESFIELD_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_MESFIELD_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_MESFIELD_H_
 
 #include <qdp.h>
 
 using namespace QDP;
 
-namespace MGTesting {
+namespace MG {
   //! Calculates the antihermitian field strength tensor  iF(mu,nu)
   /* 
    * \ingroup glue

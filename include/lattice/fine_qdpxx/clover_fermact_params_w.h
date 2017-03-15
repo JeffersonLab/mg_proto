@@ -1,12 +1,12 @@
 // -*- C++ -*-
 
-#ifndef TEST_QDPXX_CLOVER_FERMACT_PARAMS_W_H_
-#define TEST_QDPXX_CLOVER_FERMACT_PARAMS_W_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_CLOVER_FERMACT_PARAMS_W_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_CLOVER_FERMACT_PARAMS_W_H_
 
 #include  <qdp.h>
 using namespace QDP;
 
-namespace MGTesting {
+namespace MG {
 
 // These are parameters for setting up a clover term
 // I nicked them from chroma, and cut out all the XML 

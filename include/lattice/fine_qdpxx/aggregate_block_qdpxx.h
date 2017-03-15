@@ -5,23 +5,21 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_AGGREGATE_BLOCK_QDPXX_H_
-#define TEST_QDPXX_AGGREGATE_BLOCK_QDPXX_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_AGGREGATE_BLOCK_QDPXX_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_AGGREGATE_BLOCK_QDPXX_H_
 
 #include "qdp.h"
-#include "clover_term_qdp_w.h"
+#include "lattice/fine_qdpxx/clover_term_qdp_w.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_op.h"
 #include "lattice/coarse/block.h"
 #include <vector>
 
 
-using namespace MG;
-using namespace MGTesting;
 using namespace QDP;
 
 
-namespace MGTesting {
+namespace MG {
 
 //! v *= alpha (alpha is real) over and aggregate in a block, v is a QDP++ Lattice Fermion
 void axBlockAggrQDPXX(const double alpha, LatticeFermion& v, const Block& block, int aggr);

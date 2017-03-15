@@ -1,5 +1,5 @@
-#ifndef TEST_QDPXX_DSLASH_M_W_H_
-#define TEST_QDPXX_DSLASH_M_W_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_DSLASH_M_W_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_DSLASH_M_W_H_
 
 #ifndef QDP_INCLUDE
 #include "qdp.h"
@@ -7,7 +7,7 @@
 
 using namespace QDP;
 
-namespace MGTesting {
+namespace MG {
 
 void dslash(LatticeFermionF& chi, 
 	    const multi1d<LatticeColorMatrixF>& u, 

@@ -5,9 +5,9 @@
  *      Author: bjoo
  */
 
-#include "transf.h"
+#include "lattice/fine_qdpxx/transf.h"
 
-namespace MGTesting {
+namespace MG {
 
 void FermToProp(const LatticeFermion& a, LatticePropagator& b, int color_index,
 		int spin_index) {

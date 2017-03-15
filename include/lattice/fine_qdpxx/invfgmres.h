@@ -5,8 +5,8 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_QDPXX_INVFGMRES_H_
-#define TEST_QDPXX_INVFGMRES_H_
+#ifndef INCLUDE_LATITCE_FINE_QDPXX_INVFGMRES_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_INVFGMRES_H_
 
 #include "qdp.h"
 #include "lattice/constants.h"
@@ -14,10 +14,9 @@
 #include "lattice/solver.h"
 #include "lattice/fgmres_common.h"
 
-using namespace MG;
 using namespace QDP;
 
-namespace MGTesting {
+namespace MG {
 
 
 

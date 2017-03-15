@@ -2,18 +2,18 @@
  *  \brief Conjugate-Gradient algorithm for a generic Linear Operator
  */
 
-#ifndef TEST_QDPXX_INVBICGSTAB_H_
-#define TEST_QDPXX_INVBICGSTAB_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_INVBICGSTAB_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_INVBICGSTAB_H_
 
 #include "qdp.h"
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
 
-using namespace MG;
+
 using namespace QDP;
 
-namespace MGTesting {
+namespace MG {
 
 template<typename Spinor, typename Gauge>
 LinearSolverResults

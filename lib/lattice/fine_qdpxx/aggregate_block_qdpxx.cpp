@@ -4,16 +4,16 @@
  *  Created on: Dec 9, 2016
  *      Author: bjoo
  */
-#include "aggregate_qdpxx.h"
-#include "aggregate_block_qdpxx.h"
+#include "lattice/fine_qdpxx/aggregate_qdpxx.h"
+#include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
+#include "lattice/fine_qdpxx/transf.h"
 #include "lattice/constants.h"
 #include "lattice/geometry_utils.h"
-#include "transf.h"
+
 
 using namespace QDP;
-using namespace MG;
 
-namespace MGTesting {
+namespace MG {
 
 
 // Implementation -- where possible call the site versions

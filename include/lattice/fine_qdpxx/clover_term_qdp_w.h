@@ -1,14 +1,14 @@
 // -*- C++ -*-
-#ifndef __clover_term_qdp_w_h__
-#define __clover_term_qdp_w_h__
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_CLOVER_TERM_QDP_W_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_CLOVER_TERM_QDP_W_H_
 
 #include <qdp.h>
-#include "clover_fermact_params_w.h"
-#include "mesfield.h"
+#include "lattice/fine_qdpxx/clover_fermact_params_w.h"
+#include "lattice/fine_qdpxx/mesfield.h"
 
 using namespace QDP;
 
-namespace MGTesting {
+namespace MG {
 
 //! Special structure used for triangular objects
 template<typename R>

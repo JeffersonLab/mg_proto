@@ -1,8 +1,8 @@
-#include "dslashm_w.h"
+#include "lattice/fine_qdpxx/dslashm_w.h"
 
 using namespace QDP;
 
-namespace MGTesting {
+namespace MG {
 
 
 template<typename T, typename H, typename U>

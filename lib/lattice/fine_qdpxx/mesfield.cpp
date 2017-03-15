@@ -1,9 +1,9 @@
 #include <qdp.h>
-#include "mesfield.h"
+#include "lattice/fine_qdpxx/mesfield.h"
 
 using namespace QDP;
 
-namespace MGTesting {
+namespace MG {
 
 //! Calculates the antihermitian field strength tensor  iF(mu,nu)
 /*

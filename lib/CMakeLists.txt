@@ -10,6 +10,7 @@ LIST(APPEND library_source_list lattice/aggregate_block_coarse.cpp
 			   utils/print_utils.cpp
 			   utils/memory.cpp)
 
+
 if ( MG_QMP_COMMS OR MG_QDPXX_PARALLEL ) 
 	LIST(APPEND library_source_list lattice/nodeinfo_qmp.cpp)
 	LIST(APPEND library_source_list lattice/spinor_halo_qmp.cpp)
@@ -20,6 +21,15 @@ else( MG_QMP_COMMS  OR MG_QDPXX_PARALLEL)
 endif( MG_QMP_COMMS OR MG_QDPXX_PARALLEL) 
 
 LIST(APPEND library_source_list utils/memory_posix.cpp)
+
+if( MG_USE_QDPXX )
+	LIST(APPEND library_source_list lattice/fine_qdpxx/aggregate_block_qdpxx.cpp
+		lattice/fine_qdpxx/aggregate_qdpxx.cpp
+		lattice/fine_qdpxx/dslashm_w.cpp
+		lattice/fine_qdpxx/mesfield.cpp
+		lattice/fine_qdpxx/qdpxx_helpers.cpp 
+		lattice/fine_qdpxx/transf.cpp)
+endif( MG_USE_QDPXX )
 
 add_library(mg ${library_source_list})
 			   
