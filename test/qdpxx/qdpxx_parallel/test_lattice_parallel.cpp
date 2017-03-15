@@ -21,9 +21,7 @@ TEST(TestLatticeParallel, TestSpinorHaloCreate)
 	 IndexArray latdims={{4,4,4,4}};
 	  NodeInfo node;
 	  LatticeInfo info(latdims, 4, 3, node);
-	  IndexArray gdims;
-	  info.LocalDimsToGlobalDims(gdims,latdims);
-	  initQDPXXLattice(gdims);
+	  initQDPXXLattice(latdims);
 	  SpinorHaloCB halo(info); // Create then Destroy.
 }
 
@@ -32,9 +30,7 @@ TEST(TestSpinorHalo, TestDirectionShift)
 	IndexArray latdims={{4,4,4,4}};
 	NodeInfo node;
 	LatticeInfo info(latdims,2,4,node);
-	IndexArray gdims;
-	info.LocalDimsToGlobalDims(gdims,latdims);
-	initQDPXXLattice(gdims);
+	initQDPXXLattice(latdims);
 	SpinorHaloCB halo(info);
 
 	// My Node ID
@@ -153,9 +149,8 @@ TEST(TestSpinorHalo, TestCommAll)
 	IndexArray latdims={{4,4,4,4}};
 	NodeInfo node;
 	LatticeInfo info(latdims,2,4,node);
-	IndexArray gdims;
-	info.LocalDimsToGlobalDims(gdims,latdims);
-	initQDPXXLattice(gdims);
+
+	initQDPXXLattice(latdims);
 	SpinorHaloCB halo(info);
 
 	// My Node ID
@@ -252,9 +247,8 @@ TEST(TestLatticeParallel, CoarseDiracHaloCreate)
 	IndexArray latdims={{4,4,4,4}};
 	NodeInfo node;
 	LatticeInfo info(latdims,2,4,node);
-	IndexArray gdims;
-	info.LocalDimsToGlobalDims(gdims,latdims);
-	initQDPXXLattice(gdims);
+
+	initQDPXXLattice(latdims);
 
 
 	// Coarse Dirac Operator

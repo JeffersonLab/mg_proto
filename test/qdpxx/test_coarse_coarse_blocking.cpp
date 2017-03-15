@@ -109,9 +109,8 @@ namespace MGTesting
 TEST(TestCoarseCoarse, TestGenerateEye)
 {
 	IndexArray latdims={{2,2,2,2}};
-	initQDPXXLattice(latdims);
-
 	LatticeInfo info(latdims, 2,6, NodeInfo());
+	initQDPXXLattice(latdims);
 
 	// Nothing stored here yet
 	std::vector< std::shared_ptr< CoarseSpinor > > vecs;
@@ -161,6 +160,8 @@ TEST(TestCoarseCoarse, TestGenerateEye)
 TEST(TestCoarseCoarse, TestCoarseDslashDir)
 {
 	IndexArray latdims={{2,2,2,2}};
+	LatticeInfo info(latdims, 2,6, NodeInfo());
+
 	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 
@@ -193,8 +194,6 @@ TEST(TestCoarseCoarse, TestCoarseDslashDir)
 	}
 
 
-	// Next step should be to copy this into the fields needed for gauge and clover ops
-	LatticeInfo info(latdims, 2, 6, NodeInfo());
 	CoarseGauge u_coarse(info);
 
 
@@ -257,11 +256,12 @@ TEST(TestCoarseCoarse, TestCoarseDslashDir)
 TEST(TestCoarseCoarse, TestCoarseDslashDir2)
 {
 	IndexArray latdims={{4,4,4,4}};
+	initQDPXXLattice(latdims);
+
 	IndexArray blockdims={{2,2,2,2}};
 	IndexArray node_orig=NodeInfo().NodeCoords();
 	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 
-	initQDPXXLattice(latdims);
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 
 	multi1d<LatticeColorMatrix> u(Nd);
@@ -392,6 +392,8 @@ TEST(TestCoarseCoarse, TestCoarseDslashDir2)
 TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 {
 	IndexArray latdims={{4,4,4,4}};
+	initQDPXXLattice(latdims);
+
 	IndexArray blockdims={{2,2,2,2}};
 	IndexArray blockdims2={{1,1,1,1}}; // Trivial blocking from coarse-to-coarse
 

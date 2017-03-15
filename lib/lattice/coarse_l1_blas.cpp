@@ -9,7 +9,11 @@
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 
+#include "MG_config.h"
 
+#ifdef MG_QMP_COMMS
+#include <qmp.h>
+#endif
 // for random numbers:
 #include <random>
 
@@ -17,6 +21,21 @@ namespace MG
 {
 
 namespace GlobalComm {
+
+#ifdef MG_QMP_COMMS
+	void GlobalSum( double& my_summand )
+	{
+		double result = my_summand;
+		QMP_sum_double(&result);
+		my_summand = result;
+		return; // Return Summand Unchanged -- MPI version should use an MPI_ALLREDUCE
+
+	}
+	void GlobalSum( double* array, int array_length ) {
+		QMP_sum_double_array(array,array_length);
+		return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
+	}
+#else
 	void GlobalSum( double& my_summand )
 	{
 		return; // Return Summand Unchanged -- MPI version should use an MPI_ALLREDUCE
@@ -25,6 +44,9 @@ namespace GlobalComm {
 	void GlobalSum( double* array, int array_length ) {
 		return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
 	}
+
+#endif
+
 }
 
 

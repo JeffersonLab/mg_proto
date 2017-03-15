@@ -32,9 +32,7 @@ TEST(TestParallelCoarseDslash, TestDiracOp)
 	IndexArray latdims={{6,4,4,4}};
 	NodeInfo node;
 	LatticeInfo info(latdims,2,6,node);
-	IndexArray gdims;
-	info.LocalDimsToGlobalDims(gdims,latdims);
-	initQDPXXLattice(gdims);
+	initQDPXXLattice(latdims);
 
 	multi1d<LatticeColorMatrix> u(n_dim);
 	for(int mu=0; mu < n_dim; ++mu) {
@@ -158,9 +156,7 @@ TEST(TestParallelCoarseDslash, TestDslashDir)
 	IndexArray latdims={{6,4,4,4}};
 	NodeInfo node;
 	LatticeInfo info(latdims,2,6,node);
-	IndexArray gdims;
-	info.LocalDimsToGlobalDims(gdims,latdims);
-	initQDPXXLattice(gdims);
+	initQDPXXLattice(latdims);
 
 	multi1d<LatticeColorMatrix> u(n_dim);
 	for(int mu=0; mu < n_dim; ++mu) {

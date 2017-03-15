@@ -22,9 +22,7 @@ TEST(TestHalo, TestDiracOpFacePack)
 	IndexArray latdims={{4,4,4,4}};
 	NodeInfo node;
 	LatticeInfo info(latdims,2,2,node);
-	IndexArray gdims;
-	info.LocalDimsToGlobalDims(gdims,latdims);
-	initQDPXXLattice(gdims);
+	initQDPXXLattice(latdims);
 
 	CoarseSpinor spinor(info);
 	const IndexArray& cb_latdims = info.GetCBLatticeDimensions();
@@ -167,7 +165,7 @@ TEST(TestHalo, TestDiracOpFaceTransf)
 	LatticeInfo info(latdims,2,2,node);
 	IndexArray gdims;
 	info.LocalDimsToGlobalDims(gdims,latdims);
-	initQDPXXLattice(gdims);
+	initQDPXXLattice(latdims);
 
 	CoarseSpinor spinor(info);
 	const IndexArray& cb_latdims = info.GetCBLatticeDimensions();

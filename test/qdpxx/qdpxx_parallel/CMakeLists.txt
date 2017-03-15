@@ -45,5 +45,20 @@ add_test( NAME TestParallelDslashXT COMMAND mpirun -n 4 ./test_parallel_coarse_d
 add_test( NAME TestParallelDslashYZ COMMAND mpirun -n 4 ./test_parallel_coarse_dslash -geom 1 2 2 1 )
 add_test( NAME TestParallelDslashXZ COMMAND mpirun -n 4 ./test_parallel_coarse_dslash -geom 2 1 2 1 )
 add_test( NAME TestParallelDslashYZT COMMAND mpirun -n 8 ./test_parallel_coarse_dslash -geom 1 2 2 2 )
-add_test( NAME TestParallelDslashxZT COMMAND mpirun -n 8 ./test_parallel_coarse_dslash -geom 2 1 2 2 )
+add_test( NAME TestParallelDslashXZT COMMAND mpirun -n 8 ./test_parallel_coarse_dslash -geom 2 1 2 2 )
 add_test( NAME TestParallelDslashXYZT COMMAND mpirun -n 16 ./test_parallel_coarse_dslash -geom 2 2 2 2 )
+add_test( NAME VCycleParallelT COMMAND mpirun -n 2 ../test_vcycle -geom 1 1 1 2)
+add_test( NAME VCycleParallelZ COMMAND mpirun -n 2 ../test_vcycle -geom 1 1 2 1)
+add_test( NAME VCycleParallelY COMMAND mpirun -n 2 ../test_vcycle -geom 1 2 1 1)
+add_test( NAME VCycleParallelX COMMAND mpirun -n 2 ../test_vcycle -geom 2 1 1 1)
+#add_test( NAME VCycleParallelZT COMMAND mpirun -n 4 ../test_vcycle -geom 1 1 2 2 )
+#add_test( NAME VCycleParallelYT COMMAND mpirun -n 4  ../test_vcycle -geom 1 2 1 2 )
+#add_test( NAME VCycleParallelXT COMMAND mpirun -n 4 ../test_vcycle  -geom 2 1 1 2 )
+#add_test( NAME VCycleParallelYZ COMMAND mpirun -n 4  ../test_vcycle  -geom 1 2 2 1 )
+#add_test( NAME VCycleParallelXZ COMMAND mpirun -n 4  ../test_vcycle  -geom 2 1 2 1 )
+#add_test( NAME VCycleParallelYZT COMMAND mpirun -n 8  ../test_vcycle  -geom 1 2 2 2 )
+#add_test( NAME VCycleParallelXZT COMMAND mpirun -n 8  ../test_vcycle  -geom 2 1 2 2 )
+#add_test( NAME VCycleParallelXYZT COMMAND mpirun -n 16  ../test_vcycle  -geom 2 2 2 2 )
+
+
+
