@@ -1,6 +1,5 @@
--- Test on small isotropic config? 
+-- Integraton into Chroma for Unpreconditioned Operator - to check working
 
--- Aniso back into fine operator -- already in Clover, but put back in Dslash?
 
 ====== Done for Prototype Milestone
 
@@ -20,9 +19,6 @@ Other Tricks:
 
     Multiple Right Hand Sides? This is primarily an optimization or do we need to reprototype
    
-Multi-Node: 
-    Want to do the multi-node features only once,
-
 Optimization: Need optimized infrastructure.
 
 
