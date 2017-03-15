@@ -1,3 +1,6 @@
+-- Code Cleanup: Move QDP++ into the actual include and libs directories and leave only the test stuff in 
+   tests. This will make it very clear what will need to be replaced.
+
 -- Integraton into Chroma for Unpreconditioned Operator - to check working
 
 
