@@ -498,6 +498,37 @@ void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
 	IndexType max_site = _thread_limits[tid].max_site;
 	const int N_colorspin = GetNumColorSpin();
 
+	int dir_4 = dir/2;
+	int fb = (dir %2 == 0) ? MG_BACKWARD : MG_FORWARD;
+	int bf = ( fb == MG_BACKWARD ) ? MG_FORWARD : MG_BACKWARD;
+	if( ! _halo.LocalDir(dir_4) ) {
+		// Prepost receive
+#pragma omp master
+		{
+			// Start recv from e.g. back
+			_halo.StartRecvFromDir(2*dir_4+bf);
+		}
+		// No need for barrier here
+		// Pack face forward
+		packFace(spinor_in,1-target_cb,dir_4,fb);
+
+		/// Need barrier to make sure all threads finished packing
+#pragma omp barrier
+
+		// Master calls MPI stuff
+#pragma omp master
+		{
+			// Start send to forwartd
+			_halo.StartSendToDir(2*dir_4+fb);
+			_halo.FinishSendToDir(2*dir_4+fb);
+			_halo.FinishRecvFromDir(2*dir_4+bf);
+		}
+		// Threads oughtnt start until finish is complete
+#pragma omp barrier
+	}
+
+
+
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
@@ -532,54 +563,44 @@ void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
 		switch( dir ) {
 		case 0:
 		{
-			IndexType x_plus = (x < _n_x-1 ) ? (x + 1) : 0;
-			x_plus /= 2; // Convert to checkerboard
-			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, x_plus  + _n_xh*(y + _n_y*(z + _n_z*t)));
+			neigh_spinor = GetNeighborXPlus(x,y,z,t,source_cb,spinor_in);
 		}
 		break;
 		case 1:
 		{
-			IndexType x_minus = ( x > 0 ) ?  (x - 1) : _n_x-1;
-			x_minus /=2; // Covert to checkerboard
-			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, x_minus + _n_xh*(y + _n_y*(z + _n_z*t)));
-		}
+			neigh_spinor = GetNeighborXMinus(x,y,z,t,source_cb,spinor_in);
 			break;
 		case 2:
 		{
-			IndexType y_plus = ( y < _n_y - 1) ? y+1 : 0;
-			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y_plus + _n_y*(z + _n_z*t)));
+			neigh_spinor = GetNeighborYPlus(xcb,y,z,t,source_cb,spinor_in);
 		}
 			break;
 		case 3:
 		{
-			IndexType y_minus = ( y > 0 ) ? y-1 : _n_y - 1;
-			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y_minus + _n_y*(z + _n_z*t)));
+			neigh_spinor = GetNeighborYMinus(xcb,y,z,t,source_cb,spinor_in);
+		}
 		}
 			break;
 		case 4:
 		{
-			IndexType z_plus = ( z < _n_z - 1) ? z+1 : 0;
-			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_plus + _n_z*t)));
+			neigh_spinor = GetNeighborZPlus(xcb,y,z,t,source_cb,spinor_in);
 		}
 
 			break;
 		case 5:
 		{
-			IndexType z_minus = ( z > 0 ) ? z-1 : _n_z - 1;
-			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z_minus + _n_z*t)));
+			neigh_spinor = GetNeighborZMinus(xcb,y,z,t,source_cb,spinor_in);
 		}
 			break;
 		case 6:
 		{
-			IndexType t_plus = ( t < _n_t - 1) ? t+1 : 0;
-			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_plus)));
+			neigh_spinor = GetNeighborTPlus(xcb,y,z,t,source_cb,spinor_in);
 		}
 
 			break;
 		case 7:
 		{
-			IndexType t_minus = ( t > 0 ) ? t-1 : _n_t - 1;
-			neigh_spinor = spinor_in.GetSiteDataPtr(source_cb, xcb + _n_xh*(y + _n_y*(z + _n_z*t_minus)));
+			neigh_spinor = GetNeighborTMinus(xcb,y,z,t,source_cb,spinor_in);
 		}
 			break;
 		default:
