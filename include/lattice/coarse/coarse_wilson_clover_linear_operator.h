@@ -14,6 +14,7 @@
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_op.h"
+#include "lattice/coarse/coarse_l1_blas.h"
 #include "lattice/linear_operator.h"
 #include "lattice/coarse/aggregate_block_coarse.h"
 #include "utils/print_utils.h"

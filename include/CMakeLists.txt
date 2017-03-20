@@ -35,6 +35,7 @@ install (FILES fine_qdpxx/aggregate_block_qdpxx.h
 			   fine_qdpxx/infgmres.h
 			   fine_qdpxx/invmr.h
 			   fine_qdpxx/mesfield.h
+			   fine_qdpxx/mg_setup_qdpxx.cpp
 			   fine_qdpxx/qdpxx_helpers.h
 			   fine_qdpxx/transf.h
 			   fine_qdpxx/vcycle_qdpxx_coarse.h

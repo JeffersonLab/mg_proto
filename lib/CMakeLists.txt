@@ -28,7 +28,8 @@ if( MG_USE_QDPXX )
 		lattice/fine_qdpxx/dslashm_w.cpp
 		lattice/fine_qdpxx/mesfield.cpp
 		lattice/fine_qdpxx/qdpxx_helpers.cpp 
-		lattice/fine_qdpxx/transf.cpp)
+		lattice/fine_qdpxx/transf.cpp
+		lattice/fine_qdpxx/mg_setup_qdpxx.cpp)
 endif( MG_USE_QDPXX )
 
 add_library(mg ${library_source_list})

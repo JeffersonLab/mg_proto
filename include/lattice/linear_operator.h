@@ -9,7 +9,7 @@
 #define INCLUDE_LATTICE_LINEAR_OPERATOR_H_
 
 #include "lattice/constants.h"
-
+#include "lattice/lattice_info.h"
 namespace MG {
 
 /*! Abstract Linear Operator Class */
