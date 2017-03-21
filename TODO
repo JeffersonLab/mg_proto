@@ -1,7 +1,3 @@
--- Code Cleanup;
-     *)  Get rid of old 'stubs' code for creating VCycle
-     *)  Rationalize the parameters that are currently split between mg_level_qdpxx.h, mg_level_coarse.h  etc 
-     *)  If possible move solver code out of headers into .cpp files so multiple definitions are avoided and we can drop the -Wl,-zmuldefs linker flag
  
 -- Integraton into Chroma for Unpreconditioned Operator - to check working
 

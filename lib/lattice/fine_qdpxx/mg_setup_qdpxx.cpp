@@ -7,6 +7,7 @@
 
 #include "qdp.h"
 #include "lattice/fine_qdpxx/mg_level_qdpxx.h"
+#include "lattice/fine_qdpxx/mg_params_qdpxx.h"
 #include "lattice/fine_qdpxx/invbicgstab.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 #include "lattice/invbicgstab_coarse.h"
@@ -15,7 +16,6 @@
 
 #include <memory>
 
-using namespace MG;
 using namespace QDP;
 
 namespace MG
@@ -29,15 +29,6 @@ void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<const QDPWilsonClo
 							QDP::Layout::subgridLattSize()[2],
 							QDP::Layout::subgridLattSize()[3] }};
 
-	for(int mu=0; mu < n_dim; ++mu) {
-		if( p.local_lattice_size[mu] != latdims[mu] ) {
-			MasterLog(INFO, "Inconsistent Local Lattice size between QDP++ (%d,%d,%d,%d) and MG::SetupParams struct (%d,%d,%d,%d)",
-					latdims[0],latdims[1],latdims[2],latdims[3],
-					p.local_lattice_size[0],p.local_lattice_size[1], p.local_lattice_size[2],p.local_lattice_size[3]);
-
-
-		}
-	}
 
 
 	fine_level.info = std::make_shared<LatticeInfo>(latdims,4,3,NodeInfo());

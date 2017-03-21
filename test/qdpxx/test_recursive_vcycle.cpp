@@ -7,7 +7,10 @@
 #include "lattice/coarse/coarse_types.h"
 
 #include "qdpxx_utils.h"
+#include "lattice/fine_qdpxx/mg_params_qdpxx.h"
 #include "lattice/fine_qdpxx/mg_level_qdpxx.h"
+#include "lattice/fine_qdpxx/vcycle_recursive_qdpxx.h"
+#include "lattice/fine_qdpxx/invfgmres.h"
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
@@ -49,7 +52,6 @@ TEST(TestRecursiveVCycle, TestLevelSetup2Level)
 	SetupParams level_setup_params = {
 		3,       // Number of levels
 		{6,8},   // Null vecs on L0, L1
-		{8,8,8,8},      // Local Lattice Size
 		{
 				{2,2,2,2},  // Block Size from L0->L1
 				{2,2,2,2}   // Block Size from L1->L2
@@ -97,17 +99,17 @@ TEST(TestRecursiveVCycle, TestLevelSetup2Level)
 
 	for(int level=0; level < mg_levels.n_levels-1; level++) {
 		QDPIO::cout << "Level =" << level << std::endl;
-		v_params[level].pre_smoother_params.MaxIter=4+level;
+		v_params[level].pre_smoother_params.MaxIter=4;
 		v_params[level].pre_smoother_params.RsdTarget = 0.1;
 		v_params[level].pre_smoother_params.VerboseP = false;
 		v_params[level].pre_smoother_params.Omega = 1.0;
 
-		v_params[level].post_smoother_params.MaxIter=4+level;
+		v_params[level].post_smoother_params.MaxIter=3;
 		v_params[level].post_smoother_params.RsdTarget = 0.1;
 		v_params[level].post_smoother_params.VerboseP = false;
 		v_params[level].post_smoother_params.Omega = 1.0;
 
-		v_params[level].bottom_solver_params.MaxIter=25+level;
+		v_params[level].bottom_solver_params.MaxIter=25;
 		v_params[level].bottom_solver_params.NKrylov = 6;
 		v_params[level].bottom_solver_params.RsdTarget= 0.1;
 		v_params[level].bottom_solver_params.VerboseP = false;
