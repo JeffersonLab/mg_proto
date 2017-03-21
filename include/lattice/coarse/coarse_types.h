@@ -126,7 +126,7 @@ namespace MG {
 
 	class CoarseGauge {
 	public:
-		CoarseGauge(LatticeInfo& lattice_info) : _lattice_info(lattice_info), data{nullptr,nullptr},
+		CoarseGauge(const LatticeInfo& lattice_info) : _lattice_info(lattice_info), data{nullptr,nullptr},
 				_n_color(lattice_info.GetNumColors()),
 				_n_spin(lattice_info.GetNumSpins()),
 				_n_colorspin(lattice_info.GetNumColors()*lattice_info.GetNumSpins()),

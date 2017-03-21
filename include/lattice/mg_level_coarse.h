@@ -12,18 +12,18 @@
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/block.h"
 #include "lattice/solver.h"
+
+#include "lattice/invbicgstab_coarse.h"
 #include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
 
 namespace MG {
 	struct MGLevelCoarse {
-	std::shared_ptr<LatticeInfo> info;
+	std::shared_ptr<const LatticeInfo> info;
 	std::shared_ptr<CoarseGauge> gauge;
 	std::vector<std::shared_ptr<CoarseSpinor> > null_vecs; // NULL Vectors
 	std::vector<Block> blocklist;
-	std::shared_ptr< LinearSolver< CoarseSpinor, CoarseGauge > > null_solver;           // Solver for NULL on this level
-	std::shared_ptr< LinearSolver< CoarseSpinor, CoarseGauge > > pre_smoother;
-	std::shared_ptr< LinearSolver< CoarseSpinor, CoarseGauge > > post_smoother;
-	std::shared_ptr< CoarseWilsonCloverLinearOperator > M;
+	std::shared_ptr< const BiCGStabSolverCoarse > null_solver;           // Solver for NULL on this level;
+	std::shared_ptr< const CoarseWilsonCloverLinearOperator > M;
 
 	~MGLevelCoarse() {}
 };

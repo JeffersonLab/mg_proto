@@ -159,9 +159,9 @@ public:
 				const std::vector<Block>& my_blocks,
 				const std::vector<std::shared_ptr<CoarseSpinor> >& vecs,
 					 const LinearOperator<CoarseSpinor, CoarseGauge>& M_fine,
-					 const MRSmootherCoarse& pre_smoother,
-					 const MRSmootherCoarse& post_smoother,
-					 const FGMRESSolverCoarse& bottom_solver,
+					 const Smoother<CoarseSpinor,CoarseGauge>& pre_smoother,
+					 const Smoother<CoarseSpinor,CoarseGauge>& post_smoother,
+					 const LinearSolver<CoarseSpinor,CoarseGauge>& bottom_solver,
 					 const LinearSolverParamsBase& param) : _coarse_info(coarse_info),
 							 	 	 	 	 	 	 	 	_my_blocks(my_blocks),
 															_vecs(vecs),
@@ -177,9 +177,9 @@ private:
 	const std::vector<Block>& _my_blocks;
 	const std::vector< std::shared_ptr<CoarseSpinor> >& _vecs;
 	const LinearOperator< CoarseSpinor, CoarseGauge>& _M_fine;
-	const MRSmootherCoarse& _pre_smoother;
-	const MRSmootherCoarse& _post_smoother;
-	const FGMRESSolverCoarse& _bottom_solver;
+	const Smoother<CoarseSpinor,CoarseGauge>& _pre_smoother;
+	const Smoother<CoarseSpinor,CoarseGauge>& _post_smoother;
+	const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
 	const LinearSolverParamsBase& _param;
 };
 

@@ -253,7 +253,7 @@ namespace MG {
 
  			 }
  			 ndim_cycle = j+1;
- 			 if ( toBool( accum_resid <= rsd_target ) ) {
+ 			 if (  accum_resid <= rsd_target  ) {
  				 if ( VerboseP ) {
  					 MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Cycle Converged at iter = %d",level, j+1);
  				 }
@@ -451,7 +451,7 @@ namespace MG {
     		LeastSquaresSolve(H_,c_,eta_, dim); // Solve Least Squares System
 
     		// Compute the correction dx = sum_j  eta_j Z_j
-    		LatticeFermion dx = zero;                         // BLAS: ZERO
+    		//LatticeFermion dx = zero;                         // BLAS: ZERO
     		for(int j=0; j < dim; ++j) {
 
     			std::complex<float> alpha = std::complex<float>( real(eta_[j]), imag(eta_[j]));
@@ -470,7 +470,7 @@ namespace MG {
     		}
 
     		// Check if we are done either via convergence, or runnign out of iterations
-    		finished = toBool( r_norm <= target ) || (iters_total >= _params.MaxIter);
+    		finished = ( r_norm <= target ) || (iters_total >= _params.MaxIter);
 
         	// Init matrices should've initialized this but just in case this is e.g. a second call or something.
         	for(int j=0; j < _params.NKrylov; ++j) {

@@ -20,7 +20,7 @@ using namespace QDP;
 
 namespace MG
 {
-void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<QDPWilsonCloverLinearOperator> M_fine,
+void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<const QDPWilsonCloverLinearOperator> M_fine,
 						MGLevelQDPXX& fine_level, MGLevelCoarse& coarse_level)
 {
 	// For sake of form
@@ -49,7 +49,7 @@ void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<QDPWilsonCloverLin
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
 	fine_level.null_solver = std::make_shared<BiCGStabSolver>(*M_fine, params);
-
+	fine_level.M = M_fine;
 	// Zero RHS
 	LatticeFermion b=QDP::zero;
 
@@ -84,7 +84,7 @@ void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<QDPWilsonCloverLin
 	// Create the blocked Clover and Gauge Fields
 	// This service needs the blocks, the vectors and is a convenience
 		// Function of the M
-	coarse_level.info = std::make_shared<LatticeInfo>(blocked_lattice_orig,
+	coarse_level.info = std::make_shared<const LatticeInfo>(blocked_lattice_orig,
 													  blocked_lattice_dims,
 													  2, num_vecs, NodeInfo());
 
@@ -92,12 +92,12 @@ void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<QDPWilsonCloverLin
 
 	M_fine->generateCoarse(fine_level.blocklist, fine_level.null_vecs, *(coarse_level.gauge));
 
-	coarse_level.M = std::make_shared<CoarseWilsonCloverLinearOperator>(coarse_level.gauge,1);
+	coarse_level.M = std::make_shared< const CoarseWilsonCloverLinearOperator>(coarse_level.gauge,1);
 
 }
 
 void SetupCoarseToCoarse(const SetupParams& p,
-						std::shared_ptr<CoarseWilsonCloverLinearOperator> M_fine,
+						std::shared_ptr<const CoarseWilsonCloverLinearOperator> M_fine,
 						int fine_level_id,
 						MGLevelCoarse& fine_level,
 						MGLevelCoarse& coarse_level)
@@ -158,19 +158,19 @@ void SetupCoarseToCoarse(const SetupParams& p,
 
 	M_fine->generateCoarse(fine_level.blocklist, fine_level.null_vecs, *(coarse_level.gauge));
 
-	coarse_level.M = std::make_shared<CoarseWilsonCloverLinearOperator>(coarse_level.gauge,fine_level_id+1);
+	coarse_level.M = std::make_shared<const CoarseWilsonCloverLinearOperator>(coarse_level.gauge,fine_level_id+1);
 
 }
 
 void SetupMGLevels(const SetupParams& p, MultigridLevels& mg_levels,
-			std::shared_ptr<QDPWilsonCloverLinearOperator> M_fine)
+			std::shared_ptr<const QDPWilsonCloverLinearOperator> M_fine)
 {
-	const int& n_levels = p.n_levels;
-	if( n_levels < 2 ){
+	 mg_levels.n_levels = p.n_levels;
+	if( mg_levels.n_levels < 2 ){
 		MasterLog(ERROR, "Number of Multigrid Levels < 2");
 	}
 
-	int n_coarse_levels = n_levels-1;
+	int n_coarse_levels = mg_levels.n_levels-1;
 	mg_levels.coarse_levels.resize(n_coarse_levels);
 
 	MasterLog(INFO, "Setup Level 0 and 1");

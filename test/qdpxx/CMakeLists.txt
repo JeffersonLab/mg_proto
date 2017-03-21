@@ -30,6 +30,9 @@ target_link_libraries(test_vcycle qdpxx_utils gtest_all mg_test mg ${EXT_LIBS})
 add_executable(test_coarse_coarse_blocking test_coarse_coarse_blocking.cpp)
 target_link_libraries(test_coarse_coarse_blocking  qdpxx_utils gtest_all mg_test mg ${EXT_LIBS})
 
+add_executable(test_recursive_vcycle test_recursive_vcycle.cpp)
+target_link_libraries(test_recursive_vcycle qdpxx_utils gtest_all mg_test mg ${EXT_LIBS})
+
 if( MG_QDPXX_PARALLEL ) 
   add_subdirectory( qdpxx_parallel ) 
 endif (MG_QDPXX_PARALLEL ) 
@@ -41,3 +44,4 @@ add_test( NAME QDPXXCloverLinop COMMAND ./test_qdpxx_clover_linop -geom 1 1 1 1 
 add_test( NAME QDPXXCoarseCloverLinop COMMAND ./test_qdpxx_coarse_clover_op -geom 1 1 1 1 )
 add_test( NAME QDPXXCoarseVCycle COMMAND ./test_vcycle -geom 1 1 1 1)
 add_test( NAME CoarseCoarseBlocking COMMAND ./test_coarse_coarse_blocking -geom 1 1 1 1)
+add_test( NAME RecursiveVCycle COMMAND ./test_recursive_vcycle -geom 1 1 1 1)

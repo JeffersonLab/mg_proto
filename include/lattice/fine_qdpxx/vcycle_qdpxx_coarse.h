@@ -143,9 +143,9 @@ public:
 					 const std::vector<Block>& my_blocks,
 					 const multi1d<LatticeFermion>& vecs,
 					 const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>>& M_fine,
-					 const MRSmoother& pre_smoother,
-					 const MRSmoother& post_smoother,
-					 const FGMRESSolverCoarse& bottom_solver,
+					 const Smoother<LatticeFermion,multi1d<LatticeColorMatrix> >& pre_smoother,
+					 const Smoother<LatticeFermion,multi1d<LatticeColorMatrix> >& post_smoother,
+					 const LinearSolver<CoarseSpinor,CoarseGauge>& bottom_solver,
 					 const LinearSolverParamsBase& param) : _coarse_info(coarse_info),
 							 	 	 	 	 	 	 	 	_my_blocks(my_blocks),
 															_vecs(vecs),
@@ -161,9 +161,9 @@ private:
 	const std::vector<Block>& _my_blocks;
 	const multi1d<LatticeFermion>& _vecs;
 	const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>>& _M_fine;
-	const MRSmoother& _pre_smoother;
-	const MRSmoother& _post_smoother;
-	const FGMRESSolverCoarse& _bottom_solver;
+	const Smoother<LatticeFermion,multi1d<LatticeColorMatrix> >& _pre_smoother;
+	const Smoother<LatticeFermion,multi1d<LatticeColorMatrix> >& _post_smoother;
+	const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
 	const LinearSolverParamsBase& _param;
 };
 
