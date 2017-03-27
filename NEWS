@@ -1,3 +1,5 @@
+3/27/17 - Initial Chroma integration complete in chroma branch: feature/mg_proto
+
 3/21/17 - Easy general level creation, and VCycle Creation added. Ready to interface to Chroma
  
 3/15/17 - Basic Comms Structure added (SpinorHaloCB Object)
