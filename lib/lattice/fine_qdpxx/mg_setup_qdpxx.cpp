@@ -113,7 +113,7 @@ void SetupCoarseToCoarse(const SetupParams& p,
 	ZeroVec(b);
 
 	// Generate the vectors
-	int num_vecs = p.n_vecs[0];
+	int num_vecs = p.n_vecs[fine_level_id];
 	fine_level.null_vecs.resize(num_vecs);
 	for(int k=0; k < num_vecs; ++k) {
 		fine_level.null_vecs[k] = std::make_shared<CoarseSpinor>(fine_info);
