@@ -29,7 +29,7 @@ namespace MG {
 
 class QDPWilsonCloverLinearOperator : public LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix> > {
 public:
-	QDPWilsonCloverLinearOperator(float m_q, float c_sw, int t_bc, const Gauge& gauge_in ) : _t_bc(t_bc)
+	QDPWilsonCloverLinearOperator(double m_q, double c_sw, int t_bc, const Gauge& gauge_in ) : _t_bc(t_bc)
 	{
 		_u.resize(Nd);
 		for(int mu=0; mu < Nd; ++mu) _u[mu] = gauge_in[mu];
@@ -50,7 +50,7 @@ public:
 		_info = new LatticeInfo( latdims, 4,3,NodeInfo());
 	}
 
-	QDPWilsonCloverLinearOperator(float m_q, float u0, float xi0, float nu, float c_sw_r, float c_sw_t,
+	QDPWilsonCloverLinearOperator(double m_q, double u0, double xi0, double nu, double c_sw_r, double c_sw_t,
 			int t_bc, const Gauge& gauge_in ) : _t_bc(t_bc)
 	{
 		_u.resize(Nd);
@@ -71,11 +71,11 @@ public:
 		_params.Mass =  Real(m_q);
 		_params.clovCoeffR = Real(c_sw_r);
 		_params.clovCoeffT = Real(c_sw_t);
-		_params.u0 = u0;
+		_params.u0 = Real(u0);
 		_params.anisoParam.anisoP = true;
 		_params.anisoParam.t_dir = 3;
-		_params.anisoParam.xi_0 = xi0;
-		_params.anisoParam.nu = nu;
+		_params.anisoParam.xi_0 = Real(xi0);
+		_params.anisoParam.nu = Real(nu);
 
 		_clov.create(_u,_params);  // Make the clover term
 

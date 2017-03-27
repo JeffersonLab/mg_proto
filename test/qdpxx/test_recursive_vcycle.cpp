@@ -57,7 +57,8 @@ TEST(TestRecursiveVCycle, TestLevelSetup2Level)
 				{2,2,2,2}   // Block Size from L1->L2
 		},
 		{500,500},          // Max Nullspace Iters
-		{5e-6,5e-6}         // Nullspace Target Resid
+		{5e-6,5e-6},        // Nullspace Target Resid
+		{true,false}
 	};
 
 

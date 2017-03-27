@@ -29,6 +29,8 @@ struct SetupParams {
 	std::vector< IndexArray > block_sizes;
 	std::vector< int > null_solver_max_iter;
 	std::vector< double > null_solver_rsd_target;
+	std::vector< bool > null_solver_verboseP;
+
 
 };
 

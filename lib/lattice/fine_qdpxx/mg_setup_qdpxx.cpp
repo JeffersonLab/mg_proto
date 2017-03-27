@@ -36,9 +36,10 @@ void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<const QDPWilsonClo
 
 	// Null solver is BiCGStab. Let us make a parameter struct for it.
 	LinearSolverParamsBase params;
-	params.MaxIter = 500;
-	params.RsdTarget = 1.0e-5;
-	params.VerboseP = true;
+	params.MaxIter = p.null_solver_max_iter[0];
+	params.RsdTarget = p.null_solver_rsd_target[0];
+	params.VerboseP = p.null_solver_verboseP[0];
+
 	fine_level.null_solver = std::make_shared<BiCGStabSolver>(*M_fine, params);
 	fine_level.M = M_fine;
 	// Zero RHS
@@ -97,9 +98,12 @@ void SetupCoarseToCoarse(const SetupParams& p,
 
 	// Null solver is BiCGStab. Let us make a parameter struct for it.
 	LinearSolverParamsBase params;
-	params.MaxIter = 500;
-	params.RsdTarget = 1.0e-5;
-	params.VerboseP = true;
+	params.MaxIter = p.null_solver_max_iter[fine_level_id];
+
+	params.RsdTarget = p.null_solver_rsd_target[fine_level_id];
+	params.VerboseP = p.null_solver_verboseP[fine_level_id];
+
+
 	fine_level.null_solver = std::make_shared<BiCGStabSolverCoarse>(*M_fine, params);
 
 	// Zero RHS
