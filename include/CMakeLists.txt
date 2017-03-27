@@ -1,13 +1,5 @@
 install (FILES lattice/array2d.h
 			   lattice/cmat_mult.h
-               lattice/coarse/aggregate_block_coarse.h
-               lattice/coarse/block.h
-               lattice/coarse/coarse_l1_blas.h
-               lattice/coarse/coarse_op.h
-               lattice/coarse/coarse_types.h 
-               lattice/coarse/coarse_wilson_clover_linear_operator.h
-               lattice/coarse/thread_limits.h
-               lattice/coarse/vcycle_coarse.h
 			   lattice/constants.h
 			   lattice/fgmres_common.h 
 			   lattice/geometry_utils.h 
@@ -24,6 +16,16 @@ install (FILES lattice/array2d.h
 			   lattice/spinor_halo_single.h
 			   lattice/spinor_halo.h             
          DESTINATION include/lattice)
+         
+install (FILES lattice/coarse/aggregate_block_coarse.h
+               lattice/coarse/block.h
+               lattice/coarse/coarse_l1_blas.h
+               lattice/coarse/coarse_op.h
+               lattice/coarse/coarse_types.h 
+               lattice/coarse/coarse_wilson_clover_linear_operator.h
+               lattice/coarse/thread_limits.h
+               lattice/coarse/vcycle_coarse.h
+         DESTINATION include/lattice/coarse)
          
 install (FILES utils/initialize.h
 			   utils/memory.h 
