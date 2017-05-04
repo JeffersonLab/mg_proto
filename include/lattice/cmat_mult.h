@@ -11,14 +11,18 @@
 #include "constants.h"
 #include <complex>
 
-#define SSE
+#undef SSE
 #undef AVX2
 #undef AVX
 
 #ifdef  SSE
 #define VECLEN 4  // SSE
 #include <xmmintrin.h>
+#include <emmintrin.h>
 #include <pmmintrin.h>
+#include <tmmintrin.h>
+#include <smmintrin.h>
+#include <nmmintrin.h>
 #endif
 
 #ifdef  AVX2
@@ -33,6 +37,7 @@
 #include <immintrin.h>
 #endif
 
+#define VECLEN 4
 #define VECLEN2 (VECLEN/2)
 
 
@@ -66,14 +71,13 @@ void CMatMultNaiveAdd(float* y, const float* A, const float* x, IndexType N);
 /* y += alpha A x,  alpha is real */
 void CMatMultNaiveCoeffAdd(float* y, const float alpha, const float* A, const float* x, IndexType N);
 
-
-inline
 void CMatMultVrow(float *y,
 			  const float* A,
 			  const float* x,
 			  const IndexType N,
 			  const int min_vrow,
-			  const int max_vrow)
+			  const int max_vrow);
+#if 0
 {
 
 	const IndexType TwoN=2*N;
@@ -146,11 +150,12 @@ void CMatMultVrowSMT(float *y,
 	}
 
 }
+#endif
 
 void AllocSpace(const int N);
 void DestroySpace();
 
-
+#if 1
 inline
 void CMatMultVrowAdd(float *y,
 			  const float* A,
@@ -270,7 +275,7 @@ void CMatMultVrowAddSMT(float *y,
 
 }
 
-
+#endif
 
 }
 

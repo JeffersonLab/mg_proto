@@ -211,7 +211,7 @@ void CMatMultNaiveCoeffAdd(float* y,
 }
 
 
-
+#if 1
 void CMatMult(float *y,
 			  const float* A,
 			  const float* x,
@@ -367,6 +367,7 @@ void CMatMult(float *y,
 	}
 
 }
+#endif
 
  float* tmp_space;
 
@@ -381,7 +382,7 @@ void DestroySpace(void)
 }
 
 
-#if 0
+#if 1
 void CMatMultVrow(float *y,
 			  const float* A,
 			  const float* x,

@@ -21,7 +21,9 @@
 
 
 // Kokkos here:
+#ifdef  MG_USE_KOKKOS
 #include <Kokkos_Core.hpp>
+#endif
 
 namespace MG
 {
@@ -80,14 +82,20 @@ namespace MG
 		MasterLog(INFO, "QDP++ Initialized");
 #endif
 		MG::InitMemory(argc,argv);
+
+#ifdef MG_USE_KOKKOS
 		MasterLog(INFO, "Initializing Kokkos");
 		Kokkos::initialize(*argc,*argv);
+#endif
+
 	}
 
 	void finalize(void)
 	{
+#ifdef MG_USE_KOKKOS
 		MasterLog(INFO, "Finalizing Kokkos");
 		Kokkos::finalize();
+#endif
 		MasterLog(INFO, "Finalizing Memory");
 		MG::FinalizeMemory();
 #if defined(MG_QMP_INIT)

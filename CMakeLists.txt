@@ -26,9 +26,15 @@ endif(MG_DEFAULT_CACHE_LINE_SIZE )
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
-list(APPEND CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -O3)
+# list(APPEND CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -O3)
 
-add_subdirectory(kokkos)
+if( MG_USER_CXXFLAGS ) 
+ list(APPEND CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${MG_USER_CXXFLAGS})
+endif()
+
+if ( MG_USE_KOKKOS )
+ add_subdirectory(kokkos)
+endif()
 
 if( QMP_DIR ) 
   message(STATUS "Looking for QMP")

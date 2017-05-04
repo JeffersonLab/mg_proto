@@ -40,7 +40,10 @@ if( MG_USE_QDPXX )
 endif( MG_USE_QDPXX )
 
 add_library(mg ${library_source_list})
-target_link_libraries(mg kokkos) 
-			   			   
+
+if (MG_USE_KOKKOS) 
+ target_link_libraries(mg kokkos) 
+endif()
+
 target_compile_options(mg PUBLIC ${EXT_CXXFLAGS})
 install(TARGETS mg DESTINATION lib)
