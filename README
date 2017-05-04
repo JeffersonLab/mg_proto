@@ -1,3 +1,14 @@
+KOKKOS Builds:
+=============
+i) Clone develop branch of kokkos as a subdirectory kokkos in the parent directory.
+ii) For CPU builds this is all
+iii) For MPI based GPU builds get nvcc_wrapper with the mods to allow multiple --std options
+ ( github.com:bjoo/nvcc_wrapper, develop branch)
+Set appropriate env var for nvcc_wrapper to be your MPICC wrappers' compiler e.g.
+
+    MPICH_CXX=nvcc_wrapper  for MPICH,MVAPICH
+or  OMPI_CXX=nvcc_wrapper   for OpenMPI
+ 
 
 Directory Organization:
 =======================

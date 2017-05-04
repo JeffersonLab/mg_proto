@@ -111,7 +111,7 @@ namespace MG  {
     Spinor chi_internal;
 
     // Hack for here.
-    Subset& s = all;
+    Subset& s = QDP::all;
 
     Complex a;
     DComplex c;

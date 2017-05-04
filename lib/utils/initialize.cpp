@@ -19,6 +19,10 @@
 #include <string>
 #include <cstdlib>
 
+
+// Kokkos here:
+#include <Kokkos_Core.hpp>
+
 namespace MG
 {
 
@@ -76,10 +80,14 @@ namespace MG
 		MasterLog(INFO, "QDP++ Initialized");
 #endif
 		MG::InitMemory(argc,argv);
+		MasterLog(INFO, "Initializing Kokkos");
+		Kokkos::initialize(*argc,*argv);
 	}
 
 	void finalize(void)
 	{
+		MasterLog(INFO, "Finalizing Kokkos");
+		Kokkos::finalize();
 		MasterLog(INFO, "Finalizing Memory");
 		MG::FinalizeMemory();
 #if defined(MG_QMP_INIT)

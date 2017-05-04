@@ -1,3 +1,5 @@
+Add kokkos develop as a submodule(?)
+add -DMG_USE_KOKKOS to control Kokkos use (e.g. initialization and conditional compilation)
  
 
 Even Odd Preconditioning Tricks

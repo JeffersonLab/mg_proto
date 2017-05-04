@@ -1,4 +1,5 @@
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 3.1)
+
 project (MG)
 include (CTest)
 
@@ -23,6 +24,11 @@ else(MG_DEFAULT_CACHE_LINE_SIZE)
   set (MG_DEFAULT_CACHE_LINE_SIZE 64)
 endif(MG_DEFAULT_CACHE_LINE_SIZE )
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS OFF)
+list(APPEND CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -O3)
+
+add_subdirectory(kokkos)
 
 if( QMP_DIR ) 
   message(STATUS "Looking for QMP")
@@ -101,6 +107,7 @@ install (FILES "${PROJECT_BINARY_DIR}/MG_config.h" DESTINATION include)
 # Add the include directories on the search path
 include_directories(include)
 include_directories("${PROJECT_BINARY_DIR}")
+
 include_directories(external)
 
 # Add the include subdirectory for installation processing

@@ -128,7 +128,7 @@ void orthonormalizeAggregatesQDPXX(multi1d<LatticeFermion>& vecs)
 		MasterLog(DEBUG, "Orthonormalizing Aggregate: %d\n",aggr);
 
 			// This will be over blocks...
-			for(int site=all.start(); site <= all.end(); ++site) {
+			for(int site=QDP::all.start(); site <= QDP::all.end(); ++site) {
 
 
 				// do vecs[0] ... vecs[N]

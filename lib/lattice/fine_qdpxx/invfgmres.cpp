@@ -135,7 +135,7 @@ namespace FGMRES {
 			 bool VerboseP )
 
  	 {
- 		 const Subset& s = all;      // Linear Operator Subset
+ 		 const Subset& s = QDP::all;      // Linear Operator Subset
  		 ndim_cycle = 0;
 
  		 int level = A.GetLevel();
@@ -261,7 +261,7 @@ FGMRESSolver::operator()(LatticeFermion& out, const LatticeFermion& in, Residuum
 	res.resid_type = resid_type;
 	int level = _A.GetLevel();
 
-	const Subset s = all;
+	const Subset s = QDP::all;
 
 	Double norm_rhs = sqrt(norm2(in,s));   //  || b ||                      BLAS: NORM2
 	Double target = _params.RsdTarget;

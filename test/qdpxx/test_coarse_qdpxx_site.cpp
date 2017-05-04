@@ -680,7 +680,7 @@ TEST(TestCoarseQDPXX, TestCoarseOrthonormalize)
 	orthonormalizeAggregatesQDPXX(vecs);
 	orthonormalizeAggregatesQDPXX(vecs);
 
-	for(int site=all.start(); site <= all.end(); ++site) {
+	for(int site=QDP::all.start(); site <= QDP::all.end(); ++site) {
 		for(int aggr=0; aggr < 2; ++aggr ) {
 			// Check normalization:
 			for(int curr_vec = 0; curr_vec < 6; ++curr_vec) {
@@ -760,7 +760,7 @@ TEST(TestCoarseQDPXX, TestRestrictorIdentity1)
 	// Unpack --
 	CoarseSpinorToQDPSpinor(coarse,fine_out);
 
-	for(int site=all.start(); site <= all.end(); ++site ) {
+	for(int site=QDP::all.start(); site <= QDP::all.end(); ++site ) {
 		for(int spin=0; spin < Ns; spin++) {
 			for(int color=0; color < Nc; color++) {
 				ASSERT_FLOAT_EQ(  fine_out.elem(site).elem(spin).elem(color).real(),
@@ -822,7 +822,7 @@ TEST(TestCoarseQDPXX, TestRestrictorIdentity2)
 	prolongateSpinorCoarseToQDPXXFine(in_vecs, coarse,fine_out);
 
 
-	for(int site=all.start(); site <= all.end(); ++site ) {
+	for(int site=QDP::all.start(); site <= QDP::all.end(); ++site ) {
 		for(int spin=0; spin < Ns; spin++) {
 			for(int color=0; color < Nc; color++) {
 				ASSERT_FLOAT_EQ(  fine_out.elem(site).elem(spin).elem(color).real(),
@@ -884,7 +884,7 @@ TEST(TestCoarseQDPXX, TestRestrictorIdentity3)
 	prolongateSpinorCoarseToQDPXXFine(in_vecs, coarse,fine_out);
 
 
-	for(int site=all.start(); site <= all.end(); ++site ) {
+	for(int site=QDP::all.start(); site <= QDP::all.end(); ++site ) {
 		for(int spin=0; spin < Ns; spin++) {
 			for(int color=0; color < Nc; color++) {
 				ASSERT_FLOAT_EQ(  fine_out.elem(site).elem(spin).elem(color).real(),
@@ -936,7 +936,7 @@ TEST(TestCoarseQDPXX, TestRestrictorIdentity4)
 	prolongateSpinorCoarseToQDPXXFine(vecs, coarse,fine_out);
 
 
-	for(int site=all.start(); site <= all.end(); ++site ) {
+	for(int site=QDP::all.start(); site <= QDP::all.end(); ++site ) {
 		for(int spin=0; spin < Ns; spin++) {
 			for(int color=0; color < Nc; color++) {
 				ASSERT_NEAR(  fine_out.elem(site).elem(spin).elem(color).real(),

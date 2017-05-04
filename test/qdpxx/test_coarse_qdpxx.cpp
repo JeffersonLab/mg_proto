@@ -757,13 +757,13 @@ TEST(TestCoarseQDPXXBlock, TestTripleProductT1)
 	// I.e. the number on generic t, spin is 1 + 4*t + spin
 
 
-	for(int site=0; site < all.numSiteTable(); ++site) {
+	for(int site=0; site < QDP::all.numSiteTable(); ++site) {
 		// Get the t_coordinate of the site
 		multi1d<int> coord = Layout::siteCoords(Layout::nodeNumber(), site);
 		for(int spin=0; spin < 4; ++spin) {
 			int idx = 1 + 4*coord[3] + spin;
 			for(int k=0; k < 6; ++k) {
-				vecs[k].elem(all.start() + site).elem(spin).elem(0).real() = idx;
+				vecs[k].elem(QDP::all.start() + site).elem(spin).elem(0).real() = idx;
 			}
 		}
 	}
@@ -1057,7 +1057,7 @@ TEST(TestCoarseQDPXXBlock, TestTripleProductT2)
 		QDPIO::cout << "Testing Restriction" << std::endl;
 		// Now test restriction
 		LatticeFermion pre_R = zero;
-		for(int site=0; site < all.numSiteTable(); ++site) {
+		for(int site=0; site < QDP::all.numSiteTable(); ++site) {
 			for(int spin=0; spin < 4; ++spin) {
 				for(int color=0; color < 3; ++color ) {
 					pre_R.elem(site).elem(spin).elem(color).real() = 1;

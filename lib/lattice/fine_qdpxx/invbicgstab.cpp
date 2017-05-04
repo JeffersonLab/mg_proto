@@ -23,7 +23,7 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
 {
   LinearSolverResults ret;
   ret.resid_type = resid_type;
-  const Subset& s = all;
+  const Subset& s = QDP::all;
 
   bool convP = false;
 
