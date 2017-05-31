@@ -33,7 +33,11 @@ if( MG_USER_CXXFLAGS )
 endif()
 
 if ( MG_USE_KOKKOS )
- add_subdirectory(kokkos)
+  add_subdirectory(${CMAKE_SOURCE_DIR}/kokkos)
+  include_directories(${Kokkos_SOURCE_DIR}/core/src)
+  include_directories(${Kokkos_SOURCE_DIR}/containers/src)
+  include_directories(${Kokkos_SOURCE_DIR}/algorithms/src)
+  include_directories(${Kokkos_BINARY_DIR})
 endif()
 
 if( QMP_DIR ) 
@@ -91,11 +95,11 @@ endif(MG_USE_QDPXX)
 find_package(Threads REQUIRED)
 
 if(THREADS_HAVE_PTHREAD_ARG)
-  LIST(APPEND EXT_CXXFLAGS "-pthread")
+LIST(APPEND EXT_CXXFLAGS "-pthread")
 endif()
 
 if(CMAKE_THREAD_LIBS_INIT)
-   LIST(APPEND EXT_LIBS ${CMAKE_THREAD_LIBS_INIT} )
+LIST(APPEND EXT_LIBS ${CMAKE_THREAD_LIBS_INIT} )
 endif()
 
 
@@ -103,8 +107,8 @@ endif()
 # CMake settings to the source
 
 configure_file(
- "${PROJECT_SOURCE_DIR}/MG_config.h.in" 
- "${PROJECT_BINARY_DIR}/MG_config.h"
+"${PROJECT_SOURCE_DIR}/MG_config.h.in" 
+"${PROJECT_BINARY_DIR}/MG_config.h"
 )
 
 # Install the config file
@@ -123,4 +127,3 @@ add_subdirectory(include)
 add_subdirectory(external)
 add_subdirectory(lib)
 add_subdirectory(test)
-

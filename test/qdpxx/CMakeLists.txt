@@ -3,6 +3,7 @@
 # and specifies linking to the 'libmg.a' library
 add_compile_options(${EXT_CXXFLAGS})
 add_library(qdpxx_utils reunit.h reunit.cpp qdpxx_latticeinit.h qdpxx_latticeinit.cpp)
+
 			
 target_compile_options(mg_test PUBLIC ${EXT_CXXFLAGS})
 

@@ -47,3 +47,4 @@ endif()
 
 target_compile_options(mg PUBLIC ${EXT_CXXFLAGS})
 install(TARGETS mg DESTINATION lib)
+

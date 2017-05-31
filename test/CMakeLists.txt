@@ -31,6 +31,10 @@ if( MG_USE_QDPXX )
   add_subdirectory(qdpxx)
 endif (MG_USE_QDPXX ) 
 
+if( MG_USE_KOKKOS )
+  add_subdirectory(kokkos)
+endif()
+
 add_test( NAME TestLattice COMMAND ./test_lattice -geom 1 1 1 1  )
 add_test( NAME TestLogging COMMAND ./test_logging -geom 1 1 1 1 )
 add_test( NAME TestNodeInfo COMMAND ./test_nodeinfo -geom 1 1 1 1)
