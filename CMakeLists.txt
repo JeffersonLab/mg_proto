@@ -40,6 +40,17 @@ if ( MG_USE_KOKKOS )
   include_directories(${Kokkos_BINARY_DIR})
 endif()
 
+
+find_package(OpenMP)
+if( OPENMP_FOUND )
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_C_FLAGS}")
+else()
+  add_definitions("-Wno-unknown-pragmas")
+  message(ERRROR "OpenMP not found")
+endif()
+
 if( QMP_DIR ) 
   message(STATUS "Looking for QMP")
   set( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${QMP_DIR}")
@@ -93,6 +104,19 @@ endif(MG_USE_QDPXX)
 
 # Deal with threads 
 find_package(Threads REQUIRED)
+
+# Check if we are using QPhix
+if( QPHIX_DIR )
+  message(STATUS "Finding QPhiX")
+  set( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${QPHIX_DIR}")
+  find_package(QPhiX REQUIRED)
+  if( NOT QPhiX_FOUND )
+     message( FATAL_ERROR "QPhiX was not successfully found")
+  else()
+     message( STATUS "QPhiX was successfully found")
+  endif()
+  include_directories(${QPhiX_INCLUDE_DIRS})
+endif()
 
 if(THREADS_HAVE_PTHREAD_ARG)
 LIST(APPEND EXT_CXXFLAGS "-pthread")

@@ -16,9 +16,9 @@
 
 namespace MG
 {
-	template<typename T>
+	template<typename T, typename LF>
 	void
-	QDPLatticeFermionToKokkosCBSpinor(const QDP::LatticeFermion& qdp_in,
+	QDPLatticeFermionToKokkosCBSpinor(const LF& qdp_in,
 			KokkosCBFineSpinor<T,4>& kokkos_out)
 	{
 		auto cb = kokkos_out.GetCB();
@@ -50,10 +50,10 @@ namespace MG
 		Kokkos::deep_copy(kokkos_out.GetData(), h_out);
 	}
 
-	template<typename T>
+	template<typename T, typename LF>
 	void
 	KokkosCBSpinorToQDPLatticeFermion(const KokkosCBFineSpinor<T,4>& kokkos_in,
-			QDP::LatticeFermion& qdp_out) {
+			LF& qdp_out) {
 
 		auto cb = kokkos_in.GetCB();
 		const QDP::Subset& sub = ( cb == EVEN ) ? QDP::rb[0] : QDP::rb[1];
@@ -84,9 +84,9 @@ namespace MG
 
 	}
 
-	template<typename T>
+	template<typename T, typename HF>
 	void
-	QDPLatticeHalfFermionToKokkosCBSpinor2(const QDP::LatticeHalfFermion& qdp_in,
+	QDPLatticeHalfFermionToKokkosCBSpinor2(const HF& qdp_in,
 			KokkosCBFineSpinor<T,2>& kokkos_out)
 	{
 		auto cb = kokkos_out.GetCB();
@@ -118,10 +118,10 @@ namespace MG
 		Kokkos::deep_copy(kokkos_out.GetData(), h_out);
 	}
 
-	template<typename T>
+	template<typename T, typename HF>
 	void
 	KokkosCBSpinor2ToQDPLatticeHalfFermion(const KokkosCBFineSpinor<T,2>& kokkos_in,
-			QDP::LatticeHalfFermion& qdp_out) {
+			HF& qdp_out) {
 
 		auto cb = kokkos_in.GetCB();
 		const QDP::Subset& sub = ( cb == EVEN ) ? QDP::rb[0] : QDP::rb[1];
@@ -152,9 +152,9 @@ namespace MG
 
 	}
 
-	template<typename T>
+	template<typename T, typename GF>
 	void
-	QDPGaugeFieldToKokkosCBGaugeField(const QDP::multi1d<QDP::LatticeColorMatrix>& qdp_in,
+	QDPGaugeFieldToKokkosCBGaugeField(const GF& qdp_in,
 			KokkosCBFineGaugeField<T>& kokkos_out)
 	{
 		auto cb = kokkos_out.GetCB();
@@ -186,18 +186,18 @@ namespace MG
 							} //color2
 						} // color
 					} // mu
-			}// kokkos lambda
-		);
 
+			});
 		Kokkos::deep_copy(kokkos_out.GetData(), h_out);
 	}
 
-	template<typename T>
+	template<typename T, typename GF>
 	void
 	KokkosCBGaugeFieldToQDPGaugeField(const KokkosCBFineGaugeField<T>& kokkos_in,
-			QDP::multi1d<QDP::LatticeColorMatrix>& qdp_out)
+			GF& qdp_out)
 	{
 		auto cb = kokkos_in.GetCB();
+
 		const QDP::Subset& sub = ( cb == EVEN ) ? QDP::rb[0] : QDP::rb[1];
 
 		// Check conformance:
@@ -211,8 +211,9 @@ namespace MG
 			qdp_out.resize(n_dim);
 		}
 
+		// Creating Host Mirror
 		auto h_in = Kokkos::create_mirror_view( kokkos_in.GetData() );
-		Kokkos::deep_copy(kokkos_in.GetData(), h_in);
+		Kokkos::deep_copy(h_in, kokkos_in.GetData());
 
 		for(int mu=0; mu < 4; ++mu ) {
 		Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
@@ -236,19 +237,19 @@ namespace MG
 
 	}
 
-	template<typename T>
+	template<typename T, typename GF>
 	void
-	QDPGaugeFieldToKokkosGaugeField(const QDP::multi1d<QDP::LatticeColorMatrix>& qdp_in,
+	QDPGaugeFieldToKokkosGaugeField(const GF& qdp_in,
 									KokkosFineGaugeField<T>& kokkos_out)
 	{
 		QDPGaugeFieldToKokkosCBGaugeField( qdp_in, kokkos_out(EVEN));
 		QDPGaugeFieldToKokkosCBGaugeField( qdp_in, kokkos_out(ODD));
 	}
 
-	template<typename T>
+	template<typename T, typename GF>
 	void
 	KokkosGaugeFieldToQDPGaugeField(const KokkosFineGaugeField<T>& kokkos_in,
-									QDP::multi1d<QDP::LatticeColorMatrix>& qdp_out)
+									GF& qdp_out)
 	{
 		KokkosCBGaugeFieldToQDPGaugeField( kokkos_in(EVEN),qdp_out);
 		KokkosCBGaugeFieldToQDPGaugeField( kokkos_in(ODD), qdp_out);

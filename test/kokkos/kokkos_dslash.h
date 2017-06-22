@@ -14,77 +14,97 @@
 
 namespace MG {
 
-	template<typename T>
-	using Spinor = Kokkos::View<T[4][3][2]>;
-
-	template<typename T>
-	using Matrix = Kokkos::View<T[3][3][2]>;
-
-	template<typename T>
-	using HalfSpinor = Kokkos::View<T[2][3][2]>;
-
-
-	template<typename T, const int dir, const bool accum>
-	KOKKOS_INLINE_FUNCTION
-	void DslashMVSiteDir(const Spinor<T>& spinor_in,
-				   	   	 const Matrix<T>& gauge_in,
-						 HalfSpinor<T> proj_res,
-						 HalfSpinor<T> mult_proj_res,
-						 Spinor<T>& spinor_out,
-						 int plus_minus)
-
-	{
-		KokkosProjectDir<T,dir>(spinor_in,plus_minus,proj_res);
-		mult_u_halfspinor(gauge_in,proj_res,mult_proj_res);
-		KokkosReconsDir<T,dir,accum>(mult_proj_res,plus_minus,spinor_out);
-	}
-
-	template<typename T, const int dir, const bool accum >
-	KOKKOS_INLINE_FUNCTION
-	void DslashHVSiteDir(const Spinor<T>& spinor_in,
-				   	   	 const Matrix<T>& gauge_in,
-						 HalfSpinor<T> proj_res,
-						 HalfSpinor<T> mult_proj_res,
-						 Spinor<T>& spinor_out,
-						 int plus_minus)
-
-	{
-
-		// Unify conventions for sign. Plus minus (int) or T
-		KokkosProjectDir<T,dir>(spinor_in, plus_minus, proj_res);
-		mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res);
-		KokkosReconsDir<T,dir,accum>(mult_proj_res,plus_minus,spinor_out);
-	}
 
 
 
+// One direction of dslash, multiplying U. Direction and whether to accumulate
+// are 'compile time' through templates.
+// Savvy compiler should inline these and optimize them
+template<typename T,int dir, bool accum>
+KOKKOS_FORCEINLINE_FUNCTION
+void DslashMVSiteDir(const SpinorView<T>& spinor_in,    // Neighbor spinor
+		const GaugeView<T>& gauge_in,     // Gauge Link
+		SpinorView<T>& spinor_out,         // result
+		int plus_minus,
+		int source_spinor_idx,
+		int gauge_idx,
+		int dest_spinor_idx)                // Sign +1 for Dslash, -1 for Adjoint
 
-	template<typename T>
-	void Dslash(const KokkosCBFineSpinor<T,4>& fine_in,
+{
+	HalfSpinorSiteView<T> proj_res;
+	HalfSpinorSiteView<T> mult_proj_res;
+
+	KokkosProjectDir<T,dir>(spinor_in,plus_minus,proj_res,source_spinor_idx);
+	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,dir);
+	KokkosReconsDir<T,dir,accum>(mult_proj_res,plus_minus,spinor_out,dest_spinor_idx);
+}
+
+// One direction of dslash, multiply with U^\dagger
+// direction and whether to accumulate are compile time through templates
+// Savvy compiler should inline and optimize them
+template<typename T,  int dir,  bool accum >
+KOKKOS_FORCEINLINE_FUNCTION
+void DslashHVSiteDir(const SpinorView<T>& spinor_in,   // Neighbor spinor
+		const GaugeView<T>& gauge_in,    // Gauge link
+		SpinorView<T>& spinor_out,        // result
+		int plus_minus,
+		int source_spinor_idx,
+		int gauge_idx,
+		int dest_spinor_idx)         // sign +1 for Dslash, -1 for Adjoint
+
+{
+	HalfSpinorSiteView<T> proj_res;
+	HalfSpinorSiteView<T> mult_proj_res;
+
+	KokkosProjectDir<T,dir>(spinor_in, plus_minus, proj_res,source_spinor_idx);
+	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,dir);
+	KokkosReconsDir<T,dir,accum>(mult_proj_res,plus_minus,spinor_out,dest_spinor_idx);
+
+}
+
+
+template<typename T>
+class KokkosDslash {
+private:
+	const LatticeInfo& _info;
+
+
+public:
+	KokkosDslash(const LatticeInfo& info) : _info(info) {}
+
+	void operator()(const KokkosCBFineSpinor<T,4>& fine_in,
 			const KokkosFineGaugeField<T>& gauge_in,
 			KokkosCBFineSpinor<T,4>& fine_out,
-			int plus_minus)
+			int plus_minus) const
 	{
-		const IndexType target_cb = fine_out.GetCB();
-		const IndexType source_cb = (target_cb == EVEN) ? ODD : EVEN;
+		// Source and target checkerboards
+		IndexType target_cb = fine_out.GetCB();
+		IndexType source_cb = (target_cb == EVEN) ? ODD : EVEN;
+		int minus_plus = -plus_minus;
 
-		const KokkosCBFineGaugeField<T>& g_src_cb = gauge_in(source_cb);
-		const KokkosCBFineGaugeField<T>& g_target_cb = gauge_in(target_cb);
+		// Gather all views just outside Parallel Loop.
+		// Can these be references? Will the world collapse?
 
+		const SpinorView<T>& s_in = fine_in.GetData();
+		const GaugeView<T>& g_in_src_cb = (gauge_in(source_cb)).GetData();
+		const GaugeView<T>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
+		SpinorView<T>& s_o = fine_out.GetData();
 
-		const LatticeInfo& info = fine_out.GetInfo();
-		const int num_sites = info.GetNumCBSites();
+		IndexArray latdims=_info.GetCBLatticeDimensions();
+		const int _n_xh = latdims[0];
+		const int _n_x = 2*_n_xh;
+		const int _n_y = latdims[1];
+		const int _n_z = latdims[2];
+		const int _n_t = latdims[3];
+		const int _num_sites = _n_xh*_n_y*_n_z*_n_t;
 
-		const IndexArray& latdims = info.GetCBLatticeDimensions();
-		const IndexType _n_xh = latdims[0];
-		const IndexType _n_x = 2*_n_xh;
-		const IndexType _n_y = latdims[1];
-		const IndexType _n_z = latdims[2];
-		const IndexType _n_t = latdims[3];
-
-		Kokkos::parallel_for(num_sites,
+		// Parallel site loop
+		Kokkos::parallel_for(_num_sites,
 				KOKKOS_LAMBDA(int site) {
 
+			// Source and target checkerboard gauge fields
+
+			SpinorView<T> s_o = fine_out.GetData();
 			// Break down site index into xcb, y,z and t
 			IndexType tmp_yzt = site / _n_xh;
 			IndexType xcb = site - _n_xh * tmp_yzt;
@@ -92,15 +112,14 @@ namespace MG {
 			IndexType y = tmp_yzt - _n_y * tmp_zt;
 			IndexType t = tmp_zt / _n_z;
 			IndexType z = tmp_zt - _n_z * t;
-			IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
 
-			Spinor<T> result("result");
-			HalfSpinor<T> proj_result("proj_result");
-			HalfSpinor<T> matmult_result("matmult_result");
-			// adj(u[3](x-T)*projdDir3Plus(psi(x-T))
+			// Global, uncheckerboarded x, assumes cb = (x + y + z + t ) & 1
+			IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);
+
+
+			// Find index of neighbor
 			int neigh_index=0;
 
-			Spinor<T> result_site = Kokkos::subview(fine_out.GetData(),site, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL );
 
 			// T - minus
 			{
@@ -111,15 +130,17 @@ namespace MG {
 					neigh_index = xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1)));
 				}
 
-				const Spinor<T>& spinor_t_minus = Kokkos::subview(fine_in.GetData(),
-						neigh_index, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
 
-				const Matrix<T>& gauge_t_minus = Kokkos::subview(g_src_cb.GetData(),neigh_index,3,
-						Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
-
-
-				DslashHVSiteDir<T,3,false>(spinor_t_minus,gauge_t_minus,proj_result,matmult_result,result,plus_minus);
+				DslashHVSiteDir<T,3,false>(s_in,
+									       g_in_src_cb,
+										   s_o,
+										   plus_minus,
+										   neigh_index,
+										   neigh_index,
+										   site);
 			}
+
+
 
 			// Z - minus
 			{
@@ -129,15 +150,13 @@ namespace MG {
 				else {
 					neigh_index = xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t));
 				}
-
-				const Spinor<T>& spinor_z_minus = Kokkos::subview(fine_in.GetData(),
-						neigh_index, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
-
-				const Matrix<T>& gauge_z_minus = Kokkos::subview(g_src_cb.GetData(),neigh_index,2,
-						Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
-
-
-				DslashHVSiteDir<T,2,true>(spinor_z_minus,gauge_z_minus,proj_result,matmult_result,result,plus_minus);
+				DslashHVSiteDir<T,2,true>(s_in,
+										       g_in_src_cb,
+											   s_o,
+											   plus_minus,
+											   neigh_index,
+											   neigh_index,
+											   site);
 			}
 
 			// Y - minus
@@ -149,14 +168,14 @@ namespace MG {
 					neigh_index = xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t));
 				}
 
-				const Spinor<T>& spinor_y_minus = Kokkos::subview(fine_in.GetData(),
-						neigh_index, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
+				DslashHVSiteDir<T,1,true>(s_in,
+													       g_in_src_cb,
+														   s_o,
+														   plus_minus,
+														   neigh_index,
+														   neigh_index,
+														   site);
 
-				const Matrix<T>& gauge_y_minus = Kokkos::subview(g_src_cb.GetData(),neigh_index,1,
-						Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
-
-
-				DslashHVSiteDir<T,1,true>(spinor_y_minus,gauge_y_minus,proj_result,matmult_result,result,plus_minus);
 			}
 
 			// X - minus
@@ -168,14 +187,15 @@ namespace MG {
 					neigh_index= ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
 				}
 
-				const Spinor<T>& spinor_x_minus = Kokkos::subview(fine_in.GetData(),
-						neigh_index, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
+				DslashHVSiteDir<T,0,true>(s_in,
+													       g_in_src_cb,
+														   s_o,
+														   plus_minus,
+														   neigh_index,
+														   neigh_index,
+														   site);
 
-				const Matrix<T>& gauge_x_minus = Kokkos::subview(g_src_cb.GetData(),neigh_index,0,
-						Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
 
-
-				DslashHVSiteDir<T,0,true>(spinor_x_minus,gauge_x_minus,proj_result,matmult_result,result,plus_minus);
 			}
 
 
@@ -188,15 +208,18 @@ namespace MG {
 					neigh_index = 0 + _n_xh*(y + _n_y*(z + _n_z*t));
 				}
 
-				const Spinor<T>& spinor_x_plus = Kokkos::subview(fine_in.GetData(),
-						neigh_index, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
 
-				const Matrix<T>& gauge_x_plus = Kokkos::subview(g_target_cb.GetData(),site,0,
-						Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
+				DslashMVSiteDir<T,0,true>(s_in,
+						g_in_target_cb,
+						s_o,
+						minus_plus,
+						neigh_index,
+						site,
+						site);
 
-
-				DslashMVSiteDir<T,0,true>(spinor_x_plus,gauge_x_plus,proj_result,matmult_result,result,-plus_minus);
 			}
+
+
 			// Y - plus
 			{
 				if( y < _n_y-1 ) {
@@ -206,14 +229,13 @@ namespace MG {
 					neigh_index = xcb + _n_xh*(0 + _n_y*(z + _n_z*t));
 				}
 
-				const Spinor<T>& spinor_y_plus = Kokkos::subview(fine_in.GetData(),
-						neigh_index, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
-
-				const Matrix<T>& gauge_y_plus = Kokkos::subview(g_target_cb.GetData(),site,1,
-						Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
-
-
-				DslashMVSiteDir<T,1,true>(spinor_y_plus,gauge_y_plus,proj_result,matmult_result,result,-plus_minus);
+				DslashMVSiteDir<T,1,true>(s_in,
+						g_in_target_cb,
+						s_o,
+						minus_plus,
+						neigh_index,
+						site,
+						site);
 			}
 
 			// Z - plus
@@ -225,14 +247,17 @@ namespace MG {
 					neigh_index = xcb + _n_xh*(y + _n_y*(0 + _n_z*t));
 				}
 
-				const Spinor<T>& spinor_z_plus = Kokkos::subview(fine_in.GetData(),
-						neigh_index, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
-
-				const Matrix<T>& gauge_z_plus = Kokkos::subview(g_target_cb.GetData(),site,2,
-						Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
 
 
-				DslashMVSiteDir<T,2,true>(spinor_z_plus,gauge_z_plus,proj_result,matmult_result,result,-plus_minus);
+
+				DslashMVSiteDir<T,2,true>(s_in,
+						g_in_target_cb,
+						s_o,
+						minus_plus,
+						neigh_index,
+						site,
+						site);
+
 			}
 
 
@@ -245,28 +270,23 @@ namespace MG {
 					neigh_index = xcb + _n_xh*(y + _n_y*(z + _n_z*(0)));
 				}
 
-				const Spinor<T>& spinor_t_plus = Kokkos::subview(fine_in.GetData(),
-						neigh_index, Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
 
-				const Matrix<T>& gauge_t_plus = Kokkos::subview(g_target_cb.GetData(),site,3,
-						Kokkos::ALL, Kokkos::ALL, Kokkos::ALL);
+				DslashMVSiteDir<T,3,true>(s_in,
+						g_in_target_cb,
+						s_o,
+						minus_plus,
+						neigh_index,
+						site,
+						site);
 
-
-				DslashMVSiteDir<T,3,true>(spinor_t_plus,gauge_t_plus,proj_result,matmult_result,result,-plus_minus);
 			}
 
-			// Write result to memory.
-			for(int spin=0; spin < 4; ++spin ) {
-				for(int color=0; color < 3; ++color) {
-					for(int reim=0; reim < 2; ++reim) {
-						result_site(spin,color,reim) = result(spin,color,reim);
-					}
-				}
-			}
+
 		});
 
-
 	}
+};
+
 };
 
 

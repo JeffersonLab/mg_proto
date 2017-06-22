@@ -185,7 +185,7 @@ TEST(TestKokkos, TestSpinProject)
 			}
 			qdp_out[rb[1]] = zero;
 
-			KokkosProject(kokkos_in,dir,sign,kokkos_hspinor_out);
+			KokkosProjectLattice(kokkos_in,dir,sign,kokkos_hspinor_out);
 
 			// Export back out
 			KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
@@ -266,7 +266,7 @@ TEST(TestKokkos, TestSpinRecons)
 
 			qdp_out[rb[1]] = zero;
 
-			KokkosRecons(kokkos_hspinor_in,dir,s,kokkos_spinor_out);
+			KokkosReconsLattice(kokkos_hspinor_in,dir,s,kokkos_spinor_out);
 			KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
 			qdp_out[rb[0]] -= kokkos_out;
@@ -405,7 +405,7 @@ TEST(TestKokkos, TestMultHalfSpinor)
 		// Import input halfspinor
 		QDPLatticeHalfFermionToKokkosCBSpinor2(psi_in, kokkos_hspinor_in);
 
-		KokkosMV(kokkos_gauge_e, kokkos_hspinor_in, 0, kokkos_hspinor_out);
+		KokkosMVLattice(kokkos_gauge_e, kokkos_hspinor_in, 0, kokkos_hspinor_out);
 
 		// Export result HalfFermion
 		KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
@@ -426,7 +426,7 @@ TEST(TestKokkos, TestMultHalfSpinor)
 		// Import input halfspinor -- Gauge still imported
 
 		QDPLatticeHalfFermionToKokkosCBSpinor2(psi_in, kokkos_hspinor_in);
-		KokkosHV(kokkos_gauge_e, kokkos_hspinor_in, 0, kokkos_hspinor_out);
+		KokkosHVLattice(kokkos_gauge_e, kokkos_hspinor_in, 0, kokkos_hspinor_out);
 
 		// Export result HalfFermion
 		KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
@@ -448,43 +448,58 @@ TEST(TestKokkos, TestDslash)
 	for(int mu=0; mu < n_dim; ++mu) {
 		gaussian(gauge_in[mu]);
 		reunit(gauge_in[mu]);
-		//gauge_in[mu] = 1;
 	}
 
-	LatticeFermion psi_in;
+	LatticeFermion psi_in=zero;
 	gaussian(psi_in);
 
 	LatticeInfo info(latdims,4,3,NodeInfo());
 	LatticeInfo hinfo(latdims,2,3,NodeInfo());
 
-	KokkosCBFineSpinor<REAL,4> kokkos_spinor_in(info,EVEN);
-	KokkosCBFineSpinor<REAL,4> kokkos_spinor_out(info,ODD);
-
+	KokkosCBFineSpinor<REAL,4> kokkos_spinor_even(info,EVEN);
+	KokkosCBFineSpinor<REAL,4> kokkos_spinor_odd(info,ODD);
 	KokkosFineGaugeField<REAL>  kokkos_gauge(info);
 
 
 	// Import Gauge Field
 	QDPGaugeFieldToKokkosGaugeField(gauge_in, kokkos_gauge);
-
+	KokkosDslash<REAL> D(info);
 
 	LatticeFermion psi_out, kokkos_out;
-	for(int isign=-1; isign < 2; isign+=2) {
-		dslash(psi_out,gauge_in,psi_in,isign,1); // isign = 1, cb = 1
+	for(int cb=0; cb < 2; ++cb) {
+		KokkosCBFineSpinor<REAL,4>& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
+		KokkosCBFineSpinor<REAL,4>& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
 
-		QDPLatticeFermionToKokkosCBSpinor(psi_in, kokkos_spinor_in);
-		Dslash(kokkos_spinor_in,kokkos_gauge,kokkos_spinor_out,isign);
-		KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out, kokkos_out);
+		for(int isign=-1; isign < 2; isign+=2) {
 
-		psi_out[rb[1]] -= kokkos_out;
-		psi_out[rb[0]]  = zero;
+			// In the Host
+			psi_out = zero;
 
-		double norm_diff = toDouble(sqrt(norm2(psi_out)));
+			// Target cb=1 for now.
+			dslash(psi_out,gauge_in,psi_in,isign,cb);
 
-		MasterLog(INFO, "norm_diff = %lf", norm_diff);
-		ASSERT_LT( norm_diff, 1.0e-5);
+			QDPLatticeFermionToKokkosCBSpinor(psi_in, in_spinor);
+
+
+			D(in_spinor,kokkos_gauge,out_spinor,isign);
+
+			kokkos_out = zero;
+			KokkosCBSpinorToQDPLatticeFermion(out_spinor, kokkos_out);
+
+			MasterLog(DEBUG,"After export kokkos_out has norm = %16.8e on rb[0]", toDouble(sqrt(norm2(kokkos_out,rb[0]))));
+			MasterLog(DEBUG,"After export psi_out has norm = %16.8e on rb[0]", toDouble(sqrt(norm2(psi_out,rb[0]))));
+
+			MasterLog(DEBUG,"After export kokkos_out has norm = %16.8e on rb[1]", toDouble(sqrt(norm2(kokkos_out,rb[1]))));
+			MasterLog(DEBUG,"After export psi_out has norm = %16.8e on rb[1]", toDouble(sqrt(norm2(psi_out,rb[1]))));
+
+			// Check Diff on Odd
+			psi_out[rb[cb]] -= kokkos_out;
+			double norm_diff = toDouble(sqrt(norm2(psi_out,rb[cb])));
+
+			MasterLog(INFO, "norm_diff = %lf", norm_diff);
+			ASSERT_LT( norm_diff, 1.0e-5);
+		}
 	}
-
-
 }
 
 

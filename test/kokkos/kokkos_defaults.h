@@ -14,6 +14,7 @@ namespace MG
 	// Set a Default Layout
 	using Layout =  Kokkos::DefaultExecutionSpace::array_layout;
 	using RangePolicy = Kokkos::RangePolicy<>;
+
 }
 
 

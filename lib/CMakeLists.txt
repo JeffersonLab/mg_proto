@@ -45,6 +45,10 @@ if (MG_USE_KOKKOS)
  target_link_libraries(mg kokkos) 
 endif()
 
+if ( QPhiX_FOUND )
+  target_link_libraries(mg ${QPhiX_LIBRARIES})
+endif()
+
 target_compile_options(mg PUBLIC ${EXT_CXXFLAGS})
 install(TARGETS mg DESTINATION lib)
 
