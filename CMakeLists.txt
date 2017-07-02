@@ -106,6 +106,7 @@ endif(MG_USE_QDPXX)
 find_package(Threads REQUIRED)
 
 # Check if we are using QPhix
+set( DEFAULT_QPHIX_TEST_ARGS "")
 if( QPHIX_DIR )
   message(STATUS "Finding QPhiX")
   set( CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "${QPHIX_DIR}")
@@ -116,6 +117,9 @@ if( QPHIX_DIR )
      message( STATUS "QPhiX was successfully found")
   endif()
   include_directories(${QPhiX_INCLUDE_DIRS})
+  set(MG_USE_QPHIX TRUE)
+  
+  set(DEFAULT_QPHIX_TEST_ARGS  -by 4 -bz 4 -pxy 0 -pxyz 0 -c 1 -sy 1 -sz 1 -minct 1)
 endif()
 
 if(THREADS_HAVE_PTHREAD_ARG)

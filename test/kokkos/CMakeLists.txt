@@ -19,4 +19,4 @@ add_executable(test_kokkos_perf test_kokkos_perf.cpp ${kokkos_source_list})
 target_link_libraries(test_kokkos_perf  qdpxx_utils gtest_all mg_test mg kokkos ${EXT_LIBS})
 
 
-add_test( NAME TestKokkosWorking COMMAND ./test_kokkos -geom 1 1 1 1)
+add_test( NAME TestKokkosWorking COMMAND ./test_kokkos -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
