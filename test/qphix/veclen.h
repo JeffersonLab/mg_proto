@@ -24,12 +24,16 @@
 #elif defined(QPHIX_SCALAR_SOURCE)
 #define VECLEN_DP 1
 #define VECLEN_SP 1
+#ifdef QPHIX_SOALEN
+#undef QPHIX_SOALEN
 #define QPHIX_SOALEN 1
-
+#endif
 #elif defined(QPHIX_QPX_SOURCE)
 #define VECLEN_DP 4
+#ifdef QPHIX_SOALEN
+#undef QPHIX_SOALEN
 #define QPHIX_SOALEN 4
-
+#endif
 #endif
 
 #include "qphix/geometry.h"

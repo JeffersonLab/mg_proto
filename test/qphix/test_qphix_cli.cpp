@@ -204,7 +204,7 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStab)
 
         double r_rel_norm = toDouble(sqrt(norm2(r))/sqrt(norm2(source)));
 	MasterLog(INFO, "Full: || r || / || b || = %16.8e", r_rel_norm);
-	ASSERT_LT( r_rel_norm, 5.0e-7);
+	ASSERT_LT( r_rel_norm, 6.0e-7);
 }
 
 int main(int argc, char *argv[])
