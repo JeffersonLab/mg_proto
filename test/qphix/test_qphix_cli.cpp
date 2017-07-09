@@ -86,13 +86,13 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStab)
 						latdims[2],
 						latdims[3] };
 
-	int t_bc = -1;
+	int t_bc = +1;
 	double t_bcf = static_cast<double>(t_bc);
 	double m_q = 0.01;
 	double c_sw = 1.2;
 
 	Geom fine_geometry(lattSize,
-					CLI.getBy(),
+					    CLI.getBy(),
 						CLI.getBz(),
 						CLI.getNCores(),
 						CLI.getSy(),
@@ -102,108 +102,97 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStab)
 						CLI.getMinCt(),
 						true);
 
-	multi1d<LatticeColorMatrixF> u(Nd);
+	multi1d<LatticeColorMatrixF> u_f(Nd);
+	multi1d<LatticeColorMatrix> u(Nd);
 	for(int mu=0; mu < Nd; ++mu) {
 		gaussian(u[mu]);
 		reunit(u[mu]);
+		u_f[mu] =  u[mu]; // Downcast to single prec
 	}
 
-	CloverFermActParams p;
-	p.Mass=Real(m_q);
-	p.clovCoeffR=Real(c_sw);
-	p.clovCoeffT=Real(c_sw);
-	p.u0 = Real(1);
-	p.anisoParam.anisoP = false;
-	p.anisoParam.xi_0 = Real(1);
-	p.anisoParam.nu = Real(1);
-	p.anisoParam.t_dir =3;
+	// Make the QPhiX Clover op
+        MG::QDPWilsonCloverLinearOperator D_full(m_q, c_sw, t_bc, u);
 
-	QDPCloverTermF clov;
-	clov.create(u,p);
-	QDPCloverTermF invclov;
-	invclov.create(u,p,clov);
-	for(int cb=0; cb < 2; ++cb) {
-		invclov.choles(cb);
-	}
-
-	LatticeFermionF source;
+	// Let us make the source 
+	LatticeFermion source;
 	gaussian(source);
 
-	LatticeFermionF transf_source = source;
-	LatticeFermionF solution;
+	LatticeFermion solution;
 
-
+	// Now let us prepare the source for QPhiX
 	{
-		// transformed source is:
-		// [ -D_oe A^{-1} source_even + source_odd ]
-		LatticeFermionF tmp1, tmp2;
-		invclov.apply(tmp1, source, LINOP_OP, EVEN); // tmp1[even] = A^{-1} src_even
-		dslash(tmp2, u, tmp1, LINOP_OP, ODD);
-		transf_source[rb[ODD]] -= tmp2;
-	}
+	  LatticeFermion transf_source = source;
+	       
+	  { 
+	    LatticeFermion t1,t2;
+	    D_full.M_ee_inv(t1, source, LINOP_OP);
+	    D_full.M_oe( t2, t1, LINOP_OP);
+   	    transf_source[ rb[ODD] ] -= t2;
+           }
+	
+	   QPhiXCBSpinor qphix_source(fine_geometry);
+   	   QPhiXCBSpinor qphix_solution(fine_geometry);
+	   QPhiXCBGauge u_cb0(fine_geometry);
+	   QPhiXCBGauge u_cb1(fine_geometry);
+	   QPhiXCBClover A_oo(fine_geometry);
+	   QPhiXCBClover A_inv_ee(fine_geometry);
 
-	QPhiXCBSpinor qphix_source(fine_geometry);
-	QPhiXCBSpinor qphix_solution(fine_geometry);
-	QPhiXCBGauge u_cb0(fine_geometry);
-	QPhiXCBGauge u_cb1(fine_geometry);
-	QPhiXCBClover A_oo(fine_geometry);
-	QPhiXCBClover A_inv_ee(fine_geometry);
+	   // Now pack fields.
+	   QPhiX::qdp_pack_gauge<>(u, u_cb0.get(),u_cb1.get(),fine_geometry);
+	   QPhiX::qdp_pack_cb_spinor<>(transf_source, qphix_source.get(),fine_geometry, ODD);
 
-	// Now pack fields.
-	QPhiX::qdp_pack_gauge<>(u, u_cb0.get(),u_cb1.get(),fine_geometry);
-	QPhiX::qdp_pack_cb_spinor<>(transf_source, qphix_source.get(),fine_geometry, ODD);
+	   QPhiX::qdp_pack_cb_spinor<>(solution, qphix_solution.get(),fine_geometry,ODD);
 
-	LatticeFermionF transf_solution = QDP::zero;
-	QPhiX::qdp_pack_cb_spinor<>(transf_solution, qphix_solution.get(),fine_geometry,ODD);
+	   // Use clover from D_full
+	   QPhiX::qdp_pack_clover<>(D_full.getClov(),A_oo.get(),fine_geometry,ODD);
+	   QPhiX::qdp_pack_clover<>(D_full.getInvClov(),A_inv_ee.get(),fine_geometry, EVEN);
 
-	QPhiX::qdp_pack_clover<>(clov,A_oo.get(),fine_geometry,ODD);
-	QPhiX::qdp_pack_clover<>(invclov,A_inv_ee.get(),fine_geometry, EVEN);
+	   // Gropu the u-s into an array
+	   Geom::SU3MatrixBlock *qphix_gauge[2] = { u_cb0.get(),u_cb1.get() };
 
-	Geom::SU3MatrixBlock *qphix_gauge[2] = { u_cb0.get(),u_cb1.get() };
-
-	//  ClovDslash calls an abort and there may
-	//  be several in scope. Needs fix in QPhiX
-	ClovOp QPhiXEOClov(qphix_gauge,
+	   //  ClovDslash calls an abort and there may
+	   //  be several in scope. Needs fix in QPhiX
+	   ClovOp QPhiXEOClov(qphix_gauge,
 					   A_oo.get(),
 					   A_inv_ee.get(),
 					   &fine_geometry,
 					   t_bcf,1.0,1.0);
-	BiCGStab solver(QPhiXEOClov, 5000);
 
-	QPhiXCBSpinor::ValueType* soln[1] = { qphix_solution.get() };
-	QPhiXCBSpinor::ValueType* rhs[1] = { qphix_source.get() };
+	   // make a BiCGStab Solver
+	   BiCGStab solver(QPhiXEOClov, 5000);
 
-	int n_iters;
-	double rsd_sq_final;
-	unsigned long site_flops;
-	unsigned long mv_apps;
 
-	solver(soln,rhs, 1.0e-7, n_iters, rsd_sq_final,site_flops,mv_apps,1, ODD);
+	   QPhiXCBSpinor::ValueType* soln[1] = { qphix_solution.get() };
+   	   QPhiXCBSpinor::ValueType* rhs[1] = { qphix_source.get() };
 
-	solution = zero;
-	QPhiX::qdp_unpack_cb_spinor<>(qphix_solution.get(),solution,fine_geometry,ODD);
+	   int n_iters;
+	   double rsd_sq_final;
+	   unsigned long site_flops;
+	   unsigned long mv_apps;
 
-	// Need to reconstruct...
-	{
-		// For: tmp[even] = source_even - D_eo solution
-		LatticeFermionF t1 = QDP::zero;
-		dslash( t1, u, solution, LINOP_OP, EVEN);
-		LatticeFermionF t2;
-		t2[ rb[0] ] = source - t1;
-		// Solution ODD is already set
-		invclov.apply(solution, t2, 1, EVEN);
+	   solver(soln,rhs, 1.0e-7, n_iters, rsd_sq_final,site_flops,mv_apps,1, ODD);
+
+	   // Solution[odd] is the same between the transformed and untransformed system
+	   QPhiX::qdp_unpack_cb_spinor<>(qphix_solution.get(),solution,fine_geometry,ODD);
+	
+	   // Solution[even] = M^{-1}_ee source_e - M^{-1}_ee M_eo solution_odd	
+	   //                = M^{-1}_ee [ source_e - M_eo solution_odd ]
+	   //
+	   {
+		LatticeFermion t1,t2;
+
+	        // Fill t1 even	
+		D_full.M_eo(t1,solution, LINOP_OP);
+
+		t2[rb[EVEN]] = source-t1;
+		D_full.M_ee_inv(solution,t2,LINOP_OP);
+           }
 	}
 
 	// Check solution
-	multi1d<LatticeColorMatrix> u_full(Nd);
-	for(int mu=0; mu < Nd; ++mu ) u_full[mu] = u[mu];
-
-	MG::QDPWilsonCloverLinearOperator D_full(m_q, c_sw, t_bc, u_full );
-	LatticeFermion sol_full = solution;
-	LatticeFermion b = source;
 	LatticeFermion tmp=QDP::zero;
-	D_full(tmp, sol_full, LINOP_OP);
-	LatticeFermion r = b - tmp;
+	D_full(tmp, solution, LINOP_OP);
+	LatticeFermion r = source - tmp;
 	double r_norm_cb0 = toDouble(sqrt(norm2(r,rb[0])));
 	double r_norm_cb1 = toDouble(sqrt(norm2(r,rb[1])));
 
@@ -213,7 +202,9 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStab)
 	MasterLog(INFO, "CB 0 : || r || = %16.8e  || r ||/|| b ||=%16.8e", r_norm_cb0, r_rel_norm_cb0);
 	MasterLog(INFO, "CB 1 : || r || = %16.8e  || r ||/|| b ||=%16.8e", r_norm_cb1, r_rel_norm_cb1);
 
-
+        double r_rel_norm = toDouble(sqrt(norm2(r))/sqrt(norm2(source)));
+	MasterLog(INFO, "Full: || r || / || b || = %16.8e", r_rel_norm);
+	ASSERT_LT( r_rel_norm, 5.0e-7);
 }
 
 int main(int argc, char *argv[])

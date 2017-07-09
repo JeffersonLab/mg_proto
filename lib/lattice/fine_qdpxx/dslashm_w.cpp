@@ -1,5 +1,4 @@
 #include "lattice/fine_qdpxx/dslashm_w.h"
-
 using namespace QDP;
 
 namespace MG {
@@ -36,7 +35,7 @@ void dslash_a(T& chi,
 
     switch (isign)
     {
-    case 1: 
+    case 1:
       {
 
 

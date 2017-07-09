@@ -41,6 +41,9 @@ public:
 		_params.clovCoeffR = Real(c_sw);
 		_params.clovCoeffT = Real(c_sw);
 		_clov.create(_u,_params);  // Make the clover term
+		_invclov.create(_u,_params,_clov);
+
+		_invclov.choles(EVEN);
 
 		IndexArray latdims = {{ QDP::Layout::subgridLattSize()[0],
 								QDP::Layout::subgridLattSize()[1],
@@ -115,6 +118,30 @@ public:
 		}
 	}
 
+
+	void M_ee(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
+	  M_diag(out,in,type,EVEN);
+	}
+
+	void M_oo(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
+   	  M_diag(out,in,type,ODD);
+        }
+
+        void M_eo(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
+          M_offdiag(out,in, type, EVEN);
+        }
+
+	void M_oe(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
+ 	  M_offdiag(out,in, type, ODD);
+        }
+
+
+  
+        void M_ee_inv(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
+	  const int isign = (type == LINOP_OP) ? 1: -1;
+	  _invclov.apply(out,in,isign,EVEN);	  
+        }
+
 	int GetLevel(void) const {
 		return 0;
 	}
@@ -166,14 +193,35 @@ public:
 		QDPIO::cout << "QDPWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
 		clovTripleProductQDPXX(blocklist, _clov, in_vecs, coarse_clov);
 	}
+
+	const MG::QDPCloverTerm& getClov() const {
+	  return _clov;
+        }
+        const MG::QDPCloverTerm& getInvClov() const {
+          return _invclov;
+        }
 private:
 
 	const int _t_bc;
 	Gauge _u;
 	MG::CloverFermActParams _params;
 	MG::QDPCloverTerm _clov;
+	MG::QDPCloverTerm _invclov;
+
 	LatticeInfo *_info;
 
+	inline
+	void M_diag(Spinor& out, const Spinor& in, IndexType type, int cb ) const {
+          const int isign = ( type == LINOP_OP ) ? +1 : -1;
+          _clov.apply(out,in,isign, cb);
+        }
+
+	inline
+        void M_offdiag(Spinor& out, const Spinor& in, IndexType type, int target_cb ) const {
+	  const int isign = ( type == LINOP_OP ) ? +1 : -1;
+          MG::dslash(out,_u, in, isign, target_cb );
+	  out[ rb[target_cb] ] *= Real(-0.5);
+        }
 
 };
 
