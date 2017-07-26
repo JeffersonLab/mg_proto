@@ -36,7 +36,9 @@ namespace MG
 
 	namespace {
 		static bool isInitializedP = false;
+#ifdef MG_USE_QPHIX
 		static QPhiX::QPhiXCLIArgs theCLIArgs;
+#endif
 	}
 
 	void initialize(int *argc, char ***argv)
