@@ -22,17 +22,17 @@ namespace MG {
 // Savvy compiler should inline these and optimize them
 template<typename T,int dir, bool accum>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashMVSiteDir(const SpinorView<T>& spinor_in,    // Neighbor spinor
-		const GaugeView<T>& gauge_in,     // Gauge Link
-		SpinorView<T>& spinor_out,         // result
+void DslashMVSiteDir(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
+		const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
+		SpinorView<Kokkos::complex<T>>& spinor_out,         // result
 		int plus_minus,
 		int source_spinor_idx,
 		int gauge_idx,
 		int dest_spinor_idx)                // Sign +1 for Dslash, -1 for Adjoint
 
 {
-	HalfSpinorSiteView<T> proj_res;
-	HalfSpinorSiteView<T> mult_proj_res;
+	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
+	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
 
 	KokkosProjectDir<T,dir>(spinor_in,plus_minus,proj_res,source_spinor_idx);
 	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,dir);
@@ -44,17 +44,17 @@ void DslashMVSiteDir(const SpinorView<T>& spinor_in,    // Neighbor spinor
 // Savvy compiler should inline and optimize them
 template<typename T,  int dir,  bool accum >
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashHVSiteDir(const SpinorView<T>& spinor_in,   // Neighbor spinor
-		const GaugeView<T>& gauge_in,    // Gauge link
-		SpinorView<T>& spinor_out,        // result
+void DslashHVSiteDir(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
+		const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
+		SpinorView<Kokkos::complex<T>>& spinor_out,        // result
 		int plus_minus,
 		int source_spinor_idx,
 		int gauge_idx,
 		int dest_spinor_idx)         // sign +1 for Dslash, -1 for Adjoint
 
 {
-	HalfSpinorSiteView<T> proj_res;
-	HalfSpinorSiteView<T> mult_proj_res;
+	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
+	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
 
 	KokkosProjectDir<T,dir>(spinor_in, plus_minus, proj_res,source_spinor_idx);
 	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,dir);
@@ -72,9 +72,9 @@ private:
 public:
 	KokkosDslash(const LatticeInfo& info) : _info(info) {}
 
-	void operator()(const KokkosCBFineSpinor<T,4>& fine_in,
-			const KokkosFineGaugeField<T>& gauge_in,
-			KokkosCBFineSpinor<T,4>& fine_out,
+	void operator()(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_in,
+			const KokkosFineGaugeField<Kokkos::complex<T>>& gauge_in,
+			KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_out,
 			int plus_minus) const
 	{
 		// Source and target checkerboards
@@ -85,10 +85,10 @@ public:
 		// Gather all views just outside Parallel Loop.
 		// Can these be references? Will the world collapse?
 
-		const SpinorView<T>& s_in = fine_in.GetData();
-		const GaugeView<T>& g_in_src_cb = (gauge_in(source_cb)).GetData();
-		const GaugeView<T>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
-		SpinorView<T>& s_o = fine_out.GetData();
+		const SpinorView<Kokkos::complex<T>>& s_in = fine_in.GetData();
+		const GaugeView<Kokkos::complex<T>>& g_in_src_cb = (gauge_in(source_cb)).GetData();
+		const GaugeView<Kokkos::complex<T>>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
+		SpinorView<Kokkos::complex<T>>& s_o = fine_out.GetData();
 
 		IndexArray latdims=_info.GetCBLatticeDimensions();
 		const int _n_xh = latdims[0];
@@ -104,7 +104,7 @@ public:
 
 			// Source and target checkerboard gauge fields
 
-			SpinorView<T> s_o = fine_out.GetData();
+			SpinorView<Kokkos::complex<T>> s_o = fine_out.GetData();
 			// Break down site index into xcb, y,z and t
 			IndexType tmp_yzt = site / _n_xh;
 			IndexType xcb = site - _n_xh * tmp_yzt;

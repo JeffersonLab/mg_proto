@@ -27,8 +27,8 @@ TEST(TestKokkos, TestSpinProject)
 	LatticeInfo info(latdims,4,3,NodeInfo());
 	LatticeInfo hinfo(latdims,2,3,NodeInfo());
 
-	KokkosCBFineSpinor<REAL32,4> kokkos_in(info,EVEN);
-	KokkosCBFineSpinor<REAL32,2> kokkos_hspinor_out(hinfo,EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL32>,4> kokkos_in(info,EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL32>,2> kokkos_hspinor_out(hinfo,EVEN);
 
 	{
 		LatticeFermionF qdp_in;
@@ -236,9 +236,9 @@ TEST(TestKokkos, TestDslash)
 	LatticeInfo info(latdims,4,3,NodeInfo());
 
 
-	KokkosCBFineSpinor<REAL32,4> kokkos_spinor_in(info,EVEN);
-	KokkosCBFineSpinor<REAL32,4> kokkos_spinor_out(info,ODD);
-	KokkosFineGaugeField<REAL32>  kokkos_gauge(info);
+	KokkosCBFineSpinor<Kokkos::complex<REAL32>,4> kokkos_spinor_in(info,EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL32>,4> kokkos_spinor_out(info,ODD);
+	KokkosFineGaugeField<Kokkos::complex<REAL32>>  kokkos_gauge(info);
 
 
 	// Import Gauge Field

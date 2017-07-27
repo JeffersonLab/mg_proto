@@ -32,11 +32,11 @@ TEST(TestKokkos, TestSpinorInitialization)
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 	LatticeInfo info(latdims,4,3,NodeInfo());
 
-	KokkosCBFineSpinor<float,4> cb_spinor_e(info, EVEN);
-	KokkosCBFineSpinor<float,4> cb_spinor_o(info, ODD);
+	KokkosCBFineSpinor<Kokkos::complex<float>,4> cb_spinor_e(info, EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<float>,4> cb_spinor_o(info, ODD);
 
-	KokkosCBFineGaugeField<float> gauge_field_even(info, EVEN);
-	KokkosCBFineGaugeField<float> gauge_field_odd(info,ODD);
+	KokkosCBFineGaugeField<Kokkos::complex<float>> gauge_field_even(info, EVEN);
+	KokkosCBFineGaugeField<Kokkos::complex<float>> gauge_field_odd(info,ODD);
  }
 
 TEST(TestKokkos, TestQDPCBSpinorImportExport)
@@ -50,14 +50,14 @@ TEST(TestKokkos, TestQDPCBSpinorImportExport)
 	gaussian(qdp_in);
 
 	LatticeInfo info(latdims,4,3,NodeInfo());
-	KokkosCBFineSpinor<REAL,4>  kokkos_spinor_e(info, EVEN);
-	KokkosCBFineSpinor<REAL,4>  kokkos_spinor_o(info, ODD);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,4>  kokkos_spinor_e(info, EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,4>  kokkos_spinor_o(info, ODD);
 	{
 		qdp_out = zero;
 		// Import Checkerboard, by checkerboard
-		QDPLatticeFermionToKokkosCBSpinor(qdp_in, kokkos_spinor_e);
+		QDPLatticeFermionToKokkosCBSpinor<REAL,LatticeFermion>(qdp_in, kokkos_spinor_e);
 		// Export back out
-		KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_e,qdp_out);
+		KokkosCBSpinorToQDPLatticeFermion<REAL,LatticeFermion>(kokkos_spinor_e,qdp_out);
 		qdp_out[rb[0]] -= qdp_in;
 
 		// Elements of QDP_out should now be zero.
@@ -91,8 +91,8 @@ TEST(TestKokkos, TestQDPCBHalfSpinorImportExport)
 	gaussian(qdp_in);
 
 	LatticeInfo info(latdims,2,3,NodeInfo());
-	KokkosCBFineSpinor<REAL,2>  kokkos_hspinor_e(info, EVEN);
-	KokkosCBFineSpinor<REAL,2>  kokkos_hspinor_o(info, ODD);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,2>  kokkos_hspinor_e(info, EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,2>  kokkos_hspinor_o(info, ODD);
 	{
 		qdp_out = zero;
 		// Import Checkerboard, by checkerboard
@@ -136,8 +136,8 @@ TEST(TestKokkos, TestSpinProject)
 
 
 	gaussian(qdp_in);
-	KokkosCBFineSpinor<REAL,4> kokkos_in(info,EVEN);
-	KokkosCBFineSpinor<REAL,2> kokkos_hspinor_out(hinfo,EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,4> kokkos_in(info,EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,2> kokkos_hspinor_out(hinfo,EVEN);
 
 	QDPLatticeFermionToKokkosCBSpinor(qdp_in, kokkos_in);
 
@@ -214,8 +214,8 @@ TEST(TestKokkos, TestSpinRecons)
 
 	gaussian(qdp_in);
 
-	KokkosCBFineSpinor<REAL,2> kokkos_hspinor_in(hinfo,EVEN);
-	KokkosCBFineSpinor<REAL,4> kokkos_spinor_out(info,EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,2> kokkos_hspinor_in(hinfo,EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,4> kokkos_spinor_out(info,EVEN);
 
 	QDPLatticeHalfFermionToKokkosCBSpinor2(qdp_in, kokkos_hspinor_in);
 
@@ -294,8 +294,8 @@ TEST(TestKokkos, TestQDPCBGaugeFIeldImportExport)
 	multi1d<LatticeColorMatrix> gauge_out;  // Basic uninitialized
 
 	LatticeInfo info(latdims,4,3,NodeInfo());
-	KokkosCBFineGaugeField<REAL>  kokkos_gauge_e(info, EVEN);
-	KokkosCBFineGaugeField<REAL>  kokkos_gauge_o(info, ODD);
+	KokkosCBFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge_e(info, EVEN);
+	KokkosCBFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge_o(info, ODD);
 	{
 		// Import Checkerboard, by checkerboard
 		QDPGaugeFieldToKokkosCBGaugeField(gauge_in, kokkos_gauge_e);
@@ -348,7 +348,7 @@ TEST(TestKokkos, TestQDPGaugeFIeldImportExport)
 	multi1d<LatticeColorMatrix> gauge_out;  // Basic uninitialized
 
 	LatticeInfo info(latdims,4,3,NodeInfo());
-	KokkosFineGaugeField<REAL>  kokkos_gauge(info);
+	KokkosFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge(info);
 	{
 		// Import Checkerboard, by checkerboard
 		QDPGaugeFieldToKokkosGaugeField(gauge_in, kokkos_gauge);
@@ -385,9 +385,9 @@ TEST(TestKokkos, TestMultHalfSpinor)
 	LatticeInfo info(latdims,4,3,NodeInfo());
 	LatticeInfo hinfo(latdims,2,3,NodeInfo());
 
-	KokkosCBFineSpinor<REAL,2> kokkos_hspinor_in(hinfo,EVEN);
-	KokkosCBFineSpinor<REAL,2> kokkos_hspinor_out(hinfo,EVEN);
-	KokkosCBFineGaugeField<REAL>  kokkos_gauge_e(info, EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,2> kokkos_hspinor_in(hinfo,EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,2> kokkos_hspinor_out(hinfo,EVEN);
+	KokkosCBFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge_e(info, EVEN);
 
 
 	// Import Gauge Field
@@ -456,9 +456,9 @@ TEST(TestKokkos, TestDslash)
 	LatticeInfo info(latdims,4,3,NodeInfo());
 	LatticeInfo hinfo(latdims,2,3,NodeInfo());
 
-	KokkosCBFineSpinor<REAL,4> kokkos_spinor_even(info,EVEN);
-	KokkosCBFineSpinor<REAL,4> kokkos_spinor_odd(info,ODD);
-	KokkosFineGaugeField<REAL>  kokkos_gauge(info);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,4> kokkos_spinor_even(info,EVEN);
+	KokkosCBFineSpinor<Kokkos::complex<REAL>,4> kokkos_spinor_odd(info,ODD);
+	KokkosFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge(info);
 
 
 	// Import Gauge Field
@@ -467,8 +467,8 @@ TEST(TestKokkos, TestDslash)
 
 	LatticeFermion psi_out, kokkos_out;
 	for(int cb=0; cb < 2; ++cb) {
-		KokkosCBFineSpinor<REAL,4>& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
-		KokkosCBFineSpinor<REAL,4>& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
+		KokkosCBFineSpinor<Kokkos::complex<REAL>,4>& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
+		KokkosCBFineSpinor<Kokkos::complex<REAL>,4>& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
 
 		for(int isign=-1; isign < 2; isign+=2) {
 
