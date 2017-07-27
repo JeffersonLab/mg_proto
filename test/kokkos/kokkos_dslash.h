@@ -88,7 +88,7 @@ public:
 		const SpinorView<Kokkos::complex<T>>& s_in = fine_in.GetData();
 		const GaugeView<Kokkos::complex<T>>& g_in_src_cb = (gauge_in(source_cb)).GetData();
 		const GaugeView<Kokkos::complex<T>>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
-		SpinorView<Kokkos::complex<T>>& s_o = fine_out.GetData();
+//		SpinorView<Kokkos::complex<T>>& s_o = fine_out.GetData();
 
 		IndexArray latdims=_info.GetCBLatticeDimensions();
 		const int _n_xh = latdims[0];

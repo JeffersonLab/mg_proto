@@ -20,7 +20,7 @@ namespace MG
 	class KokkosCBFineSpinor {
 	public:
 		KokkosCBFineSpinor(const LatticeInfo& info, IndexType cb)
-		: _cb_data("cb_data", info.GetNumCBSites(), _num_spins), _info(info), _cb(cb) {
+		: _cb_data("cb_data", info.GetNumCBSites(), 3, _num_spins), _info(info), _cb(cb) {
 
 			if( _info.GetNumColors() != 3 ) {
 				MasterLog(ERROR, "KokkosCBFineSpinor has to have 3 colors in info. Info has %d", _info.GetNumColors());
@@ -31,19 +31,19 @@ namespace MG
 						_num_spins,_info.GetNumColors());
 			}
 		}
-
+#if 0
 		inline
 		const T& operator()(int cb_site, int spin, int color) const
 		{
-			return _cb_data(cb_site,spin,color);
+			return _cb_data(cb_site,color,spin);
 		}
 
 		inline
 		T& operator()(int cb_site, int spin, int color)
 		{
-			return _cb_data(cb_site,spin,color);
+			return _cb_data(cb_site,color,spin);
 		}
-
+#endif
 		inline
 		const LatticeInfo& GetInfo() const {
 			return _info;
@@ -54,7 +54,7 @@ namespace MG
 			return _cb;
 		}
 
-		using DataType = Kokkos::View<T**[3],Layout>;
+		using DataType = Kokkos::View<T***,Layout>;
 
 
 		const DataType& GetData() const {
@@ -146,12 +146,12 @@ namespace MG
 
 	template<typename T,const int S, const int C>
 	struct SiteView {
-		T _data[S][C];
-		KOKKOS_INLINE_FUNCTION T& operator()(int idx1, int idx2) {
-			return _data[idx1][idx2];
+		T _data[C][S];
+		KOKKOS_INLINE_FUNCTION T& operator()(int color, int spin) {
+			return _data[color][spin];
 		}
-		KOKKOS_INLINE_FUNCTION const T& operator()(int idx1, int idx2) const {
-			return _data[idx1][idx2];
+		KOKKOS_INLINE_FUNCTION const T& operator()(int color, int spin) const {
+			return _data[color][spin];
 		}
 	};
 

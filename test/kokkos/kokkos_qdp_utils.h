@@ -35,15 +35,16 @@ namespace MG
 
 		Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
 				[=](int i) {
-					for(int spin=0; spin < 4; ++spin) {
 						for(int color=0; color < 3; ++color) {
+							for(int spin=0; spin < 4; ++spin) {
+
 							const int qdp_index = sub.siteTable()[i];
 
-							h_out(i,spin,color)= Kokkos::complex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
+							h_out(i,color,spin)= Kokkos::complex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
 																	qdp_in.elem(qdp_index).elem(spin).elem(color).imag());
 
-						} // color
-					} // spin
+						} // spin
+					} // color
 			}// kokkos lambda
 		);
 
@@ -71,13 +72,14 @@ namespace MG
 
 		Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
 				[&](int i) {
-					for(int spin=0; spin < 4; ++spin) {
+
 						for(int color=0; color < 3; ++color) {
+							for(int spin=0; spin < 4; ++spin) {
 							const int qdp_index = sub.siteTable()[i];
-							qdp_out.elem(qdp_index).elem(spin).elem(color).real() = h_in(i,spin,color).real();
-							qdp_out.elem(qdp_index).elem(spin).elem(color).imag() = h_in(i,spin,color).imag();
-						} // color
-					} // spin
+							qdp_out.elem(qdp_index).elem(spin).elem(color).real() = h_in(i,color,spin).real();
+							qdp_out.elem(qdp_index).elem(spin).elem(color).imag() = h_in(i,color,spin).imag();
+						} // spin
+					} // color
 			}// kokkos lambda
 		);
 
@@ -103,15 +105,16 @@ namespace MG
 
 		Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
 				[=](int i) {
-					for(int spin=0; spin < 2; ++spin) {
 						for(int color=0; color < 3; ++color) {
+							for(int spin=0; spin < 2; ++spin) {
+
 							const int qdp_index = sub.siteTable()[i];
 
-							h_out(i,spin,color) = Kokkos::complex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
+							h_out(i,color,spin) = Kokkos::complex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
 																	   qdp_in.elem(qdp_index).elem(spin).elem(color).imag());
 
-						} // color
-					} // spin
+						} // spin
+					} // color
 			}// kokkos lambda
 		);
 
@@ -139,13 +142,14 @@ namespace MG
 
 		Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
 				[&](int i) {
-					for(int spin=0; spin < 2; ++spin) {
 						for(int color=0; color < 3; ++color) {
+							for(int spin=0; spin < 2; ++spin) {
+
 							const int qdp_index = sub.siteTable()[i];
-							qdp_out.elem(qdp_index).elem(spin).elem(color).real() = h_in(i,spin,color).real();
-							qdp_out.elem(qdp_index).elem(spin).elem(color).imag() = h_in(i,spin,color).imag();
-						} // color
-					} // spin
+							qdp_out.elem(qdp_index).elem(spin).elem(color).real() = h_in(i,color,spin).real();
+							qdp_out.elem(qdp_index).elem(spin).elem(color).imag() = h_in(i,color,spin).imag();
+						} // spin
+					} // color
 			}// kokkos lambda
 		);
 

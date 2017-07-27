@@ -23,28 +23,24 @@ namespace MG
 			HalfSpinorSiteView<Kokkos::complex<T>>& v_out,int i,int dir)
 	{
 
-		for(int spin = 0; spin < 2; ++spin) {
-			for(int row=0; row < 3; ++row) {
-				ComplexZero(v_out(spin,row));
+		for(int row=0; row < 3; ++row) {
 
-				for(int col=0; col < 3; ++col) {
+			for(int spin = 0; spin < 2; ++spin) {
+				ComplexZero(v_out(row,spin));
+			}
 
-					//v_out(spin,row) += u(row,col)*v_in(col);
+			for(int col=0; col < 3; ++col) {
+				for(int spin = 0; spin < 2; ++spin) {
+					//v_out(row,spin) += u(row,col)*v_in(col);
 					// complex mul:   real_part: a(K_RE)*b(K_RE)-a(K_IM)*b(K_IM)
 					//                imag_part: a(K_RE)*b(K_IM) + a(K_IM)*b(K_RE);
 					//
-#if 0
-					v_out(spin,row,K_RE) += gauge_in(i,dir,row,col,K_RE)*v_in(spin,col,K_RE);
-					v_out(spin,row,K_RE) -= gauge_in(i,dir,row,col,K_IM)*v_in(spin,col,K_IM);
-
-					v_out(spin,row,K_IM) += gauge_in(i,dir,row,col,K_RE)*v_in(spin,col,K_IM);
-					v_out(spin,row,K_IM) += gauge_in(i,dir,row,col,K_IM)*v_in(spin,col,K_RE);
-#endif
-					ComplexCMadd(v_out(spin,row), gauge_in(i,dir,row,col), v_in(spin,col));
+					ComplexCMadd(v_out(row,spin), gauge_in(i,dir,row,col), v_in(col,spin));
 				}
 			}
-
 		}
+
+
 	}
 
 
@@ -55,29 +51,33 @@ namespace MG
 			HalfSpinorSiteView<Kokkos::complex<T>>& v_out, int i, int dir)
 	{
 
-		for(int spin = 0; spin < 2; ++spin) {
 				for(int row=0; row < 3; ++row) {
-					ComplexZero(v_out(spin,row));
+					for(int spin = 0; spin < 2; ++spin) {
+
+						ComplexZero(v_out(row,spin));
+					}
 				}
 
 				for(int col=0; col < 3; ++col) {
 					for(int row=0; row < 3; ++row) {
-						//v_out(spin,row) += u(row,col)*v_in(col);
+						//v_out(row,spin) += u(row,col)*v_in(col);
 						// complex mul:   real_part: a(K_RE)*b(K_RE)-a(K_IM)*b(K_IM)
 						//                imag_part: a(K_RE)*b(K_IM) + a(K_IM)*b(K_RE);
 						//
 #if 0
-						v_out(spin,row,K_RE) += gauge_in(i,dir,col,row,K_RE)*v_in(spin,col,K_RE);
-						v_out(spin,row,K_RE) += gauge_in(i,dir,col,row,K_IM)*v_in(spin,col,K_IM);
+						v_out(row,spin,K_RE) += gauge_in(i,dir,col,row,K_RE)*v_in(col,spin,K_RE);
+						v_out(row,spin,K_RE) += gauge_in(i,dir,col,row,K_IM)*v_in(col,spin,K_IM);
 
-						v_out(spin,row,K_IM) += gauge_in(i,dir,col,row,K_RE)*v_in(spin,col,K_IM);
-						v_out(spin,row,K_IM) -= gauge_in(i,dir,col,row,K_IM)*v_in(spin,col,K_RE);
+						v_out(row,spin,K_IM) += gauge_in(i,dir,col,row,K_RE)*v_in(col,spin,K_IM);
+						v_out(row,spin,K_IM) -= gauge_in(i,dir,col,row,K_IM)*v_in(col,spin,K_RE);
 #endif
-						ComplexConjMadd(v_out(spin,row), gauge_in(i,dir,col,row), v_in(spin,col));
+						for(int spin=0; spin < 2; ++spin) {
+							ComplexConjMadd(v_out(row,spin), gauge_in(i,dir,col,row), v_in(col,spin));
+						}
 					}
 				}
 
-			}
+
 	}
 
 	template<typename T>
@@ -97,22 +97,22 @@ namespace MG
 
 				// Site local workspace...
 				HalfSpinorSiteView<Kokkos::complex<T>> site_in;
-				for(int spin=0; spin < 2; ++spin) {
-					for(int color=0; color <3; ++color) {
-							ComplexCopy(site_in(spin,color), hspinor_in_view(i,spin,color));
+
+				for(int col=0; col <3; ++col) {
+					for(int spin=0; spin < 2; ++spin) {
+						ComplexCopy(site_in(col,spin), hspinor_in_view(i,col,spin));
 					}
 				}
+
 				HalfSpinorSiteView<Kokkos::complex<T>> site_out;
 				mult_u_halfspinor(u, site_in, site_out, i, dir);
 
 				// Write out
-				for(int spin=0; spin < 2; ++spin ) {
-					for(int color=0; color < 3; ++color) {
-							ComplexCopy(hspinor_out_view(i,spin,color),site_out(spin,color));
+				for(int col=0; col < 3; ++col) {
+					for(int spin=0; spin < 2; ++spin ) {
+						ComplexCopy(hspinor_out_view(i,col,spin),site_out(col,spin));
 					}
 				}
-
-
 		});
 	}
 
@@ -134,18 +134,19 @@ namespace MG
 
 			// Site local workspace...
 			HalfSpinorSiteView<Kokkos::complex<T>> site_in;
-			for(int spin=0; spin < 2; ++spin) {
-				for(int color=0; color <3; ++color) {
-					ComplexCopy(site_in(spin,color), hspinor_in_view(i,spin,color));
+			for(int col=0; col <3; ++col) {
+				for(int spin=0; spin < 2; ++spin) {
+					ComplexCopy(site_in(col,spin), hspinor_in_view(i,col,spin));
 				}
 			}
+
 			HalfSpinorSiteView<Kokkos::complex<T>> site_out;
 			mult_adj_u_halfspinor(u_in.GetData(), site_in, site_out, i, dir);
 
 			// Write out
-			for(int spin=0; spin < 2; ++spin ) {
-				for(int color=0; color < 3; ++color) {
-					ComplexCopy(hspinor_out_view(i,spin,color), site_out(spin,color));
+			for(int col=0; col < 3; ++col) {
+				for(int spin=0; spin < 2; ++spin ) {
+					ComplexCopy(hspinor_out_view(i,col,spin), site_out(col,spin));
 				}
 			}
 		});
