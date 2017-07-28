@@ -165,9 +165,101 @@ class KokkosDslash {
 private:
 	const LatticeInfo& _info;
 
+	enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_PLUS=6, T_PLUS=7 };
+	Kokkos::View<int*[2][8],Layout> _neigh_table;
 
 public:
-	KokkosDslash(const LatticeInfo& info) : _info(info) {}
+ KokkosDslash(const LatticeInfo& info) : _info(info), _neigh_table("neigh_table", info.GetNumCBSites()) 
+	  {
+	    // Now fill the neighbor table
+	    IndexArray latdims=_info.GetCBLatticeDimensions();
+	    const int _n_xh = latdims[0];
+	    const int _n_x = 2*_n_xh;
+	    const int _n_y = latdims[1];
+	    const int _n_z = latdims[2];
+	    const int _n_t = latdims[3];
+	    const int _num_sites = _n_xh*_n_y*_n_z*_n_t;
+	    // Parallel site loop
+	    Kokkos::parallel_for(_num_sites,
+				 KOKKOS_LAMBDA(int site) {
+				   for(int target_cb=0; target_cb < 2; ++target_cb) {
+				     // Break down site index into xcb, y,z and t
+				     IndexType tmp_yzt = site / _n_xh;
+				     IndexType xcb = site - _n_xh * tmp_yzt;
+				     IndexType tmp_zt = tmp_yzt / _n_y;
+				     IndexType y = tmp_yzt - _n_y * tmp_zt;
+				     IndexType t = tmp_zt / _n_z;
+				     IndexType z = tmp_zt - _n_z * t;
+				     
+				     // Global, uncheckerboarded x, assumes cb = (x + y + z + t ) & 1
+				     IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);
+				     
+				     if( t > 0 ) {
+				       _neigh_table(site,target_cb,T_MINUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1)));
+				     }
+				     else {
+				       _neigh_table(site,target_cb,T_MINUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1)));
+				     }
+				     
+				     if( z > 0 ) {
+				       _neigh_table(site,target_cb,Z_MINUS) = xcb + _n_xh*(y + _n_y*((z-1) + _n_z*t));
+				     }
+				     else {
+				       _neigh_table(site,target_cb,Z_MINUS) = xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t));
+				     }
+				     
+				     if( y > 0 ) {
+				       _neigh_table(site,target_cb,Y_MINUS) = xcb + _n_xh*((y-1) + _n_y*(z + _n_z*t));
+				     }
+				     else {
+				       _neigh_table(site,target_cb,Y_MINUS) = xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t));
+				     }
+				     
+				     if ( x > 0 ) {
+				       _neigh_table(site,target_cb,X_MINUS)= ((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
+				     }
+				     else {
+				       _neigh_table(site,target_cb,X_MINUS)= ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
+				     }
+
+				     if ( x < _n_x - 1 ) {
+				       _neigh_table(site,target_cb,X_PLUS) = ((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t));
+				     }
+				     else {
+				       _neigh_table(site,target_cb,X_PLUS) = 0 + _n_xh*(y + _n_y*(z + _n_z*t));
+				     }
+				     
+				     if( y < _n_y-1 ) {
+				       _neigh_table(site,target_cb,Y_PLUS) = xcb + _n_xh*((y+1) + _n_y*(z + _n_z*t));
+				     }
+				     else {
+				       _neigh_table(site,target_cb,Y_PLUS) = xcb + _n_xh*(0 + _n_y*(z + _n_z*t));
+				     }
+				     
+				     if( z < _n_z-1 ) {
+				       _neigh_table(site,target_cb,Z_PLUS) = xcb + _n_xh*(y + _n_y*((z+1) + _n_z*t));
+				     }
+				     else {
+				       _neigh_table(site,target_cb,Z_PLUS) = xcb + _n_xh*(y + _n_y*(0 + _n_z*t));
+				     }
+				     
+				     if( t < _n_t-1 ) {
+				       _neigh_table(site,target_cb,T_PLUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(t+1)));
+				     }
+				     else {
+				       _neigh_table(site,target_cb,T_PLUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(0)));
+				     }
+			
+
+
+
+
+				   }
+
+
+				 });
+
+	  }
 
 	template<const int isign>
 	void apply(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_in,
@@ -184,203 +276,76 @@ public:
 		const SpinorView<Kokkos::complex<T>>& s_in = fine_in.GetData();
 		const GaugeView<Kokkos::complex<T>>& g_in_src_cb = (gauge_in(source_cb)).GetData();
 		const GaugeView<Kokkos::complex<T>>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
-//		SpinorView<Kokkos::complex<T>>& s_o = fine_out.GetData();
+		SpinorView<Kokkos::complex<T>>& s_o = fine_out.GetData();
+		const int num_sites = _info.GetNumCBSites();
 
-		IndexArray latdims=_info.GetCBLatticeDimensions();
-		const int _n_xh = latdims[0];
-		const int _n_x = 2*_n_xh;
-		const int _n_y = latdims[1];
-		const int _n_z = latdims[2];
-		const int _n_t = latdims[3];
-		const int _num_sites = _n_xh*_n_y*_n_z*_n_t;
 
 		// Parallel site loop
-		Kokkos::parallel_for(_num_sites,
-				KOKKOS_LAMBDA(int site) {
+		Kokkos::parallel_for(num_sites, KOKKOS_LAMBDA(int site) {
 
-			// Source and target checkerboard gauge fields
+		    // Warning: GCC Alignment Attribute!
+		    // Site Sum: Not a true Kokkos View
+		    SpinorSiteView<Kokkos::complex<T>> res_sum __attribute__((aligned(64)));
 
-			SpinorView<Kokkos::complex<T>> s_o = fine_out.GetData();
+		    // Temporaries: Not a true Kokkos View
+		    HalfSpinorSiteView<Kokkos::complex<T>> proj_res __attribute__((aligned(64)));
+		    HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res __attribute__((aligned(64)));
+		    
 
-			//Init result
-			SpinorSiteView<Kokkos::complex<T>> res_sum;
-			for(int color=0; color < 3; ++color) {
-			  for(int spin=0; spin < 4; ++spin) {
-			    ComplexZero(res_sum(color,spin));
-			  }
-			}
-
-			// Break down site index into xcb, y,z and t
-			IndexType tmp_yzt = site / _n_xh;
-			IndexType xcb = site - _n_xh * tmp_yzt;
-			IndexType tmp_zt = tmp_yzt / _n_y;
-			IndexType y = tmp_yzt - _n_y * tmp_zt;
-			IndexType t = tmp_zt / _n_z;
-			IndexType z = tmp_zt - _n_z * t;
-
-			// Global, uncheckerboarded x, assumes cb = (x + y + z + t ) & 1
-			IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);
-
-
-			// Find index of neighbor
-			int neigh_index=0;
-
-
-			// T - minus
-			{
-				if( t > 0 ) {
-					neigh_index = xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1)));
-				}
-				else {
-					neigh_index = xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1)));
-				}
-
-
-				DslashHVSiteDir3<T,isign>(s_in,
-							  g_in_src_cb,
-							  res_sum,
-							  neigh_index,
-							  neigh_index);
-
-			}
-
-
-
-			// Z - minus
-			{
-				if( z > 0 ) {
-					neigh_index = xcb + _n_xh*(y + _n_y*((z-1) + _n_z*t));
-				}
-				else {
-					neigh_index = xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t));
-				}
-				DslashHVSiteDir2<T,isign>(s_in,
-							  g_in_src_cb,
-							  res_sum,
-							  neigh_index,
-							  neigh_index);
-
-			}
-
-			// Y - minus
-			{
-				if( y > 0 ) {
-					neigh_index = xcb + _n_xh*((y-1) + _n_y*(z + _n_z*t));
-				}
-				else {
-					neigh_index = xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t));
-				}
-
-				DslashHVSiteDir1<T,isign>(s_in,
-							  g_in_src_cb,
-							  res_sum,
-							  neigh_index,
-							  neigh_index);
-
-
-			}
-
-			// X - minus
-			{
-				if ( x > 0 ) {
-					neigh_index= ((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
-				}
-				else {
-					neigh_index= ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
-				}
-
-				DslashHVSiteDir0<T,isign>(s_in,
-							  g_in_src_cb,
-							  res_sum,
-							  neigh_index,
-							  neigh_index);
-
-
-			}
-
-
-			// X - plus
-			{
-				if ( x < _n_x - 1 ) {
-					neigh_index= ((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t));
-				}
-				else {
-					neigh_index = 0 + _n_xh*(y + _n_y*(z + _n_z*t));
-				}
-
-
-				DslashMVSiteDir0<T,-isign>(s_in,
-							   g_in_target_cb,
-							   res_sum,
-							   neigh_index,
-							   site);
-
-
-			}
-
-
-			// Y - plus
-			{
-				if( y < _n_y-1 ) {
-					neigh_index = xcb + _n_xh*((y+1) + _n_y*(z + _n_z*t));
-				}
-				else {
-					neigh_index = xcb + _n_xh*(0 + _n_y*(z + _n_z*t));
-				}
-
-				DslashMVSiteDir1<T,-isign>(s_in,
-							   g_in_target_cb,
-							   res_sum,
-							   neigh_index,
-							   site);
-
-			}
-
-			// Z - plus
-			{
-				if( z < _n_z-1 ) {
-					neigh_index = xcb + _n_xh*(y + _n_y*((z+1) + _n_z*t));
-				}
-				else {
-					neigh_index = xcb + _n_xh*(y + _n_y*(0 + _n_z*t));
-				}
-
-
-
-
-				DslashMVSiteDir2<T,-isign>(s_in,
-							   g_in_target_cb,
-							   res_sum,
-							   neigh_index,
-							   site);
-
-			}
-
-
-			// T - plus
-			{
-				if( t < _n_t-1 ) {
-					neigh_index = xcb + _n_xh*(y + _n_y*(z + _n_z*(t+1)));
-				}
-				else {
-					neigh_index = xcb + _n_xh*(y + _n_y*(z + _n_z*(0)));
-				}
-
-
-				DslashMVSiteDir3<T,-isign>(s_in,
-							   g_in_target_cb,
-							   res_sum,
-							   neigh_index,
-							   site);
-
-			}
-			for(int color=0; color < 3; ++color) {
-			  for(int spin=0; spin < 4; ++spin) {
-			    ComplexCopy(s_o(site,color,spin),res_sum(color,spin));
-			  }
-			}
-
-		});
+		    for(int color=0; color < 3; ++color) {
+		      for(int spin=0; spin < 4; ++spin) {
+			ComplexZero(res_sum(color,spin));
+		      }
+		    }
+			
+		    // T - minus
+		    KokkosProjectDir3<T,isign>(s_in, proj_res,_neigh_table(site,target_cb,T_MINUS));
+		    mult_adj_u_halfspinor(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,T_MINUS),3);
+		    KokkosRecons23Dir3<T,isign>(mult_proj_res,res_sum);
+		    
+		    // Z - minus
+		    KokkosProjectDir2<T,isign>(s_in, proj_res,_neigh_table(site,target_cb,Z_MINUS));
+		    mult_adj_u_halfspinor(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Z_MINUS),2);
+		    KokkosRecons23Dir2<T,isign>(mult_proj_res,res_sum);
+		    
+		    // Y - minus
+		    KokkosProjectDir1<T,isign>(s_in, proj_res,_neigh_table(site,target_cb,Y_MINUS));
+		    mult_adj_u_halfspinor(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Y_MINUS),1);
+		    KokkosRecons23Dir1<T,isign>(mult_proj_res,res_sum);
+		    
+		    // X - minus
+		    KokkosProjectDir0<T,isign>(s_in, proj_res,_neigh_table(site,target_cb,X_MINUS));
+		    mult_adj_u_halfspinor(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,X_MINUS),0);
+		    KokkosRecons23Dir0<T,isign>(mult_proj_res,res_sum);
+		    
+		    // X - plus
+		    KokkosProjectDir0<T,-isign>(s_in,proj_res,_neigh_table(site,target_cb,X_PLUS));
+		    mult_u_halfspinor(g_in_target_cb,proj_res,mult_proj_res,site,0);
+		    KokkosRecons23Dir0<T,-isign>(mult_proj_res, res_sum);
+		    
+		    // Y - plus
+		    KokkosProjectDir1<T,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Y_PLUS));
+		    mult_u_halfspinor(g_in_target_cb,proj_res,mult_proj_res,site,1);
+		    KokkosRecons23Dir1<T,-isign>(mult_proj_res, res_sum);
+		    
+		    // Z - plus
+		    KokkosProjectDir2<T,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Z_PLUS));
+		    mult_u_halfspinor(g_in_target_cb,proj_res,mult_proj_res,site,2);
+		    KokkosRecons23Dir2<T,-isign>(mult_proj_res, res_sum);
+		    
+		    // T - plus
+		    KokkosProjectDir3<T,-isign>(s_in,proj_res,_neigh_table(site,target_cb,T_PLUS));
+		    mult_u_halfspinor(g_in_target_cb,proj_res,mult_proj_res,site,3);
+		    KokkosRecons23Dir3<T,-isign>(mult_proj_res, res_sum);
+		    
+		    // Stream out spinor
+		    for(int color=0; color < 3; ++color) {
+		      for(int spin=0; spin < 4; ++spin) {
+			ComplexCopy(s_o(site,color,spin),res_sum(color,spin));
+		      }
+		    }
+		    
+		  });
 
 	}
 
