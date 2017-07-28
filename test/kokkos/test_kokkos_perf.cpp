@@ -19,8 +19,8 @@ using namespace QDP;
 #if 1
 TEST(TestKokkos, TestSpinProject)
 {
-	IndexArray latdims={{16,16,16,16}};
-	int iters = 100000;
+	IndexArray latdims={{32,32,32,32}};
+	int iters = 1000;
 
 	initQDPXXLattice(latdims);
 
@@ -36,29 +36,101 @@ TEST(TestKokkos, TestSpinProject)
 		QDPLatticeFermionToKokkosCBSpinor(qdp_in, kokkos_in);
 	}
 
+	double rfo = 1.0;
+	double bytes_in = (latdims[0]/2)*latdims[1]*latdims[2]*latdims[3]*4*3*2*sizeof(REAL32)*iters;
+	double bytes_out =(1.0+rfo)*(latdims[0]/2)*latdims[1]*latdims[2]*latdims[3]*2*3*2*sizeof(REAL32)*iters;
+	double mem_moved_in_GB = (bytes_in+bytes_out)/1.0e9;
 
-	for(int sign = -1; sign <= +1; sign+=2 ) {
-		for(int dir=0; dir < 4; ++dir ) {
-
-			MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",dir,sign);
-
-			double start_time = omp_get_wtime();
-			for(int i=0; i < iters; ++i) {
-				KokkosProjectLattice(kokkos_in,dir,sign,kokkos_hspinor_out);
-			}
-			double end_time = omp_get_wtime();
-
-			double rfo = 0.0;
-			double bytes_in = (latdims[0]/2)*latdims[1]*latdims[2]*latdims[3]*4*3*2*sizeof(REAL32)*iters;
-			double bytes_out =(1.0+rfo)*(latdims[0]/2)*latdims[1]*latdims[2]*latdims[3]*2*3*2*sizeof(REAL32)*iters;
-
-			// Convert to GB
-			double mem_moved_in_GB = (bytes_in+bytes_out)/1.0e9;
-			double effective_bw = mem_moved_in_GB / (end_time-start_time);
-			MasterLog(INFO, "Effective Bandwidth = %16.8e GB/sec\n", effective_bw);
-
-		}
+	{
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",0,-1);
+	  
+	  double start_time = omp_get_wtime();
+	  for(int i=0; i < iters; ++i) {
+	    KokkosProjectLattice<REAL32,0,-1>(kokkos_in,kokkos_hspinor_out);
+	  }
+	  double end_time = omp_get_wtime();
+ 	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
+	  MasterLog(INFO, "Effective Bandwidth = %16.8e GB/sec\n", effective_bw);
 	}
+	{
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",1,-1);
+	  
+	  double start_time = omp_get_wtime();
+	  for(int i=0; i < iters; ++i) {
+	    KokkosProjectLattice<REAL32,1,-1>(kokkos_in,kokkos_hspinor_out);
+	  }
+	  double end_time = omp_get_wtime();
+ 	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
+	  MasterLog(INFO, "Effective Bandwidth = %16.8e GB/sec\n", effective_bw);
+	}
+	{
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",2,-1);
+	  
+	  double start_time = omp_get_wtime();
+	  for(int i=0; i < iters; ++i) {
+	    KokkosProjectLattice<REAL32,2,-1>(kokkos_in,kokkos_hspinor_out);
+	  }
+	  double end_time = omp_get_wtime();
+ 	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
+	  MasterLog(INFO, "Effective Bandwidth = %16.8e GB/sec\n", effective_bw);
+	}
+	{
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",3,-1);
+	  
+	  double start_time = omp_get_wtime();
+	  for(int i=0; i < iters; ++i) {
+	    KokkosProjectLattice<REAL32,3,-1>(kokkos_in,kokkos_hspinor_out);
+	  }
+	  double end_time = omp_get_wtime();
+ 	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
+	  MasterLog(INFO, "Effective Bandwidth = %16.8e GB/sec\n", effective_bw);
+	}
+
+	{
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",0,1);
+	  
+	  double start_time = omp_get_wtime();
+	  for(int i=0; i < iters; ++i) {
+	    KokkosProjectLattice<REAL32,0,1>(kokkos_in,kokkos_hspinor_out);
+	  }
+	  double end_time = omp_get_wtime();
+ 	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
+	  MasterLog(INFO, "Effective Bandwidth = %16.8e GB/sec\n", effective_bw);
+	}
+	{
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",1,1);
+	  
+	  double start_time = omp_get_wtime();
+	  for(int i=0; i < iters; ++i) {
+	    KokkosProjectLattice<REAL32,1,1>(kokkos_in,kokkos_hspinor_out);
+	  }
+	  double end_time = omp_get_wtime();
+ 	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
+	  MasterLog(INFO, "Effective Bandwidth = %16.8e GB/sec\n", effective_bw);
+	}
+	{
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",2,1);
+	  
+	  double start_time = omp_get_wtime();
+	  for(int i=0; i < iters; ++i) {
+	    KokkosProjectLattice<REAL32,2,1>(kokkos_in,kokkos_hspinor_out);
+	  }
+	  double end_time = omp_get_wtime();
+ 	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
+	  MasterLog(INFO, "Effective Bandwidth = %16.8e GB/sec\n", effective_bw);
+	}
+	{
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",3,1);
+	  
+	  double start_time = omp_get_wtime();
+	  for(int i=0; i < iters; ++i) {
+	    KokkosProjectLattice<REAL32,3,1>(kokkos_in,kokkos_hspinor_out);
+	  }
+	  double end_time = omp_get_wtime();
+ 	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
+	  MasterLog(INFO, "Effective Bandwidth = %16.8e GB/sec\n", effective_bw);
+	}
+
 }
 #endif
 
@@ -219,8 +291,8 @@ TEST(TestKokkos, TestMultHalfSpinor)
 
 TEST(TestKokkos, TestDslash)
 {
-	IndexArray latdims={{24,24,24,24}};
-	int iters = 1000;
+	IndexArray latdims={{32,32,32,32}};
+	int iters = 200;
 
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrixF> gauge_in(n_dim);

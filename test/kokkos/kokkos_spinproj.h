@@ -14,14 +14,12 @@
 namespace MG {
 
 
-
-
-template<typename T>
+template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir0(const SpinorView<Kokkos::complex<T>> in,
-		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out, const T& sign, int i)
+		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out, int i)
 {
-
+  constexpr T sign = static_cast<T>(isign);
 
 	/*                              ( 1  0  0 -i)  ( a0 )    ( a0 - i a3 )
 	 *  B  :=  ( 1 - Gamma  ) A  =  ( 0  1 -i  0)  ( a1 )  = ( a1 - i a2 )
@@ -49,11 +47,12 @@ void KokkosProjectDir0(const SpinorView<Kokkos::complex<T>> in,
 	}
 }
 
-template<typename T>
+ template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir1(const SpinorView<Kokkos::complex<T>> in,
-		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out, const T sign, int i)
+		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out, int i)
 {
+  constexpr T sign = static_cast<T>(isign);
 
 	/*                              ( 1  0  0  1)  ( a0 )    ( a0 + a3 )
 	 *  B  :=  ( 1 - Gamma  ) A  =  ( 0  1 -1  0)  ( a1 )  = ( a1 - a2 )
@@ -68,7 +67,7 @@ void KokkosProjectDir1(const SpinorView<Kokkos::complex<T>> in,
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,3,K_RE);
 		// spinor_out(color,0,K_IM) = in(i,color,0,K_IM)-sign*in(i,color,3,K_IM);
-		A_sub_B(spinor_out(color,0),in(i,color,0),sign,in(i,color,3));
+		A_add_B(spinor_out(color,0),in(i,color,0),-sign,in(i,color,3));
 	}
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,2,K_RE);
@@ -78,13 +77,13 @@ void KokkosProjectDir1(const SpinorView<Kokkos::complex<T>> in,
 }
 
 
-template<typename T>
+ template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir2(const SpinorView<Kokkos::complex<T>> in,
-		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out, const T sign, int i)
+		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out, int i)
 {
 
-
+  constexpr T sign = static_cast<T>(isign);
 	/*                              ( 1  0  i  0)  ( a0 )    ( a0 + i a2 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  0 -i)  ( a1 )  = ( a1 - i a3 )
 	 *                    2         (-i  0  1  0)  ( a2 )    ( a2 - i a0 )
@@ -103,16 +102,17 @@ void KokkosProjectDir2(const SpinorView<Kokkos::complex<T>> in,
 	for(int color=0; color < 3; ++color ) {
 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,3,K_IM);
 		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)-sign*in(i,color,3,K_RE);
-		A_sub_iB(spinor_out(color,1), in(i,color,1), sign,in(i,color,3));
+		A_add_iB(spinor_out(color,1), in(i,color,1), -sign,in(i,color,3));
 	}
 }
 
-template<typename T>
+ template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir3(const SpinorView<Kokkos::complex<T>> in,
 		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out,
-		const T sign, int i)
+		int i)
 {
+    constexpr T sign = static_cast<T>(isign);
 	/*                              ( 1  0  1  0)  ( a0 )    ( a0 + a2 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  0  1)  ( a1 )  = ( a1 + a3 )
 	 *                    3         ( 1  0  1  0)  ( a2 )    ( a2 + a0 )
@@ -135,31 +135,8 @@ void KokkosProjectDir3(const SpinorView<Kokkos::complex<T>> in,
 }
 
 
-template<typename T, const int dir>
-KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir( 	const SpinorView<Kokkos::complex<T>> kokkos_in,
-		int plus_minus,
-		HalfSpinorSiteView<Kokkos::complex<T>>& kokkos_hspinor_out,int i)
-{
-	T sign = static_cast<T>( plus_minus == 1 ? 1 : -1 );
-	if( dir == 0 ) {
-		KokkosProjectDir0(kokkos_in,kokkos_hspinor_out,sign,i);
-	}
-	else if ( dir == 1 ) {
-		KokkosProjectDir1(kokkos_in,kokkos_hspinor_out,sign,i);
-	}
-	else if ( dir == 2 ) {
-		KokkosProjectDir2(kokkos_in,kokkos_hspinor_out,sign,i);
-	}
-	else {
-		KokkosProjectDir3(kokkos_in,kokkos_hspinor_out,sign,i);
-	}
-
-}
-
-template<typename T>
+ template<typename T, int dir, int isign>
 void KokkosProjectLattice(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& kokkos_in,
-		int dir,  int plus_minus,
 		KokkosCBFineSpinor<Kokkos::complex<T>,2>& kokkos_hspinor_out)
 {
 	int num_sites = kokkos_in.GetInfo().GetNumCBSites();
@@ -172,37 +149,40 @@ void KokkosProjectLattice(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& kokkos
 		HalfSpinorSiteView<Kokkos::complex<T>> res;
 
 		if( dir == 0) {
-			KokkosProjectDir<T,0>(spinor_in,plus_minus,res,i);
+		  //			KokkosProjectDir<T,0>(spinor_in,plus_minus,res,i);
+		  KokkosProjectDir0<T,isign>(spinor_in, res, i);
 		}
 		else if (dir == 1) {
-			KokkosProjectDir<T,1>(spinor_in,plus_minus,res,i);
+		  //			KokkosProjectDir<T,1>(spinor_in,plus_minus,res,i);
+		  KokkosProjectDir1<T,isign>(spinor_in, res, i);
 		}
 		else if (dir == 2 ) {
-			KokkosProjectDir<T,2>(spinor_in,plus_minus, res,i);
+		  KokkosProjectDir2<T,isign>(spinor_in, res,i);
 		}
 		else {
-			KokkosProjectDir<T,3>(spinor_in,plus_minus, res,i);
+		  KokkosProjectDir3<T,isign>(spinor_in, res,i);
 		}
+
 		for(int color=0; color < 3; ++color) {
-			for(int spin=0; spin<2; ++spin) {
+		  for(int spin=0; spin<2; ++spin) {
 
-				//hspinor_out(i,spin,color,reim) = res(spin,color,reim);
-				ComplexCopy(hspinor_out(i,color,spin), res(color,spin));
-			}
+		    //hspinor_out(i,spin,color,reim) = res(spin,color,reim);
+		    ComplexCopy(hspinor_out(i,color,spin), res(color,spin));
+		  }
 		}
-
+		
 	});
 
 
 }
 
 
-template<typename T>
+ template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosRecons23Dir0(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in,
-		SpinorSiteView<Kokkos::complex<T>>& spinor_out,
-		const T sign)
+			SpinorSiteView<Kokkos::complex<T>>& spinor_out)
 {
+  constexpr T sign = static_cast<T>(isign);
 	/*                              ( 1  0  0 +i)  ( a0 )    ( a0 + i a3 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1 +i  0)  ( a1 )  = ( a1 + i a2 )
 	 *                    0         ( 0 -i  1  0)  ( a2 )    ( a2 - i a1 )
@@ -214,28 +194,33 @@ void KokkosRecons23Dir0(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in
 	 *      ( b2r + i b2i )  =  ( {a2r + a1i} + i{a2i - a1r} )  =  ( b1i - i b1r )
 	 *      ( b3r + i b3i )     ( {a3r + a0i} + i{a3i - a0r} )     ( b0i - i b0r )
 	 */
+  for(int color=0; color < 3; ++color) { 
+    for(int spin=0; spin < 2; ++spin) { 
+      ComplexPeq(spinor_out(color,spin),hspinor_in(color,spin));
+    }
+  }
+
 
 	// Spin 2
 	for(int color=0; color < 3; ++color ) {
 		//	spinor_out(color,2).real() = sign*hspinor_in(color,1).imag();
 		//	spinor_out(color,2).imag() = -sign*hspinor_in(color,1).real();
-		A_eq_miB(spinor_out(color,2), sign, hspinor_in(color,1));
+		A_peq_sign_miB(spinor_out(color,2), sign, hspinor_in(color,1));
 	}
 
 	for(int color=0; color < 3; ++color) {
 		//	spinor_out(color,3).real() = sign*hspinor_in(color,0).imag();
 		//	spinor_out(color,3).imag() = -sign*hspinor_in(color,0).real();
-		A_eq_miB(spinor_out(color,3),sign, hspinor_in(color,0));
+		A_peq_sign_miB(spinor_out(color,3),sign, hspinor_in(color,0));
 	}
 }
 
-template<typename T>
+ template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosRecons23Dir1(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in,
-		SpinorSiteView<Kokkos::complex<T>>& spinor_out,
-		const T sign)
+			SpinorSiteView<Kokkos::complex<T>>& spinor_out)
 {
-
+  constexpr T sign = static_cast<T>(isign);
 	/*                              ( 1  0  0 -1)  ( a0 )    ( a0 - a3 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  1  0)  ( a1 )  = ( a1 + a2 )
 	 *                    1         ( 0  1  1  0)  ( a2 )    ( a2 + a1 )
@@ -247,26 +232,33 @@ void KokkosRecons23Dir1(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in
 	 *      ( b2r + i b2i )  =  ( {a2r + a1r} + i{a2i + a1i} )  =  (   b1r + i b1i )
 	 *      ( b3r + i b3i )     ( {a3r - a0r} + i{a3i - a0i} )     ( - b0r - i b0i )
 	 */
+  for(int color=0; color < 3; ++color) { 
+    for(int spin=0; spin < 2; ++spin) { 
+      ComplexPeq(spinor_out(color,spin),hspinor_in(color,spin));
+    }
+  }
+
 	// Spin 2
 	for(int color=0; color < 3; ++color ) {
 		// spinor_out(color,2).real() = sign*hspinor_in(color,1).real();
 		// spinor_out(color,2).imag() = sign*hspinor_in(color,1).imag();
-		A_eq_B(spinor_out(color,2),sign,hspinor_in(color,1));
+		A_peq_sign_B(spinor_out(color,2),sign,hspinor_in(color,1));
 	}
 
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,3).real() = -sign*hspinor_in(color,0).real();
 		// spinor_out(color,3).imag() = -sign*hspinor_in(color,0).imag();
-		A_eq_mB(spinor_out(color,3),sign,hspinor_in(color,0));
+	  A_peq_sign_B(spinor_out(color,3),-sign,hspinor_in(color,0));
 	}
 }
 
-template<typename T>
+ template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosRecons23Dir2(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in,
-		SpinorSiteView<Kokkos::complex<T>>& spinor_out,
-		const T sign)
+			SpinorSiteView<Kokkos::complex<T>>& spinor_out)
 {
+  constexpr T sign = static_cast<T>(isign);
+
 	/*                              ( 1  0  i  0)  ( a0 )    ( a0 + i a2 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  0 -i)  ( a1 )  = ( a1 - i a3 )
 	 *                    2         (-i  0  1  0)  ( a2 )    ( a2 - i a0 )
@@ -279,26 +271,33 @@ void KokkosRecons23Dir2(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in
 	 *      ( b3r + i b3i )     ( {a3r - a1i} + i{a3i + a1r} )     ( - b1i + i b1r )
 	 */
 
+  for(int color=0; color < 3; ++color) { 
+    for(int spin=0; spin < 2; ++spin) { 
+      ComplexPeq(spinor_out(color,spin),hspinor_in(color,spin));
+    }
+  }
+
+
 	// Spin 2
 	for(int color=0; color < 3; ++color ) {
 		// spinor_out(color,2).real() = sign*hspinor_in(color,0).imag();
 		// spinor_out(color,2).imag() = -sign*hspinor_in(color,0).real();
-		A_eq_miB(spinor_out(color,2), sign, hspinor_in(color,0));
+		A_peq_sign_miB(spinor_out(color,2), sign, hspinor_in(color,0));
 	}
 
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,3,K_RE) = -sign*hspinor_in(color,1,K_IM);
 		// spinor_out(color,3,K_IM) = sign*hspinor_in(color,1,K_RE);
-		A_eq_iB(spinor_out(color,3), sign, hspinor_in(color,1));
+		A_peq_sign_miB(spinor_out(color,3), -sign, hspinor_in(color,1));
 	}
 }
 
-template<typename T>
+ template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosRecons23Dir3(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in,
-		SpinorSiteView<Kokkos::complex<T>>& spinor_out,
-		const T sign)
+			SpinorSiteView<Kokkos::complex<T>>& spinor_out)
 {
+  constexpr T sign = static_cast<T>(isign);
 	/*                              ( 1  0  1  0)  ( a0 )    ( a0 + a2 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  0  1)  ( a1 )  = ( a1 + a3 )
 	 *                    3         ( 1  0  1  0)  ( a2 )    ( a2 + a0 )
@@ -310,90 +309,29 @@ void KokkosRecons23Dir3(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in
 	 *      ( b2r + i b2i )  =  ( {a2r + a0r} + i{a2i + a0i} )  =  ( b0r + i b0i )
 	 *      ( b3r + i b3i )     ( {a3r + a1r} + i{a3i + a1i} )     ( b1r + i b1i )
 	 */
+  for(int color=0; color < 3; ++color) { 
+    for(int spin=0; spin < 2; ++spin) { 
+      ComplexPeq(spinor_out(color,spin),hspinor_in(color,spin));
+    }
+  }
 
 	// Spin 2
 	for(int color=0; color < 3; ++color ) {
 		// spinor_out(color,2,K_RE) = sign*hspinor_in(color,0,K_RE);
 		// spinor_out(color,2,K_IM) = sign*hspinor_in(color,0,K_IM);
-		A_eq_B(spinor_out(color,2),sign,hspinor_in(color,0));
+		A_peq_sign_B(spinor_out(color,2),sign,hspinor_in(color,0));
 	}
 
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,3,K_RE) = sign*hspinor_in(color,1,K_RE);
 		// spinor_out(color,3,K_IM) = sign*hspinor_in(color,1,K_IM);
-		A_eq_B(spinor_out(color,3), sign, hspinor_in(color,1));
+		A_peq_sign_B(spinor_out(color,3), sign, hspinor_in(color,1));
 	}
 }
 
-template<typename T, int dir, bool accum=false>
-KOKKOS_FORCEINLINE_FUNCTION
-void  KokkosReconsDir(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in,
-		int plus_minus,
-		SpinorView<Kokkos::complex<T>> spinor_out, int i)
-{
-	T sign = static_cast<T>( plus_minus );
-	SpinorSiteView<Kokkos::complex<T>> res;
 
-	// Keep the first two spin components -- stream in
-
-	for(int color=0; color < 3; ++color) {
-		for(int spin=0; spin < 2; ++spin ) {
-			//	res(spin,color,reim) = hspinor_in(spin,color,reim);
-			ComplexCopy(res(color,spin),hspinor_in(color,spin));
-		}
-	}
-
-	// Pick the right reconstruct
-	if( dir == 0 ) {
-		KokkosRecons23Dir0(hspinor_in, res, sign);
-	}
-	else if ( dir == 1 ) {
-		KokkosRecons23Dir1(hspinor_in, res, sign);
-	}
-	else if ( dir == 2 ) {
-		KokkosRecons23Dir2(hspinor_in, res, sign);
-	}
-	else {
-		KokkosRecons23Dir3(hspinor_in, res, sign);
-	}
-
-#if 0
-	if( i== 0) {
-
-		for(int color=0; color < 3; ++color) {
-			for(int spin=0; spin < 4; ++spin) {
-				printf("spin=%d color=%d res = (%lf, %lf)\n", spin,color, res(color,spin).real(), res(color,spin).imag());
-			}
-		}
-	}
-}
-#endif
-// stream out
-// Reconstruct/Accumulate
-if( accum == false) {
-	// Set the result from hopefully registerized 'res'
-
-	for(int color=0; color < 3; ++color) {
-		for(int spin=0; spin < 4; ++spin) {
-			ComplexCopy( spinor_out(i,color,spin), res(color,spin));
-
-		}
-	}
-}
-else {
-	// Accumulate result
-	for(int color=0; color < 3; ++color) {
-		for(int spin=0; spin < 4; ++spin) {
-
-			ComplexPeq(spinor_out(i,color,spin) , res(color,spin) );
-		}
-	}
-}
-}
-
-template<typename T>
+ template<typename T, int dir, int isign>
 void KokkosReconsLattice(const KokkosCBFineSpinor<Kokkos::complex<T>,2>& kokkos_hspinor_in,
-		int dir, int plus_minus,
 		KokkosCBFineSpinor<Kokkos::complex<T>,4>& kokkos_spinor_out)
 {
 	const int num_sites = kokkos_hspinor_in.GetInfo().GetNumCBSites();
@@ -407,35 +345,50 @@ void KokkosReconsLattice(const KokkosCBFineSpinor<Kokkos::complex<T>,2>& kokkos_
 
 
 		HalfSpinorSiteView<Kokkos::complex<T>> hspinor_in;
+		SpinorSiteView<Kokkos::complex<T>> res;
 
-		for(int color=0; color < 3; ++color ) {
-			for(int spin=0; spin < 2; ++spin) {
-
-				ComplexCopy( hspinor_in(color,spin), hspinor_in_view(i,color,spin));
-
-			}
+		// Stream in top 2 components.
+		for(int color=0; color < 3; ++color) {
+		  for(int spin=0; spin < 2; ++spin ) {
+		    ComplexCopy(hspinor_in(color,spin),hspinor_in_view(i,color,spin));
+		  }
 		}
 
-		// Do the do!
+		for(int color=0; color < 3; ++color) {
+		  for(int spin=0; spin < 4; ++spin ) {
+		    ComplexZero(res(color,spin));
+		  }
+		}
+
+		// Reconstruct into a SpinorSiteView
 		if (dir == 0 ) {
-			KokkosReconsDir<T,0,false>(hspinor_in,
-					plus_minus,
-					spinor_out,
-					i);
+		  KokkosRecons23Dir0<T,isign>(hspinor_in,
+					     res);
 		}
 		else if (dir == 1 ) {
-			KokkosReconsDir<T,1,false>(hspinor_in,
-					plus_minus,
-					spinor_out,i);
+		  KokkosRecons23Dir1<T,isign>(hspinor_in,
+						     res);
+
 		}
 		else if ( dir == 2 ) {
-			KokkosReconsDir<T,2,false>(hspinor_in,
-					plus_minus,
-					spinor_out,i);
+		  KokkosRecons23Dir2<T,isign>(hspinor_in,
+						     res);
 		}
 		else {
-			KokkosReconsDir<T,3,false>(hspinor_in,
-					plus_minus,spinor_out,i);
+		  KokkosRecons23Dir3<T,isign>(hspinor_in,
+						     res);
+
+		}
+
+		// Stream out into a spinor
+		for(int color=0; color < 3; ++color ) {
+		  for(int spin=0; spin < 4; ++spin) {
+
+		    ComplexCopy( spinor_out(i,color,spin), res(color,spin));
+
+		  }
+
+
 		}
 
 	});

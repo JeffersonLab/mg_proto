@@ -57,13 +57,6 @@ void A_add_B( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& sig
 	res.imag() = a.imag() + sign*b.imag();
 }
 
-template<typename T>
-KOKKOS_FORCEINLINE_FUNCTION
-void A_sub_B( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
-{
-	res.real() = a.real() - sign*b.real();
-	res.imag() = a.imag() - sign*b.imag();
-}
 
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
@@ -73,50 +66,25 @@ void A_add_iB( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& si
 	res.imag() = a.imag()+sign*b.real();
 }
 
-template<typename T>
-KOKKOS_FORCEINLINE_FUNCTION
-void A_sub_iB( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
-{
-	res.real() = a.real()+sign*b.imag();
-	res.imag() = a.imag()-sign*b.real();
-}
 
 // a = -i b
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_eq_miB( Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
+void A_peq_sign_miB( Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
 {
-	a.real() = +sign*b.imag();
-	a.imag() = -sign*b.real();
+	a.real() += sign*b.imag();
+	a.imag() -= sign*b.real();
 }
 
-// a = -i b
-template<typename T>
-KOKKOS_FORCEINLINE_FUNCTION
-void A_eq_iB( Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
-{
-	a.real() = -sign*b.imag();
-	a.imag() = +sign*b.real();
-}
 
 // a = b
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_eq_B( Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
+void A_peq_sign_B( Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
 {
-	a.real() = +sign*b.real();
-	a.imag() = +sign*b.imag();
+	a.real() += sign*b.real();
+	a.imag() += sign*b.imag();
 }
-
-// a = -b
-template<typename T>
-KOKKOS_FORCEINLINE_FUNCTION
-void A_eq_mB( Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
-{
-	a.real() = -sign*b.real();
-	a.imag() = -sign*b.imag();
-}
-
 
 
 } // namespace

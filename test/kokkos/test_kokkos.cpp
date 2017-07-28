@@ -140,63 +140,127 @@ TEST(TestKokkos, TestSpinProject)
 	KokkosCBFineSpinor<Kokkos::complex<REAL>,2> kokkos_hspinor_out(hinfo,EVEN);
 
 	QDPLatticeFermionToKokkosCBSpinor(qdp_in, kokkos_in);
+	
+	{
+	  // sign = -1 dir = 0
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",0,-1);
+	  qdp_out[rb[0]] = spinProjectDir0Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
 
-	for(int sign = -1; sign <= +1; sign+=2 ) {
-		for(int dir=0; dir < 4; ++dir ) {
+	  KokkosProjectLattice<REAL,0,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
 
-			MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",dir,sign);
-
-			if( sign == -1 ) {
-				switch(dir) {
-				case 0:
-					qdp_out[rb[0]] = spinProjectDir0Minus(qdp_in);
-					break;
-				case 1:
-					qdp_out[rb[0]] = spinProjectDir1Minus(qdp_in);
-					break;
-				case 2:
-					qdp_out[rb[0]] = spinProjectDir2Minus(qdp_in);
-					break;
-				case 3:
-					qdp_out[rb[0]] = spinProjectDir3Minus(qdp_in);
-					break;
-				default:
-					MasterLog(ERROR, "Wrong direction in SpinProject test: %d",dir);
-					break;
-				};
-			}
-			else {
-				switch(dir) {
-				case 0:
-					qdp_out[rb[0]] = spinProjectDir0Plus(qdp_in);
-					break;
-				case 1:
-					qdp_out[rb[0]] = spinProjectDir1Plus(qdp_in);
-					break;
-				case 2:
-					qdp_out[rb[0]] = spinProjectDir2Plus(qdp_in);
-					break;
-				case 3:
-					qdp_out[rb[0]] = spinProjectDir3Plus(qdp_in);
-					break;
-				default:
-					MasterLog(ERROR, "Wrong direction in SpinProject test: %d",dir);
-				};
-			}
-			qdp_out[rb[1]] = zero;
-
-			KokkosProjectLattice(kokkos_in,dir,sign,kokkos_hspinor_out);
-
-			// Export back out
-			KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
-
-			qdp_out[rb[0]] -= kokkos_out;
-
-			double norm_diff = toDouble(sqrt(norm2(qdp_out)));
-			MasterLog(INFO, "norm_diff = %lf", norm_diff);
-			ASSERT_LT( norm_diff, 1.0e-5);
-		}
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
 	}
+
+	{
+	  // sign = -1 dir = 1
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",1,-1);
+	  qdp_out[rb[0]] = spinProjectDir1Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosProjectLattice<REAL,1,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  // sign = -1 dir = 2
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",2,-1);
+	  qdp_out[rb[0]] = spinProjectDir2Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosProjectLattice<REAL,2,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  // sign = -1 dir = 3
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",3,-1);
+	  qdp_out[rb[0]] = spinProjectDir3Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosProjectLattice<REAL,3,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  // sign = 1 dir = 0
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",0,1);
+	  qdp_out[rb[0]] = spinProjectDir0Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosProjectLattice<REAL,0,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  // sign = 1 dir = 1
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",1,1);
+	  qdp_out[rb[0]] = spinProjectDir1Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosProjectLattice<REAL,1,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  // sign = 1 dir = 2
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",2,1);
+	  qdp_out[rb[0]] = spinProjectDir2Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosProjectLattice<REAL,2,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  // sign = 1 dir = 3
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",3,+1);
+	  qdp_out[rb[0]] = spinProjectDir3Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosProjectLattice<REAL,3,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
 }
 
 TEST(TestKokkos, TestSpinRecons)
@@ -218,64 +282,128 @@ TEST(TestKokkos, TestSpinRecons)
 	KokkosCBFineSpinor<Kokkos::complex<REAL>,4> kokkos_spinor_out(info,EVEN);
 
 	QDPLatticeHalfFermionToKokkosCBSpinor2(qdp_in, kokkos_hspinor_in);
+	
+	{
+	  MasterLog(INFO, "Spin Recons Test: dir = %d sign = %d", 0, -1);
+	  qdp_out[rb[0]] = spinReconstructDir0Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
 
-	for(int s=-1; s <= +1; s+=2 ) {
-		for(int dir=0; dir < 4; ++dir ) {
-			MasterLog(INFO, "Spin Recons Test: dir = %d sign = %d", dir, s);
+	  KokkosReconsLattice<REAL,0,-1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
-			if ( s == -1 ) {
-				switch(dir) {
-				case 0:
-					qdp_out[rb[0]] = spinReconstructDir0Minus(qdp_in);
-					break;
-				case 1:
-					qdp_out[rb[0]] = spinReconstructDir1Minus(qdp_in);
-					break;
-				case 2:
-					qdp_out[rb[0]] = spinReconstructDir2Minus(qdp_in);
-					break;
-				case 3:
-					qdp_out[rb[0]] = spinReconstructDir3Minus(qdp_in);
-					break;
-				default:
-					MasterLog(ERROR, "Bad direction in SpinReconstruction Test");
-					break;
-				}
-			}
-			else {
-				switch(dir) {
-				case 0:
-					qdp_out[rb[0]] = spinReconstructDir0Plus(qdp_in);
-					break;
-				case 1:
-					qdp_out[rb[0]] = spinReconstructDir1Plus(qdp_in);
-					break;
-				case 2:
-					qdp_out[rb[0]] = spinReconstructDir2Plus(qdp_in);
-					break;
-				case 3:
-					qdp_out[rb[0]] = spinReconstructDir3Plus(qdp_in);
-					break;
-				default:
-					MasterLog(ERROR, "Bad direction in SpinReconstruction Test");
-					break;
-				}
+	  qdp_out[rb[0]] -= kokkos_out;
+	  
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
 
-			}
+	{
+	  MasterLog(INFO, "Spin Recons Test: dir = %d sign = %d", 1, -1);
+	  qdp_out[rb[0]] = spinReconstructDir1Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosReconsLattice<REAL,1,-1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
+
+	  qdp_out[rb[0]] -= kokkos_out;
+	  
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  MasterLog(INFO, "Spin Recons Test: dir = %d sign = %d", 2, -1);
+	  qdp_out[rb[0]] = spinReconstructDir2Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosReconsLattice<REAL,2,-1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
+
+	  qdp_out[rb[0]] -= kokkos_out;
+	  
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  MasterLog(INFO, "Spin Recons Test: dir = %d sign = %d", 3, -1);
+	  qdp_out[rb[0]] = spinReconstructDir3Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosReconsLattice<REAL,3,-1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
+
+	  qdp_out[rb[0]] -= kokkos_out;
+	  
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
 
 
-			qdp_out[rb[1]] = zero;
+	{
+	  MasterLog(INFO, "Spin Recons Test: dir = %d sign = %d", 0, +1);
+	  qdp_out[rb[0]] = spinReconstructDir0Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
 
-			KokkosReconsLattice(kokkos_hspinor_in,dir,s,kokkos_spinor_out);
-			KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
+	  KokkosReconsLattice<REAL,0,1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
-			qdp_out[rb[0]] -= kokkos_out;
+	  qdp_out[rb[0]] -= kokkos_out;
+	  
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
 
-			double norm_diff = toDouble(sqrt(norm2(qdp_out)));
-			MasterLog(INFO, "norm_diff = %lf", norm_diff);
-			ASSERT_LT( norm_diff, 1.0e-5);
-		} // dir
- 	} // s
+	{
+	  MasterLog(INFO, "Spin Recons Test: dir = %d sign = %d", 1, +1);
+	  qdp_out[rb[0]] = spinReconstructDir1Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosReconsLattice<REAL,1,1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
+
+	  qdp_out[rb[0]] -= kokkos_out;
+	  
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  MasterLog(INFO, "Spin Recons Test: dir = %d sign = %d", 2, +1);
+	  qdp_out[rb[0]] = spinReconstructDir2Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosReconsLattice<REAL,2,1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
+
+	  qdp_out[rb[0]] -= kokkos_out;
+	  
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  MasterLog(INFO, "Spin Recons Test: dir = %d sign = %d", 3, +1);
+	  qdp_out[rb[0]] = spinReconstructDir3Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosReconsLattice<REAL,3,1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
+
+	  qdp_out[rb[0]] -= kokkos_out;
+	  
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out)));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
 }
 
 

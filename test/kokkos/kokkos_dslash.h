@@ -20,45 +20,142 @@ namespace MG {
 // One direction of dslash, multiplying U. Direction and whether to accumulate
 // are 'compile time' through templates.
 // Savvy compiler should inline these and optimize them
-template<typename T,int dir, bool accum>
+  template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashMVSiteDir(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
-		const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
-		SpinorView<Kokkos::complex<T>>& spinor_out,         // result
-		int plus_minus,
-		int source_spinor_idx,
-		int gauge_idx,
-		int dest_spinor_idx)                // Sign +1 for Dslash, -1 for Adjoint
-
+void DslashMVSiteDir0(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
+		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
+		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
+		      int source_spinor_idx,
+		      int gauge_idx)
 {
 	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
 	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
 
-	KokkosProjectDir<T,dir>(spinor_in,plus_minus,proj_res,source_spinor_idx);
-	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,dir);
-	KokkosReconsDir<T,dir,accum>(mult_proj_res,plus_minus,spinor_out,dest_spinor_idx);
+	KokkosProjectDir0<T,isign>(spinor_in,proj_res,source_spinor_idx);
+	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,0);
+	KokkosRecons23Dir0<T,isign>(mult_proj_res, res_sum);
+}
+
+  template<typename T, int isign>
+KOKKOS_FORCEINLINE_FUNCTION
+void DslashMVSiteDir1(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
+		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
+		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
+		      int source_spinor_idx,
+		      int gauge_idx)
+    
+{
+	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
+	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+
+	KokkosProjectDir1<T,isign>(spinor_in,proj_res,source_spinor_idx);
+	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,1);
+	KokkosRecons23Dir1<T,isign>(mult_proj_res, res_sum);
+}
+
+  template<typename T, int isign>
+KOKKOS_FORCEINLINE_FUNCTION
+void DslashMVSiteDir2(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
+		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
+		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
+		      int source_spinor_idx,
+		      int gauge_idx)
+{
+	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
+	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+
+	KokkosProjectDir2<T,isign>(spinor_in,proj_res,source_spinor_idx);
+	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,2);
+	KokkosRecons23Dir2<T,isign>(mult_proj_res, res_sum);
+}
+
+  template<typename T, int isign>
+KOKKOS_FORCEINLINE_FUNCTION
+void DslashMVSiteDir3(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
+		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
+		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
+		      int source_spinor_idx,
+		      int gauge_idx)
+{
+	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
+	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+
+	KokkosProjectDir3<T,isign>(spinor_in,proj_res,source_spinor_idx);
+	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,3);
+	KokkosRecons23Dir3<T,isign>(mult_proj_res, res_sum);
 }
 
 // One direction of dslash, multiply with U^\dagger
 // direction and whether to accumulate are compile time through templates
 // Savvy compiler should inline and optimize them
-template<typename T,  int dir,  bool accum >
+  template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashHVSiteDir(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
-		const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
-		SpinorView<Kokkos::complex<T>>& spinor_out,        // result
-		int plus_minus,
-		int source_spinor_idx,
-		int gauge_idx,
-		int dest_spinor_idx)         // sign +1 for Dslash, -1 for Adjoint
+void DslashHVSiteDir0(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
+		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
+		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
+		      int source_spinor_idx,
+		      int gauge_idx)
+{
+	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
+	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+
+	KokkosProjectDir0<T,isign>(spinor_in, proj_res,source_spinor_idx);
+	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,0);
+	KokkosRecons23Dir0<T,isign>(mult_proj_res,res_sum);
+
+}
+
+  template<typename T, int isign>
+KOKKOS_FORCEINLINE_FUNCTION
+void DslashHVSiteDir1(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
+		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
+		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
+		      int source_spinor_idx,
+		      int gauge_idx)
+{
+	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
+	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+
+	KokkosProjectDir1<T,isign>(spinor_in, proj_res,source_spinor_idx);
+	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,1);
+	KokkosRecons23Dir1<T,isign>(mult_proj_res,res_sum);
+
+}
+
+  template<typename T, int isign>
+KOKKOS_FORCEINLINE_FUNCTION
+void DslashHVSiteDir2(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
+		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
+		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
+		      int source_spinor_idx,
+		      int gauge_idx)
+
 
 {
 	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
 	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
 
-	KokkosProjectDir<T,dir>(spinor_in, plus_minus, proj_res,source_spinor_idx);
-	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,dir);
-	KokkosReconsDir<T,dir,accum>(mult_proj_res,plus_minus,spinor_out,dest_spinor_idx);
+	KokkosProjectDir2<T,isign>(spinor_in, proj_res,source_spinor_idx);
+	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,2);
+	KokkosRecons23Dir2<T,isign>(mult_proj_res,res_sum);
+
+}
+
+  template<typename T, int isign>
+KOKKOS_FORCEINLINE_FUNCTION
+void DslashHVSiteDir3(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
+		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
+		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
+		      int source_spinor_idx,
+		      int gauge_idx)
+
+{
+	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
+	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+
+	KokkosProjectDir3<T,isign>(spinor_in, proj_res,source_spinor_idx);
+	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,3);
+	KokkosRecons23Dir3<T,isign>(mult_proj_res,res_sum);
 
 }
 
@@ -72,15 +169,14 @@ private:
 public:
 	KokkosDslash(const LatticeInfo& info) : _info(info) {}
 
-	void operator()(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_in,
+	template<const int isign>
+	void apply(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_in,
 			const KokkosFineGaugeField<Kokkos::complex<T>>& gauge_in,
-			KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_out,
-			int plus_minus) const
+			KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_out) const
 	{
 		// Source and target checkerboards
 		IndexType target_cb = fine_out.GetCB();
 		IndexType source_cb = (target_cb == EVEN) ? ODD : EVEN;
-		int minus_plus = -plus_minus;
 
 		// Gather all views just outside Parallel Loop.
 		// Can these be references? Will the world collapse?
@@ -105,6 +201,15 @@ public:
 			// Source and target checkerboard gauge fields
 
 			SpinorView<Kokkos::complex<T>> s_o = fine_out.GetData();
+
+			//Init result
+			SpinorSiteView<Kokkos::complex<T>> res_sum;
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    ComplexZero(res_sum(color,spin));
+			  }
+			}
+
 			// Break down site index into xcb, y,z and t
 			IndexType tmp_yzt = site / _n_xh;
 			IndexType xcb = site - _n_xh * tmp_yzt;
@@ -131,13 +236,12 @@ public:
 				}
 
 
-				DslashHVSiteDir<T,3,false>(s_in,
-									       g_in_src_cb,
-										   s_o,
-										   plus_minus,
-										   neigh_index,
-										   neigh_index,
-										   site);
+				DslashHVSiteDir3<T,isign>(s_in,
+							  g_in_src_cb,
+							  res_sum,
+							  neigh_index,
+							  neigh_index);
+
 			}
 
 
@@ -150,13 +254,12 @@ public:
 				else {
 					neigh_index = xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t));
 				}
-				DslashHVSiteDir<T,2,true>(s_in,
-										       g_in_src_cb,
-											   s_o,
-											   plus_minus,
-											   neigh_index,
-											   neigh_index,
-											   site);
+				DslashHVSiteDir2<T,isign>(s_in,
+							  g_in_src_cb,
+							  res_sum,
+							  neigh_index,
+							  neigh_index);
+
 			}
 
 			// Y - minus
@@ -168,13 +271,12 @@ public:
 					neigh_index = xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t));
 				}
 
-				DslashHVSiteDir<T,1,true>(s_in,
-													       g_in_src_cb,
-														   s_o,
-														   plus_minus,
-														   neigh_index,
-														   neigh_index,
-														   site);
+				DslashHVSiteDir1<T,isign>(s_in,
+							  g_in_src_cb,
+							  res_sum,
+							  neigh_index,
+							  neigh_index);
+
 
 			}
 
@@ -187,13 +289,11 @@ public:
 					neigh_index= ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
 				}
 
-				DslashHVSiteDir<T,0,true>(s_in,
-													       g_in_src_cb,
-														   s_o,
-														   plus_minus,
-														   neigh_index,
-														   neigh_index,
-														   site);
+				DslashHVSiteDir0<T,isign>(s_in,
+							  g_in_src_cb,
+							  res_sum,
+							  neigh_index,
+							  neigh_index);
 
 
 			}
@@ -209,13 +309,12 @@ public:
 				}
 
 
-				DslashMVSiteDir<T,0,true>(s_in,
-						g_in_target_cb,
-						s_o,
-						minus_plus,
-						neigh_index,
-						site,
-						site);
+				DslashMVSiteDir0<T,-isign>(s_in,
+							   g_in_target_cb,
+							   res_sum,
+							   neigh_index,
+							   site);
+
 
 			}
 
@@ -229,13 +328,12 @@ public:
 					neigh_index = xcb + _n_xh*(0 + _n_y*(z + _n_z*t));
 				}
 
-				DslashMVSiteDir<T,1,true>(s_in,
-						g_in_target_cb,
-						s_o,
-						minus_plus,
-						neigh_index,
-						site,
-						site);
+				DslashMVSiteDir1<T,-isign>(s_in,
+							   g_in_target_cb,
+							   res_sum,
+							   neigh_index,
+							   site);
+
 			}
 
 			// Z - plus
@@ -250,13 +348,11 @@ public:
 
 
 
-				DslashMVSiteDir<T,2,true>(s_in,
-						g_in_target_cb,
-						s_o,
-						minus_plus,
-						neigh_index,
-						site,
-						site);
+				DslashMVSiteDir2<T,-isign>(s_in,
+							   g_in_target_cb,
+							   res_sum,
+							   neigh_index,
+							   site);
 
 			}
 
@@ -271,20 +367,37 @@ public:
 				}
 
 
-				DslashMVSiteDir<T,3,true>(s_in,
-						g_in_target_cb,
-						s_o,
-						minus_plus,
-						neigh_index,
-						site,
-						site);
+				DslashMVSiteDir3<T,-isign>(s_in,
+							   g_in_target_cb,
+							   res_sum,
+							   neigh_index,
+							   site);
 
 			}
-
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    ComplexCopy(s_o(site,color,spin),res_sum(color,spin));
+			  }
+			}
 
 		});
 
 	}
+
+	void operator()(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_in,
+		      const KokkosFineGaugeField<Kokkos::complex<T>>& gauge_in,
+		      KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_out,
+		      int plus_minus) const
+	{
+	  if( plus_minus == 1 ) {
+	    apply<1>(fine_in, gauge_in,fine_out);
+	  }
+	  else {
+	    apply<-1>(fine_in, gauge_in, fine_out);
+	  }
+	  
+	}
+
 };
 
 };
