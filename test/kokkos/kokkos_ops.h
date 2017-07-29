@@ -51,7 +51,7 @@ ComplexConjMadd(Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const Kokk
 }
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_add_B( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
+void A_add_sign_B( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
 {
 	res.real() = a.real() + sign*b.real();
 	res.imag() = a.imag() + sign*b.imag();
@@ -60,7 +60,7 @@ void A_add_B( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& sig
 
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_add_iB( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
+void A_add_sign_iB( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
 {
 	res.real() = a.real()-sign*b.imag();
 	res.imag() = a.imag()+sign*b.real();

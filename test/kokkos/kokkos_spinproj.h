@@ -36,14 +36,14 @@ void KokkosProjectDir0(const SpinorView<Kokkos::complex<T>> in,
 	for(int color=0; color < 3; ++color) {
 		//		spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,3,K_IM);
 		//		spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,3,K_RE);
-		A_add_iB(spinor_out(color,0), in(i,color,0), sign, in(i,color,3) );
+		A_add_sign_iB(spinor_out(color,0), in(i,color,0), sign, in(i,color,3) );
 
 	}
 
 	for(int color=0; color < 3; ++color) {
 		//	spinor_out(color,1,K_RE) = in(i,color,1,K_RE)-sign*in(i,color,2,K_IM);
 		//	spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,2,K_RE);
-		A_add_iB(spinor_out(color,1), in(i,color,1), sign, in(i,color,2));
+		A_add_sign_iB(spinor_out(color,1), in(i,color,1), sign, in(i,color,2));
 	}
 }
 
@@ -67,12 +67,12 @@ void KokkosProjectDir1(const SpinorView<Kokkos::complex<T>> in,
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,3,K_RE);
 		// spinor_out(color,0,K_IM) = in(i,color,0,K_IM)-sign*in(i,color,3,K_IM);
-		A_add_B(spinor_out(color,0),in(i,color,0),-sign,in(i,color,3));
+		A_add_sign_B(spinor_out(color,0),in(i,color,0),-sign,in(i,color,3));
 	}
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,2,K_RE);
 		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,2,K_IM);
-		A_add_B(spinor_out(color,1), in(i,color,1),sign,in(i,color,2));
+		A_add_sign_B(spinor_out(color,1), in(i,color,1),sign,in(i,color,2));
 	}
 }
 
@@ -96,13 +96,13 @@ void KokkosProjectDir2(const SpinorView<Kokkos::complex<T>> in,
 	for(int color=0; color < 3; ++color) {
 		//spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,2,K_IM);
 		//spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,2,K_RE);
-		A_add_iB(spinor_out(color,0),in(i,color,0),sign,in(i,color,2));
+		A_add_sign_iB(spinor_out(color,0),in(i,color,0),sign,in(i,color,2));
 	}
 
 	for(int color=0; color < 3; ++color ) {
 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,3,K_IM);
 		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)-sign*in(i,color,3,K_RE);
-		A_add_iB(spinor_out(color,1), in(i,color,1), -sign,in(i,color,3));
+		A_add_sign_iB(spinor_out(color,1), in(i,color,1), -sign,in(i,color,3));
 	}
 }
 
@@ -124,13 +124,13 @@ void KokkosProjectDir3(const SpinorView<Kokkos::complex<T>> in,
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,0,K_RE) = in(i,color,0,K_RE)+sign*in(i,color,2,K_RE);
 		// spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,2,K_IM);
-		A_add_B(spinor_out(color,0), in(i,color,0), sign, in(i,color,2));
+		A_add_sign_B(spinor_out(color,0), in(i,color,0), sign, in(i,color,2));
 	}
 
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,3,K_RE);
 		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,3,K_IM);
-		A_add_B(spinor_out(color,1), in(i,color,1), sign, in(i,color,3));
+		A_add_sign_B(spinor_out(color,1), in(i,color,1), sign, in(i,color,3));
 	}
 }
 
