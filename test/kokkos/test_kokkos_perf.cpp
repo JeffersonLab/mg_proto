@@ -16,12 +16,12 @@ using namespace MGTesting;
 using namespace QDP;
 
 
-#if 1
+#if 0
 TEST(TestKokkos, TestSpinProject)
 {
 	IndexArray latdims={{32,32,32,32}};
 	int iters = 1000;
-
+ 
 	initQDPXXLattice(latdims);
 
 	LatticeInfo info(latdims,4,3,NodeInfo());
@@ -287,7 +287,7 @@ TEST(TestKokkos, TestMultHalfSpinor)
 }
 #endif
 
-#if 1
+#if 0
 
 TEST(TestKokkos, TestDslash)
 {
@@ -356,7 +356,7 @@ TEST(TestKokkos, TestDslash)
 TEST(TestKokkos, TestDslashVec)
 {
 	IndexArray latdims={{16,16,16,32}};
-	int iters = 200;
+	int iters = 1200;
 	constexpr static int V = 8;
 
 	initQDPXXLattice(latdims);
