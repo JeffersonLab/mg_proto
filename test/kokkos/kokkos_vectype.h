@@ -13,6 +13,8 @@
 namespace MG
 {
 
+
+// General
 template<typename T, int N>
 struct SIMDComplex {
 
@@ -151,6 +153,7 @@ void A_peq_sign_B( SIMDComplex<T,N>& a, const T& sign, const SIMDComplex<T,N>& b
 		a._data[i].imag() += sign*b(i).imag();
 	}
 }
+
 
 
 } // namespace
