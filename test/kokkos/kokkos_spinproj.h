@@ -173,7 +173,7 @@ void KokkosProjectLattice(const KokkosCBFineSpinor<T,4>& kokkos_in,
 		  for(int spin=0; spin<2; ++spin) {
 
 		    //hspinor_out(i,spin,color,reim) = res(spin,color,reim);
-		    ComplexCopy(hspinor_out(i,color,spin), res(color,spin));
+		    Store(hspinor_out(i,color,spin), res(color,spin));
 		  }
 		}
 		
@@ -360,7 +360,7 @@ void KokkosReconsLattice(const KokkosCBFineSpinor<T,2>& kokkos_hspinor_in,
 		// Stream in top 2 components.
 		for(int color=0; color < 3; ++color) {
 		  for(int spin=0; spin < 2; ++spin ) {
-		    ComplexCopy(hspinor_in(color,spin),hspinor_in_view(i,color,spin));
+		    Load(hspinor_in(color,spin),hspinor_in_view(i,color,spin));
 		  }
 		}
 
@@ -394,7 +394,7 @@ void KokkosReconsLattice(const KokkosCBFineSpinor<T,2>& kokkos_hspinor_in,
 		for(int color=0; color < 3; ++color ) {
 		  for(int spin=0; spin < 4; ++spin) {
 
-		    ComplexCopy( spinor_out(i,color,spin), res(color,spin));
+		    Store( spinor_out(i,color,spin), res(color,spin));
 
 		  }
 

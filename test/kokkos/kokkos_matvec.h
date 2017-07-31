@@ -100,7 +100,7 @@ namespace MG
 
 				for(int col=0; col <3; ++col) {
 					for(int spin=0; spin < 2; ++spin) {
-						ComplexCopy(site_in(col,spin), hspinor_in_view(i,col,spin));
+						Load(site_in(col,spin), hspinor_in_view(i,col,spin));
 					}
 				}
 
@@ -110,7 +110,7 @@ namespace MG
 				// Write out
 				for(int col=0; col < 3; ++col) {
 					for(int spin=0; spin < 2; ++spin ) {
-						ComplexCopy(hspinor_out_view(i,col,spin),site_out(col,spin));
+						Store(hspinor_out_view(i,col,spin),site_out(col,spin));
 					}
 				}
 		});
@@ -136,7 +136,7 @@ namespace MG
 			HalfSpinorSiteView<ST> site_in;
 			for(int col=0; col <3; ++col) {
 				for(int spin=0; spin < 2; ++spin) {
-					ComplexCopy(site_in(col,spin), hspinor_in_view(i,col,spin));
+					Load(site_in(col,spin), hspinor_in_view(i,col,spin));
 				}
 			}
 
@@ -146,7 +146,7 @@ namespace MG
 			// Write out
 			for(int col=0; col < 3; ++col) {
 				for(int spin=0; spin < 2; ++spin ) {
-					ComplexCopy(hspinor_out_view(i,col,spin), site_out(col,spin));
+					Store(hspinor_out_view(i,col,spin), site_out(col,spin));
 				}
 			}
 		});

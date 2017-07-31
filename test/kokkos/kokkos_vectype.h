@@ -47,6 +47,32 @@ void ComplexCopy(SIMDComplex<T,N>& result, const SIMDComplex<T,N>& source)
 
 template<typename T, int N>
 KOKKOS_FORCEINLINE_FUNCTION
+void Load(SIMDComplex<T,N>& result, const SIMDComplex<T,N>& source)
+{
+	T* dest = reinterpret_cast<T*>(&(result._data[0]));
+	const T* src = reinterpret_cast<const T*>(&(source._data[0]));
+
+#pragma omp simd safelen(2*N)
+	for(int i=0; i < 2*N; ++i) {
+		dest[i] = src[i];
+	}
+}
+
+template<typename T, int N>
+KOKKOS_FORCEINLINE_FUNCTION
+void Store(SIMDComplex<T,N>& result, const SIMDComplex<T,N>& source)
+{
+	T* dest = reinterpret_cast<T*>(&(result._data[0]));
+	const T* src = reinterpret_cast<const T*>(&(source._data[0]));
+
+#pragma omp simd safelen(2*N)
+	for(int i=0; i < 2*N; ++i) {
+		dest[i] = src[i];
+	}
+}
+
+template<typename T, int N>
+KOKKOS_FORCEINLINE_FUNCTION
 void ComplexZero(SIMDComplex<T,N>& result)
 {
 #pragma omp simd safelen(N)

@@ -28,6 +28,21 @@ void ComplexZero(Kokkos::complex<T>& result)
 
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
+void Load(Kokkos::complex<T>& result, const Kokkos::complex<T>& source)
+{
+	result = source;
+}
+
+template<typename T>
+KOKKOS_FORCEINLINE_FUNCTION
+void Store(Kokkos::complex<T>& result, const Kokkos::complex<T>& source)
+{
+	result = source;
+}
+
+
+template<typename T>
+KOKKOS_FORCEINLINE_FUNCTION
 void
 ComplexCMadd(Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const Kokkos::complex<T>& b)
 {

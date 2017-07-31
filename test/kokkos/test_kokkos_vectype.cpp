@@ -50,6 +50,8 @@ TEST(TestVectype, TestLaneAccessorsD4)
 
 	}
 }
+
+
 TEST(TestVectype, VectypeCopyD4)
 {
 	SIMDComplex<double,4> v4;
@@ -64,6 +66,24 @@ TEST(TestVectype, VectypeCopyD4)
 	}
 }
 
+TEST(TestVectype, VectypeLoadStore)
+{
+	SIMDComplex<double,4> v4;
+	for(int i=0; i < v4.len(); ++i)
+		v4.set(i,Kokkos::complex<double>(i,-i));
+
+	SIMDComplex<double,4> v4_3;
+	{
+		SIMDComplex<double,4> v4_2;
+
+		Store(v4_2, v4);
+		Load(v4_3, v4_2);
+	}
+	for(int i=0; i < v4.len(); ++i) {
+		ASSERT_DOUBLE_EQ(  v4(i).real(), v4_3(i).real());
+		ASSERT_DOUBLE_EQ(  v4(i).imag(), v4_3(i).imag());
+	}
+}
 TEST(TestVectype, VectypeZeroD4)
 {
 	SIMDComplex<double,4> v4;

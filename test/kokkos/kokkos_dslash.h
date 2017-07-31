@@ -342,7 +342,7 @@ public:
 		    // Stream out spinor
 		    for(int color=0; color < 3; ++color) {
 		      for(int spin=0; spin < 4; ++spin) {
-			ComplexCopy(s_o(site,color,spin),res_sum(color,spin));
+				Store(s_o(site,color,spin),res_sum(color,spin));
 		      }
 		    }
 		    
