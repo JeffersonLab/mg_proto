@@ -46,7 +46,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<REAL32,0,-1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<Kokkos::complex<REAL32>,0,-1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -57,7 +57,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<REAL32,1,-1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<Kokkos::complex<REAL32>,1,-1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -68,7 +68,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<REAL32,2,-1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<Kokkos::complex<REAL32>,2,-1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -79,7 +79,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<REAL32,3,-1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<Kokkos::complex<REAL32>,3,-1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -91,7 +91,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<REAL32,0,1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<Kokkos::complex<REAL32>,0,1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -102,7 +102,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<REAL32,1,1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<Kokkos::complex<REAL32>,1,1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -113,7 +113,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<REAL32,2,1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<Kokkos::complex<REAL32>,2,1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -124,7 +124,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<REAL32,3,1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<Kokkos::complex<REAL32>,3,1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -287,7 +287,7 @@ TEST(TestKokkos, TestMultHalfSpinor)
 }
 #endif
 
-#if 0
+#if 1
 
 TEST(TestKokkos, TestDslash)
 {
@@ -322,7 +322,7 @@ TEST(TestKokkos, TestDslash)
 	  QDPLatticeFermionToKokkosCBSpinor(psi_in, kokkos_spinor_in);
 	  // QDP++ LatticeFermionF should go away here.
 	}
-	KokkosDslash<REAL32> D(info);
+	KokkosDslash<Kokkos::complex<REAL32>,Kokkos::complex<REAL32>> D(info);
 
 
 	for(int rep=0; rep < 2; ++rep) {

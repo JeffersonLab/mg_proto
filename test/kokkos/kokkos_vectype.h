@@ -4,11 +4,12 @@
  *  Created on: Jul 26, 2017
  *      Author: bjoo
  */
-
+#pragma once
 #ifndef TEST_KOKKOS_KOKKOS_VECTPYE_H_
 #define TEST_KOKKOS_KOKKOS_VECTYPE_H_
 
 #include <Kokkos_Complex.hpp>
+#include "kokkos_types.h"
 namespace MG
 {
 
@@ -150,6 +151,7 @@ void A_peq_sign_B( SIMDComplex<T,N>& a, const T& sign, const SIMDComplex<T,N>& b
 		a._data[i].imag() += sign*b(i).imag();
 	}
 }
+
 
 } // namespace
 

@@ -16,11 +16,11 @@ namespace MG
 {
 
 
-	template<typename T>
+	template<typename GT, typename ST>
 	KOKKOS_FORCEINLINE_FUNCTION
-	void mult_u_halfspinor(const GaugeView<Kokkos::complex<T>>& gauge_in,
-			const HalfSpinorSiteView<Kokkos::complex<T>>& v_in,
-			HalfSpinorSiteView<Kokkos::complex<T>>& v_out,int i,int dir)
+	void mult_u_halfspinor(const GaugeView<GT>& gauge_in,
+			const HalfSpinorSiteView<ST>& v_in,
+			HalfSpinorSiteView<ST>& v_out,int i,int dir)
 	{
 
 		for(int row=0; row < 3; ++row) {
@@ -44,11 +44,11 @@ namespace MG
 	}
 
 
-	template<typename T>
+	template<typename GT, typename ST>
 	KOKKOS_FORCEINLINE_FUNCTION
-	void mult_adj_u_halfspinor(const GaugeView<Kokkos::complex<T>>& gauge_in,
-			const HalfSpinorSiteView<Kokkos::complex<T>>& v_in,
-			HalfSpinorSiteView<Kokkos::complex<T>>& v_out, int i, int dir)
+	void mult_adj_u_halfspinor(const GaugeView<GT>& gauge_in,
+			const HalfSpinorSiteView<ST>& v_in,
+			HalfSpinorSiteView<ST>& v_out, int i, int dir)
 	{
 
 				for(int row=0; row < 3; ++row) {
@@ -80,23 +80,23 @@ namespace MG
 
 	}
 
-	template<typename T>
-	void KokkosMVLattice(const KokkosCBFineGaugeField<Kokkos::complex<T>>& u_in,
-			const KokkosCBFineSpinor<Kokkos::complex<T>,2>& hspinor_in,
+	template<typename GT, typename ST>
+	void KokkosMVLattice(const KokkosCBFineGaugeField<GT>& u_in,
+			const KokkosCBFineSpinor<ST,2>& hspinor_in,
 			int dir,
-			const KokkosCBFineSpinor<Kokkos::complex<T>,2>& hspinor_out)
+			const KokkosCBFineSpinor<ST,2>& hspinor_out)
 
 	{
 		int num_sites = u_in.GetInfo().GetNumCBSites();
-		HalfSpinorView<Kokkos::complex<T>> hspinor_in_view = hspinor_in.GetData();
-		GaugeView<Kokkos::complex<T>> u = u_in.GetData();
-		HalfSpinorView<Kokkos::complex<T>> hspinor_out_view = hspinor_out.GetData();
+		HalfSpinorView<ST> hspinor_in_view = hspinor_in.GetData();
+		GaugeView<GT> u = u_in.GetData();
+		HalfSpinorView<ST> hspinor_out_view = hspinor_out.GetData();
 
 		Kokkos::parallel_for(num_sites,
 				KOKKOS_LAMBDA(int i) {
 
 				// Site local workspace...
-				HalfSpinorSiteView<Kokkos::complex<T>> site_in;
+				HalfSpinorSiteView<ST> site_in;
 
 				for(int col=0; col <3; ++col) {
 					for(int spin=0; spin < 2; ++spin) {
@@ -104,8 +104,8 @@ namespace MG
 					}
 				}
 
-				HalfSpinorSiteView<Kokkos::complex<T>> site_out;
-				mult_u_halfspinor(u, site_in, site_out, i, dir);
+				HalfSpinorSiteView<ST> site_out;
+				mult_u_halfspinor<GT,ST>(u, site_in, site_out, i, dir);
 
 				// Write out
 				for(int col=0; col < 3; ++col) {
@@ -118,30 +118,30 @@ namespace MG
 
 
 
-	template<typename T>
-	void KokkosHVLattice(const KokkosCBFineGaugeField<Kokkos::complex<T>>& u_in,
-				  const KokkosCBFineSpinor<Kokkos::complex<T>,2>& hspinor_in,
+	template<typename GT, typename ST>
+	void KokkosHVLattice(const KokkosCBFineGaugeField<GT>& u_in,
+				  const KokkosCBFineSpinor<ST,2>& hspinor_in,
 				  int dir,
-				  const KokkosCBFineSpinor<Kokkos::complex<T>,2>& hspinor_out)
+				  const KokkosCBFineSpinor<ST,2>& hspinor_out)
 
 	{
 		int num_sites = u_in.GetInfo().GetNumCBSites();
-		HalfSpinorView<Kokkos::complex<T>> hspinor_in_view = hspinor_in.GetData();
-		HalfSpinorView<Kokkos::complex<T>> hspinor_out_view = hspinor_out.GetData();
+		HalfSpinorView<ST> hspinor_in_view = hspinor_in.GetData();
+		HalfSpinorView<ST> hspinor_out_view = hspinor_out.GetData();
 
 		Kokkos::parallel_for(num_sites,
 				KOKKOS_LAMBDA(int i) {
 
 			// Site local workspace...
-			HalfSpinorSiteView<Kokkos::complex<T>> site_in;
+			HalfSpinorSiteView<ST> site_in;
 			for(int col=0; col <3; ++col) {
 				for(int spin=0; spin < 2; ++spin) {
 					ComplexCopy(site_in(col,spin), hspinor_in_view(i,col,spin));
 				}
 			}
 
-			HalfSpinorSiteView<Kokkos::complex<T>> site_out;
-			mult_adj_u_halfspinor(u_in.GetData(), site_in, site_out, i, dir);
+			HalfSpinorSiteView<ST> site_out;
+			mult_adj_u_halfspinor<GT,ST>(u_in.GetData(), site_in, site_out, i, dir);
 
 			// Write out
 			for(int col=0; col < 3; ++col) {

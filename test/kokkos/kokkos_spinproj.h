@@ -11,15 +11,17 @@
 #include "kokkos_constants.h"
 #include "kokkos_types.h"
 #include "kokkos_ops.h"
+#include "kokkos_traits.h"
 namespace MG {
 
 
 template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir0(const SpinorView<Kokkos::complex<T>> in,
-		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out, int i)
+void KokkosProjectDir0(const SpinorView<T> in,
+		HalfSpinorSiteView<T>& spinor_out, int i)
 {
-  constexpr T sign = static_cast<T>(isign);
+  using FType = typename BaseType<T>::Type;
+  constexpr FType sign = static_cast<FType>(isign);
 
 	/*                              ( 1  0  0 -i)  ( a0 )    ( a0 - i a3 )
 	 *  B  :=  ( 1 - Gamma  ) A  =  ( 0  1 -i  0)  ( a1 )  = ( a1 - i a2 )
@@ -49,10 +51,11 @@ void KokkosProjectDir0(const SpinorView<Kokkos::complex<T>> in,
 
  template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir1(const SpinorView<Kokkos::complex<T>> in,
-		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out, int i)
+void KokkosProjectDir1(const SpinorView<T> in,
+		HalfSpinorSiteView<T>& spinor_out, int i)
 {
-  constexpr T sign = static_cast<T>(isign);
+	  using FType = typename BaseType<T>::Type;
+	  constexpr FType sign = static_cast<FType>(isign);
 
 	/*                              ( 1  0  0  1)  ( a0 )    ( a0 + a3 )
 	 *  B  :=  ( 1 - Gamma  ) A  =  ( 0  1 -1  0)  ( a1 )  = ( a1 - a2 )
@@ -79,11 +82,13 @@ void KokkosProjectDir1(const SpinorView<Kokkos::complex<T>> in,
 
  template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir2(const SpinorView<Kokkos::complex<T>> in,
-		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out, int i)
+void KokkosProjectDir2(const SpinorView<T> in,
+		HalfSpinorSiteView<T>& spinor_out, int i)
 {
 
-  constexpr T sign = static_cast<T>(isign);
+  using FType =  typename BaseType<T>::Type;
+  constexpr FType sign = static_cast<FType>(isign);
+
 	/*                              ( 1  0  i  0)  ( a0 )    ( a0 + i a2 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  0 -i)  ( a1 )  = ( a1 - i a3 )
 	 *                    2         (-i  0  1  0)  ( a2 )    ( a2 - i a0 )
@@ -108,11 +113,12 @@ void KokkosProjectDir2(const SpinorView<Kokkos::complex<T>> in,
 
  template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir3(const SpinorView<Kokkos::complex<T>> in,
-		HalfSpinorSiteView<Kokkos::complex<T>>& spinor_out,
+void KokkosProjectDir3(const SpinorView<T> in,
+		HalfSpinorSiteView<T>& spinor_out,
 		int i)
 {
-    constexpr T sign = static_cast<T>(isign);
+	  using FType = typename BaseType<T>::Type;
+	  constexpr FType sign = static_cast<FType>(isign);
 	/*                              ( 1  0  1  0)  ( a0 )    ( a0 + a2 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  0  1)  ( a1 )  = ( a1 + a3 )
 	 *                    3         ( 1  0  1  0)  ( a2 )    ( a2 + a0 )
@@ -136,17 +142,17 @@ void KokkosProjectDir3(const SpinorView<Kokkos::complex<T>> in,
 
 
  template<typename T, int dir, int isign>
-void KokkosProjectLattice(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& kokkos_in,
-		KokkosCBFineSpinor<Kokkos::complex<T>,2>& kokkos_hspinor_out)
+void KokkosProjectLattice(const KokkosCBFineSpinor<T,4>& kokkos_in,
+		KokkosCBFineSpinor<T,2>& kokkos_hspinor_out)
 {
 	int num_sites = kokkos_in.GetInfo().GetNumCBSites();
-	const SpinorView<Kokkos::complex<T>>& spinor_in = kokkos_in.GetData();
-	HalfSpinorView<Kokkos::complex<T>>& hspinor_out = kokkos_hspinor_out.GetData();
+	const SpinorView<T>& spinor_in = kokkos_in.GetData();
+	HalfSpinorView<T>& hspinor_out = kokkos_hspinor_out.GetData();
 
 
 	Kokkos::parallel_for(num_sites,
 			KOKKOS_LAMBDA(int i) {
-		HalfSpinorSiteView<Kokkos::complex<T>> res;
+		HalfSpinorSiteView<T> res;
 
 		if( dir == 0) {
 		  //			KokkosProjectDir<T,0>(spinor_in,plus_minus,res,i);
@@ -176,13 +182,14 @@ void KokkosProjectLattice(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& kokkos
 
 }
 
-
  template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosRecons23Dir0(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in,
-			SpinorSiteView<Kokkos::complex<T>>& spinor_out)
+void KokkosRecons23Dir0(const HalfSpinorSiteView<T>& hspinor_in,
+			SpinorSiteView<T>& spinor_out)
 {
-  constexpr T sign = static_cast<T>(isign);
+
+  using FType = typename BaseType<T>::Type;
+  constexpr FType sign = static_cast<FType>(isign);
 	/*                              ( 1  0  0 +i)  ( a0 )    ( a0 + i a3 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1 +i  0)  ( a1 )  = ( a1 + i a2 )
 	 *                    0         ( 0 -i  1  0)  ( a2 )    ( a2 - i a1 )
@@ -217,11 +224,12 @@ void KokkosRecons23Dir0(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in
 
  template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosRecons23Dir1(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in,
-			SpinorSiteView<Kokkos::complex<T>>& spinor_out)
+void KokkosRecons23Dir1(const HalfSpinorSiteView<T>& hspinor_in,
+			SpinorSiteView<T>& spinor_out)
 {
-  constexpr T sign = static_cast<T>(isign);
-	/*                              ( 1  0  0 -1)  ( a0 )    ( a0 - a3 )
+  using FType = typename BaseType<T>::Type;
+  constexpr FType sign = static_cast<FType>(isign);
+  /*                              ( 1  0  0 -1)  ( a0 )    ( a0 - a3 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  1  0)  ( a1 )  = ( a1 + a2 )
 	 *                    1         ( 0  1  1  0)  ( a2 )    ( a2 + a1 )
 	 *                              (-1  0  0  1)  ( a3 )    ( a3 - a0 )
@@ -254,11 +262,11 @@ void KokkosRecons23Dir1(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in
 
  template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosRecons23Dir2(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in,
-			SpinorSiteView<Kokkos::complex<T>>& spinor_out)
+void KokkosRecons23Dir2(const HalfSpinorSiteView<T>& hspinor_in,
+			SpinorSiteView<T>& spinor_out)
 {
-  constexpr T sign = static_cast<T>(isign);
-
+	  using FType = typename BaseType<T>::Type;
+		  constexpr FType sign = static_cast<FType>(isign);
 	/*                              ( 1  0  i  0)  ( a0 )    ( a0 + i a2 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  0 -i)  ( a1 )  = ( a1 - i a3 )
 	 *                    2         (-i  0  1  0)  ( a2 )    ( a2 - i a0 )
@@ -294,10 +302,12 @@ void KokkosRecons23Dir2(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in
 
  template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosRecons23Dir3(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in,
-			SpinorSiteView<Kokkos::complex<T>>& spinor_out)
+void KokkosRecons23Dir3(const HalfSpinorSiteView<T>& hspinor_in,
+			SpinorSiteView<T>& spinor_out)
 {
-  constexpr T sign = static_cast<T>(isign);
+	  using FType = typename BaseType<T>::Type;
+		  constexpr FType sign = static_cast<FType>(isign);
+
 	/*                              ( 1  0  1  0)  ( a0 )    ( a0 + a2 )
 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  0  1)  ( a1 )  = ( a1 + a3 )
 	 *                    3         ( 1  0  1  0)  ( a2 )    ( a2 + a0 )
@@ -331,12 +341,12 @@ void KokkosRecons23Dir3(const HalfSpinorSiteView<Kokkos::complex<T>>& hspinor_in
 
 
  template<typename T, int dir, int isign>
-void KokkosReconsLattice(const KokkosCBFineSpinor<Kokkos::complex<T>,2>& kokkos_hspinor_in,
-		KokkosCBFineSpinor<Kokkos::complex<T>,4>& kokkos_spinor_out)
+void KokkosReconsLattice(const KokkosCBFineSpinor<T,2>& kokkos_hspinor_in,
+		KokkosCBFineSpinor<T,4>& kokkos_spinor_out)
 {
 	const int num_sites = kokkos_hspinor_in.GetInfo().GetNumCBSites();
-	SpinorView<Kokkos::complex<T>>& spinor_out = kokkos_spinor_out.GetData();
-	const HalfSpinorView<Kokkos::complex<T>>& hspinor_in_view = kokkos_hspinor_in.GetData();
+	SpinorView<T>& spinor_out = kokkos_spinor_out.GetData();
+	const HalfSpinorView<T>& hspinor_in_view = kokkos_hspinor_in.GetData();
 
 	Kokkos::parallel_for(num_sites,
 			KOKKOS_LAMBDA(int i) {
@@ -344,8 +354,8 @@ void KokkosReconsLattice(const KokkosCBFineSpinor<Kokkos::complex<T>,2>& kokkos_
 
 
 
-		HalfSpinorSiteView<Kokkos::complex<T>> hspinor_in;
-		SpinorSiteView<Kokkos::complex<T>> res;
+		HalfSpinorSiteView<T> hspinor_in;
+		SpinorSiteView<T> res;
 
 		// Stream in top 2 components.
 		for(int color=0; color < 3; ++color) {

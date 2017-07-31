@@ -4,7 +4,7 @@
  *  Created on: May 23, 2017
  *      Author: bjoo
  */
-
+#pragma once
 #ifndef TEST_KOKKOS_KOKKOS_TYPES_H_
 #define TEST_KOKKOS_KOKKOS_TYPES_H_
 #include <memory>
@@ -13,6 +13,7 @@
 #include "kokkos_defaults.h"
 #include "lattice/lattice_info.h"
 #include "utils/print_utils.h"
+#include "kokkos_vectype.h"
 namespace MG
 {
 
@@ -141,8 +142,16 @@ namespace MG
 	template<typename T>
 	using SpinorView = typename KokkosCBFineSpinor<T,4>::DataType;
 
+	template<typename T, int N>
+	using KokkosCBFineSpinorVec = KokkosCBFineSpinor<MG::SIMDComplex<T,N>,4>;
+
 	template<typename T>
 	using HalfSpinorView = typename KokkosCBFineSpinor<T,2>::DataType;
+
+	template<typename T, int N>
+	using KokkosCBFineHalfSpinorVec = KokkosCBFineSpinor<MG::SIMDComplex<T,N>,2>;
+
+
 
 	template<typename T,const int S, const int C>
 	struct SiteView {
@@ -163,6 +172,10 @@ namespace MG
 
 	template<typename T>
 	using GaugeView = typename KokkosCBFineGaugeField<T>::DataType;
+
+	template<typename T, int N>
+	using GaugeViewVec = typename KokkosCBFineGaugeField<MG::SIMDComplex<T,N>>::DataType;
+
 
 };
 

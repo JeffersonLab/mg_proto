@@ -16,7 +16,7 @@ namespace MG {
 
 
 
-
+#if 0
 // One direction of dslash, multiplying U. Direction and whether to accumulate
 // are 'compile time' through templates.
 // Savvy compiler should inline these and optimize them
@@ -158,9 +158,10 @@ void DslashHVSiteDir3(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neig
 	KokkosRecons23Dir3<T,isign>(mult_proj_res,res_sum);
 
 }
+#endif
 
 
-template<typename T>
+template<typename GT, typename ST>
 class KokkosDslash {
 private:
 	const LatticeInfo& _info;
@@ -262,9 +263,9 @@ public:
 	  }
 
 	template<const int isign>
-	void apply(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_in,
-			const KokkosFineGaugeField<Kokkos::complex<T>>& gauge_in,
-			KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_out) const
+	void apply(const KokkosCBFineSpinor<ST,4>& fine_in,
+			const KokkosFineGaugeField<GT>& gauge_in,
+			KokkosCBFineSpinor<ST,4>& fine_out) const
 	{
 		// Source and target checkerboards
 		IndexType target_cb = fine_out.GetCB();
@@ -273,10 +274,10 @@ public:
 		// Gather all views just outside Parallel Loop.
 		// Can these be references? Will the world collapse?
 
-		const SpinorView<Kokkos::complex<T>>& s_in = fine_in.GetData();
-		const GaugeView<Kokkos::complex<T>>& g_in_src_cb = (gauge_in(source_cb)).GetData();
-		const GaugeView<Kokkos::complex<T>>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
-		SpinorView<Kokkos::complex<T>>& s_o = fine_out.GetData();
+		const SpinorView<ST>& s_in = fine_in.GetData();
+		const GaugeView<GT>& g_in_src_cb = (gauge_in(source_cb)).GetData();
+		const GaugeView<GT>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
+		SpinorView<ST>& s_o = fine_out.GetData();
 		const int num_sites = _info.GetNumCBSites();
 
 
@@ -285,11 +286,11 @@ public:
 
 		    // Warning: GCC Alignment Attribute!
 		    // Site Sum: Not a true Kokkos View
-		    SpinorSiteView<Kokkos::complex<T>> res_sum __attribute__((aligned(64)));
+		    SpinorSiteView<ST> res_sum __attribute__((aligned(64)));
 
 		    // Temporaries: Not a true Kokkos View
-		    HalfSpinorSiteView<Kokkos::complex<T>> proj_res __attribute__((aligned(64)));
-		    HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res __attribute__((aligned(64)));
+		    HalfSpinorSiteView<ST> proj_res __attribute__((aligned(64)));
+		    HalfSpinorSiteView<ST> mult_proj_res __attribute__((aligned(64)));
 		    
 
 		    for(int color=0; color < 3; ++color) {
@@ -299,44 +300,44 @@ public:
 		    }
 			
 		    // T - minus
-		    KokkosProjectDir3<T,isign>(s_in, proj_res,_neigh_table(site,target_cb,T_MINUS));
-		    mult_adj_u_halfspinor(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,T_MINUS),3);
-		    KokkosRecons23Dir3<T,isign>(mult_proj_res,res_sum);
+		    KokkosProjectDir3<ST,isign>(s_in, proj_res,_neigh_table(site,target_cb,T_MINUS));
+		    mult_adj_u_halfspinor<GT,ST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,T_MINUS),3);
+		    KokkosRecons23Dir3<ST,isign>(mult_proj_res,res_sum);
 		    
 		    // Z - minus
-		    KokkosProjectDir2<T,isign>(s_in, proj_res,_neigh_table(site,target_cb,Z_MINUS));
-		    mult_adj_u_halfspinor(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Z_MINUS),2);
-		    KokkosRecons23Dir2<T,isign>(mult_proj_res,res_sum);
+		    KokkosProjectDir2<ST,isign>(s_in, proj_res,_neigh_table(site,target_cb,Z_MINUS));
+		    mult_adj_u_halfspinor<GT,ST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Z_MINUS),2);
+		    KokkosRecons23Dir2<ST,isign>(mult_proj_res,res_sum);
 		    
 		    // Y - minus
-		    KokkosProjectDir1<T,isign>(s_in, proj_res,_neigh_table(site,target_cb,Y_MINUS));
-		    mult_adj_u_halfspinor(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Y_MINUS),1);
-		    KokkosRecons23Dir1<T,isign>(mult_proj_res,res_sum);
+		    KokkosProjectDir1<ST,isign>(s_in, proj_res,_neigh_table(site,target_cb,Y_MINUS));
+		    mult_adj_u_halfspinor<GT,ST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Y_MINUS),1);
+		    KokkosRecons23Dir1<ST,isign>(mult_proj_res,res_sum);
 		    
 		    // X - minus
-		    KokkosProjectDir0<T,isign>(s_in, proj_res,_neigh_table(site,target_cb,X_MINUS));
-		    mult_adj_u_halfspinor(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,X_MINUS),0);
-		    KokkosRecons23Dir0<T,isign>(mult_proj_res,res_sum);
+		    KokkosProjectDir0<ST,isign>(s_in, proj_res,_neigh_table(site,target_cb,X_MINUS));
+		    mult_adj_u_halfspinor<GT,ST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,X_MINUS),0);
+		    KokkosRecons23Dir0<ST,isign>(mult_proj_res,res_sum);
 		    
 		    // X - plus
-		    KokkosProjectDir0<T,-isign>(s_in,proj_res,_neigh_table(site,target_cb,X_PLUS));
-		    mult_u_halfspinor(g_in_target_cb,proj_res,mult_proj_res,site,0);
-		    KokkosRecons23Dir0<T,-isign>(mult_proj_res, res_sum);
+		    KokkosProjectDir0<ST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,X_PLUS));
+		    mult_u_halfspinor<GT,ST>(g_in_target_cb,proj_res,mult_proj_res,site,0);
+		    KokkosRecons23Dir0<ST,-isign>(mult_proj_res, res_sum);
 		    
 		    // Y - plus
-		    KokkosProjectDir1<T,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Y_PLUS));
-		    mult_u_halfspinor(g_in_target_cb,proj_res,mult_proj_res,site,1);
-		    KokkosRecons23Dir1<T,-isign>(mult_proj_res, res_sum);
+		    KokkosProjectDir1<ST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Y_PLUS));
+		    mult_u_halfspinor<GT,ST>(g_in_target_cb,proj_res,mult_proj_res,site,1);
+		    KokkosRecons23Dir1<ST,-isign>(mult_proj_res, res_sum);
 		    
 		    // Z - plus
-		    KokkosProjectDir2<T,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Z_PLUS));
-		    mult_u_halfspinor(g_in_target_cb,proj_res,mult_proj_res,site,2);
-		    KokkosRecons23Dir2<T,-isign>(mult_proj_res, res_sum);
+		    KokkosProjectDir2<ST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Z_PLUS));
+		    mult_u_halfspinor<GT,ST>(g_in_target_cb,proj_res,mult_proj_res,site,2);
+		    KokkosRecons23Dir2<ST,-isign>(mult_proj_res, res_sum);
 		    
 		    // T - plus
-		    KokkosProjectDir3<T,-isign>(s_in,proj_res,_neigh_table(site,target_cb,T_PLUS));
-		    mult_u_halfspinor(g_in_target_cb,proj_res,mult_proj_res,site,3);
-		    KokkosRecons23Dir3<T,-isign>(mult_proj_res, res_sum);
+		    KokkosProjectDir3<ST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,T_PLUS));
+		    mult_u_halfspinor<GT,ST>(g_in_target_cb,proj_res,mult_proj_res,site,3);
+		    KokkosRecons23Dir3<ST,-isign>(mult_proj_res, res_sum);
 		    
 		    // Stream out spinor
 		    for(int color=0; color < 3; ++color) {
@@ -349,9 +350,9 @@ public:
 
 	}
 
-	void operator()(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_in,
-		      const KokkosFineGaugeField<Kokkos::complex<T>>& gauge_in,
-		      KokkosCBFineSpinor<Kokkos::complex<T>,4>& fine_out,
+	void operator()(const KokkosCBFineSpinor<ST,4>& fine_in,
+		      const KokkosFineGaugeField<GT>& gauge_in,
+		      KokkosCBFineSpinor<ST,4>& fine_out,
 		      int plus_minus) const
 	{
 	  if( plus_minus == 1 ) {

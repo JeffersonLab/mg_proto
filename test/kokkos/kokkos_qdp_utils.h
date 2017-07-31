@@ -13,9 +13,11 @@
 #include <Kokkos_Core.hpp>
 
 #include <utils/print_utils.h>
-
+#include "kokkos_vectype.h"
 namespace MG
 {
+
+	// Single QDP++ Vector
 	template<typename T, typename LF>
 	void
 	QDPLatticeFermionToKokkosCBSpinor(const LF& qdp_in,
@@ -51,6 +53,50 @@ namespace MG
 		Kokkos::deep_copy(kokkos_out.GetData(), h_out);
 	}
 
+	// QDP N-vecor
+	template<typename T, int N, typename LF>
+	void
+	QDPLatticeFermionToKokkosCBSpinor(const QDP::multi1d<LF>& qdp_in,
+			KokkosCBFineSpinorVec<T,N>& kokkos_out)
+	{
+		if( qdp_in.size() != N)  {
+			MasterLog(ERROR, "%s: multi1d<LF> array size (%d) is different from kokkos vector size (%d)",
+					__FUNCTION__, qdp_in.size(), N );
+		}
+
+		auto cb = kokkos_out.GetCB();
+		const QDP::Subset& sub = ( cb == EVEN ) ? QDP::rb[0] : QDP::rb[1];
+
+		// Check conformance:
+		int num_sites=static_cast<int>(kokkos_out.GetInfo().GetNumCBSites());
+
+		if ( sub.numSiteTable() != num_sites ) {
+			MasterLog(ERROR, "%s QDP++ Spinor has different number of sites per checkerboard than the KokkosCBFineSpinor",
+					__FUNCTION__);
+		}
+		auto h_out = Kokkos::create_mirror_view( kokkos_out.GetData() );
+
+		Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
+				[=](int i) {
+						for(int color=0; color < 3; ++color) {
+							for(int spin=0; spin < 4; ++spin) {
+
+							const int qdp_index = sub.siteTable()[i];
+
+							for(int v=0; v < N; ++v ) {
+								h_out(i,color,spin).set(v, Kokkos::complex<T>(qdp_in[v].elem(qdp_index).elem(spin).elem(color).real(),
+										qdp_in[v].elem(qdp_index).elem(spin).elem(color).imag()));
+							}
+
+						} // spin
+					} // color
+			}// kokkos lambda
+		);
+
+		Kokkos::deep_copy(kokkos_out.GetData(), h_out);
+	}
+
+	// Single QDP++ vector
 	template<typename T, typename LF>
 	void
 	KokkosCBSpinorToQDPLatticeFermion(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& kokkos_in,
@@ -86,6 +132,50 @@ namespace MG
 
 	}
 
+	// QDP N-vector
+	template<typename T, int N, typename LF>
+	void
+	KokkosCBSpinorToQDPLatticeFermion(const KokkosCBFineSpinorVec<T,N>& kokkos_in,
+			QDP::multi1d<LF>& qdp_out) {
+
+		if( qdp_out.size() != N)  {
+			MasterLog(ERROR, "%s: multi1d<LF> array size (%d) is different from kokkos vector size (%d)",
+						__FUNCTION__, qdp_out.size(), N );
+		}
+		auto cb = kokkos_in.GetCB();
+		const QDP::Subset& sub = ( cb == EVEN ) ? QDP::rb[0] : QDP::rb[1];
+
+		// Check conformance:
+		int num_sites=static_cast<int>(kokkos_in.GetInfo().GetNumCBSites());
+
+		if ( sub.numSiteTable() != num_sites ) {
+			MasterLog(ERROR, "%s: QDP++ Spinor has different number of sites per checkerboard than the KokkosCBFineSpinor",
+					__FUNCTION__);
+		}
+
+		auto h_in = Kokkos::create_mirror_view( kokkos_in.GetData() );
+		Kokkos::deep_copy( h_in, kokkos_in.GetData() );
+
+		Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
+				[&](int i) {
+
+						for(int color=0; color < 3; ++color) {
+							for(int spin=0; spin < 4; ++spin) {
+							const int qdp_index = sub.siteTable()[i];
+							for(int v = 0; v < N; ++v) {
+								qdp_out[v].elem(qdp_index).elem(spin).elem(color).real() = (h_in(i,color,spin)(v)).real();
+								qdp_out[v].elem(qdp_index).elem(spin).elem(color).imag() = (h_in(i,color,spin)(v)).imag();
+							}
+						} // spin
+					} // color
+			}// kokkos lambda
+		);
+
+
+	}
+
+
+	// Single QDP++ vector
 	template<typename T, typename HF>
 	void
 	QDPLatticeHalfFermionToKokkosCBSpinor2(const HF& qdp_in,
@@ -112,6 +202,49 @@ namespace MG
 
 							h_out(i,color,spin) = Kokkos::complex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
 																	   qdp_in.elem(qdp_index).elem(spin).elem(color).imag());
+
+						} // spin
+					} // color
+			}// kokkos lambda
+		);
+
+		Kokkos::deep_copy(kokkos_out.GetData(), h_out);
+	}
+
+	// N vector
+	template<typename T, int N, typename HF>
+	void
+	QDPLatticeHalfFermionToKokkosCBSpinor2(const multi1d<HF>& qdp_in,
+			KokkosCBFineHalfSpinorVec<T,N>& kokkos_out)
+	{
+		if( qdp_in.size() != N)  {
+			MasterLog(ERROR, "%s: multi1d<LF> array size (%d) is different from kokkos vector size (%d)",
+					__FUNCTION__, qdp_in.size(), N );
+		}
+
+		auto cb = kokkos_out.GetCB();
+		const QDP::Subset& sub = ( cb == EVEN ) ? QDP::rb[0] : QDP::rb[1];
+
+		// Check conformance:
+		int num_sites=static_cast<int>(kokkos_out.GetInfo().GetNumCBSites());
+
+		if ( sub.numSiteTable() != num_sites ) {
+			MasterLog(ERROR, "%s QDP++ Spinor has different number of sites per checkerboard than the KokkosCBFineSpinor",
+					__FUNCTION__);
+		}
+		auto h_out = Kokkos::create_mirror_view( kokkos_out.GetData() );
+
+		Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
+				[=](int i) {
+						for(int color=0; color < 3; ++color) {
+							for(int spin=0; spin < 2; ++spin) {
+
+							const int qdp_index = sub.siteTable()[i];
+
+							for(int v=0; v < N; ++v) {
+								h_out(i,color,spin).set(v, Kokkos::complex<T>(qdp_in[v].elem(qdp_index).elem(spin).elem(color).real(),
+										qdp_in[v].elem(qdp_index).elem(spin).elem(color).imag()));
+							}
 
 						} // spin
 					} // color
@@ -152,7 +285,46 @@ namespace MG
 					} // color
 			}// kokkos lambda
 		);
+	}
 
+	template<typename T, int N, typename HF>
+		void
+		KokkosCBSpinor2ToQDPLatticeHalfFermion(const KokkosCBFineHalfSpinorVec<T,N>& kokkos_in,
+				multi1d<HF>& qdp_out) {
+
+			if( qdp_out.size() != N)  {
+					MasterLog(ERROR, "%s: multi1d<LF> array size (%d) is different from kokkos vector size (%d)",
+							__FUNCTION__, qdp_out.size(), N );
+				}
+
+			auto cb = kokkos_in.GetCB();
+			const QDP::Subset& sub = ( cb == EVEN ) ? QDP::rb[0] : QDP::rb[1];
+
+			// Check conformance:
+			int num_sites=static_cast<int>(kokkos_in.GetInfo().GetNumCBSites());
+
+			if ( sub.numSiteTable() != num_sites ) {
+				MasterLog(ERROR, "%s: QDP++ Spinor has different number of sites per checkerboard than the KokkosCBFineSpinor",
+						__FUNCTION__);
+			}
+
+			auto h_in = Kokkos::create_mirror_view( kokkos_in.GetData() );
+			Kokkos::deep_copy( h_in, kokkos_in.GetData() );
+
+			Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
+					[&](int i) {
+							for(int color=0; color < 3; ++color) {
+								for(int spin=0; spin < 2; ++spin) {
+
+								const int qdp_index = sub.siteTable()[i];
+								for(int v=0; v < N; ++v ) {
+									qdp_out[v].elem(qdp_index).elem(spin).elem(color).real() = (h_in(i,color,spin)(v)).real();
+									qdp_out[v].elem(qdp_index).elem(spin).elem(color).imag() = (h_in(i,color,spin)(v)).imag();
+								}
+							} // spin
+						} // color
+				}// kokkos lambda
+			);
 
 	}
 
@@ -194,6 +366,9 @@ namespace MG
 			});
 		Kokkos::deep_copy(kokkos_out.GetData(), h_out);
 	}
+
+
+
 
 	template<typename T, typename GF>
 	void
