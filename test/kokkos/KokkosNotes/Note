@@ -1,0 +1,4 @@
+On CPU: When using the team thread launching, things seemed to deteriorate after sites_per_thread > 8
+ On CPU so far, best performance happened with flat dispatch (no teams),
+ This was followed closely  by team launches with sites_per_team <= 8.
+

@@ -26,6 +26,20 @@ struct BaseType< SIMDComplex<T, N> > {
 	typedef T Type;
 };
 
+template<typename T>
+  struct Veclen {
+  };
+
+template<typename T>
+struct Veclen<Kokkos::complex<T>> {
+  static const int value = 1;
+ };
+
+ template<typename T, int N>
+  struct Veclen<SIMDComplex<T,N>> { 
+  static const int value = N;
+ };
+
 
 }
 

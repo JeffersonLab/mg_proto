@@ -40,6 +40,13 @@ void Store(Kokkos::complex<T>& result, const Kokkos::complex<T>& source)
 	result = source;
 }
 
+template<typename T>
+KOKKOS_FORCEINLINE_FUNCTION
+void Stream(Kokkos::complex<T>& result, const Kokkos::complex<T>& source)
+{
+	result = source;
+}
+
 
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION

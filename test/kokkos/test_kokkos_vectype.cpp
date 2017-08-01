@@ -51,23 +51,42 @@ TEST(TestVectype, TestLaneAccessorsD4)
 	}
 }
 
+using ThreadExecPolicy =  Kokkos::TeamPolicy<>;
+using TeamHandle =  ThreadExecPolicy::member_type;
+
 
 TEST(TestVectype, VectypeCopyD4)
 {
+
+	ThreadExecPolicy policy(1,1,4);
+	Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+	    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<double,4> v4;
 	for(int i=0; i < v4.len(); ++i)
 		v4.set(i,Kokkos::complex<double>(i,-i));
 
 	SIMDComplex<double,4> v4_copy;
+
 	ComplexCopy(v4_copy,v4);
+		
+	
 	for(int i=0; i < v4.len(); ++i) {
 		ASSERT_DOUBLE_EQ(  v4_copy(i).real(), v4(i).real());
 		ASSERT_DOUBLE_EQ(  v4_copy(i).imag(), v4(i).imag());
 	}
+
+	      });
+	  });
+
 }
 
 TEST(TestVectype, VectypeLoadStore)
 {
+	ThreadExecPolicy policy(1,1,4);
+	Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+	    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<double,4> v4;
 	for(int i=0; i < v4.len(); ++i)
 		v4.set(i,Kokkos::complex<double>(i,-i));
@@ -83,21 +102,37 @@ TEST(TestVectype, VectypeLoadStore)
 		ASSERT_DOUBLE_EQ(  v4(i).real(), v4_3(i).real());
 		ASSERT_DOUBLE_EQ(  v4(i).imag(), v4_3(i).imag());
 	}
+	      });
+	  });
+
 }
+
 TEST(TestVectype, VectypeZeroD4)
 {
+	ThreadExecPolicy policy(1,1,4);
+	Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+	    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
+
 	SIMDComplex<double,4> v4;
 	ComplexZero(v4);
 	for(int i=0; i < v4.len(); ++i) {
 		ASSERT_DOUBLE_EQ(  v4(i).real(),0);
 		ASSERT_DOUBLE_EQ(  v4(i).imag(),0);
 	}
+	      });
+	  });
 }
 
 
 
 TEST(TestVectype, VectypeComplexPeqD4 )
 {
+
+	ThreadExecPolicy policy(1,1,4);
+	Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+	    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<double,4> v4a,v4b,v4c;
 	for(int i=0; i < v4a.len(); ++i) {
 		v4a.set(i,Kokkos::complex<double>(i,-i));
@@ -113,10 +148,18 @@ TEST(TestVectype, VectypeComplexPeqD4 )
 		ASSERT_DOUBLE_EQ( result.real(), v4b(i).real());
 		ASSERT_DOUBLE_EQ( result.imag(), v4b(i).imag());
 	}
+	      });
+	  });
+
 }
 
 TEST(TestVectype, VectypeComplexCMaddSalarD4 )
 {
+
+	ThreadExecPolicy policy(1,1,4);
+	Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+	    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	Kokkos::complex<double> a=Kokkos::complex<double>(-2.3,1.2);
 	SIMDComplex<double,4> v4b,v4c,v4d;
 	for(int l=0; l < v4b.len(); ++l) {
@@ -133,11 +176,19 @@ TEST(TestVectype, VectypeComplexCMaddSalarD4 )
 		ASSERT_DOUBLE_EQ( result.real(), v4c(l).real());
 		ASSERT_DOUBLE_EQ( result.imag(), v4c(l).imag());
 	}
+
+	      });
+	  });
+
 }
 
 
 TEST(TestVectype, VectypeComplexConjMaddSalarD4 )
 {
+  ThreadExecPolicy policy(1,1,4);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	Kokkos::complex<double> a=Kokkos::complex<double>(-2.3,1.2);
 	SIMDComplex<double,4> v4b,v4c,v4d;
 	for(int l=0; l < v4b.len(); ++l) {
@@ -154,12 +205,20 @@ TEST(TestVectype, VectypeComplexConjMaddSalarD4 )
 		ASSERT_DOUBLE_EQ( result.real(), v4c(l).real());
 		ASSERT_DOUBLE_EQ( result.imag(), v4c(l).imag());
 	}
+
+	});
+    });
 }
 
 
 
 TEST(TestVectype, VectypeComplexCMaddD4 )
 {
+  ThreadExecPolicy policy(1,1,4);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
+
 	SIMDComplex<double,4> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<double>(l,-l));
@@ -177,10 +236,17 @@ TEST(TestVectype, VectypeComplexCMaddD4 )
 		ASSERT_DOUBLE_EQ( result.real(), v4c(l).real());
 		ASSERT_DOUBLE_EQ( result.imag(), v4c(l).imag());
 	}
+
+	});
+    });
 }
 
 TEST(TestVectype, VectypeComplexConjMaddD4 )
 {
+  ThreadExecPolicy policy(1,1,4);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<double,4> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<double>(l,-l));
@@ -197,10 +263,17 @@ TEST(TestVectype, VectypeComplexConjMaddD4 )
 		ASSERT_DOUBLE_EQ( result.real(), v4c(l).real());
 		ASSERT_DOUBLE_EQ( result.imag(), v4c(l).imag());
 	}
+	});
+    });
+
 }
 
 TEST(TestVectype, Test_A_add_sign_B_D4 )
 {
+  ThreadExecPolicy policy(1,1,4);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<double,4> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<double>(l,-l));
@@ -219,10 +292,17 @@ TEST(TestVectype, Test_A_add_sign_B_D4 )
 		ASSERT_DOUBLE_EQ( result.real(), v4c(l).real());
 		ASSERT_DOUBLE_EQ( result.imag(), v4c(l).imag());
 	}
+	});
+    });
+
 }
 
 TEST(TestVectype, Test_A_add_sign_iB_D4 )
 {
+  ThreadExecPolicy policy(1,1,4);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<double,4> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<double>(l,-l));
@@ -240,10 +320,19 @@ TEST(TestVectype, Test_A_add_sign_iB_D4 )
 		ASSERT_DOUBLE_EQ( result.real(), v4c(l).real());
 		ASSERT_DOUBLE_EQ( result.imag(), v4c(l).imag());
 	}
+
+	});
+    });
+
 }
 
 TEST(TestVectype, Test_A_peq_sign_miB_D4 )
 {
+	ThreadExecPolicy policy(1,1,4);
+	Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+	    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
+
 	SIMDComplex<double,4> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<double>(l,-l));
@@ -260,10 +349,17 @@ TEST(TestVectype, Test_A_peq_sign_miB_D4 )
 		ASSERT_DOUBLE_EQ( result.real(), v4b(l).real());
 		ASSERT_DOUBLE_EQ( result.imag(), v4b(l).imag());
 	}
+	      });
+	  });
 }
 
 TEST(TestVectype, Test_A_peq_sign_B_D4 )
 {
+  ThreadExecPolicy policy(1,1,4);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
+
 	SIMDComplex<double,4> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<double>(l,-l));
@@ -281,6 +377,10 @@ TEST(TestVectype, Test_A_peq_sign_B_D4 )
 		ASSERT_DOUBLE_EQ( result.real(), v4b(l).real());
 		ASSERT_DOUBLE_EQ( result.imag(), v4b(l).imag());
 	}
+
+	});
+    });
+
 }
 
 
@@ -313,6 +413,11 @@ TEST(TestVectype, TestLaneAccessorsF8)
 }
 TEST(TestVectype, VectypeCopyF8)
 {
+
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<float,8> v4;
 	for(int i=0; i < v4.len(); ++i)
 		v4.set(i,Kokkos::complex<float>(i,-i));
@@ -323,22 +428,35 @@ TEST(TestVectype, VectypeCopyF8)
 		ASSERT_FLOAT_EQ(  v4_copy(i).real(), v4(i).real());
 		ASSERT_FLOAT_EQ(  v4_copy(i).imag(), v4(i).imag());
 	}
+	});
+    });
 }
 
 TEST(TestVectype, VectypeZeroF8)
 {
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<float,8> v4;
 	ComplexZero(v4);
 	for(int i=0; i < v4.len(); ++i) {
 		ASSERT_FLOAT_EQ(  v4(i).real(),0);
 		ASSERT_FLOAT_EQ(  v4(i).imag(),0);
 	}
+	});
+    });
 }
 
 
 
 TEST(TestVectype, VectypeComplexPeqF8 )
 {
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
+
 	SIMDComplex<float,8> v4a,v4b,v4c;
 	for(int i=0; i < v4a.len(); ++i) {
 		v4a.set(i,Kokkos::complex<float>(i,-i));
@@ -354,10 +472,17 @@ TEST(TestVectype, VectypeComplexPeqF8 )
 		ASSERT_FLOAT_EQ( result.real(), v4b(i).real());
 		ASSERT_FLOAT_EQ( result.imag(), v4b(i).imag());
 	}
+	});
+    });
 }
 
 TEST(TestVectype, VectypeComplexCMaddSalarF8 )
 {
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
+
 	Kokkos::complex<float> a=Kokkos::complex<float>(-2.3,1.2);
 	SIMDComplex<float,8> v4b,v4c,v4d;
 	for(int l=0; l < v4b.len(); ++l) {
@@ -374,11 +499,17 @@ TEST(TestVectype, VectypeComplexCMaddSalarF8 )
 		ASSERT_FLOAT_EQ( result.real(), v4c(l).real());
 		ASSERT_FLOAT_EQ( result.imag(), v4c(l).imag());
 	}
+	});
+    });
 }
 
 
 TEST(TestVectype, VectypeComplexConjMaddSalarF8 )
 {
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	Kokkos::complex<float> a=Kokkos::complex<float>(-2.3,1.2);
 	SIMDComplex<float,8> v4b,v4c,v4d;
 	for(int l=0; l < v4b.len(); ++l) {
@@ -395,12 +526,18 @@ TEST(TestVectype, VectypeComplexConjMaddSalarF8 )
 		ASSERT_FLOAT_EQ( result.real(), v4c(l).real());
 		ASSERT_FLOAT_EQ( result.imag(), v4c(l).imag());
 	}
+	});
+    });
 }
 
 
 
 TEST(TestVectype, VectypeComplexCMaddF8 )
 {
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<float,8> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<float>(l,-l));
@@ -418,10 +555,16 @@ TEST(TestVectype, VectypeComplexCMaddF8 )
 		ASSERT_FLOAT_EQ( result.real(), v4c(l).real());
 		ASSERT_FLOAT_EQ( result.imag(), v4c(l).imag());
 	}
+	});
+    });
 }
 
 TEST(TestVectype, VectypeComplexConjMaddF8 )
 {
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<float,8> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<float>(l,-l));
@@ -438,10 +581,17 @@ TEST(TestVectype, VectypeComplexConjMaddF8 )
 		ASSERT_FLOAT_EQ( result.real(), v4c(l).real());
 		ASSERT_FLOAT_EQ( result.imag(), v4c(l).imag());
 	}
+	});
+    });
 }
 
 TEST(TestVectype, Test_A_add_sign_B_F8 )
 {
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
+
 	SIMDComplex<float,8> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<float>(l,-l));
@@ -460,10 +610,18 @@ TEST(TestVectype, Test_A_add_sign_B_F8 )
 		ASSERT_FLOAT_EQ( result.real(), v4c(l).real());
 		ASSERT_FLOAT_EQ( result.imag(), v4c(l).imag());
 	}
+	});
+    });
+
 }
 
 TEST(TestVectype, Test_A_add_sign_iB_F8 )
 {
+
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<float,8> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<float>(l,-l));
@@ -481,10 +639,16 @@ TEST(TestVectype, Test_A_add_sign_iB_F8 )
 		ASSERT_FLOAT_EQ( result.real(), v4c(l).real());
 		ASSERT_FLOAT_EQ( result.imag(), v4c(l).imag());
 	}
+	});
+    });
 }
 
 TEST(TestVectype, Test_A_peq_sign_miB_F8 )
 {
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<float,8> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<float>(l,-l));
@@ -501,10 +665,16 @@ TEST(TestVectype, Test_A_peq_sign_miB_F8 )
 		ASSERT_FLOAT_EQ( result.real(), v4b(l).real());
 		ASSERT_FLOAT_EQ( result.imag(), v4b(l).imag());
 	}
+	});
+    });
 }
 
 TEST(TestVectype, Test_A_peq_sign_B_F8 )
 {
+  ThreadExecPolicy policy(1,1,8);
+  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
+      Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
+
 	SIMDComplex<float,8> v4a,v4b,v4c,v4d;
 	for(int l=0; l < v4a.len(); ++l) {
 		v4a.set(l, Kokkos::complex<float>(l,-l));
@@ -522,6 +692,8 @@ TEST(TestVectype, Test_A_peq_sign_B_F8 )
 		ASSERT_FLOAT_EQ( result.real(), v4b(l).real());
 		ASSERT_FLOAT_EQ( result.imag(), v4b(l).imag());
 	}
+	});
+    });
 }
 
 int main(int argc, char *argv[]) 

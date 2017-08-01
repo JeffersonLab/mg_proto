@@ -10,11 +10,13 @@
 #include "./kokkos_spinproj.h"
 #include "./kokkos_matvec.h"
 #include "./kokkos_dslash.h"
+#include "MG_config.h"
 
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
 
+#if 0
 TEST(TestKokkos, TestLatticeInitialization)
 {
 	IndexArray latdims={{8,8,8,8}};
@@ -826,6 +828,7 @@ TEST(TestKokkos, TestMultHalfSpinor)
 	}
 }
 
+#endif
 
 TEST(TestKokkos, TestDslash)
 {
@@ -850,43 +853,48 @@ TEST(TestKokkos, TestDslash)
 
 	// Import Gauge Field
 	QDPGaugeFieldToKokkosGaugeField(gauge_in, kokkos_gauge);
-	KokkosDslash<Kokkos::complex<REAL>,Kokkos::complex<REAL>> D(info);
+#if defined(MG_KOKKOS_USE_TEAM_DISPATCH)
+	for(int per_team=2; per_team < 256; per_team *=2) {
+	  KokkosDslash<Kokkos::complex<REAL>,Kokkos::complex<REAL>> D(info,per_team);
+#else
+	  int per_team=-1;
+	  KokkosDslash<Kokkos::complex<REAL>,Kokkos::complex<REAL>> D(info);
+#endif
 
-	LatticeFermion psi_out, kokkos_out;
-	for(int cb=0; cb < 2; ++cb) {
-		KokkosCBFineSpinor<Kokkos::complex<REAL>,4>& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
-		KokkosCBFineSpinor<Kokkos::complex<REAL>,4>& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
+	  LatticeFermion psi_out, kokkos_out;
+	  for(int cb=0; cb < 2; ++cb) {
+	    KokkosCBFineSpinor<Kokkos::complex<REAL>,4>& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
+	    KokkosCBFineSpinor<Kokkos::complex<REAL>,4>& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
+	    
+	    for(int isign=-1; isign < 2; isign+=2) {
+	      
+	      // In the Host
+	      psi_out = zero;
+	      
+	      // Target cb=1 for now.
+	      dslash(psi_out,gauge_in,psi_in,isign,cb);
+	      
+	      QDPLatticeFermionToKokkosCBSpinor(psi_in, in_spinor);
+	      
+	      
+	      D(in_spinor,kokkos_gauge,out_spinor,isign);
+	      
+	      kokkos_out = zero;
+	      KokkosCBSpinorToQDPLatticeFermion(out_spinor, kokkos_out);
+	      
+	      // Check Diff on Odd
+	      psi_out[rb[cb]] -= kokkos_out;
+	      double norm_diff = toDouble(sqrt(norm2(psi_out,rb[cb])));
+	      
+	      MasterLog(INFO, "sites_per_team=%d norm_diff = %lf", per_team, norm_diff);
+	      ASSERT_LT( norm_diff, 1.0e-5);
+	    }
+	  }
 
-		for(int isign=-1; isign < 2; isign+=2) {
-
-			// In the Host
-			psi_out = zero;
-
-			// Target cb=1 for now.
-			dslash(psi_out,gauge_in,psi_in,isign,cb);
-
-			QDPLatticeFermionToKokkosCBSpinor(psi_in, in_spinor);
-
-
-			D(in_spinor,kokkos_gauge,out_spinor,isign);
-
-			kokkos_out = zero;
-			KokkosCBSpinorToQDPLatticeFermion(out_spinor, kokkos_out);
-
-			MasterLog(DEBUG,"After export kokkos_out has norm = %16.8e on rb[0]", toDouble(sqrt(norm2(kokkos_out,rb[0]))));
-			MasterLog(DEBUG,"After export psi_out has norm = %16.8e on rb[0]", toDouble(sqrt(norm2(psi_out,rb[0]))));
-
-			MasterLog(DEBUG,"After export kokkos_out has norm = %16.8e on rb[1]", toDouble(sqrt(norm2(kokkos_out,rb[1]))));
-			MasterLog(DEBUG,"After export psi_out has norm = %16.8e on rb[1]", toDouble(sqrt(norm2(psi_out,rb[1]))));
-
-			// Check Diff on Odd
-			psi_out[rb[cb]] -= kokkos_out;
-			double norm_diff = toDouble(sqrt(norm2(psi_out,rb[cb])));
-
-			MasterLog(INFO, "norm_diff = %lf", norm_diff);
-			ASSERT_LT( norm_diff, 1.0e-5);
-		}
+#if defined(MG_KOKKOS_USE_TEAM_DISPATCH)
 	}
+#endif
+
 }
 
 
@@ -915,53 +923,57 @@ TEST(TestKokkos, TestDslashVec)
 
 	// Import Gauge Field
 	QDPGaugeFieldToKokkosGaugeField(gauge_in, kokkos_gauge);
-	KokkosDslash<Kokkos::complex<REAL>,SIMDComplex<REAL,8>> D(info);
 
-	multi1d<LatticeFermion> psi_out(8);
-	multi1d<LatticeFermion> kokkos_out(8);
-	for(int cb=0; cb < 2; ++cb) {
-		KokkosCBFineSpinor<SIMDComplex<REAL,8>,4>& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
-		KokkosCBFineSpinor<SIMDComplex<REAL,8>,4>& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
 
-		for(int isign=-1; isign < 2; isign+=2) {
+#ifdef MG_KOKKOS_USE_TEAM_DISPATCH
+	for(int per_team=2; per_team < 256; per_team*=2) { 
+	  KokkosDslash<Kokkos::complex<REAL>,SIMDComplex<REAL,8>> D(info,per_team);
+#else
+	  int per_team = -1;
+	  KokkosDslash<Kokkos::complex<REAL>,SIMDComplex<REAL,8>> D(info);
+#endif
 
-			// In the Host
-			for(int v=0; v < 8; ++v) {
-				psi_out[v] = zero;
-
-				kokkos_out[v] = zero;
-
-				// Prep reference data
-				dslash(psi_out[v],gauge_in,psi_in[v],isign,cb);
-			}
-
-			// Import
-			QDPLatticeFermionToKokkosCBSpinor(psi_in, in_spinor);
-
-			// Vector Dslash
-			D(in_spinor,kokkos_gauge,out_spinor,isign);
-
-			// Export
-			KokkosCBSpinorToQDPLatticeFermion<>(out_spinor, kokkos_out);
-
-			for(int v=0; v < 8; ++v) {
-			MasterLog(DEBUG,"v=%d After export kokkos_out has norm = %16.8e on rb[0]", v, toDouble(sqrt(norm2(kokkos_out[v],rb[0]))));
-			MasterLog(DEBUG,"v=%d After export psi_out has norm = %16.8e on rb[0]", v, toDouble(sqrt(norm2(psi_out[v],rb[0]))));
-
-			MasterLog(DEBUG,"v=%d After export kokkos_out has norm = %16.8e on rb[1]",v, toDouble(sqrt(norm2(kokkos_out[v],rb[1]))));
-			MasterLog(DEBUG,"After export psi_out has norm = %16.8e on rb[1]", v, toDouble(sqrt(norm2(psi_out[v],rb[1]))));
-			}
-
-			for(int v=0; v < 8; ++v) {
-				// Check Diff on Odd
-				psi_out[v][rb[cb]] -= kokkos_out[v];
-				double norm_diff = toDouble(sqrt(norm2(psi_out[v],rb[cb])));
-
-				MasterLog(INFO, "v=%d norm_diff = %lf", v,norm_diff);
-				ASSERT_LT( norm_diff, 1.0e-5);
-			}
-		}
+	  multi1d<LatticeFermion> psi_out(8);
+	  multi1d<LatticeFermion> kokkos_out(8);
+	  for(int cb=0; cb < 2; ++cb) {
+	    KokkosCBFineSpinor<SIMDComplex<REAL,8>,4>& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
+	    KokkosCBFineSpinor<SIMDComplex<REAL,8>,4>& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
+	    
+	    for(int isign=-1; isign < 2; isign+=2) {
+	      
+	      // In the Host
+	      for(int v=0; v < 8; ++v) {
+		psi_out[v] = zero;
+		
+		kokkos_out[v] = zero;
+		
+		// Prep reference data
+		dslash(psi_out[v],gauge_in,psi_in[v],isign,cb);
+	      }
+	      
+	      // Import
+	      QDPLatticeFermionToKokkosCBSpinor(psi_in, in_spinor);
+	      
+	      // Vector Dslash
+	      D(in_spinor,kokkos_gauge,out_spinor,isign);
+	      
+	      // Export
+	      KokkosCBSpinorToQDPLatticeFermion<>(out_spinor, kokkos_out);
+	      MasterLog(INFO, "Sites Per Team=%d", per_team);
+	      for(int v=0; v < 8; ++v) {
+		// Check Diff on Odd
+		psi_out[v][rb[cb]] -= kokkos_out[v];
+		double norm_diff = toDouble(sqrt(norm2(psi_out[v],rb[cb])));
+		
+		MasterLog(INFO, "\t v=%d norm_diff = %lf", v,norm_diff);
+		ASSERT_LT( norm_diff, 1.0e-5);
+	      }
+	    }
+	  }
+#ifdef MG_KOKKOS_USE_TEAM_DISPATCH
 	}
+#endif
+
 }
 
 int main(int argc, char *argv[]) 

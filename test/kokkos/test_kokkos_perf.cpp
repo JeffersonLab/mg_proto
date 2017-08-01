@@ -11,6 +11,8 @@
 #include "./kokkos_matvec.h"
 #include "./kokkos_dslash.h"
 #include <omp.h>
+#include "MG_config.h"
+
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
@@ -355,8 +357,14 @@ TEST(TestKokkos, TestDslash)
 #if 1
 TEST(TestKokkos, TestDslashVec)
 {
-	IndexArray latdims={{16,16,16,32}};
-	int iters = 1200;
+  IndexArray latdims={{16,16,16,32}};
+
+#ifdef MG_USE_AVX512
+	int iters = 1000;
+#else 
+	int iters = 200;
+#endif
+
 	constexpr static int V = 8;
 
 	initQDPXXLattice(latdims);
@@ -390,12 +398,18 @@ TEST(TestKokkos, TestDslashVec)
 	  // QDP++ LatticeFermionF should go away here.
 	}
 
-	KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>> D(info);
 
+#ifdef MG_KOKKOS_USE_TEAM_DISPATCH
+	for(int per_team=2; per_team < 8192; per_team *= 2) {
 
+	  KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>> D(info,per_team);
+#else
+	  int per_team =-1;
+	  KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>> D(info);
+#endif
 	for(int rep=0; rep < 2; ++rep) {
 	  for(int isign=-1; isign < 2; isign+=2) {
-	    MasterLog(INFO, "Timing Dslash: isign == %d", isign);
+	    MasterLog(INFO, "Sites per Team=%d Timing Dslash: isign == %d", per_team, isign);
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < iters; ++i) {
 	      D(kokkos_spinor_in,kokkos_gauge,kokkos_spinor_out,isign);
@@ -409,13 +423,16 @@ TEST(TestKokkos, TestDslashVec)
 	    double bytes_out = (1.0+rfo)*static_cast<double>(V*4*3*2*sizeof(REAL32)*num_sites*iters);
 	    double flops = static_cast<double>(1320.0*V*num_sites*iters);
 
-	    MasterLog(INFO,"Performance: %lf GFLOPS", flops/(time_taken*1.0e9));
-	    MasterLog(INFO,"Effective BW: %lf GB/sec", (bytes_in+bytes_out)/(time_taken*1.0e9));
+	    MasterLog(INFO,"Sites Per Team=%d Performance: %lf GFLOPS", per_team, flops/(time_taken*1.0e9));
+	    MasterLog(INFO,"Sites Per Team=%d Effective BW: %lf GB/sec", per_team, (bytes_in+bytes_out)/(time_taken*1.0e9));
 
 
 
 	  }
 	}
+#ifdef MG_KOKKOS_USE_TEAM_DISPATCH
+	}
+#endif
 
 }
 #endif
