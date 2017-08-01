@@ -855,10 +855,10 @@ TEST(TestKokkos, TestDslash)
 	QDPGaugeFieldToKokkosGaugeField(gauge_in, kokkos_gauge);
 #if defined(MG_KOKKOS_USE_TEAM_DISPATCH)
 	for(int per_team=2; per_team < 256; per_team *=2) {
-	  KokkosDslash<Kokkos::complex<REAL>,Kokkos::complex<REAL>> D(info,per_team);
+	  KokkosDslash<Kokkos::complex<REAL>,Kokkos::complex<REAL>,Kokkos::complex<REAL>> D(info,per_team);
 #else
 	  int per_team=-1;
-	  KokkosDslash<Kokkos::complex<REAL>,Kokkos::complex<REAL>> D(info);
+	  KokkosDslash<Kokkos::complex<REAL>,Kokkos::complex<REAL>,Kokkos::complex<REAL>> D(info);
 #endif
 
 	  LatticeFermion psi_out, kokkos_out;
@@ -927,10 +927,10 @@ TEST(TestKokkos, TestDslashVec)
 
 #ifdef MG_KOKKOS_USE_TEAM_DISPATCH
 	for(int per_team=2; per_team < 256; per_team*=2) { 
-	  KokkosDslash<Kokkos::complex<REAL>,SIMDComplex<REAL,8>> D(info,per_team);
+	  KokkosDslash<Kokkos::complex<REAL>,SIMDComplex<REAL,8>,ThreadSIMDComplex<REAL,8>> D(info,per_team);
 #else
 	  int per_team = -1;
-	  KokkosDslash<Kokkos::complex<REAL>,SIMDComplex<REAL,8>> D(info);
+	  KokkosDslash<Kokkos::complex<REAL>,SIMDComplex<REAL,8>,ThreadSIMDComplex<REAL,8>> D(info);
 #endif
 
 	  multi1d<LatticeFermion> psi_out(8);

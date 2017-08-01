@@ -16,6 +16,12 @@
 #include <immintrin.h>
 #endif
 
+
+#include <Kokkos_Core.hpp>
+//Defining a free VectorPolicy
+typedef Kokkos::TeamPolicy<>::member_type t_team_handle;
+typedef Kokkos::Impl::ThreadVectorRangeBoundariesStruct<int,t_team_handle> VectorPolicy;
+
 namespace MG
 {
 
@@ -23,180 +29,209 @@ namespace MG
 // General
 template<typename T, int N>
 struct SIMDComplex {
-
   Kokkos::complex<T> _data[N] __attribute__((aligned(2*N*sizeof(T))));
-
-	constexpr static int len() { return N; }
-
-	inline
-	void set(int l, const Kokkos::complex<T>& value)
-	{
-		_data[l] = value;
-	}
-
-	inline
-	const Kokkos::complex<T>& operator()(int i) const
-	{
-		return _data[i];
-	}
+  constexpr static int len() { return N; }
+  
+  inline
+  void set(int l, const Kokkos::complex<T>& value)
+  {
+    _data[l] = value;
+  }
+  
+  inline
+  const Kokkos::complex<T>& operator()(int i) const
+  {
+    return _data[i];
+  }
+  
+  inline 
+  Kokkos::complex<T>& operator()(int i) {
+    return _data[i];
+  }
 };
 
+ // On the GPU only one elemen per 'VectorThread'
 template<typename T, int N>
+struct GPUThreadSIMDComplex {
+  Kokkos::complex<T> _data;
+
+  // This is the vector length so still N
+  constexpr static int len() { return N; }
+  
+  // Ignore l
+  inline
+  void set(int l, const Kokkos::complex<T>& value)
+  {
+    _data = value;
+  }
+  
+  // Ignore i
+  inline
+  const Kokkos::complex<T>& operator()(int i) const
+  {
+    return _data;
+  }
+  
+  // Ignore i
+  inline 
+  Kokkos::complex<T>& operator()(int i) {
+    return _data;
+  }
+};
+
+  // THIS IS WHERE WE INTRODUCE SOME NONPORTABILITY
+  // ThreadSIMDComplex ***MUST** only be instantiated in 
+  // a Kokkos parallel region
+#ifdef KOKKOS_HAVE_CUDA
+  template<typename T, int N> 
+  using ThreadSIMDComplex = GPUThreadSIMDComplex<T,N>;
+#else
+  template<typename T, int N>
+  using ThreadSIMDComplex = SIMDComplex<T,N>;
+#endif
+
+// T1 must support indexing with operator()
+  template<typename T, int N, template <typename,int> class T1, template <typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
-void ComplexCopy(SIMDComplex<T,N>& result, const SIMDComplex<T,N>& source)
+   void ComplexCopy(T1<T,N>& result, const T2<T,N>& source)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i) {
-		result._data[i] = source._data[i];
-	}
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+      result(i) = source(i);
+    });
 }
 
-template<typename T, int N>
+ template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
-void Load(SIMDComplex<T,N>& result, const SIMDComplex<T,N>& source)
+   void Load(T1<T,N>& result, const T2<T,N>& source)
 {
-	T* dest = reinterpret_cast<T*>(&(result._data[0]));
-	const T* src = reinterpret_cast<const T*>(&(source._data[0]));
-
-#pragma omp simd safelen(2*N)
-	for(int i=0; i < 2*N; ++i) {
-		dest[i] = src[i];
-	}
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+      result(i) = source(i);
+    });
 }
 
-template<typename T, int N>
+ template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
-void Store(SIMDComplex<T,N>& result, const SIMDComplex<T,N>& source)
+   void Store(T1<T,N>& result, const T2<T,N>& source)
 {
-	T* dest = reinterpret_cast<T*>(&(result._data[0]));
-	const T* src = reinterpret_cast<const T*>(&(source._data[0]));
-
-#pragma omp simd safelen(2*N)
-	for(int i=0; i < 2*N; ++i) {
-		dest[i] = src[i];
-	}
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+      result(i) = source(i);
+    });
 }
 
-template<typename T, int N>
-KOKKOS_FORCEINLINE_FUNCTION
-void Stream(SIMDComplex<T,N>& result, const SIMDComplex<T,N>& source)
-{
-	T* dest = reinterpret_cast<T*>(&(result._data[0]));
-	const T* src = reinterpret_cast<const T*>(&(source._data[0]));
-
-#pragma omp simd safelen(2*N)
-	for(int i=0; i < 2*N; ++i) {
-		dest[i] = src[i];
-	}
+ template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
+   KOKKOS_FORCEINLINE_FUNCTION
+ void Stream(T1<T,N>& result, const T2<T,N>& source)
+ {
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+      result(i) = source(i);
+    });
 }
 
-template<typename T, int N>
+  template<typename T, int N, template<typename,int> class T1>
 KOKKOS_FORCEINLINE_FUNCTION
-void ComplexZero(SIMDComplex<T,N>& result)
+void ComplexZero(T1<T,N>& result)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i) {
-		result._data[i]=Kokkos::complex<T>(0,0);
-	}
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+      result(i)=Kokkos::complex<T>(0,0);
+    });
 }
 
-template<typename T, int N>
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexPeq(SIMDComplex<T,N>& res, const SIMDComplex<T,N>& a)
+ComplexPeq(T1<T,N>& res, const T2<T,N>& a)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i)
-		res._data[i] += a._data[i]; // Complex Multiplication
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+      res(i) += a(i); // Complex Multiplication
+    });
 }
 
 
-template<typename T, int N>
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexCMadd(SIMDComplex<T,N>& res, const Kokkos::complex<T>& a, const SIMDComplex<T,N>& b)
+ComplexCMadd(T1<T,N>& res, const Kokkos::complex<T>& a, const T2<T,N>& b)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i)
-		res._data[i] += a*b._data[i]; // Complex Multiplication
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+      res(i)+= a*b(i); // Complex Multiplication
+    });
 }
 
-template<typename T, int N>
+
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexConjMadd(SIMDComplex<T,N>& res, const Kokkos::complex<T>& a, const SIMDComplex<T,N>& b)
+ComplexConjMadd(T1<T,N>& res, const Kokkos::complex<T>& a, const T2<T,N>& b)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i)
-		res._data[i] += Kokkos::conj(a)*b(i); // Complex Multiplication
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+      res(i) += Kokkos::conj(a)*b(i); // Complex Multiplication
+    });
+
 }
 
 
 
-template<typename T, int N>
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexCMadd(SIMDComplex<T,N>& res, const SIMDComplex<T,N>& a, const SIMDComplex<T,N>& b)
+ComplexCMadd(T1<T,N>& res, const T2<T,N>& a, const T3<T,N>& b)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i)
-		res._data[i] += a(i)*b(i); // Complex Multiplication
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
+      res(i) += a(i)*b(i); // Complex Multiplication
+    });
 }
 
-template<typename T, int N>
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexConjMadd(SIMDComplex<T,N>& res, const SIMDComplex<T,N>& a, const SIMDComplex<T,N>& b)
+  ComplexConjMadd(T1<T,N>& res, const T2<T,N>& a, const T3<T,N>& b)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i)
-		res._data[i] += Kokkos::conj(a(i))*b(i); // Complex Multiplication
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
+      res(i) += Kokkos::conj(a(i))*b(i); // Complex Multiplication
+    });
 }
 
-template<typename T, int N>
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_add_sign_B( SIMDComplex<T,N>& res, const SIMDComplex<T,N>& a, const T& sign, const SIMDComplex<T,N>& b)
+void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>& b)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i) {
-		res._data[i].real() = a(i).real() + sign*b(i).real();
-		res._data[i].imag() = a(i).imag() + sign*b(i).imag();
-	}
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
+      res(i).real() = a(i).real() + sign*b(i).real();
+      res(i).imag() = a(i).imag() + sign*b(i).imag();
+    });
+
 }
 
-template<typename T, int N>
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_add_sign_iB( SIMDComplex<T,N>& res, const SIMDComplex<T,N>& a, const T& sign, const SIMDComplex<T,N>& b)
+void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>& b)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i) {
-		res._data[i].real() = a(i).real() - sign*b(i).imag();
-		res._data[i].imag() = a(i).imag() + sign*b(i).real();
-	}
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+      res(i).real() = a(i).real() - sign*b(i).imag();
+      res(i).imag() = a(i).imag() + sign*b(i).real();
+    });
 }
 
 // a = -i b
-template<typename T,int N>
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_peq_sign_miB( SIMDComplex<T,N>& a, const T& sign, const SIMDComplex<T,N>& b)
+void A_peq_sign_miB( T1<T,N>& a, const T& sign, const T2<T,N>& b)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i) {
-		a._data[i].real() += sign*b(i).imag();
-		a._data[i].imag() -= sign*b(i).real();
-	}
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+      a(i).real() += sign*b(i).imag();
+      a(i).imag() -= sign*b(i).real();
+    });
 }
 
 // a = b
-template<typename T, int N>
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_peq_sign_B( SIMDComplex<T,N>& a, const T& sign, const SIMDComplex<T,N>& b)
+  void A_peq_sign_B( T1<T,N>& a, const T& sign, const T2<T,N>& b)
 {
-#pragma omp simd safelen(N)
-	for(int i=0; i < N; ++i) {
-		a._data[i].real() += sign*b(i).real();
-		a._data[i].imag() += sign*b(i).imag();
-	}
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
+      a(i).real() += sign*b(i).real();
+      a(i).imag() += sign*b(i).imag();
+    });
 }
 
 
@@ -227,11 +262,16 @@ template<>
   {
     return _data[i];
   }
+
+  inline
+  Kokkos::complex<float>& operator()(int i) {
+    return _data[i];
+  }
 };
 
   template<>
   KOKKOS_FORCEINLINE_FUNCTION
-  void Load<float,8>(SIMDComplex<float,8>& result, 
+  void Load<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& result, 
 		     const SIMDComplex<float,8>& source)
   {
     void const* src = reinterpret_cast<void const*>(&(source._data[0]));
@@ -241,7 +281,7 @@ template<>
   
   template<>
   KOKKOS_FORCEINLINE_FUNCTION
-  void ComplexCopy<float,8>(SIMDComplex<float,8>& result, 
+  void ComplexCopy<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& result, 
 			    const SIMDComplex<float,8>& source)
   {
     result._vdata  = source._vdata;
@@ -249,7 +289,7 @@ template<>
 
   template<>
   KOKKOS_FORCEINLINE_FUNCTION
-  void Store<float,8>(SIMDComplex<float,8>& result, 
+  void Store<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& result, 
 		      const SIMDComplex<float,8>& source)
   {
     void* dest = reinterpret_cast<void*>(&(result._data[0]));
@@ -258,7 +298,7 @@ template<>
 
   template<>
   KOKKOS_FORCEINLINE_FUNCTION
-  void Stream<float,8>(SIMDComplex<float,8>& result, 
+  void Stream<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& result, 
 		      const SIMDComplex<float,8>& source)
   {
     void* dest = reinterpret_cast<void*>(&(result._data[0]));
@@ -268,7 +308,7 @@ template<>
 
   template<>
   KOKKOS_FORCEINLINE_FUNCTION
-  void ComplexZero<float,8>(SIMDComplex<float,8>& result)
+  void ComplexZero<float,8,SIMDComplex>(SIMDComplex<float,8>& result)
   {
     result._vdata = _mm512_setzero_ps();
   }
@@ -276,7 +316,7 @@ template<>
   template<>
   KOKKOS_FORCEINLINE_FUNCTION
   void
-  ComplexPeq<float,8>(SIMDComplex<float,8>& res, 
+  ComplexPeq<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, 
 		      const SIMDComplex<float,8>& a)
   {
     res._vdata = _mm512_add_ps(res._vdata,a._vdata);
@@ -286,7 +326,8 @@ template<>
 
 template<>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_add_sign_B<float,8>( SIMDComplex<float,8>& res, 
+void 
+A_add_sign_B<float,8,SIMDComplex,SIMDComplex,SIMDComplex>( SIMDComplex<float,8>& res, 
 			    const SIMDComplex<float,8>& a, 
 			    const float& sign, 
 			    const SIMDComplex<float,8>& b)
@@ -298,7 +339,8 @@ void A_add_sign_B<float,8>( SIMDComplex<float,8>& res,
 // a = b
 template<>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_peq_sign_B( SIMDComplex<float,8>& a, 
+void 
+A_peq_sign_B<float,8,SIMDComplex,SIMDComplex>( SIMDComplex<float,8>& a, 
 		   const float& sign, 
 		   const SIMDComplex<float,8>& b)
 {
@@ -310,7 +352,7 @@ void A_peq_sign_B( SIMDComplex<float,8>& a,
 template<>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexCMadd(SIMDComplex<float,8>& res, 
+ComplexCMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, 
 	     const Kokkos::complex<float>& a, 
 	     const SIMDComplex<float,8>& b)
 {
@@ -328,7 +370,7 @@ ComplexCMadd(SIMDComplex<float,8>& res,
   template<>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-  ComplexConjMadd<float,8>(SIMDComplex<float,8>& res, const Kokkos::complex<float>& a, 
+  ComplexConjMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, const Kokkos::complex<float>& a, 
 		const SIMDComplex<float,8>& b)
 {
   __m512 sgnvec2 = _mm512_set_ps(-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1);
@@ -343,7 +385,7 @@ void
 template<>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexCMadd<float,8>(SIMDComplex<float,8>& res, 
+ComplexCMadd<float,8,SIMDComplex,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, 
 		      const SIMDComplex<float,8>& a, 
 		      const SIMDComplex<float,8>& b)
 {
@@ -361,7 +403,7 @@ ComplexCMadd<float,8>(SIMDComplex<float,8>& res,
 template<>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexConjMadd<float,8>(SIMDComplex<float,8>& res, const SIMDComplex<float,8>& a, const SIMDComplex<float,8>& b)
+ComplexConjMadd<float,8,SIMDComplex,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, const SIMDComplex<float,8>& a, const SIMDComplex<float,8>& b)
 {
   __m512 sgnvec2 = _mm512_set_ps(-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1);
   __m512 avec_re = _mm512_shuffle_ps( a._vdata, a._vdata, 0xa0 );
@@ -374,7 +416,7 @@ ComplexConjMadd<float,8>(SIMDComplex<float,8>& res, const SIMDComplex<float,8>& 
 
 template<>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_add_sign_iB<float,8>( SIMDComplex<float,8>& res, 
+void A_add_sign_iB<float,8,SIMDComplex,SIMDComplex,SIMDComplex>( SIMDComplex<float,8>& res, 
 			     const SIMDComplex<float,8>& a, 
 			     const float& sign, 
 			     const SIMDComplex<float,8>& b)
@@ -389,7 +431,7 @@ void A_add_sign_iB<float,8>( SIMDComplex<float,8>& res,
 // a = -i b
 template<>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_peq_sign_miB<float,8>( SIMDComplex<float,8>& a, 
+void A_peq_sign_miB<float,8,SIMDComplex,SIMDComplex>( SIMDComplex<float,8>& a, 
 			      const float& sign, 
 			      const SIMDComplex<float,8>& b)
 {

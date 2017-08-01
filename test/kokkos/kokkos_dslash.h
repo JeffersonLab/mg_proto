@@ -13,7 +13,6 @@
 #include "kokkos_matvec.h"
 #include "kokkos_traits.h"
 
-
 namespace MG {
 
 
@@ -24,7 +23,7 @@ using TeamHandle =  ThreadExecPolicy::member_type;
 typedef Kokkos::Experimental::MDRangePolicy<Kokkos::Experimental::Rank<4,Kokkos::Experimental::Iterate::Left,Kokkos::Experimental::Iterate::Left>> t_policy;
 
 
- template<typename GT, typename ST>
+ template<typename GT, typename ST, typename TST>
 class KokkosDslash {
 private:
 	const LatticeInfo& _info;
@@ -183,14 +182,13 @@ public:
 		    const int end_idx = start_idx + _sites_per_team  < num_sites ? start_idx + _sites_per_team : num_sites;
 		    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int site) {
 #endif
-
 		    // Warning: GCC Alignment Attribute!
 		    // Site Sum: Not a true Kokkos View
-			SpinorSiteView<ST> res_sum;// __attribute__((aligned(64)));
-
+			SpinorSiteView<TST> res_sum;// __attribute__((aligned(64)));
+			
 		    // Temporaries: Not a true Kokkos View
-			HalfSpinorSiteView<ST> proj_res; // __attribute__((aligned(64)));
-			HalfSpinorSiteView<ST> mult_proj_res; // __attribute__((aligned(64)));
+			HalfSpinorSiteView<TST> proj_res; // __attribute__((aligned(64)));
+			HalfSpinorSiteView<TST> mult_proj_res; // __attribute__((aligned(64)));
 		    
 
 		    for(int color=0; color < 3; ++color) {

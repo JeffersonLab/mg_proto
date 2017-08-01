@@ -402,10 +402,10 @@ TEST(TestKokkos, TestDslashVec)
 #ifdef MG_KOKKOS_USE_TEAM_DISPATCH
 	for(int per_team=2; per_team < 8192; per_team *= 2) {
 
-	  KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>> D(info,per_team);
+	  KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
 #else
 	  int per_team =-1;
-	  KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>> D(info);
+	  KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info);
 #endif
 	for(int rep=0; rep < 2; ++rep) {
 	  for(int isign=-1; isign < 2; isign+=2) {
