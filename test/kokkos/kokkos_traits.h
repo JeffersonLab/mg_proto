@@ -8,7 +8,7 @@
 #ifndef TEST_KOKKOS_KOKKOS_TRAITS_H_
 #define TEST_KOKKOS_KOKKOS_TRAITS_H_
 
-#include "Kokkos_Complex.hpp"
+#include "my_complex.h"
 #include "kokkos_vectype.h"
 
 namespace MG {
@@ -17,7 +17,7 @@ struct BaseType {
 };
 
 template<typename T>
-struct BaseType<Kokkos::complex<T>>{
+struct BaseType<MyComplex<T>>{
 	typedef T Type;
 };
 
@@ -31,7 +31,7 @@ template<typename T>
   };
 
 template<typename T>
-struct Veclen<Kokkos::complex<T>> {
+struct Veclen<MyComplex<T>> {
   static const int value = 1;
  };
 

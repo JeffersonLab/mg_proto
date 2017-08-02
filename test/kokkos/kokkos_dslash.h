@@ -8,6 +8,7 @@
 #ifndef TEST_KOKKOS_KOKKOS_DSLASH_H_
 #define TEST_KOKKOS_KOKKOS_DSLASH_H_
 
+#include "my_complex.h"
 #include "kokkos_types.h"
 #include "kokkos_spinproj.h"
 #include "kokkos_matvec.h"
@@ -278,14 +279,14 @@ public:
 // Savvy compiler should inline these and optimize them
   template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashMVSiteDir0(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
+void DslashMVSiteDir0(const SpinorView<MyComplex<T>>& spinor_in,    // Neighbor spinor
+		      const GaugeView<MyComplex<T>>& gauge_in,     // Gauge Link
+		      SpinorSiteView<MyComplex<T>>& res_sum,         // result
 		      int source_spinor_idx,
 		      int gauge_idx)
 {
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+	HalfSpinorSiteView<MyComplex<T>> proj_res;
+	HalfSpinorSiteView<MyComplex<T>> mult_proj_res;
 
 	KokkosProjectDir0<T,isign>(spinor_in,proj_res,source_spinor_idx);
 	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,0);
@@ -294,15 +295,15 @@ void DslashMVSiteDir0(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Nei
 
   template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashMVSiteDir1(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
+void DslashMVSiteDir1(const SpinorView<MyComplex<T>>& spinor_in,    // Neighbor spinor
+		      const GaugeView<MyComplex<T>>& gauge_in,     // Gauge Link
+		      SpinorSiteView<MyComplex<T>>& res_sum,         // result
 		      int source_spinor_idx,
 		      int gauge_idx)
     
 {
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+	HalfSpinorSiteView<MyComplex<T>> proj_res;
+	HalfSpinorSiteView<MyComplex<T>> mult_proj_res;
 
 	KokkosProjectDir1<T,isign>(spinor_in,proj_res,source_spinor_idx);
 	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,1);
@@ -311,14 +312,14 @@ void DslashMVSiteDir1(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Nei
 
   template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashMVSiteDir2(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
+void DslashMVSiteDir2(const SpinorView<MyComplex<T>>& spinor_in,    // Neighbor spinor
+		      const GaugeView<MyComplex<T>>& gauge_in,     // Gauge Link
+		      SpinorSiteView<MyComplex<T>>& res_sum,         // result
 		      int source_spinor_idx,
 		      int gauge_idx)
 {
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+	HalfSpinorSiteView<MyComplex<T>> proj_res;
+	HalfSpinorSiteView<MyComplex<T>> mult_proj_res;
 
 	KokkosProjectDir2<T,isign>(spinor_in,proj_res,source_spinor_idx);
 	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,2);
@@ -327,14 +328,14 @@ void DslashMVSiteDir2(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Nei
 
   template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashMVSiteDir3(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
+void DslashMVSiteDir3(const SpinorView<MyComplex<T>>& spinor_in,    // Neighbor spinor
+		      const GaugeView<MyComplex<T>>& gauge_in,     // Gauge Link
+		      SpinorSiteView<MyComplex<T>>& res_sum,         // result
 		      int source_spinor_idx,
 		      int gauge_idx)
 {
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+	HalfSpinorSiteView<MyComplex<T>> proj_res;
+	HalfSpinorSiteView<MyComplex<T>> mult_proj_res;
 
 	KokkosProjectDir3<T,isign>(spinor_in,proj_res,source_spinor_idx);
 	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,3);
@@ -346,14 +347,14 @@ void DslashMVSiteDir3(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Nei
 // Savvy compiler should inline and optimize them
   template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashHVSiteDir0(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
+void DslashHVSiteDir0(const SpinorView<MyComplex<T>>& spinor_in,   // Neighbor spinor
+		      const GaugeView<MyComplex<T>>& gauge_in,    // Gauge link
+		      SpinorSiteView<MyComplex<T>>& res_sum,        // result
 		      int source_spinor_idx,
 		      int gauge_idx)
 {
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+	HalfSpinorSiteView<MyComplex<T>> proj_res;
+	HalfSpinorSiteView<MyComplex<T>> mult_proj_res;
 
 	KokkosProjectDir0<T,isign>(spinor_in, proj_res,source_spinor_idx);
 	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,0);
@@ -363,14 +364,14 @@ void DslashHVSiteDir0(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neig
 
   template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashHVSiteDir1(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
+void DslashHVSiteDir1(const SpinorView<MyComplex<T>>& spinor_in,   // Neighbor spinor
+		      const GaugeView<MyComplex<T>>& gauge_in,    // Gauge link
+		      SpinorSiteView<MyComplex<T>>& res_sum,        // result
 		      int source_spinor_idx,
 		      int gauge_idx)
 {
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+	HalfSpinorSiteView<MyComplex<T>> proj_res;
+	HalfSpinorSiteView<MyComplex<T>> mult_proj_res;
 
 	KokkosProjectDir1<T,isign>(spinor_in, proj_res,source_spinor_idx);
 	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,1);
@@ -380,16 +381,16 @@ void DslashHVSiteDir1(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neig
 
   template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashHVSiteDir2(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
+void DslashHVSiteDir2(const SpinorView<MyComplex<T>>& spinor_in,   // Neighbor spinor
+		      const GaugeView<MyComplex<T>>& gauge_in,    // Gauge link
+		      SpinorSiteView<MyComplex<T>>& res_sum,        // result
 		      int source_spinor_idx,
 		      int gauge_idx)
 
 
 {
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+	HalfSpinorSiteView<MyComplex<T>> proj_res;
+	HalfSpinorSiteView<MyComplex<T>> mult_proj_res;
 
 	KokkosProjectDir2<T,isign>(spinor_in, proj_res,source_spinor_idx);
 	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,2);
@@ -399,15 +400,15 @@ void DslashHVSiteDir2(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neig
 
   template<typename T, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void DslashHVSiteDir3(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
+void DslashHVSiteDir3(const SpinorView<MyComplex<T>>& spinor_in,   // Neighbor spinor
+		      const GaugeView<MyComplex<T>>& gauge_in,    // Gauge link
+		      SpinorSiteView<MyComplex<T>>& res_sum,        // result
 		      int source_spinor_idx,
 		      int gauge_idx)
 
 {
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
+	HalfSpinorSiteView<MyComplex<T>> proj_res;
+	HalfSpinorSiteView<MyComplex<T>> mult_proj_res;
 
 	KokkosProjectDir3<T,isign>(spinor_in, proj_res,source_spinor_idx);
 	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,3);

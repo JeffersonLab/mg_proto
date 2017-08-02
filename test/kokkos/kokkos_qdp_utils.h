@@ -9,6 +9,8 @@
 #define TEST_KOKKOS_KOKKOS_QDP_UTILS_H_
 
 #include "qdp.h"
+#include "my_complex.h"
+
 #include "kokkos_types.h"
 #include <Kokkos_Core.hpp>
 
@@ -21,7 +23,7 @@ namespace MG
 	template<typename T, typename LF>
 	void
 	QDPLatticeFermionToKokkosCBSpinor(const LF& qdp_in,
-			KokkosCBFineSpinor<Kokkos::complex<T>,4>& kokkos_out)
+			KokkosCBFineSpinor<MyComplex<T>,4>& kokkos_out)
 	{
 		auto cb = kokkos_out.GetCB();
 		const QDP::Subset& sub = ( cb == EVEN ) ? QDP::rb[0] : QDP::rb[1];
@@ -42,7 +44,7 @@ namespace MG
 
 							const int qdp_index = sub.siteTable()[i];
 
-							h_out(i,color,spin)= Kokkos::complex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
+							h_out(i,color,spin)= MyComplex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
 																	qdp_in.elem(qdp_index).elem(spin).elem(color).imag());
 
 						} // spin
@@ -84,7 +86,7 @@ namespace MG
 							const int qdp_index = sub.siteTable()[i];
 
 							for(int v=0; v < N; ++v ) {
-								h_out(i,color,spin).set(v, Kokkos::complex<T>(qdp_in[v].elem(qdp_index).elem(spin).elem(color).real(),
+								h_out(i,color,spin).set(v, MyComplex<T>(qdp_in[v].elem(qdp_index).elem(spin).elem(color).real(),
 										qdp_in[v].elem(qdp_index).elem(spin).elem(color).imag()));
 							}
 
@@ -99,7 +101,7 @@ namespace MG
 	// Single QDP++ vector
 	template<typename T, typename LF>
 	void
-	KokkosCBSpinorToQDPLatticeFermion(const KokkosCBFineSpinor<Kokkos::complex<T>,4>& kokkos_in,
+	KokkosCBSpinorToQDPLatticeFermion(const KokkosCBFineSpinor<MyComplex<T>,4>& kokkos_in,
 			LF& qdp_out) {
 
 		auto cb = kokkos_in.GetCB();
@@ -179,7 +181,7 @@ namespace MG
 	template<typename T, typename HF>
 	void
 	QDPLatticeHalfFermionToKokkosCBSpinor2(const HF& qdp_in,
-			KokkosCBFineSpinor<Kokkos::complex<T>,2>& kokkos_out)
+			KokkosCBFineSpinor<MyComplex<T>,2>& kokkos_out)
 	{
 		auto cb = kokkos_out.GetCB();
 		const QDP::Subset& sub = ( cb == EVEN ) ? QDP::rb[0] : QDP::rb[1];
@@ -200,7 +202,7 @@ namespace MG
 
 							const int qdp_index = sub.siteTable()[i];
 
-							h_out(i,color,spin) = Kokkos::complex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
+							h_out(i,color,spin) = MyComplex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
 																	   qdp_in.elem(qdp_index).elem(spin).elem(color).imag());
 
 						} // spin
@@ -242,7 +244,7 @@ namespace MG
 							const int qdp_index = sub.siteTable()[i];
 
 							for(int v=0; v < N; ++v) {
-								h_out(i,color,spin).set(v, Kokkos::complex<T>(qdp_in[v].elem(qdp_index).elem(spin).elem(color).real(),
+								h_out(i,color,spin).set(v, MyComplex<T>(qdp_in[v].elem(qdp_index).elem(spin).elem(color).real(),
 										qdp_in[v].elem(qdp_index).elem(spin).elem(color).imag()));
 							}
 
@@ -256,7 +258,7 @@ namespace MG
 
 	template<typename T, typename HF>
 	void
-	KokkosCBSpinor2ToQDPLatticeHalfFermion(const KokkosCBFineSpinor<Kokkos::complex<T>,2>& kokkos_in,
+	KokkosCBSpinor2ToQDPLatticeHalfFermion(const KokkosCBFineSpinor<MyComplex<T>,2>& kokkos_in,
 			HF& qdp_out) {
 
 		auto cb = kokkos_in.GetCB();
@@ -331,7 +333,7 @@ namespace MG
 	template<typename T, typename GF>
 	void
 	QDPGaugeFieldToKokkosCBGaugeField(const GF& qdp_in,
-			KokkosCBFineGaugeField<Kokkos::complex<T>>& kokkos_out)
+			KokkosCBFineGaugeField<MyComplex<T>>& kokkos_out)
 	{
 		auto cb = kokkos_out.GetCB();
 		const QDP::Subset& sub = ( cb == EVEN ) ? QDP::rb[0] : QDP::rb[1];
@@ -357,7 +359,7 @@ namespace MG
 							for(int color2=0; color2 < 3; ++color2) {
 								const int qdp_index = sub.siteTable()[i];
 
-								h_out(i,mu,color,color2)=Kokkos::complex<T>( (qdp_in[mu]).elem(qdp_index).elem().elem(color,color2).real(),
+								h_out(i,mu,color,color2)=MyComplex<T>( (qdp_in[mu]).elem(qdp_index).elem().elem(color,color2).real(),
 																			 (qdp_in[mu]).elem(qdp_index).elem().elem(color,color2).imag());
 							} //color2
 						} // color
@@ -372,7 +374,7 @@ namespace MG
 
 	template<typename T, typename GF>
 	void
-	KokkosCBGaugeFieldToQDPGaugeField(const KokkosCBFineGaugeField<Kokkos::complex<T>>& kokkos_in,
+	KokkosCBGaugeFieldToQDPGaugeField(const KokkosCBFineGaugeField<MyComplex<T>>& kokkos_in,
 			GF& qdp_out)
 	{
 		auto cb = kokkos_in.GetCB();

@@ -5,6 +5,7 @@
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/fine_qdpxx/dslashm_w.h"
+#include "./my_complex.h"
 #include "./kokkos_types.h"
 #include "./kokkos_qdp_utils.h"
 #include "./kokkos_spinproj.h"
@@ -34,11 +35,11 @@ TEST(TestKokkos, TestSpinorInitialization)
 	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 	LatticeInfo info(latdims,4,3,NodeInfo());
 
-	KokkosCBFineSpinor<Kokkos::complex<float>,4> cb_spinor_e(info, EVEN);
-	KokkosCBFineSpinor<Kokkos::complex<float>,4> cb_spinor_o(info, ODD);
+	KokkosCBFineSpinor<MyComplex<float>,4> cb_spinor_e(info, EVEN);
+	KokkosCBFineSpinor<MyComplex<float>,4> cb_spinor_o(info, ODD);
 
-	KokkosCBFineGaugeField<Kokkos::complex<float>> gauge_field_even(info, EVEN);
-	KokkosCBFineGaugeField<Kokkos::complex<float>> gauge_field_odd(info,ODD);
+	KokkosCBFineGaugeField<MyComplex<float>> gauge_field_even(info, EVEN);
+	KokkosCBFineGaugeField<MyComplex<float>> gauge_field_odd(info,ODD);
  }
 
 TEST(TestKokkos, TestQDPCBSpinorImportExport)
@@ -52,8 +53,8 @@ TEST(TestKokkos, TestQDPCBSpinorImportExport)
 	gaussian(qdp_in);
 
 	LatticeInfo info(latdims,4,3,NodeInfo());
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,4>  kokkos_spinor_e(info, EVEN);
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,4>  kokkos_spinor_o(info, ODD);
+	KokkosCBFineSpinor<MyComplex<REAL>,4>  kokkos_spinor_e(info, EVEN);
+	KokkosCBFineSpinor<MyComplex<REAL>,4>  kokkos_spinor_o(info, ODD);
 	{
 		qdp_out = zero;
 		// Import Checkerboard, by checkerboard
@@ -93,8 +94,8 @@ TEST(TestKokkos, TestQDPCBHalfSpinorImportExport)
 	gaussian(qdp_in);
 
 	LatticeInfo info(latdims,2,3,NodeInfo());
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,2>  kokkos_hspinor_e(info, EVEN);
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,2>  kokkos_hspinor_o(info, ODD);
+	KokkosCBFineSpinor<MyComplex<REAL>,2>  kokkos_hspinor_e(info, EVEN);
+	KokkosCBFineSpinor<MyComplex<REAL>,2>  kokkos_hspinor_o(info, ODD);
 	{
 		qdp_out = zero;
 		// Import Checkerboard, by checkerboard
@@ -249,8 +250,8 @@ TEST(TestKokkos, TestSpinProject)
 
 
 	gaussian(qdp_in);
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,4> kokkos_in(info,EVEN);
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,2> kokkos_hspinor_out(hinfo,EVEN);
+	KokkosCBFineSpinor<MyComplex<REAL>,4> kokkos_in(info,EVEN);
+	KokkosCBFineSpinor<MyComplex<REAL>,2> kokkos_hspinor_out(hinfo,EVEN);
 
 	QDPLatticeFermionToKokkosCBSpinor(qdp_in, kokkos_in);
 	
@@ -260,7 +261,7 @@ TEST(TestKokkos, TestSpinProject)
 	  qdp_out[rb[0]] = spinProjectDir0Minus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosProjectLattice<Kokkos::complex<REAL>,0,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosProjectLattice<MyComplex<REAL>,0,-1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -275,7 +276,7 @@ TEST(TestKokkos, TestSpinProject)
 	  qdp_out[rb[0]] = spinProjectDir1Minus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosProjectLattice<Kokkos::complex<REAL>,1,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosProjectLattice<MyComplex<REAL>,1,-1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -290,7 +291,7 @@ TEST(TestKokkos, TestSpinProject)
 	  qdp_out[rb[0]] = spinProjectDir2Minus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosProjectLattice<Kokkos::complex<REAL>,2,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosProjectLattice<MyComplex<REAL>,2,-1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -305,7 +306,7 @@ TEST(TestKokkos, TestSpinProject)
 	  qdp_out[rb[0]] = spinProjectDir3Minus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosProjectLattice<Kokkos::complex<REAL>,3,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosProjectLattice<MyComplex<REAL>,3,-1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -320,7 +321,7 @@ TEST(TestKokkos, TestSpinProject)
 	  qdp_out[rb[0]] = spinProjectDir0Plus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosProjectLattice<Kokkos::complex<REAL>,0,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosProjectLattice<MyComplex<REAL>,0,1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -335,7 +336,7 @@ TEST(TestKokkos, TestSpinProject)
 	  qdp_out[rb[0]] = spinProjectDir1Plus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosProjectLattice<Kokkos::complex<REAL>,1,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosProjectLattice<MyComplex<REAL>,1,1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -350,7 +351,7 @@ TEST(TestKokkos, TestSpinProject)
 	  qdp_out[rb[0]] = spinProjectDir2Plus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosProjectLattice<Kokkos::complex<REAL>,2,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosProjectLattice<MyComplex<REAL>,2,1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -365,7 +366,7 @@ TEST(TestKokkos, TestSpinProject)
 	  qdp_out[rb[0]] = spinProjectDir3Plus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosProjectLattice<Kokkos::complex<REAL>,3,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosProjectLattice<MyComplex<REAL>,3,1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -539,8 +540,8 @@ TEST(TestKokkos, TestSpinRecons)
 
 	gaussian(qdp_in);
 
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,2> kokkos_hspinor_in(hinfo,EVEN);
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,4> kokkos_spinor_out(info,EVEN);
+	KokkosCBFineSpinor<MyComplex<REAL>,2> kokkos_hspinor_in(hinfo,EVEN);
+	KokkosCBFineSpinor<MyComplex<REAL>,4> kokkos_spinor_out(info,EVEN);
 
 	QDPLatticeHalfFermionToKokkosCBSpinor2(qdp_in, kokkos_hspinor_in);
 	
@@ -549,7 +550,7 @@ TEST(TestKokkos, TestSpinRecons)
 	  qdp_out[rb[0]] = spinReconstructDir0Minus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosReconsLattice<Kokkos::complex<REAL>,0,-1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosReconsLattice<MyComplex<REAL>,0,-1>(kokkos_hspinor_in,kokkos_spinor_out);
 	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
 	  qdp_out[rb[0]] -= kokkos_out;
@@ -564,7 +565,7 @@ TEST(TestKokkos, TestSpinRecons)
 	  qdp_out[rb[0]] = spinReconstructDir1Minus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosReconsLattice<Kokkos::complex<REAL>,1,-1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosReconsLattice<MyComplex<REAL>,1,-1>(kokkos_hspinor_in,kokkos_spinor_out);
 	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
 	  qdp_out[rb[0]] -= kokkos_out;
@@ -579,7 +580,7 @@ TEST(TestKokkos, TestSpinRecons)
 	  qdp_out[rb[0]] = spinReconstructDir2Minus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosReconsLattice<Kokkos::complex<REAL>,2,-1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosReconsLattice<MyComplex<REAL>,2,-1>(kokkos_hspinor_in,kokkos_spinor_out);
 	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
 	  qdp_out[rb[0]] -= kokkos_out;
@@ -594,7 +595,7 @@ TEST(TestKokkos, TestSpinRecons)
 	  qdp_out[rb[0]] = spinReconstructDir3Minus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosReconsLattice<Kokkos::complex<REAL>,3,-1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosReconsLattice<MyComplex<REAL>,3,-1>(kokkos_hspinor_in,kokkos_spinor_out);
 	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
 	  qdp_out[rb[0]] -= kokkos_out;
@@ -610,7 +611,7 @@ TEST(TestKokkos, TestSpinRecons)
 	  qdp_out[rb[0]] = spinReconstructDir0Plus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosReconsLattice<Kokkos::complex<REAL>,0,1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosReconsLattice<MyComplex<REAL>,0,1>(kokkos_hspinor_in,kokkos_spinor_out);
 	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
 	  qdp_out[rb[0]] -= kokkos_out;
@@ -625,7 +626,7 @@ TEST(TestKokkos, TestSpinRecons)
 	  qdp_out[rb[0]] = spinReconstructDir1Plus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosReconsLattice<Kokkos::complex<REAL>,1,1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosReconsLattice<MyComplex<REAL>,1,1>(kokkos_hspinor_in,kokkos_spinor_out);
 	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
 	  qdp_out[rb[0]] -= kokkos_out;
@@ -640,7 +641,7 @@ TEST(TestKokkos, TestSpinRecons)
 	  qdp_out[rb[0]] = spinReconstructDir2Plus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosReconsLattice<Kokkos::complex<REAL>,2,1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosReconsLattice<MyComplex<REAL>,2,1>(kokkos_hspinor_in,kokkos_spinor_out);
 	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
 	  qdp_out[rb[0]] -= kokkos_out;
@@ -655,7 +656,7 @@ TEST(TestKokkos, TestSpinRecons)
 	  qdp_out[rb[0]] = spinReconstructDir3Plus(qdp_in);
 	  qdp_out[rb[1]] = zero;
 
-	  KokkosReconsLattice<Kokkos::complex<REAL>,3,1>(kokkos_hspinor_in,kokkos_spinor_out);
+	  KokkosReconsLattice<MyComplex<REAL>,3,1>(kokkos_hspinor_in,kokkos_spinor_out);
 	  KokkosCBSpinorToQDPLatticeFermion(kokkos_spinor_out,kokkos_out);
 
 	  qdp_out[rb[0]] -= kokkos_out;
@@ -683,8 +684,8 @@ TEST(TestKokkos, TestQDPCBGaugeFIeldImportExport)
 	multi1d<LatticeColorMatrix> gauge_out;  // Basic uninitialized
 
 	LatticeInfo info(latdims,4,3,NodeInfo());
-	KokkosCBFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge_e(info, EVEN);
-	KokkosCBFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge_o(info, ODD);
+	KokkosCBFineGaugeField<MyComplex<REAL>>  kokkos_gauge_e(info, EVEN);
+	KokkosCBFineGaugeField<MyComplex<REAL>>  kokkos_gauge_o(info, ODD);
 	{
 		// Import Checkerboard, by checkerboard
 		QDPGaugeFieldToKokkosCBGaugeField(gauge_in, kokkos_gauge_e);
@@ -737,7 +738,7 @@ TEST(TestKokkos, TestQDPGaugeFIeldImportExport)
 	multi1d<LatticeColorMatrix> gauge_out;  // Basic uninitialized
 
 	LatticeInfo info(latdims,4,3,NodeInfo());
-	KokkosFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge(info);
+	KokkosFineGaugeField<MyComplex<REAL>>  kokkos_gauge(info);
 	{
 		// Import Checkerboard, by checkerboard
 		QDPGaugeFieldToKokkosGaugeField(gauge_in, kokkos_gauge);
@@ -774,9 +775,9 @@ TEST(TestKokkos, TestMultHalfSpinor)
 	LatticeInfo info(latdims,4,3,NodeInfo());
 	LatticeInfo hinfo(latdims,2,3,NodeInfo());
 
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,2> kokkos_hspinor_in(hinfo,EVEN);
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,2> kokkos_hspinor_out(hinfo,EVEN);
-	KokkosCBFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge_e(info, EVEN);
+	KokkosCBFineSpinor<MyComplex<REAL>,2> kokkos_hspinor_in(hinfo,EVEN);
+	KokkosCBFineSpinor<MyComplex<REAL>,2> kokkos_hspinor_out(hinfo,EVEN);
+	KokkosCBFineGaugeField<MyComplex<REAL>>  kokkos_gauge_e(info, EVEN);
 
 
 	// Import Gauge Field
@@ -846,25 +847,25 @@ TEST(TestKokkos, TestDslash)
 	LatticeInfo info(latdims,4,3,NodeInfo());
 	LatticeInfo hinfo(latdims,2,3,NodeInfo());
 
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,4> kokkos_spinor_even(info,EVEN);
-	KokkosCBFineSpinor<Kokkos::complex<REAL>,4> kokkos_spinor_odd(info,ODD);
-	KokkosFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge(info);
+	KokkosCBFineSpinor<MyComplex<REAL>,4> kokkos_spinor_even(info,EVEN);
+	KokkosCBFineSpinor<MyComplex<REAL>,4> kokkos_spinor_odd(info,ODD);
+	KokkosFineGaugeField<MyComplex<REAL>>  kokkos_gauge(info);
 
 
 	// Import Gauge Field
 	QDPGaugeFieldToKokkosGaugeField(gauge_in, kokkos_gauge);
 #if defined(MG_KOKKOS_USE_TEAM_DISPATCH)
 	for(int per_team=2; per_team < 256; per_team *=2) {
-	  KokkosDslash<Kokkos::complex<REAL>,Kokkos::complex<REAL>> D(info,per_team);
+	  KokkosDslash<MyComplex<REAL>,MyComplex<REAL>> D(info,per_team);
 #else
 	  int per_team=-1;
-	  KokkosDslash<Kokkos::complex<REAL>,Kokkos::complex<REAL>> D(info);
+	  KokkosDslash<MyComplex<REAL>,MyComplex<REAL>> D(info);
 #endif
 
 	  LatticeFermion psi_out, kokkos_out;
 	  for(int cb=0; cb < 2; ++cb) {
-	    KokkosCBFineSpinor<Kokkos::complex<REAL>,4>& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
-	    KokkosCBFineSpinor<Kokkos::complex<REAL>,4>& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
+	    KokkosCBFineSpinor<MyComplex<REAL>,4>& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
+	    KokkosCBFineSpinor<MyComplex<REAL>,4>& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
 	    
 	    for(int isign=-1; isign < 2; isign+=2) {
 	      
@@ -918,7 +919,7 @@ TEST(TestKokkos, TestDslashVec)
 
 	KokkosCBFineSpinor<SIMDComplex<REAL,8>,4> kokkos_spinor_even(info,EVEN);
 	KokkosCBFineSpinor<SIMDComplex<REAL,8>,4> kokkos_spinor_odd(info,ODD);
-	KokkosFineGaugeField<Kokkos::complex<REAL>>  kokkos_gauge(info);
+	KokkosFineGaugeField<MyComplex<REAL>>  kokkos_gauge(info);
 
 
 	// Import Gauge Field
@@ -927,10 +928,10 @@ TEST(TestKokkos, TestDslashVec)
 
 #ifdef MG_KOKKOS_USE_TEAM_DISPATCH
 	for(int per_team=2; per_team < 256; per_team*=2) { 
-	  KokkosDslash<Kokkos::complex<REAL>,SIMDComplex<REAL,8>> D(info,per_team);
+	  KokkosDslash<MyComplex<REAL>,SIMDComplex<REAL,8>> D(info,per_team);
 #else
 	  int per_team = -1;
-	  KokkosDslash<Kokkos::complex<REAL>,SIMDComplex<REAL,8>> D(info);
+	  KokkosDslash<MyComplex<REAL>,SIMDComplex<REAL,8>> D(info);
 #endif
 
 	  multi1d<LatticeFermion> psi_out(8);
