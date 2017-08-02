@@ -7,7 +7,9 @@
 
 #ifndef TEST_KOKKOS_KOKKOS_DSLASH_H_
 #define TEST_KOKKOS_KOKKOS_DSLASH_H_
-
+#include "Kokkos_Macros.hpp"
+#include "Kokkos_Core.hpp"
+#include "kokkos_defaults.h"
 #include "kokkos_types.h"
 #include "kokkos_spinproj.h"
 #include "kokkos_matvec.h"
@@ -22,17 +24,96 @@ using TeamHandle =  ThreadExecPolicy::member_type;
   // Try an N-dimensional threading policy for cache blocking
 typedef Kokkos::Experimental::MDRangePolicy<Kokkos::Experimental::Rank<4,Kokkos::Experimental::Iterate::Left,Kokkos::Experimental::Iterate::Left>> t_policy;
 
+enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_PLUS=6, T_PLUS=7 };
 
- template<typename GT, typename ST, typename TST>
+
+void ComputeSiteTable(int _n_xh, int _n_y, int _n_z, int _n_t, Kokkos::View<int*[2][8],Layout>& _neigh_table)
+{
+		int _n_x = 2*_n_xh;
+		int num_sites =  _n_xh*_n_y*_n_z*_n_t;
+		Kokkos::parallel_for(num_sites, KOKKOS_LAMBDA(int site) {
+	        for(int target_cb=0; target_cb < 2; ++target_cb) {
+		     // Break down site index into xcb, y,z and t
+		     IndexType tmp_yzt = site / _n_xh;
+		     IndexType xcb = site - _n_xh * tmp_yzt;
+		     IndexType tmp_zt = tmp_yzt / _n_y;
+		     IndexType y = tmp_yzt - _n_y * tmp_zt;
+		     IndexType t = tmp_zt / _n_z;
+		     IndexType z = tmp_zt - _n_z * t;
+
+		     // Global, uncheckerboarded x, assumes cb = (x + y + z + t ) & 1
+		     IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);
+
+		     if( t > 0 ) {
+		       _neigh_table(site,target_cb,T_MINUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1)));
+		     }
+		     else {
+		       _neigh_table(site,target_cb,T_MINUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1)));
+		     }
+
+		     if( z > 0 ) {
+		       _neigh_table(site,target_cb,Z_MINUS) = xcb + _n_xh*(y + _n_y*((z-1) + _n_z*t));
+		     }
+		     else {
+		       _neigh_table(site,target_cb,Z_MINUS) = xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t));
+		     }
+
+		     if( y > 0 ) {
+		       _neigh_table(site,target_cb,Y_MINUS) = xcb + _n_xh*((y-1) + _n_y*(z + _n_z*t));
+		     }
+		     else {
+		       _neigh_table(site,target_cb,Y_MINUS) = xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t));
+		     }
+
+		     if ( x > 0 ) {
+		       _neigh_table(site,target_cb,X_MINUS)= ((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
+		     }
+		     else {
+		       _neigh_table(site,target_cb,X_MINUS)= ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
+		     }
+
+		     if ( x < _n_x - 1 ) {
+		       _neigh_table(site,target_cb,X_PLUS) = ((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t));
+		     }
+		     else {
+		       _neigh_table(site,target_cb,X_PLUS) = 0 + _n_xh*(y + _n_y*(z + _n_z*t));
+		     }
+
+		     if( y < _n_y-1 ) {
+		       _neigh_table(site,target_cb,Y_PLUS) = xcb + _n_xh*((y+1) + _n_y*(z + _n_z*t));
+		     }
+		     else {
+		       _neigh_table(site,target_cb,Y_PLUS) = xcb + _n_xh*(0 + _n_y*(z + _n_z*t));
+		     }
+
+		     if( z < _n_z-1 ) {
+		       _neigh_table(site,target_cb,Z_PLUS) = xcb + _n_xh*(y + _n_y*((z+1) + _n_z*t));
+		     }
+		     else {
+		       _neigh_table(site,target_cb,Z_PLUS) = xcb + _n_xh*(y + _n_y*(0 + _n_z*t));
+		     }
+
+		     if( t < _n_t-1 ) {
+		       _neigh_table(site,target_cb,T_PLUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(t+1)));
+		     }
+		     else {
+		       _neigh_table(site,target_cb,T_PLUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(0)));
+		     }
+		    } // target CB
+	        });
+
+}
+
+template<typename GT, typename ST, typename TST>
 class KokkosDslash {
 private:
 	const LatticeInfo& _info;
 
-	enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_PLUS=6, T_PLUS=7 };
 	Kokkos::View<int*[2][8],Layout> _neigh_table;
 	const int _sites_per_team;
 public:
- KokkosDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info), _neigh_table("neigh_table", info.GetNumCBSites()), _sites_per_team(sites_per_team) 
+
+KokkosDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info), _neigh_table("neigh_table", info.GetNumCBSites()), _sites_per_team(sites_per_team)
 	  {
 	    // Now fill the neighbor table
 	    IndexArray latdims=_info.GetCBLatticeDimensions();
@@ -43,101 +124,7 @@ public:
 	    const int _n_t = latdims[3];
 	    const int _num_sites = _n_xh*_n_y*_n_z*_n_t;
 	    // Parallel site loop
-
-#if defined(MG_KOKKOS_USE_FLAT_DISPATCH) || defined(MG_KOKKOS_USE_MDRANGE_DISPATCH)
-	    Kokkos::parallel_for(_num_sites,
-				 KOKKOS_LAMBDA(int site) {
-
-#elif defined(MG_KOKKOS_USE_TEAM_DISPATCH)
-	    ThreadExecPolicy policy(_num_sites/_sites_per_team,Kokkos::AUTO(),Veclen<ST>::value);
-
-	    Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
-		// Work out range for a team
-		const int start_idx = team.league_rank()*_sites_per_team;
-		const int end_idx = (start_idx + _sites_per_team) >  _num_sites ? _num_sites : start_idx + _sites_per_team;
-		Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int site) {
-#endif
-
-	           for(int target_cb=0; target_cb < 2; ++target_cb) {
-		     // Break down site index into xcb, y,z and t
-		     IndexType tmp_yzt = site / _n_xh;
-		     IndexType xcb = site - _n_xh * tmp_yzt;
-		     IndexType tmp_zt = tmp_yzt / _n_y;
-		     IndexType y = tmp_yzt - _n_y * tmp_zt;
-		     IndexType t = tmp_zt / _n_z;
-		     IndexType z = tmp_zt - _n_z * t;
-		     
-		     // Global, uncheckerboarded x, assumes cb = (x + y + z + t ) & 1
-		     IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);
-		     
-		     if( t > 0 ) {
-		       _neigh_table(site,target_cb,T_MINUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1)));
-		     }
-		     else {
-		       _neigh_table(site,target_cb,T_MINUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1)));
-		     }
-		     
-		     if( z > 0 ) {
-		       _neigh_table(site,target_cb,Z_MINUS) = xcb + _n_xh*(y + _n_y*((z-1) + _n_z*t));
-		     }
-		     else {
-		       _neigh_table(site,target_cb,Z_MINUS) = xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t));
-		     }
-		     
-		     if( y > 0 ) {
-		       _neigh_table(site,target_cb,Y_MINUS) = xcb + _n_xh*((y-1) + _n_y*(z + _n_z*t));
-		     }
-		     else {
-		       _neigh_table(site,target_cb,Y_MINUS) = xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t));
-		     }
-		     
-		     if ( x > 0 ) {
-		       _neigh_table(site,target_cb,X_MINUS)= ((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
-		     }
-		     else {
-		       _neigh_table(site,target_cb,X_MINUS)= ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
-		     }
-		     
-		     if ( x < _n_x - 1 ) {
-		       _neigh_table(site,target_cb,X_PLUS) = ((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t));
-		     }
-		     else {
-		       _neigh_table(site,target_cb,X_PLUS) = 0 + _n_xh*(y + _n_y*(z + _n_z*t));
-		     }
-		     
-		     if( y < _n_y-1 ) {
-		       _neigh_table(site,target_cb,Y_PLUS) = xcb + _n_xh*((y+1) + _n_y*(z + _n_z*t));
-		     }
-		     else {
-		       _neigh_table(site,target_cb,Y_PLUS) = xcb + _n_xh*(0 + _n_y*(z + _n_z*t));
-		     }
-		     
-		     if( z < _n_z-1 ) {
-		       _neigh_table(site,target_cb,Z_PLUS) = xcb + _n_xh*(y + _n_y*((z+1) + _n_z*t));
-		     }
-		     else {
-		       _neigh_table(site,target_cb,Z_PLUS) = xcb + _n_xh*(y + _n_y*(0 + _n_z*t));
-		     }
-		     
-		     if( t < _n_t-1 ) {
-		       _neigh_table(site,target_cb,T_PLUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(t+1)));
-		     }
-		     else {
-		       _neigh_table(site,target_cb,T_PLUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(0)));
-		     }
-		     
-		     
-		     
-		     
-		     
-		   }
-
-#if defined(MG_KOKKOS_USE_FLAT_DISPATCH) || defined(MG_KOKKOS_USE_MDRANGE_DISPATCH)
-		  });
-#elif defined(MG_KOKKOS_USE_TEAM_DISPATCH)
-		  });
-	      });
-#endif
+	    ComputeSiteTable( _n_xh, _n_y,  _n_z, _n_t,_neigh_table);
 	  }
 
 	template<const int isign>
@@ -198,49 +185,49 @@ public:
 		    }
 			
 		    // T - minus
-		    KokkosProjectDir3<ST,isign>(s_in, proj_res,_neigh_table(site,target_cb,T_MINUS));
-		    mult_adj_u_halfspinor<GT,ST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,T_MINUS),3);
-		    KokkosRecons23Dir3<ST,isign>(mult_proj_res,res_sum);
+		    KokkosProjectDir3<ST,TST,isign>(s_in, proj_res,_neigh_table(site,target_cb,T_MINUS));
+		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,T_MINUS),3);
+		    KokkosRecons23Dir3<TST,isign>(mult_proj_res,res_sum);
 		    
 		    // Z - minus
-		    KokkosProjectDir2<ST,isign>(s_in, proj_res,_neigh_table(site,target_cb,Z_MINUS));
-		    mult_adj_u_halfspinor<GT,ST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Z_MINUS),2);
-		    KokkosRecons23Dir2<ST,isign>(mult_proj_res,res_sum);
+		    KokkosProjectDir2<ST,TST,isign>(s_in, proj_res,_neigh_table(site,target_cb,Z_MINUS));
+		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Z_MINUS),2);
+		    KokkosRecons23Dir2<TST,isign>(mult_proj_res,res_sum);
 		    
 		    // Y - minus
-		    KokkosProjectDir1<ST,isign>(s_in, proj_res,_neigh_table(site,target_cb,Y_MINUS));
-		    mult_adj_u_halfspinor<GT,ST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Y_MINUS),1);
-		    KokkosRecons23Dir1<ST,isign>(mult_proj_res,res_sum);
+		    KokkosProjectDir1<ST,TST,isign>(s_in, proj_res,_neigh_table(site,target_cb,Y_MINUS));
+		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Y_MINUS),1);
+		    KokkosRecons23Dir1<TST,isign>(mult_proj_res,res_sum);
 		    
 		    // X - minus
-		    KokkosProjectDir0<ST,isign>(s_in, proj_res,_neigh_table(site,target_cb,X_MINUS));
-		    mult_adj_u_halfspinor<GT,ST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,X_MINUS),0);
-		    KokkosRecons23Dir0<ST,isign>(mult_proj_res,res_sum);
+		    KokkosProjectDir0<ST,TST,isign>(s_in, proj_res,_neigh_table(site,target_cb,X_MINUS));
+		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,X_MINUS),0);
+		    KokkosRecons23Dir0<TST,isign>(mult_proj_res,res_sum);
 		    
 		    // X - plus
-		    KokkosProjectDir0<ST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,X_PLUS));
-		    mult_u_halfspinor<GT,ST>(g_in_target_cb,proj_res,mult_proj_res,site,0);
-		    KokkosRecons23Dir0<ST,-isign>(mult_proj_res, res_sum);
+		    KokkosProjectDir0<ST,TST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,X_PLUS));
+		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,0);
+		    KokkosRecons23Dir0<TST,-isign>(mult_proj_res, res_sum);
 		    
 		    // Y - plus
-		    KokkosProjectDir1<ST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Y_PLUS));
-		    mult_u_halfspinor<GT,ST>(g_in_target_cb,proj_res,mult_proj_res,site,1);
-		    KokkosRecons23Dir1<ST,-isign>(mult_proj_res, res_sum);
+		    KokkosProjectDir1<ST,TST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Y_PLUS));
+		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,1);
+		    KokkosRecons23Dir1<TST,-isign>(mult_proj_res, res_sum);
 		    
 		    // Z - plus
-		    KokkosProjectDir2<ST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Z_PLUS));
-		    mult_u_halfspinor<GT,ST>(g_in_target_cb,proj_res,mult_proj_res,site,2);
-		    KokkosRecons23Dir2<ST,-isign>(mult_proj_res, res_sum);
+		    KokkosProjectDir2<ST,TST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Z_PLUS));
+		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,2);
+		    KokkosRecons23Dir2<TST,-isign>(mult_proj_res, res_sum);
 		    
 		    // T - plus
-		    KokkosProjectDir3<ST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,T_PLUS));
-		    mult_u_halfspinor<GT,ST>(g_in_target_cb,proj_res,mult_proj_res,site,3);
-		    KokkosRecons23Dir3<ST,-isign>(mult_proj_res, res_sum);
+		    KokkosProjectDir3<ST,TST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,T_PLUS));
+		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,3);
+		    KokkosRecons23Dir3<TST,-isign>(mult_proj_res, res_sum);
 		    
 		    // Stream out spinor
 		    for(int color=0; color < 3; ++color) {
 		      for(int spin=0; spin < 4; ++spin) {
-			Stream(s_o(site,color,spin),res_sum(color,spin));
+		    	  Stream(s_o(site,color,spin),res_sum(color,spin));
 		      }
 		    }
 
@@ -258,10 +245,15 @@ public:
 		      int plus_minus) const
 	{
 	  if( plus_minus == 1 ) {
+		MasterLog(INFO, "Applying +1");
 	    apply<1>(fine_in, gauge_in,fine_out);
+	    MasterLog(INFO, "Done Applying +1");
 	  }
 	  else {
+
+		MasterLog(INFO, "Applying -1");
 	    apply<-1>(fine_in, gauge_in, fine_out);
+	    MasterLog(INFO, "Done Applying -1");
 	  }
 	  
 	}

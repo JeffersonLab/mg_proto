@@ -15,10 +15,10 @@
 namespace MG {
 
 
-template<typename T, int isign>
+template<typename T, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir0(const SpinorView<T> in,
-		HalfSpinorSiteView<T>& spinor_out, int i)
+		HalfSpinorSiteView<T2>& spinor_out, int i)
 {
   using FType = typename BaseType<T>::Type;
   constexpr FType sign = static_cast<FType>(isign);
@@ -49,10 +49,10 @@ void KokkosProjectDir0(const SpinorView<T> in,
 	}
 }
 
- template<typename T, int isign>
+ template<typename T, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir1(const SpinorView<T> in,
-		HalfSpinorSiteView<T>& spinor_out, int i)
+		HalfSpinorSiteView<T2>& spinor_out, int i)
 {
 	  using FType = typename BaseType<T>::Type;
 	  constexpr FType sign = static_cast<FType>(isign);
@@ -80,10 +80,10 @@ void KokkosProjectDir1(const SpinorView<T> in,
 }
 
 
- template<typename T, int isign>
+ template<typename T, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir2(const SpinorView<T> in,
-		HalfSpinorSiteView<T>& spinor_out, int i)
+		HalfSpinorSiteView<T2>& spinor_out, int i)
 {
 
   using FType =  typename BaseType<T>::Type;
@@ -111,10 +111,10 @@ void KokkosProjectDir2(const SpinorView<T> in,
 	}
 }
 
- template<typename T, int isign>
+ template<typename T, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir3(const SpinorView<T> in,
-		HalfSpinorSiteView<T>& spinor_out,
+		HalfSpinorSiteView<T2>& spinor_out,
 		int i)
 {
 	  using FType = typename BaseType<T>::Type;
@@ -141,7 +141,7 @@ void KokkosProjectDir3(const SpinorView<T> in,
 }
 
 
- template<typename T, int dir, int isign>
+ template<typename T, typename T2, int dir, int isign>
 void KokkosProjectLattice(const KokkosCBFineSpinor<T,4>& kokkos_in,
 		KokkosCBFineSpinor<T,2>& kokkos_hspinor_out)
 {
@@ -152,21 +152,21 @@ void KokkosProjectLattice(const KokkosCBFineSpinor<T,4>& kokkos_in,
 
 	Kokkos::parallel_for(num_sites,
 			KOKKOS_LAMBDA(int i) {
-		HalfSpinorSiteView<T> res;
+		HalfSpinorSiteView<T2> res;
 
 		if( dir == 0) {
 		  //			KokkosProjectDir<T,0>(spinor_in,plus_minus,res,i);
-		  KokkosProjectDir0<T,isign>(spinor_in, res, i);
+		  KokkosProjectDir0<T,T2,isign>(spinor_in, res, i);
 		}
 		else if (dir == 1) {
 		  //			KokkosProjectDir<T,1>(spinor_in,plus_minus,res,i);
-		  KokkosProjectDir1<T,isign>(spinor_in, res, i);
+		  KokkosProjectDir1<T,T2,isign>(spinor_in, res, i);
 		}
 		else if (dir == 2 ) {
-		  KokkosProjectDir2<T,isign>(spinor_in, res,i);
+		  KokkosProjectDir2<T,T2,isign>(spinor_in, res,i);
 		}
 		else {
-		  KokkosProjectDir3<T,isign>(spinor_in, res,i);
+		  KokkosProjectDir3<T,T2,isign>(spinor_in, res,i);
 		}
 
 		for(int color=0; color < 3; ++color) {
@@ -340,7 +340,7 @@ void KokkosRecons23Dir3(const HalfSpinorSiteView<T>& hspinor_in,
 }
 
 
- template<typename T, int dir, int isign>
+ template<typename T, typename T2, int dir, int isign>
 void KokkosReconsLattice(const KokkosCBFineSpinor<T,2>& kokkos_hspinor_in,
 		KokkosCBFineSpinor<T,4>& kokkos_spinor_out)
 {
@@ -354,8 +354,8 @@ void KokkosReconsLattice(const KokkosCBFineSpinor<T,2>& kokkos_hspinor_in,
 
 
 
-		HalfSpinorSiteView<T> hspinor_in;
-		SpinorSiteView<T> res;
+		HalfSpinorSiteView<T2> hspinor_in;
+		SpinorSiteView<T2> res;
 
 		// Stream in top 2 components.
 		for(int color=0; color < 3; ++color) {
@@ -372,20 +372,20 @@ void KokkosReconsLattice(const KokkosCBFineSpinor<T,2>& kokkos_hspinor_in,
 
 		// Reconstruct into a SpinorSiteView
 		if (dir == 0 ) {
-		  KokkosRecons23Dir0<T,isign>(hspinor_in,
+		  KokkosRecons23Dir0<T,T2,isign>(hspinor_in,
 					     res);
 		}
 		else if (dir == 1 ) {
-		  KokkosRecons23Dir1<T,isign>(hspinor_in,
+		  KokkosRecons23Dir1<T,T2,isign>(hspinor_in,
 						     res);
 
 		}
 		else if ( dir == 2 ) {
-		  KokkosRecons23Dir2<T,isign>(hspinor_in,
+		  KokkosRecons23Dir2<T,T2,isign>(hspinor_in,
 						     res);
 		}
 		else {
-		  KokkosRecons23Dir3<T,isign>(hspinor_in,
+		  KokkosRecons23Dir3<T,T2,isign>(hspinor_in,
 						     res);
 
 		}

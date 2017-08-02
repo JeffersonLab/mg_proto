@@ -25,6 +25,10 @@ template<typename T, int N >
 struct BaseType< SIMDComplex<T, N> > {
 	typedef T Type;
 };
+template<typename T, int N>
+struct BaseType<GPUThreadSIMDComplex<T,N> > {
+	typedef T Type;
+};
 
 template<typename T>
   struct Veclen {
@@ -40,7 +44,10 @@ struct Veclen<Kokkos::complex<T>> {
   static const int value = N;
  };
 
-
+template<typename T, int N>
+struct Veclen<GPUThreadSIMDComplex<T,N>> {
+	static const int value = N;
+};
 
 }
 

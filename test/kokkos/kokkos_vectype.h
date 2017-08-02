@@ -32,19 +32,19 @@ struct SIMDComplex {
   Kokkos::complex<T> _data[N] __attribute__((aligned(2*N*sizeof(T))));
   constexpr static int len() { return N; }
   
-  inline
+  KOKKOS_INLINE_FUNCTION
   void set(int l, const Kokkos::complex<T>& value)
   {
     _data[l] = value;
   }
   
-  inline
+  KOKKOS_INLINE_FUNCTION
   const Kokkos::complex<T>& operator()(int i) const
   {
     return _data[i];
   }
   
-  inline 
+  KOKKOS_INLINE_FUNCTION
   Kokkos::complex<T>& operator()(int i) {
     return _data[i];
   }
@@ -56,24 +56,25 @@ struct GPUThreadSIMDComplex {
   Kokkos::complex<T> _data;
 
   // This is the vector length so still N
-  constexpr static int len() { return N; }
+  KOKKOS_FUNCTION
+  constexpr static  int len() { return N; }
   
   // Ignore l
-  inline
+  KOKKOS_INLINE_FUNCTION
   void set(int l, const Kokkos::complex<T>& value)
   {
     _data = value;
   }
   
   // Ignore i
-  inline
+  KOKKOS_INLINE_FUNCTION
   const Kokkos::complex<T>& operator()(int i) const
   {
     return _data;
   }
   
   // Ignore i
-  inline 
+  KOKKOS_INLINE_FUNCTION
   Kokkos::complex<T>& operator()(int i) {
     return _data;
   }
