@@ -8,6 +8,7 @@
 #ifndef TEST_KOKKOS_MATVEC_H_
 #define TEST_KOKKOS_MATVEC_H_
 
+#include "kokkos_defaults.h"
 #include "kokkos_constants.h"
 #include "kokkos_types.h"
 #include "kokkos_ops.h"
@@ -80,11 +81,11 @@ namespace MG
 
 	}
 
-	template<typename GT, typename ST>
+	template<typename GT, typename ST, typename TST>
 	void KokkosMVLattice(const KokkosCBFineGaugeField<GT>& u_in,
 			const KokkosCBFineSpinor<ST,2>& hspinor_in,
 			int dir,
-			const KokkosCBFineSpinor<ST,2>& hspinor_out)
+			     const KokkosCBFineSpinor<ST,2>& hspinor_out, int _sites_per_team = 2)
 
 	{
 		int num_sites = u_in.GetInfo().GetNumCBSites();
@@ -92,11 +93,15 @@ namespace MG
 		GaugeView<GT> u = u_in.GetData();
 		HalfSpinorView<ST> hspinor_out_view = hspinor_out.GetData();
 
-		Kokkos::parallel_for(num_sites,
-				KOKKOS_LAMBDA(int i) {
+		const MG::ThreadExecPolicy  policy(num_sites/_sites_per_team,Kokkos::AUTO(),Veclen<ST>::value);
+		Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle&  team) {
+		    const int start_idx = team.league_rank()*_sites_per_team;
+		    const int end_idx = start_idx + _sites_per_team  < num_sites ? start_idx + _sites_per_team : num_sites;
+		    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int i) {
+
 
 				// Site local workspace...
-				HalfSpinorSiteView<ST> site_in;
+				HalfSpinorSiteView<TST> site_in;
 
 				for(int col=0; col <3; ++col) {
 					for(int spin=0; spin < 2; ++spin) {
@@ -104,8 +109,8 @@ namespace MG
 					}
 				}
 
-				HalfSpinorSiteView<ST> site_out;
-				mult_u_halfspinor<GT,ST>(u, site_in, site_out, i, dir);
+				HalfSpinorSiteView<TST> site_out;
+				mult_u_halfspinor<GT,TST>(u, site_in, site_out, i, dir);
 
 				// Write out
 				for(int col=0; col < 3; ++col) {
@@ -114,34 +119,41 @@ namespace MG
 					}
 				}
 		});
+		  });
 	}
 
 
 
-	template<typename GT, typename ST>
+	template<typename GT, typename ST, typename TST>
 	void KokkosHVLattice(const KokkosCBFineGaugeField<GT>& u_in,
 				  const KokkosCBFineSpinor<ST,2>& hspinor_in,
 				  int dir,
-				  const KokkosCBFineSpinor<ST,2>& hspinor_out)
+			     const KokkosCBFineSpinor<ST,2>& hspinor_out,
+			     int _sites_per_team = 2)
 
 	{
 		int num_sites = u_in.GetInfo().GetNumCBSites();
 		HalfSpinorView<ST> hspinor_in_view = hspinor_in.GetData();
 		HalfSpinorView<ST> hspinor_out_view = hspinor_out.GetData();
+		GaugeView<GT> u = u_in.GetData();
 
-		Kokkos::parallel_for(num_sites,
-				KOKKOS_LAMBDA(int i) {
+		const MG::ThreadExecPolicy  policy(num_sites/_sites_per_team,Kokkos::AUTO(),Veclen<ST>::value);
+		Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle&  team) {
+		    const int start_idx = team.league_rank()*_sites_per_team;
+		    const int end_idx = start_idx + _sites_per_team  < num_sites ? start_idx + _sites_per_team : num_sites;
+		    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int i) {
+
 
 			// Site local workspace...
-			HalfSpinorSiteView<ST> site_in;
+			HalfSpinorSiteView<TST> site_in;
 			for(int col=0; col <3; ++col) {
 				for(int spin=0; spin < 2; ++spin) {
 					Load(site_in(col,spin), hspinor_in_view(i,col,spin));
 				}
 			}
 
-			HalfSpinorSiteView<ST> site_out;
-			mult_adj_u_halfspinor<GT,ST>(u_in.GetData(), site_in, site_out, i, dir);
+			HalfSpinorSiteView<TST> site_out;
+			mult_adj_u_halfspinor<GT,TST>(u, site_in, site_out, i, dir);
 
 			// Write out
 			for(int col=0; col < 3; ++col) {
@@ -150,6 +162,7 @@ namespace MG
 				}
 			}
 		});
+	});
 	}
 
 }

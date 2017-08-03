@@ -2,3 +2,22 @@ On CPU: When using the team thread launching, things seemed to deteriorate after
  On CPU so far, best performance happened with flat dispatch (no teams),
  This was followed closely  by team launches with sites_per_team <= 8.
 
+GPU Notes: 
+-   To achieve vectorization with the X-direction being scalar threads one MUST 
+ use a team launch. While one can set up a vector loop without the team launch
+this will just become a for loop. One can use this approach to try coarse graining.
+In this case pass SIMDComplex as the ThreadSIMDComplex.
+
+-   To get rid of my runtime errors, I had to refactor the code to have Dslash in a Functor
+   This is yucky and gross and seems to come down to a difference between having copies of 
+   views, or refs of them. Refs especially const-refs seem OK.  I will try to recover the 
+   original form of this function tho.
+
+- Vectorized Dslash performs best when the array with the vector view uses LayoutRight
+  however, for non vectorized arrays, such as single RHS and for the Neighbor table, one
+  should use the 'preferred' layout-left/layout right. We may end up having up to
+
+- On GPUs having a lookup table may be a waste of bandwidth. This maybe should be 
+  encapsulated into a neighbor policy. Asking for a neighbor can either look it up
+  or compute it based on the policy. 
+

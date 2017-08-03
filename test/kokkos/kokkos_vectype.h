@@ -9,6 +9,7 @@
 #define TEST_KOKKOS_KOKKOS_VECTYPE_H_
 
 #include <Kokkos_Complex.hpp>
+#include "kokkos_defaults.h"
 #include "kokkos_types.h"
 
 #include "MG_config.h"
@@ -18,9 +19,7 @@
 
 
 #include <Kokkos_Core.hpp>
-//Defining a free VectorPolicy
-typedef Kokkos::TeamPolicy<>::member_type t_team_handle;
-typedef Kokkos::Impl::ThreadVectorRangeBoundariesStruct<int,t_team_handle> VectorPolicy;
+
 
 namespace MG
 {
@@ -53,10 +52,11 @@ struct SIMDComplex {
  // On the GPU only one elemen per 'VectorThread'
 template<typename T, int N>
 struct GPUThreadSIMDComplex {
+
   Kokkos::complex<T> _data;
 
   // This is the vector length so still N
-  KOKKOS_FUNCTION
+  KOKKOS_FORCEINLINE_FUNCTION
   constexpr static  int len() { return N; }
   
   // Ignore l
@@ -67,14 +67,14 @@ struct GPUThreadSIMDComplex {
   }
   
   // Ignore i
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FORCEINLINE_FUNCTION
   const Kokkos::complex<T>& operator()(int i) const
   {
     return _data;
   }
   
   // Ignore i
-  KOKKOS_INLINE_FUNCTION
+  KOKKOS_FORCEINLINE_FUNCTION
   Kokkos::complex<T>& operator()(int i) {
     return _data;
   }

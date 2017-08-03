@@ -18,8 +18,7 @@
 namespace MG {
 
 
-using ThreadExecPolicy =  Kokkos::TeamPolicy<>;
-using TeamHandle =  ThreadExecPolicy::member_type;
+;
 
   // Try an N-dimensional threading policy for cache blocking
 typedef Kokkos::Experimental::MDRangePolicy<Kokkos::Experimental::Rank<4,Kokkos::Experimental::Iterate::Left,Kokkos::Experimental::Iterate::Left>> t_policy;
@@ -27,11 +26,11 @@ typedef Kokkos::Experimental::MDRangePolicy<Kokkos::Experimental::Rank<4,Kokkos:
 enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_PLUS=6, T_PLUS=7 };
 
 
-void ComputeSiteTable(int _n_xh, int _n_y, int _n_z, int _n_t, Kokkos::View<int*[2][8],Layout>& _neigh_table)
+ void ComputeSiteTable(int _n_xh, int _n_y, int _n_z, int _n_t, Kokkos::View<int*[2][8],NeighLayout,MemorySpace>& _neigh_table)
 {
 		int _n_x = 2*_n_xh;
 		int num_sites =  _n_xh*_n_y*_n_z*_n_t;
-		Kokkos::parallel_for(num_sites, KOKKOS_LAMBDA(int site) {
+		Kokkos::parallel_for(Kokkos::RangePolicy<ExecSpace>(0,num_sites), KOKKOS_LAMBDA(int site) {
 	        for(int target_cb=0; target_cb < 2; ++target_cb) {
 		     // Break down site index into xcb, y,z and t
 		     IndexType tmp_yzt = site / _n_xh;
@@ -104,71 +103,55 @@ void ComputeSiteTable(int _n_xh, int _n_y, int _n_z, int _n_t, Kokkos::View<int*
 
 }
 
-template<typename GT, typename ST, typename TST>
-class KokkosDslash {
-private:
-	const LatticeInfo& _info;
-
-	Kokkos::View<int*[2][8],Layout> _neigh_table;
-	const int _sites_per_team;
-public:
-
-KokkosDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info), _neigh_table("neigh_table", info.GetNumCBSites()), _sites_per_team(sites_per_team)
-	  {
-	    // Now fill the neighbor table
-	    IndexArray latdims=_info.GetCBLatticeDimensions();
-	    const int _n_xh = latdims[0];
-	    const int _n_x = 2*_n_xh;
-	    const int _n_y = latdims[1];
-	    const int _n_z = latdims[2];
-	    const int _n_t = latdims[3];
-	    const int _num_sites = _n_xh*_n_y*_n_z*_n_t;
-	    // Parallel site loop
-	    ComputeSiteTable( _n_xh, _n_y,  _n_z, _n_t,_neigh_table);
-	  }
-
-	template<const int isign>
-	void apply(const KokkosCBFineSpinor<ST,4>& fine_in,
-			const KokkosFineGaugeField<GT>& gauge_in,
-			KokkosCBFineSpinor<ST,4>& fine_out) const
-	{
-		// Source and target checkerboards
-		IndexType target_cb = fine_out.GetCB();
-		IndexType source_cb = (target_cb == EVEN) ? ODD : EVEN;
-
-		// Gather all views just outside Parallel Loop.
-		// Can these be references? Will the world collapse?
-
-		const SpinorView<ST>& s_in = fine_in.GetData();
-		const GaugeView<GT>& g_in_src_cb = (gauge_in(source_cb)).GetData();
-		const GaugeView<GT>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
-		SpinorView<ST>& s_o = fine_out.GetData();
-		const int num_sites = _info.GetNumCBSites();
 
 
+ template<typename GT, typename ST, typename TST, const int isign>
+   struct DslashFunctor { 
 
+#if 1
+     SpinorView<ST> s_in;
+     GaugeView<GT> g_in_src_cb;
+     GaugeView<GT> g_in_target_cb;
+     SpinorView<ST> s_out;
+     Kokkos::View<int*[2][8],NeighLayout,MemorySpace> neigh_table;
+     int source_cb; 
+     int target_cb;
+     int num_sites;
+     int sites_per_team;
+#else 
+     const SpinorView<ST>& s_in;
+     const GaugeView<GT>& g_in_src_cb;
+     const GaugeView<GT>& g_in_target_cb;
+     SpinorView<ST>& s_out;
+     const Kokkos::View<int*[2][8],NeighLayout,MemorySpace>& neigh_table;
+     int source_cb; 
+     int target_cb;
+     int num_sites;
+     int sites_per_team;
 
-#if defined(MG_KOKKOS_USE_FLAT_DISPATCH)
-		// Parallel site loop
-		Kokkos::parallel_for(num_sites, KOKKOS_LAMBDA(int site) {
-
-#elif defined(MG_KOKKOS_USE_MDRANGE_DISPATCH)
-		IndexArray latdims=_info.GetCBLatticeDimensions();
-		const int _n_xh = latdims[0];
-		const int _n_y = latdims[1];
-		const int _n_z = latdims[2];
-		const int _n_t = latdims[3];
-		
-		Kokkos::Experimental::md_parallel_for(t_policy({0,0,0,0},{_n_xh,_n_y,_n_z,_n_t},{4,4,4,4}), KOKKOS_LAMBDA(int xcb, int y, int z, int t) {
-		    int site = xcb + _n_xh*(y + _n_y*(z + _n_z*t));
-
-#elif defined(MG_KOKKOS_USE_TEAM_DISPATCH)
-		ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(),Veclen<ST>::value);
-		Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
-		    const int start_idx = team.league_rank()*_sites_per_team;
-		    const int end_idx = start_idx + _sites_per_team  < num_sites ? start_idx + _sites_per_team : num_sites;
-		    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int site) {
+     explicit DslashFunctor(     const SpinorView<ST>& _s_in,
+				 const GaugeView<GT>& _g_in_src_cb,
+				 const GaugeView<GT>& _g_in_target_cb,
+				 SpinorView<ST>& _s_out,
+				 const Kokkos::View<int*[2][8],NeighLayout,MemorySpace>&  _neigh_table,
+				 int _source_cb,
+				 int _target_cb,
+				 int _num_sites,
+				 int _sites_per_team) : s_in(_s_in),
+       g_in_src_cb(_g_in_src_cb), g_in_target_cb(_g_in_target_cb),
+       s_out(_s_out), neigh_table(_neigh_table), source_cb(_source_cb), 
+       target_cb(_target_cb), num_sites(_num_sites), sites_per_team(_sites_per_team) {}
 #endif
+
+
+     KOKKOS_FORCEINLINE_FUNCTION
+     void operator()(const TeamHandle& team) const {
+		    const int start_idx = team.league_rank()*sites_per_team;
+		    const int end_idx = start_idx + sites_per_team  < num_sites ? start_idx + sites_per_team : num_sites;
+
+		    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int site) {
+
+#if 1
 		    // Warning: GCC Alignment Attribute!
 		    // Site Sum: Not a true Kokkos View
 			SpinorSiteView<TST> res_sum;// __attribute__((aligned(64)));
@@ -185,75 +168,110 @@ KokkosDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info), _neig
 		    }
 			
 		    // T - minus
-		    KokkosProjectDir3<ST,TST,isign>(s_in, proj_res,_neigh_table(site,target_cb,T_MINUS));
-		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,T_MINUS),3);
+		    KokkosProjectDir3<ST,TST,isign>(s_in, proj_res,neigh_table(site,target_cb,T_MINUS));
+		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table(site,target_cb,T_MINUS),3);
 		    KokkosRecons23Dir3<TST,isign>(mult_proj_res,res_sum);
 		    
 		    // Z - minus
-		    KokkosProjectDir2<ST,TST,isign>(s_in, proj_res,_neigh_table(site,target_cb,Z_MINUS));
-		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Z_MINUS),2);
+		    KokkosProjectDir2<ST,TST,isign>(s_in, proj_res,neigh_table(site,target_cb,Z_MINUS));
+		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table(site,target_cb,Z_MINUS),2);
 		    KokkosRecons23Dir2<TST,isign>(mult_proj_res,res_sum);
 		    
 		    // Y - minus
-		    KokkosProjectDir1<ST,TST,isign>(s_in, proj_res,_neigh_table(site,target_cb,Y_MINUS));
-		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,Y_MINUS),1);
+		    KokkosProjectDir1<ST,TST,isign>(s_in, proj_res,neigh_table(site,target_cb,Y_MINUS));
+		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table(site,target_cb,Y_MINUS),1);
 		    KokkosRecons23Dir1<TST,isign>(mult_proj_res,res_sum);
 		    
 		    // X - minus
-		    KokkosProjectDir0<ST,TST,isign>(s_in, proj_res,_neigh_table(site,target_cb,X_MINUS));
-		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,_neigh_table(site,target_cb,X_MINUS),0);
+		    KokkosProjectDir0<ST,TST,isign>(s_in, proj_res,neigh_table(site,target_cb,X_MINUS));
+		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table(site,target_cb,X_MINUS),0);
 		    KokkosRecons23Dir0<TST,isign>(mult_proj_res,res_sum);
 		    
 		    // X - plus
-		    KokkosProjectDir0<ST,TST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,X_PLUS));
+		    KokkosProjectDir0<ST,TST,-isign>(s_in,proj_res,neigh_table(site,target_cb,X_PLUS));
 		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,0);
 		    KokkosRecons23Dir0<TST,-isign>(mult_proj_res, res_sum);
 		    
 		    // Y - plus
-		    KokkosProjectDir1<ST,TST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Y_PLUS));
+		    KokkosProjectDir1<ST,TST,-isign>(s_in,proj_res,neigh_table(site,target_cb,Y_PLUS));
 		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,1);
 		    KokkosRecons23Dir1<TST,-isign>(mult_proj_res, res_sum);
 		    
 		    // Z - plus
-		    KokkosProjectDir2<ST,TST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,Z_PLUS));
+		    KokkosProjectDir2<ST,TST,-isign>(s_in,proj_res,neigh_table(site,target_cb,Z_PLUS));
 		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,2);
 		    KokkosRecons23Dir2<TST,-isign>(mult_proj_res, res_sum);
 		    
 		    // T - plus
-		    KokkosProjectDir3<ST,TST,-isign>(s_in,proj_res,_neigh_table(site,target_cb,T_PLUS));
+		    KokkosProjectDir3<ST,TST,-isign>(s_in,proj_res,neigh_table(site,target_cb,T_PLUS));
 		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,3);
 		    KokkosRecons23Dir3<TST,-isign>(mult_proj_res, res_sum);
 		    
 		    // Stream out spinor
 		    for(int color=0; color < 3; ++color) {
 		      for(int spin=0; spin < 4; ++spin) {
-		    	  Stream(s_o(site,color,spin),res_sum(color,spin));
+		    	  Stream(s_out(site,color,spin),res_sum(color,spin));
 		      }
 		    }
-
-#if defined(MG_KOKKOS_USE_FLAT_DISPATCH) || defined(MG_KOKKOS_USE_MDRANGE_DISPATCH)
-		  });
-#elif defined(MG_KOKKOS_USE_TEAM_DISPATCH)
-		  }); // Inner Lambda
-	   }); // Outer Lambda 
 #endif
-	}
+		      });
+     }
 
+
+   };
+
+template<typename GT, typename ST, typename TST>
+class KokkosDslash {
+ public:
+	const LatticeInfo& _info;
+
+	Kokkos::View<int*[2][8],NeighLayout,MemorySpace> _neigh_table;
+	const int _sites_per_team;
+public:
+
+KokkosDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info), _neigh_table("neigh_table", info.GetNumCBSites()), _sites_per_team(sites_per_team)
+	  {
+	    // Now fill the neighbor table
+	    IndexArray latdims=_info.GetCBLatticeDimensions();
+	    const int _n_xh = latdims[0];
+	    const int _n_y = latdims[1];
+	    const int _n_z = latdims[2];
+	    const int _n_t = latdims[3];
+	    // Parallel site loop
+	    ComputeSiteTable( _n_xh, _n_y,  _n_z, _n_t,_neigh_table);
+	  }
+	
 	void operator()(const KokkosCBFineSpinor<ST,4>& fine_in,
 		      const KokkosFineGaugeField<GT>& gauge_in,
 		      KokkosCBFineSpinor<ST,4>& fine_out,
 		      int plus_minus) const
 	{
+	  int source_cb = fine_in.GetCB();
+	  int target_cb = (source_cb == EVEN) ? ODD : EVEN;
+	  const SpinorView<ST>& s_in = fine_in.GetData();
+	  const GaugeView<GT>& g_in_src_cb = (gauge_in(source_cb)).GetData();
+	  const GaugeView<GT>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
+	  SpinorView<ST>& s_out = fine_out.GetData();
+	  const int num_sites = _info.GetNumCBSites();
+
 	  if( plus_minus == 1 ) {
-		MasterLog(INFO, "Applying +1");
-	    apply<1>(fine_in, gauge_in,fine_out);
-	    MasterLog(INFO, "Done Applying +1");
+#if 1
+		DslashFunctor<GT,ST,TST,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table,source_cb, target_cb, num_sites, _sites_per_team};
+#else
+		DslashFunctor<GT,ST,TST,1> f ( s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table,source_cb, target_cb, num_sites, _sites_per_team);
+#endif
+		ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(),Veclen<ST>::value);
+		Kokkos::parallel_for(policy, f); // Outer Lambda 
 	  }
 	  else {
 
-		MasterLog(INFO, "Applying -1");
-	    apply<-1>(fine_in, gauge_in, fine_out);
-	    MasterLog(INFO, "Done Applying -1");
+#if 1
+		DslashFunctor<GT,ST,TST,-1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table,source_cb, target_cb, num_sites, _sites_per_team};
+#else 
+		DslashFunctor<GT,ST,TST,-1> f(s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table,source_cb, target_cb, num_sites, _sites_per_team);
+#endif
+		ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(),Veclen<ST>::value);
+		Kokkos::parallel_for(policy, f); // Outer Lambda 
 	  }
 	  
 	}
@@ -262,149 +280,6 @@ KokkosDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info), _neig
 
 
 
-#if 0
-// One direction of dslash, multiplying U. Direction and whether to accumulate
-// are 'compile time' through templates.
-// Savvy compiler should inline these and optimize them
-  template<typename T, int isign>
-KOKKOS_FORCEINLINE_FUNCTION
-void DslashMVSiteDir0(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
-		      int source_spinor_idx,
-		      int gauge_idx)
-{
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
-
-	KokkosProjectDir0<T,isign>(spinor_in,proj_res,source_spinor_idx);
-	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,0);
-	KokkosRecons23Dir0<T,isign>(mult_proj_res, res_sum);
-}
-
-  template<typename T, int isign>
-KOKKOS_FORCEINLINE_FUNCTION
-void DslashMVSiteDir1(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
-		      int source_spinor_idx,
-		      int gauge_idx)
-    
-{
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
-
-	KokkosProjectDir1<T,isign>(spinor_in,proj_res,source_spinor_idx);
-	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,1);
-	KokkosRecons23Dir1<T,isign>(mult_proj_res, res_sum);
-}
-
-  template<typename T, int isign>
-KOKKOS_FORCEINLINE_FUNCTION
-void DslashMVSiteDir2(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
-		      int source_spinor_idx,
-		      int gauge_idx)
-{
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
-
-	KokkosProjectDir2<T,isign>(spinor_in,proj_res,source_spinor_idx);
-	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,2);
-	KokkosRecons23Dir2<T,isign>(mult_proj_res, res_sum);
-}
-
-  template<typename T, int isign>
-KOKKOS_FORCEINLINE_FUNCTION
-void DslashMVSiteDir3(const SpinorView<Kokkos::complex<T>>& spinor_in,    // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,     // Gauge Link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,         // result
-		      int source_spinor_idx,
-		      int gauge_idx)
-{
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
-
-	KokkosProjectDir3<T,isign>(spinor_in,proj_res,source_spinor_idx);
-	mult_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,3);
-	KokkosRecons23Dir3<T,isign>(mult_proj_res, res_sum);
-}
-
-// One direction of dslash, multiply with U^\dagger
-// direction and whether to accumulate are compile time through templates
-// Savvy compiler should inline and optimize them
-  template<typename T, int isign>
-KOKKOS_FORCEINLINE_FUNCTION
-void DslashHVSiteDir0(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
-		      int source_spinor_idx,
-		      int gauge_idx)
-{
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
-
-	KokkosProjectDir0<T,isign>(spinor_in, proj_res,source_spinor_idx);
-	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,0);
-	KokkosRecons23Dir0<T,isign>(mult_proj_res,res_sum);
-
-}
-
-  template<typename T, int isign>
-KOKKOS_FORCEINLINE_FUNCTION
-void DslashHVSiteDir1(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
-		      int source_spinor_idx,
-		      int gauge_idx)
-{
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
-
-	KokkosProjectDir1<T,isign>(spinor_in, proj_res,source_spinor_idx);
-	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,1);
-	KokkosRecons23Dir1<T,isign>(mult_proj_res,res_sum);
-
-}
-
-  template<typename T, int isign>
-KOKKOS_FORCEINLINE_FUNCTION
-void DslashHVSiteDir2(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
-		      int source_spinor_idx,
-		      int gauge_idx)
-
-
-{
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
-
-	KokkosProjectDir2<T,isign>(spinor_in, proj_res,source_spinor_idx);
-	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,2);
-	KokkosRecons23Dir2<T,isign>(mult_proj_res,res_sum);
-
-}
-
-  template<typename T, int isign>
-KOKKOS_FORCEINLINE_FUNCTION
-void DslashHVSiteDir3(const SpinorView<Kokkos::complex<T>>& spinor_in,   // Neighbor spinor
-		      const GaugeView<Kokkos::complex<T>>& gauge_in,    // Gauge link
-		      SpinorSiteView<Kokkos::complex<T>>& res_sum,        // result
-		      int source_spinor_idx,
-		      int gauge_idx)
-
-{
-	HalfSpinorSiteView<Kokkos::complex<T>> proj_res;
-	HalfSpinorSiteView<Kokkos::complex<T>> mult_proj_res;
-
-	KokkosProjectDir3<T,isign>(spinor_in, proj_res,source_spinor_idx);
-	mult_adj_u_halfspinor(gauge_in,proj_res,mult_proj_res,gauge_idx,3);
-	KokkosRecons23Dir3<T,isign>(mult_proj_res,res_sum);
-
-}
-#endif
 
 };
 

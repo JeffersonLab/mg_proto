@@ -5,6 +5,7 @@
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/fine_qdpxx/dslashm_w.h"
+#include "./kokkos_defaults.h"
 #include "./kokkos_types.h"
 #include "./kokkos_qdp_utils.h"
 #include "./kokkos_spinproj.h"
@@ -58,7 +59,7 @@ using TeamHandle =  ThreadExecPolicy::member_type;
 TEST(TestVectype, VectypeCopyD4)
 {
 
-	ThreadExecPolicy policy(1,1,4);
+  ThreadExecPolicy policy(1,1,4);
 	Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle& team) {
 	    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,0,1),[=](const int site) {
 

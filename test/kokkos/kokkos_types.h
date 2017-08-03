@@ -9,8 +9,10 @@
 #define TEST_KOKKOS_KOKKOS_TYPES_H_
 #include <memory>
 
+#include <Kokkos_Core.hpp>
 #include <Kokkos_Complex.hpp>
 #include "kokkos_defaults.h"
+
 #include "lattice/lattice_info.h"
 #include "utils/print_utils.h"
 #include "kokkos_vectype.h"
@@ -55,7 +57,7 @@ namespace MG
 			return _cb;
 		}
 
-		using DataType = Kokkos::View<T***,Layout>;
+		using DataType = Kokkos::View<T***,Layout,MemorySpace>;
 
 
 		const DataType& GetData() const {
@@ -95,14 +97,17 @@ namespace MG
 			return _cb_gauge_data(site,dir,color1,color2);
 		}
 
-		using DataType = Kokkos::View<T*[4][3][3],Layout>;
+		using DataType = Kokkos::View<T*[4][3][3],Layout,MemorySpace>;
+
 		DataType& GetData() {
 			return _cb_gauge_data;
 		}
 
+
 		const DataType& GetData() const {
 			return _cb_gauge_data;
 		}
+
 
 		IndexType GetCB() const {
 			return _cb;
@@ -120,22 +125,21 @@ namespace MG
 	template<typename T>
 	class KokkosFineGaugeField {
 	private:
-		std::shared_ptr< KokkosCBFineGaugeField<T> > _gauge_data[2];
 		const LatticeInfo& _info;
+		KokkosCBFineGaugeField<T>  _gauge_data_even;
+		KokkosCBFineGaugeField<T>  _gauge_data_odd;
 	public:
-		KokkosFineGaugeField(const LatticeInfo& info) :  _info(info)
-		{
-			_gauge_data[ EVEN ] = std::make_shared< KokkosCBFineGaugeField<T> >(info,EVEN);
-			_gauge_data[ ODD  ] = std::make_shared< KokkosCBFineGaugeField<T> >(info,ODD);
+	KokkosFineGaugeField(const LatticeInfo& info) :  _info(info), _gauge_data_even(info,EVEN), _gauge_data_odd(info,ODD) {
 		}
-
 		const KokkosCBFineGaugeField<T>& operator()(IndexType cb) const
 		{
-			return *(_gauge_data[cb]);
+			return  (cb == EVEN) ? _gauge_data_even : _gauge_data_odd;
+			//return *(_gauge_data[cb]);
 		}
 
 		KokkosCBFineGaugeField<T>& operator()(IndexType cb) {
-			return *(_gauge_data[cb]);
+			return (cb == EVEN) ? _gauge_data_even : _gauge_data_odd;
+			//return *(_gauge_data[cb]);
 		}
 	};
 
