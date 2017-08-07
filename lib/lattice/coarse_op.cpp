@@ -9,7 +9,7 @@
 #include "utils/print_utils.h"
 #include <complex>
 
-#include <immintrin.h>
+// #include <immintrin.h>
 
 //#include "../../include/lattice/thread_info.h.bak"
 #include "lattice/geometry_utils.h"

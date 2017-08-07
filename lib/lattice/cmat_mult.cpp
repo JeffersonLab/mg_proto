@@ -10,7 +10,9 @@
 #include <cfloat>
 #include <iostream>
 
+#if defined(AVX) || defined(AVX2) || defined(AVX2_FMA)
 #include <immintrin.h>
+#endif
 
 //#include "../../include/lattice/thread_info.h.bak"
 namespace MG {

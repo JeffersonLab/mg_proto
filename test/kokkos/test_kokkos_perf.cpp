@@ -18,6 +18,11 @@ using namespace MGTesting;
 using namespace QDP;
 
 
+#ifdef KOKKOS_HAVE_CUDA
+        constexpr static int V = 16;
+#else
+        constexpr static int V = 32;
+#endif
 #if 0
 TEST(TestKokkos, TestSpinProject)
 {
@@ -325,12 +330,14 @@ TEST(TestKokkos, TestDslash)
 	  // QDP++ LatticeFermionF should go away here.
 	}
 
-	for(int sites_per_team=4; sites_per_team < 1024; sites_per_team *=2) {
+	//for(int sites_per_team=8; sites_per_team < 8192; sites_per_team *=2) {
+	int sites_per_team=512;
 	  KokkosDslash<Kokkos::complex<REAL32>,Kokkos::complex<REAL32>, Kokkos::complex<REAL32>> D(info,sites_per_team);
 
 
-	for(int rep=0; rep < 2; ++rep) {
-	  for(int isign=-1; isign < 2; isign+=2) {
+	for(int rep=0; rep < 3; ++rep) {
+	  // for(int isign=-1; isign < 2; isign+=2) {
+	    int isign=1;
 	    MasterLog(INFO, "Timing Dslash: isign == %d", isign);
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < iters; ++i) {
@@ -350,9 +357,9 @@ TEST(TestKokkos, TestDslash)
 	    
 	    
 	    
-	  }
-	}
-	}
+	 //  } // isign
+	} 
+	// } -- sites_per_team
 }
 #endif
 
@@ -364,10 +371,8 @@ TEST(TestKokkos, TestDslashVec)
 #ifdef MG_USE_AVX512
 	int iters = 1000;
 #else 
-	int iters = 10;
+	int iters = 400;
 #endif
-
-	constexpr static int V = 32;
 
 	initQDPXXLattice(latdims);
 	LatticeInfo info(latdims,4,3,NodeInfo());
@@ -401,7 +406,7 @@ TEST(TestKokkos, TestDslashVec)
 	}
 
 
-	for(int per_team=4; per_team < 8192; per_team *= 2) {
+	for(int per_team=1; per_team < 512; per_team *= 2) {
 
 	  KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
 	for(int rep=0; rep < 2; ++rep) {
@@ -441,13 +446,7 @@ TEST(TestKokkos, TestDslashVecLonger)
 #ifdef MG_USE_AVX512
 	int iters = 1000;
 #else 
-	int iters = 100;
-#endif
-
-#ifdef KOKKOS_HAVE_CUDA
-	constexpr static int V = 32;
-#else 
-	constexpr static int V = 8;
+	int iters = 10;
 #endif
 
 
@@ -482,12 +481,12 @@ TEST(TestKokkos, TestDslashVecLonger)
 	  // QDP++ LatticeFermionF should go away here.
 	}
 
-        int per_team = 8;
+        int per_team = 2;
 	KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
 
-	for(int rep=0; rep < 4; ++rep) {
-	  for(int isign=-1; isign < 2; isign+=2) {
-
+	for(int rep=0; rep < 2; ++rep) {
+	  // for(int isign=-1; isign < 2; isign+=2) {
+	    int isign=1;
 	    MasterLog(INFO, "Sites per Team=%d Timing Dslash: isign == %d", per_team, isign);
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < iters; ++i) {
@@ -505,7 +504,7 @@ TEST(TestKokkos, TestDslashVecLonger)
 	    MasterLog(INFO,"Sites Per Team=%d Performance: %lf GFLOPS", per_team, flops/(time_taken*1.0e9));
 	    MasterLog(INFO,"Sites Per Team=%d Effective BW: %lf GB/sec", per_team, (bytes_in+bytes_out)/(time_taken*1.0e9));
 
-	  }
+	  // }
 	}
 
 }

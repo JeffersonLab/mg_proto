@@ -15,6 +15,7 @@ namespace MG
   using ExecSpace = Kokkos::Cuda::execution_space;
   using MemorySpace = Kokkos::Cuda::memory_space;
   using Layout = Kokkos::LayoutRight;
+//  using Layout = Kokkos::Cuda::array_layout;
   using NeighLayout = Kokkos::Cuda::array_layout;
 
 #else
