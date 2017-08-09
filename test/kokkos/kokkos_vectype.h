@@ -8,7 +8,6 @@
 #ifndef TEST_KOKKOS_KOKKOS_VECTPYE_H_
 #define TEST_KOKKOS_KOKKOS_VECTYPE_H_
 
-#include <Kokkos_Complex.hpp>
 #include "kokkos_defaults.h"
 #include "kokkos_types.h"
 
@@ -27,33 +26,33 @@ namespace MG
 
 // General
 template<typename T, int N>
-struct SIMDComplex {
-  Kokkos::complex<T> _data[N] __attribute__((aligned(2*N*sizeof(T))));
+  struct alignas(2*sizeof(T)) SIMDComplex {
+  MGComplex<T> _data[N]; 
   constexpr static int len() { return N; }
   
   KOKKOS_INLINE_FUNCTION
-  void set(int l, const Kokkos::complex<T>& value)
+  void set(int l, const MGComplex<T>& value)
   {
     _data[l] = value;
   }
   
   KOKKOS_INLINE_FUNCTION
-  const Kokkos::complex<T>& operator()(int i) const
+  const MGComplex<T>& operator()(int i) const
   {
     return _data[i];
   }
   
   KOKKOS_INLINE_FUNCTION
-  Kokkos::complex<T>& operator()(int i) {
+  MGComplex<T>& operator()(int i) {
     return _data[i];
   }
 };
 
  // On the GPU only one elemen per 'VectorThread'
 template<typename T, int N>
-struct GPUThreadSIMDComplex {
+  struct alignas(2*sizeof(T)) GPUThreadSIMDComplex {
 
-  Kokkos::complex<T> _data;
+  MGComplex<T> _data;
 
   // This is the vector length so still N
   KOKKOS_FORCEINLINE_FUNCTION
@@ -61,21 +60,21 @@ struct GPUThreadSIMDComplex {
   
   // Ignore l
   KOKKOS_INLINE_FUNCTION
-  void set(int l, const Kokkos::complex<T>& value)
+  void set(int l, const MGComplex<T>& value)
   {
     _data = value;
   }
   
   // Ignore i
   KOKKOS_FORCEINLINE_FUNCTION
-  const Kokkos::complex<T>& operator()(int i) const
+  const MGComplex<T>& operator()(int i) const
   {
     return _data;
   }
   
   // Ignore i
   KOKKOS_FORCEINLINE_FUNCTION
-  Kokkos::complex<T>& operator()(int i) {
+  MGComplex<T>& operator()(int i) {
     return _data;
   }
 };
@@ -105,8 +104,14 @@ KOKKOS_FORCEINLINE_FUNCTION
 KOKKOS_FORCEINLINE_FUNCTION
    void Load(T1<T,N>& result, const T2<T,N>& source)
 {
+  
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
       result(i) = source(i);
+  //    T* res=reinterpret_cast<T*>(&(result(i)));
+  //    const T* src = reinterpret_cast<const T*>(&(source(i)));
+  //    res[0] = src[0];
+  //    res[1] = src[1];
+
     });
 }
 
@@ -116,6 +121,12 @@ KOKKOS_FORCEINLINE_FUNCTION
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
       result(i) = source(i);
+#if 0
+      T* res=reinterpret_cast<T*>(&(result(i)));
+      const T* src = reinterpret_cast<const T*>(&(source(i)));
+      res[0] = src[0];
+      res[1] = src[1];
+#endif
     });
 }
 
@@ -125,6 +136,12 @@ KOKKOS_FORCEINLINE_FUNCTION
  {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
       result(i) = source(i);
+#if 0
+      T* res=reinterpret_cast<T*>(&(result(i)));
+      const T* src = reinterpret_cast<const T*>(&(source(i)));
+      res[0] = src[0];
+      res[1] = src[1];
+#endif
     });
 }
 
@@ -133,7 +150,13 @@ KOKKOS_FORCEINLINE_FUNCTION
 void ComplexZero(T1<T,N>& result)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      result(i)=Kokkos::complex<T>(0,0);
+      result(i)=MGComplex<T>(0,0);
+#if 0
+      T* res=reinterpret_cast<T*>(&(result(i)));
+      res[0] = 0;
+      res[1] = 0;
+#endif
+
     });
 }
 
@@ -143,7 +166,11 @@ void
 ComplexPeq(T1<T,N>& res, const T2<T,N>& a)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      res(i) += a(i); // Complex Multiplication
+      // res(i) += a(i); // Complex Addition
+      T* r = reinterpret_cast<T*>( &(res(i)) );
+      const T* src = reinterpret_cast<const T*>(&(a(i)));
+      r[0] += src[0];
+      r[1] += src[1];
     });
 }
 
@@ -151,10 +178,19 @@ ComplexPeq(T1<T,N>& res, const T2<T,N>& a)
   template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexCMadd(T1<T,N>& res, const Kokkos::complex<T>& a, const T2<T,N>& b)
+ComplexCMadd(T1<T,N>& res, const MGComplex<T>& a, const T2<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      res(i)+= a*b(i); // Complex Multiplication
+      // res(i)+= a*b(i); // Complex Multiplication
+      T* r = reinterpret_cast<T*>(&(res(i)));
+      const T* ap = reinterpret_cast<const T*>(&(a));
+      const T* bp = reinterpret_cast<const T*>(&(b(i)));
+      
+      r[0] += ap[0]*bp[0];
+      r[1] += ap[1]*bp[0];
+      r[0] -= ap[1]*bp[1];
+      r[1] += ap[0]*bp[1];
+
     });
 }
 
@@ -162,10 +198,18 @@ ComplexCMadd(T1<T,N>& res, const Kokkos::complex<T>& a, const T2<T,N>& b)
   template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexConjMadd(T1<T,N>& res, const Kokkos::complex<T>& a, const T2<T,N>& b)
+ComplexConjMadd(T1<T,N>& res, const MGComplex<T>& a, const T2<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      res(i) += Kokkos::conj(a)*b(i); // Complex Multiplication
+      // res(i) += Kokkos::conj(a)*b(i); // Complex Multiplication
+      T* r = reinterpret_cast<T*>(&(res(i)));
+      const T* ap = reinterpret_cast<const T*>(&(a));
+      const T* bp = reinterpret_cast<const T*>(&(b(i)));
+      r[0] += ap[0]*bp[0];
+      r[0] += ap[1]*bp[1];
+      r[1] -= ap[1]*bp[0];
+      r[1] += ap[0]*bp[1];
+
     });
 
 }
@@ -178,7 +222,16 @@ void
 ComplexCMadd(T1<T,N>& res, const T2<T,N>& a, const T3<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
-      res(i) += a(i)*b(i); // Complex Multiplication
+      // res(i) += a(i)*b(i); // Complex Multiplication
+      T* r = reinterpret_cast<T*>(&(res(i)));
+      const T* ap = reinterpret_cast<const T*>(&(a(i)));
+      const T* bp = reinterpret_cast<const T*>(&(b(i)));
+      
+      r[0] += ap[0]*bp[0];
+      r[1] += ap[1]*bp[0];
+      r[0] -= ap[1]*bp[1];
+      r[1] += ap[0]*bp[1];
+
     });
 }
 
@@ -188,7 +241,15 @@ void
   ComplexConjMadd(T1<T,N>& res, const T2<T,N>& a, const T3<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
-      res(i) += Kokkos::conj(a(i))*b(i); // Complex Multiplication
+      // res(i) += Kokkos::conj(a(i))*b(i); // Complex Multiplication
+      T* r = reinterpret_cast<T*>(&(res(i)));
+      const T* ap = reinterpret_cast<const T*>(&(a(i)));
+      const T* bp = reinterpret_cast<const T*>(&(b(i)));
+      r[0] += ap[0]*bp[0];
+      r[0] += ap[1]*bp[1];
+      r[1] -= ap[1]*bp[0];
+      r[1] += ap[0]*bp[1];
+
     });
 }
 
@@ -197,8 +258,14 @@ KOKKOS_FORCEINLINE_FUNCTION
 void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
-      res(i).real() = a(i).real() + sign*b(i).real();
-      res(i).imag() = a(i).imag() + sign*b(i).imag();
+      //      res(i).real() = a(i).real() + sign*b(i).real();
+      //      res(i).imag() = a(i).imag() + sign*b(i).imag();
+      T* r=reinterpret_cast<T*>(&(res(i)));
+      const T* ap=reinterpret_cast<const T*>(&(a(i)));
+      const T* bp=reinterpret_cast<const T*>(&(b(i)));
+
+      r[0] = ap[0] + sign * bp[0];
+      r[1] = ap[1] + sign * bp[1];
     });
 
 }
@@ -208,8 +275,15 @@ KOKKOS_FORCEINLINE_FUNCTION
 void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      res(i).real() = a(i).real() - sign*b(i).imag();
-      res(i).imag() = a(i).imag() + sign*b(i).real();
+      //res(i).real() = a(i).real() - sign*b(i).imag();
+      //res(i).imag() = a(i).imag() + sign*b(i).real();
+      T* r=reinterpret_cast<T*>(&(res(i)));
+      const T* ap=reinterpret_cast<const T*>(&(a(i)));
+      const T* bp=reinterpret_cast<const T*>(&(b(i)));
+
+      r[0] = ap[0] - sign * bp[1];
+      r[1] = ap[1] + sign * bp[0];
+
     });
 }
 
@@ -219,19 +293,28 @@ KOKKOS_FORCEINLINE_FUNCTION
 void A_peq_sign_miB( T1<T,N>& a, const T& sign, const T2<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      a(i).real() += sign*b(i).imag();
-      a(i).imag() -= sign*b(i).real();
+      T* ap=reinterpret_cast<T*>(&(a(i)));
+      const T* bp=reinterpret_cast<const T*>(&(b(i)));
+
+      ap[0] += sign*bp[1];
+      ap[1] -= sign*bp[0];
     });
 }
 
+    
 // a = b
   template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
   void A_peq_sign_B( T1<T,N>& a, const T& sign, const T2<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
-      a(i).real() += sign*b(i).real();
-      a(i).imag() += sign*b(i).imag();
+     T* ap=reinterpret_cast<T*>(&(a(i)));
+      const T* bp=reinterpret_cast<const T*>(&(b(i)));
+
+      //      a(i).real() += sign*b(i).real();
+      // a(i).imag() += sign*b(i).imag();
+      ap[0] += sign*bp[0];
+      ap[1] += sign*bp[1];
     });
 }
 
@@ -246,26 +329,26 @@ template<>
   explicit SIMDComplex<float,8>() {}
 
   union {
-    Kokkos::complex<float> _data[8];
+    Complex<float> _data[8];
     __m512 _vdata;
   };
 
   constexpr static int len() { return 8; }
 
   inline
-    void set(int l, const Kokkos::complex<float>& value)
+    void set(int l, const Complex<float>& value)
   {
 		_data[l] = value;
   }
 
   inline
-    const Kokkos::complex<float>& operator()(int i) const
+    const Complex<float>& operator()(int i) const
   {
     return _data[i];
   }
 
   inline
-  Kokkos::complex<float>& operator()(int i) {
+  Complex<float>& operator()(int i) {
     return _data[i];
   }
 };
@@ -354,7 +437,7 @@ template<>
 KOKKOS_FORCEINLINE_FUNCTION
 void
 ComplexCMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, 
-	     const Kokkos::complex<float>& a, 
+	     const Complex<float>& a, 
 	     const SIMDComplex<float,8>& b)
 {
   __m512 avec_re = _mm512_set1_ps( a.real() );
@@ -371,7 +454,7 @@ ComplexCMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res,
   template<>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-  ComplexConjMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, const Kokkos::complex<float>& a, 
+  ComplexConjMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, const Complex<float>& a, 
 		const SIMDComplex<float,8>& b)
 {
   __m512 sgnvec2 = _mm512_set_ps(-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1);

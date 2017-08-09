@@ -6,6 +6,7 @@
 #include "lattice/lattice_info.h"
 #include "lattice/fine_qdpxx/dslashm_w.h"
 #include "./kokkos_types.h"
+#include "./kokkos_defaults.h"
 #include "./kokkos_qdp_utils.h"
 #include "./kokkos_spinproj.h"
 #include "./kokkos_matvec.h"
@@ -21,7 +22,7 @@ using namespace QDP;
 #ifdef KOKKOS_HAVE_CUDA
         constexpr static int V = 16;
 #else
-        constexpr static int V = 32;
+        constexpr static int V = 8;
 #endif
 #if 0
 TEST(TestKokkos, TestSpinProject)
@@ -34,8 +35,8 @@ TEST(TestKokkos, TestSpinProject)
 	LatticeInfo info(latdims,4,3,NodeInfo());
 	LatticeInfo hinfo(latdims,2,3,NodeInfo());
 
-	KokkosCBFineSpinor<Kokkos::complex<REAL32>,4> kokkos_in(info,EVEN);
-	KokkosCBFineSpinor<Kokkos::complex<REAL32>,2> kokkos_hspinor_out(hinfo,EVEN);
+	KokkosCBFineSpinor<MGComplex<REAL32>,4> kokkos_in(info,EVEN);
+	KokkosCBFineSpinor<MGComplex<REAL32>,2> kokkos_hspinor_out(hinfo,EVEN);
 
 	{
 		LatticeFermionF qdp_in;
@@ -53,7 +54,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<Kokkos::complex<REAL32>,0,-1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<MGComplex<REAL32>,0,-1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -64,7 +65,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<Kokkos::complex<REAL32>,1,-1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<MGComplex<REAL32>,1,-1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -75,7 +76,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<Kokkos::complex<REAL32>,2,-1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<MGComplex<REAL32>,2,-1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -86,7 +87,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<Kokkos::complex<REAL32>,3,-1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<MGComplex<REAL32>,3,-1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -98,7 +99,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<Kokkos::complex<REAL32>,0,1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<MGComplex<REAL32>,0,1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -109,7 +110,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<Kokkos::complex<REAL32>,1,1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<MGComplex<REAL32>,1,1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -120,7 +121,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<Kokkos::complex<REAL32>,2,1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<MGComplex<REAL32>,2,1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -131,7 +132,7 @@ TEST(TestKokkos, TestSpinProject)
 	  
 	  double start_time = omp_get_wtime();
 	  for(int i=0; i < iters; ++i) {
-	    KokkosProjectLattice<Kokkos::complex<REAL32>,3,1>(kokkos_in,kokkos_hspinor_out);
+	    KokkosProjectLattice<MGComplex<REAL32>,3,1>(kokkos_in,kokkos_hspinor_out);
 	  }
 	  double end_time = omp_get_wtime();
  	  double effective_bw = mem_moved_in_GB / (end_time-start_time);
@@ -294,16 +295,16 @@ TEST(TestKokkos, TestMultHalfSpinor)
 }
 #endif
 
-#if 1
+#if 0
 
 TEST(TestKokkos, TestDslash)
 {
   IndexArray latdims={{32,32,32,32}};
-	int iters = 10;
+	int iters = 400;
 
 	initQDPXXLattice(latdims);
 	LatticeInfo info(latdims,4,3,NodeInfo());
-	KokkosFineGaugeField<Kokkos::complex<REAL32>>  kokkos_gauge(info);
+	KokkosFineGaugeField<MGComplex<REAL32>>  kokkos_gauge(info);
 
 	{
 	  multi1d<LatticeColorMatrixF> gauge_in(n_dim);
@@ -319,8 +320,8 @@ TEST(TestKokkos, TestDslash)
 	}
 
 
-	KokkosCBFineSpinor<Kokkos::complex<REAL32>,4> kokkos_spinor_in(info,EVEN);
-	KokkosCBFineSpinor<Kokkos::complex<REAL32>,4> kokkos_spinor_out(info,ODD);
+	KokkosCBFineSpinor<MGComplex<REAL32>,4> kokkos_spinor_in(info,EVEN);
+	KokkosCBFineSpinor<MGComplex<REAL32>,4> kokkos_spinor_out(info,ODD);
 	{
 	  LatticeFermionF psi_in;
 	  gaussian(psi_in);
@@ -331,13 +332,14 @@ TEST(TestKokkos, TestDslash)
 	}
 
 	//for(int sites_per_team=8; sites_per_team < 8192; sites_per_team *=2) {
-	int sites_per_team=512;
-	  KokkosDslash<Kokkos::complex<REAL32>,Kokkos::complex<REAL32>, Kokkos::complex<REAL32>> D(info,sites_per_team);
+	int sites_per_team=32;
+
+	KokkosDslash<MGComplex<REAL32>,MGComplex<REAL32>, MGComplex<REAL32>> D(info,sites_per_team);
 
 
 	for(int rep=0; rep < 3; ++rep) {
-	  // for(int isign=-1; isign < 2; isign+=2) {
-	    int isign=1;
+	   for(int isign=-1; isign < 2; isign+=2) {
+	  
 	    MasterLog(INFO, "Timing Dslash: isign == %d", isign);
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < iters; ++i) {
@@ -357,13 +359,13 @@ TEST(TestKokkos, TestDslash)
 	    
 	    
 	    
-	 //  } // isign
+	   } // isign
 	} 
-	// } -- sites_per_team
+        // } // -- sites_per_team
 }
 #endif
 
-#if 1
+#if 0
 TEST(TestKokkos, TestDslashVec)
 {
   IndexArray latdims={{16,16,16,32}};
@@ -371,12 +373,12 @@ TEST(TestKokkos, TestDslashVec)
 #ifdef MG_USE_AVX512
 	int iters = 1000;
 #else 
-	int iters = 400;
+	int iters = 100;
 #endif
 
 	initQDPXXLattice(latdims);
 	LatticeInfo info(latdims,4,3,NodeInfo());
-	KokkosFineGaugeField<Kokkos::complex<REAL32>>  kokkos_gauge(info);
+	KokkosFineGaugeField<MGComplex<REAL32>>  kokkos_gauge(info);
 
 	{
 	  multi1d<LatticeColorMatrixF> gauge_in(n_dim);
@@ -408,7 +410,7 @@ TEST(TestKokkos, TestDslashVec)
 
 	for(int per_team=1; per_team < 512; per_team *= 2) {
 
-	  KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
+	  KokkosDslash<MGComplex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
 	for(int rep=0; rep < 2; ++rep) {
 	  for(int isign=-1; isign < 2; isign+=2) {
 	    MasterLog(INFO, "Sites per Team=%d Timing Dslash: isign == %d", per_team, isign);
@@ -446,13 +448,13 @@ TEST(TestKokkos, TestDslashVecLonger)
 #ifdef MG_USE_AVX512
 	int iters = 1000;
 #else 
-	int iters = 10;
+	int iters = 900;
 #endif
 
 
 	initQDPXXLattice(latdims);
 	LatticeInfo info(latdims,4,3,NodeInfo());
-	KokkosFineGaugeField<Kokkos::complex<REAL32>>  kokkos_gauge(info);
+	KokkosFineGaugeField<MGComplex<REAL32>>  kokkos_gauge(info);
 
 	{
 	  multi1d<LatticeColorMatrixF> gauge_in(n_dim);
@@ -482,7 +484,7 @@ TEST(TestKokkos, TestDslashVecLonger)
 	}
 
         int per_team = 2;
-	KokkosDslash<Kokkos::complex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
+	KokkosDslash<MGComplex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
 
 	for(int rep=0; rep < 2; ++rep) {
 	  // for(int isign=-1; isign < 2; isign+=2) {

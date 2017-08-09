@@ -105,43 +105,16 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
 
 
 
- template<typename GT, typename ST, typename TST, const int isign>
+ template<typename GT, typename ST, typename TST, const int isign, const int target_cb>
    struct DslashFunctor { 
 
-#if 1
      SpinorView<ST> s_in;
      GaugeView<GT> g_in_src_cb;
      GaugeView<GT> g_in_target_cb;
      SpinorView<ST> s_out;
      Kokkos::View<int*[2][8],NeighLayout,MemorySpace> neigh_table;
-     int source_cb; 
-     int target_cb;
      int num_sites;
      int sites_per_team;
-#else 
-     const SpinorView<ST>& s_in;
-     const GaugeView<GT>& g_in_src_cb;
-     const GaugeView<GT>& g_in_target_cb;
-     SpinorView<ST>& s_out;
-     const Kokkos::View<int*[2][8],NeighLayout,MemorySpace>& neigh_table;
-     int source_cb; 
-     int target_cb;
-     int num_sites;
-     int sites_per_team;
-
-     explicit DslashFunctor(     const SpinorView<ST>& _s_in,
-				 const GaugeView<GT>& _g_in_src_cb,
-				 const GaugeView<GT>& _g_in_target_cb,
-				 SpinorView<ST>& _s_out,
-				 const Kokkos::View<int*[2][8],NeighLayout,MemorySpace>&  _neigh_table,
-				 int _source_cb,
-				 int _target_cb,
-				 int _num_sites,
-				 int _sites_per_team) : s_in(_s_in),
-       g_in_src_cb(_g_in_src_cb), g_in_target_cb(_g_in_target_cb),
-       s_out(_s_out), neigh_table(_neigh_table), source_cb(_source_cb), 
-       target_cb(_target_cb), num_sites(_num_sites), sites_per_team(_sites_per_team) {}
-#endif
 
 
      KOKKOS_FORCEINLINE_FUNCTION
@@ -151,7 +124,6 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
 
 		    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int site) {
 
-#if 1
 		    // Warning: GCC Alignment Attribute!
 		    // Site Sum: Not a true Kokkos View
 			SpinorSiteView<TST> res_sum;// __attribute__((aligned(64)));
@@ -171,7 +143,7 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
 		    KokkosProjectDir3<ST,TST,isign>(s_in, proj_res,neigh_table(site,target_cb,T_MINUS));
 		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table(site,target_cb,T_MINUS),3);
 		    KokkosRecons23Dir3<TST,isign>(mult_proj_res,res_sum);
-		    
+#if 1
 		    // Z - minus
 		    KokkosProjectDir2<ST,TST,isign>(s_in, proj_res,neigh_table(site,target_cb,Z_MINUS));
 		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table(site,target_cb,Z_MINUS),2);
@@ -181,39 +153,43 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
 		    KokkosProjectDir1<ST,TST,isign>(s_in, proj_res,neigh_table(site,target_cb,Y_MINUS));
 		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table(site,target_cb,Y_MINUS),1);
 		    KokkosRecons23Dir1<TST,isign>(mult_proj_res,res_sum);
-		    
+
+
 		    // X - minus
 		    KokkosProjectDir0<ST,TST,isign>(s_in, proj_res,neigh_table(site,target_cb,X_MINUS));
 		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table(site,target_cb,X_MINUS),0);
 		    KokkosRecons23Dir0<TST,isign>(mult_proj_res,res_sum);
+
 		    
 		    // X - plus
 		    KokkosProjectDir0<ST,TST,-isign>(s_in,proj_res,neigh_table(site,target_cb,X_PLUS));
 		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,0);
 		    KokkosRecons23Dir0<TST,-isign>(mult_proj_res, res_sum);
+
 		    
 		    // Y - plus
 		    KokkosProjectDir1<ST,TST,-isign>(s_in,proj_res,neigh_table(site,target_cb,Y_PLUS));
 		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,1);
 		    KokkosRecons23Dir1<TST,-isign>(mult_proj_res, res_sum);
-		    
+
+
 		    // Z - plus
 		    KokkosProjectDir2<ST,TST,-isign>(s_in,proj_res,neigh_table(site,target_cb,Z_PLUS));
 		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,2);
 		    KokkosRecons23Dir2<TST,-isign>(mult_proj_res, res_sum);
+
 		    
 		    // T - plus
 		    KokkosProjectDir3<ST,TST,-isign>(s_in,proj_res,neigh_table(site,target_cb,T_PLUS));
 		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,3);
 		    KokkosRecons23Dir3<TST,-isign>(mult_proj_res, res_sum);
-		    
+#endif		    
 		    // Stream out spinor
-		    for(int color=0; color < 3; ++color) {
+ 		    for(int color=0; color < 3; ++color) {
 		      for(int spin=0; spin < 4; ++spin) {
 		    	  Stream(s_out(site,color,spin),res_sum(color,spin));
 		      }
 		    }
-#endif
 		      });
      }
 
@@ -254,24 +230,26 @@ KokkosDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info), _neig
 	  SpinorView<ST>& s_out = fine_out.GetData();
 	  const int num_sites = _info.GetNumCBSites();
 
+	  ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(),Veclen<ST>::value);
 	  if( plus_minus == 1 ) {
-#if 1
-		DslashFunctor<GT,ST,TST,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table,source_cb, target_cb, num_sites, _sites_per_team};
-#else
-		DslashFunctor<GT,ST,TST,1> f ( s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table,source_cb, target_cb, num_sites, _sites_per_team);
-#endif
-		ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(),Veclen<ST>::value);
-		Kokkos::parallel_for(policy, f); // Outer Lambda 
+	    if (target_cb == 0 ) {
+	      DslashFunctor<GT,ST,TST,1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table, num_sites, _sites_per_team};
+	      Kokkos::parallel_for(policy, f); // Outer Lambda 
+	    }
+	    else {
+	      DslashFunctor<GT,ST,TST,1,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table, num_sites, _sites_per_team};
+	      Kokkos::parallel_for(policy, f); // Outer Lambda 
+	    }
 	  }
 	  else {
-
-#if 1
-		DslashFunctor<GT,ST,TST,-1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table,source_cb, target_cb, num_sites, _sites_per_team};
-#else 
-		DslashFunctor<GT,ST,TST,-1> f(s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table,source_cb, target_cb, num_sites, _sites_per_team);
-#endif
-		ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(),Veclen<ST>::value);
-		Kokkos::parallel_for(policy, f); // Outer Lambda 
+	    if( target_cb == 0 ) { 
+	      DslashFunctor<GT,ST,TST,-1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table, num_sites, _sites_per_team};
+	      Kokkos::parallel_for(policy, f); // Outer Lambda 
+	    }
+	    else {
+	      DslashFunctor<GT,ST,TST,-1,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out, _neigh_table, num_sites, _sites_per_team};
+	      Kokkos::parallel_for(policy, f); // Outer Lambda 
+	    }
 	  }
 	  
 	}

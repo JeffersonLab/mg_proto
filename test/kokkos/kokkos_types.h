@@ -57,7 +57,7 @@ namespace MG
 			return _cb;
 		}
 
-		using DataType = Kokkos::View<T***,Layout,MemorySpace>;
+		using DataType = Kokkos::View<T*[3][_num_spins],Layout,MemorySpace>;
 
 
 		const DataType& GetData() const {
@@ -97,7 +97,7 @@ namespace MG
 			return _cb_gauge_data(site,dir,color1,color2);
 		}
 
-		using DataType = Kokkos::View<T*[4][3][3],Layout,MemorySpace>;
+		using DataType = Kokkos::View<T*[4][3][3],GaugeLayout,MemorySpace>;
 
 		DataType& GetData() {
 			return _cb_gauge_data;

@@ -8,41 +8,42 @@
 #ifndef TEST_KOKKOS_KOKKOS_OPS_H_
 #define TEST_KOKKOS_KOKKOS_OPS_H_
 
-#include <Kokkos_Complex.hpp>
+#include "kokkos_defaults.h"
+
 namespace MG
 {
 
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void ComplexCopy(Kokkos::complex<T>& result, const Kokkos::complex<T>& source)
+void ComplexCopy(MGComplex<T>& result, const MGComplex<T>& source)
 {
 	result=source;
 }
 
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void ComplexZero(Kokkos::complex<T>& result)
+void ComplexZero(MGComplex<T>& result)
 {
-	result = Kokkos::complex<T>(0,0);
+	result = MGComplex<T>(0,0);
 }
 
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void Load(Kokkos::complex<T>& result, const Kokkos::complex<T>& source)
-{
-	result = source;
-}
-
-template<typename T>
-KOKKOS_FORCEINLINE_FUNCTION
-void Store(Kokkos::complex<T>& result, const Kokkos::complex<T>& source)
+void Load(MGComplex<T>& result, const MGComplex<T>& source)
 {
 	result = source;
 }
 
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void Stream(Kokkos::complex<T>& result, const Kokkos::complex<T>& source)
+void Store(MGComplex<T>& result, const MGComplex<T>& source)
+{
+	result = source;
+}
+
+template<typename T>
+KOKKOS_FORCEINLINE_FUNCTION
+void Stream(MGComplex<T>& result, const MGComplex<T>& source)
 {
 	result = source;
 }
@@ -51,7 +52,7 @@ void Stream(Kokkos::complex<T>& result, const Kokkos::complex<T>& source)
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexCMadd(Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const Kokkos::complex<T>& b)
+ComplexCMadd(MGComplex<T>& res, const MGComplex<T>& a, const MGComplex<T>& b)
 {
 	res += a*b; // Complex Multiplication
 }
@@ -59,7 +60,7 @@ ComplexCMadd(Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const Kokkos:
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexPeq(Kokkos::complex<T>& res, const Kokkos::complex<T>& a)
+ComplexPeq(MGComplex<T>& res, const MGComplex<T>& a)
 {
 	res += a; // Complex Multiplication
 }
@@ -67,13 +68,13 @@ ComplexPeq(Kokkos::complex<T>& res, const Kokkos::complex<T>& a)
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexConjMadd(Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const Kokkos::complex<T>& b)
+ComplexConjMadd(MGComplex<T>& res, const MGComplex<T>& a, const MGComplex<T>& b)
 {
 	res += Kokkos::conj(a)*b; // Complex Multiplication
 }
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_add_sign_B( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
+void A_add_sign_B( MGComplex<T>& res, const MGComplex<T>& a, const T& sign, const MGComplex<T>& b)
 {
 	res.real() = a.real() + sign*b.real();
 	res.imag() = a.imag() + sign*b.imag();
@@ -82,7 +83,7 @@ void A_add_sign_B( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T
 
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_add_sign_iB( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
+void A_add_sign_iB( MGComplex<T>& res, const MGComplex<T>& a, const T& sign, const MGComplex<T>& b)
 {
 	res.real() = a.real()-sign*b.imag();
 	res.imag() = a.imag()+sign*b.real();
@@ -92,7 +93,7 @@ void A_add_sign_iB( Kokkos::complex<T>& res, const Kokkos::complex<T>& a, const 
 // a = -i b
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_peq_sign_miB( Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
+void A_peq_sign_miB( MGComplex<T>& a, const T& sign, const MGComplex<T>& b)
 {
 	a.real() += sign*b.imag();
 	a.imag() -= sign*b.real();
@@ -102,7 +103,7 @@ void A_peq_sign_miB( Kokkos::complex<T>& a, const T& sign, const Kokkos::complex
 // a = b
 template<typename T>
 KOKKOS_FORCEINLINE_FUNCTION
-void A_peq_sign_B( Kokkos::complex<T>& a, const T& sign, const Kokkos::complex<T>& b)
+void A_peq_sign_B( MGComplex<T>& a, const T& sign, const MGComplex<T>& b)
 {
 	a.real() += sign*b.real();
 	a.imag() += sign*b.imag();

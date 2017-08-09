@@ -19,7 +19,7 @@ namespace MG {
 
 template<typename T, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir0(const SpinorView<T> in,
+void KokkosProjectDir0(const SpinorView<T>& in,
 		HalfSpinorSiteView<T2>& spinor_out, int i)
 {
   using FType = typename BaseType<T>::Type;
@@ -53,7 +53,7 @@ void KokkosProjectDir0(const SpinorView<T> in,
 
  template<typename T, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir1(const SpinorView<T> in,
+void KokkosProjectDir1(const SpinorView<T>& in,
 		HalfSpinorSiteView<T2>& spinor_out, int i)
 {
 	  using FType = typename BaseType<T>::Type;
@@ -84,7 +84,7 @@ void KokkosProjectDir1(const SpinorView<T> in,
 
  template<typename T, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir2(const SpinorView<T> in,
+void KokkosProjectDir2(const SpinorView<T>& in,
 		HalfSpinorSiteView<T2>& spinor_out, int i)
 {
 
@@ -115,7 +115,7 @@ void KokkosProjectDir2(const SpinorView<T> in,
 
  template<typename T, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir3(const SpinorView<T> in,
+void KokkosProjectDir3(const SpinorView<T>& in,
 		HalfSpinorSiteView<T2>& spinor_out,
 		int i)
 {
