@@ -12,6 +12,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/CMakeModules/")
 set (MG_DEFAULT_LOGLEVEL DEBUG CACHE STRING "Default Loglevel")
 set (MG_USE_AVX512 CACHE BOOL FALSE)
 set (MG_KOKKOS_DISPATCH CACHE STRING "FALSE")
+set (MG_KOKKOS_USE_NEIGHBOR_TABLE CACHE BOOL TRUE)
 
 if(MG_DEFAULT_ALIGNMENT)
   message(STATUS "User specified default alignment: ${MG_DEFAULT_ALIGNMENT}")
@@ -27,6 +28,11 @@ else(MG_DEFAULT_CACHE_LINE_SIZE)
   set (MG_DEFAULT_CACHE_LINE_SIZE 64)
 endif(MG_DEFAULT_CACHE_LINE_SIZE )
 
+if( MG_KOKKOS_USE_NEIGHBOR_TABLE ) 
+  message(STATUS "KOKKOS DSlash will use neighbor table")
+else()
+  message(STATUS "KOKKOS Dslash will not use neithbor table")
+endif()
 
 
 set(CMAKE_CXX_STANDARD 11)

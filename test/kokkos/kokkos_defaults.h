@@ -10,15 +10,21 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Complex.hpp>
-#include "./my_complex.h"
 
+#if defined(KOKKOS_HAVE_CUDA)
+#include "./my_complex.h"
+#endif
 
 namespace MG
 {
  
-
+#if defined(KOKKOS_HAVE_CUDA)
 template<typename T>
 using MGComplex = Balint::complex<T>;
+#else
+template<typename T>
+using MGComplex = Kokkos::complex<T>;
+#endif
 
 #if defined(KOKKOS_HAVE_CUDA)
   using ExecSpace = Kokkos::Cuda::execution_space;
@@ -39,11 +45,17 @@ using MGComplex = Balint::complex<T>;
   using ExecSpace = Kokkos::OpenMP::execution_space;
   using MemorySpace = Kokkos::OpenMP::memory_space;
   using Layout = Kokkos::LayoutRight;
+  using GaugeLayout = Kokkos::LayoutRight;
   using NeighLayout = Kokkos::OpenMP::array_layout;
 #endif
 
+#if defined(KOKKOS_HAVE_CUDA)
 using ThreadExecPolicy =  Kokkos::TeamPolicy<ExecSpace,Kokkos::LaunchBounds<128,1>>;
-//using ThreadExecPolicy =  Kokkos::TeamPolicy<ExecSpace>;
+#else
+using ThreadExecPolicy = Kokkos::TeamPolicy<ExecSpace>;
+#endif
+
+
 using TeamHandle =  ThreadExecPolicy::member_type;
 using VectorPolicy = Kokkos::Impl::ThreadVectorRangeBoundariesStruct<int,TeamHandle>;
   
