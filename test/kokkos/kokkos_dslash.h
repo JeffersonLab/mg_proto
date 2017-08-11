@@ -25,20 +25,102 @@ typedef Kokkos::Experimental::MDRangePolicy<Kokkos::Experimental::Rank<4,Kokkos:
 
 enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_PLUS=6, T_PLUS=7 };
 
+
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+
+   void ComputeSiteTable(int _n_xh, int _n_x, int _n_y, int _n_z, int _n_t,  Kokkos::View<int*[2][8],NeighLayout, MemorySpace> _table) {
+		int num_sites =  _n_xh*_n_y*_n_z*_n_t;
+			Kokkos::parallel_for(Kokkos::RangePolicy<ExecSpace>(0,num_sites), KOKKOS_LAMBDA(int site) {
+		        for(int target_cb=0; target_cb < 2; ++target_cb) {
+			     // Break down site index into xcb, y,z and t
+			     IndexType tmp_yzt = site / _n_xh;
+			     IndexType xcb = site - _n_xh * tmp_yzt;
+			     IndexType tmp_zt = tmp_yzt / _n_y;
+			     IndexType y = tmp_yzt - _n_y * tmp_zt;
+			     IndexType t = tmp_zt / _n_z;
+			     IndexType z = tmp_zt - _n_z * t;
+
+			     // Global, uncheckerboarded x, assumes cb = (x + y + z + t ) & 1
+			     IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);
+
+			     if( t > 0 ) {
+			       _table(site,target_cb,T_MINUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1)));
+			     }
+			     else {
+			       _table(site,target_cb,T_MINUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1)));
+			     }
+
+			     if( z > 0 ) {
+			       _table(site,target_cb,Z_MINUS) = xcb + _n_xh*(y + _n_y*((z-1) + _n_z*t));
+			     }
+			     else {
+			       _table(site,target_cb,Z_MINUS) = xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t));
+			     }
+
+			     if( y > 0 ) {
+			       _table(site,target_cb,Y_MINUS) = xcb + _n_xh*((y-1) + _n_y*(z + _n_z*t));
+			     }
+			     else {
+			       _table(site,target_cb,Y_MINUS) = xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t));
+			     }
+
+			     if ( x > 0 ) {
+			       _table(site,target_cb,X_MINUS)= ((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
+			     }
+			     else {
+			       _table(site,target_cb,X_MINUS)= ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
+			     }
+
+			     if ( x < _n_x - 1 ) {
+			       _table(site,target_cb,X_PLUS) = ((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t));
+			     }
+			     else {
+			       _table(site,target_cb,X_PLUS) = 0 + _n_xh*(y + _n_y*(z + _n_z*t));
+			     }
+
+			     if( y < _n_y-1 ) {
+			       _table(site,target_cb,Y_PLUS) = xcb + _n_xh*((y+1) + _n_y*(z + _n_z*t));
+			     }
+			     else {
+			       _table(site,target_cb,Y_PLUS) = xcb + _n_xh*(0 + _n_y*(z + _n_z*t));
+			     }
+
+			     if( z < _n_z-1 ) {
+			       _table(site,target_cb,Z_PLUS) = xcb + _n_xh*(y + _n_y*((z+1) + _n_z*t));
+			     }
+			     else {
+			       _table(site,target_cb,Z_PLUS) = xcb + _n_xh*(y + _n_y*(0 + _n_z*t));
+			     }
+
+			     if( t < _n_t-1 ) {
+			       _table(site,target_cb,T_PLUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(t+1)));
+			     }
+			     else {
+			       _table(site,target_cb,T_PLUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(0)));
+			     }
+			    } // target CB
+		        });
+
+	}
+#endif
+
 class SiteTable {
 public:
-	KOKKOS_INLINE_FUNCTION
-	SiteTable(const LatticeInfo& info) : _info(info),
+
+
+	  SiteTable(int n_xh,
+		    int n_y,
+		    int n_z,
+		    int n_t) : 
+	 _n_x(2*n_xh),
+	 _n_xh(n_xh),
+	 _n_y(n_y),
+	 _n_z(n_z),
+	 _n_t(n_t) {
+
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-	_table("table", info.GetNumCBSites()),
-#endif
-		_n_x(info.GetLatticeDimensions()[0]),
-		_n_xh(info.GetCBLatticeDimensions()[0]),
-		_n_y(info.GetCBLatticeDimensions()[1]),
-		_n_z(info.GetCBLatticeDimensions()[2]),
-		_n_t(info.GetCBLatticeDimensions()[3]) {
-#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-		ComputeSiteTable();
+	   _table = Kokkos::View<int*[2][8],NeighLayout,MemorySpace>("table", n_xh*n_y*n_z*n_t);
+	   ComputeSiteTable(n_xh, 2*n_xh, n_y, n_z, n_t, _table);
 #endif
 	}
 
@@ -208,94 +290,41 @@ public:
 	}
 #endif
 
-#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+
 	KOKKOS_INLINE_FUNCTION
-	void ComputeSiteTable(void) {
-		int num_sites =  _n_xh*_n_y*_n_z*_n_t;
-			Kokkos::parallel_for(Kokkos::RangePolicy<ExecSpace>(0,num_sites), KOKKOS_LAMBDA(int site) {
-		        for(int target_cb=0; target_cb < 2; ++target_cb) {
-			     // Break down site index into xcb, y,z and t
-			     IndexType tmp_yzt = site / _n_xh;
-			     IndexType xcb = site - _n_xh * tmp_yzt;
-			     IndexType tmp_zt = tmp_yzt / _n_y;
-			     IndexType y = tmp_yzt - _n_y * tmp_zt;
-			     IndexType t = tmp_zt / _n_z;
-			     IndexType z = tmp_zt - _n_z * t;
-
-			     // Global, uncheckerboarded x, assumes cb = (x + y + z + t ) & 1
-			     IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);
-
-			     if( t > 0 ) {
-			       _table(site,target_cb,T_MINUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1)));
-			     }
-			     else {
-			       _table(site,target_cb,T_MINUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1)));
-			     }
-
-			     if( z > 0 ) {
-			       _table(site,target_cb,Z_MINUS) = xcb + _n_xh*(y + _n_y*((z-1) + _n_z*t));
-			     }
-			     else {
-			       _table(site,target_cb,Z_MINUS) = xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t));
-			     }
-
-			     if( y > 0 ) {
-			       _table(site,target_cb,Y_MINUS) = xcb + _n_xh*((y-1) + _n_y*(z + _n_z*t));
-			     }
-			     else {
-			       _table(site,target_cb,Y_MINUS) = xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t));
-			     }
-
-			     if ( x > 0 ) {
-			       _table(site,target_cb,X_MINUS)= ((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
-			     }
-			     else {
-			       _table(site,target_cb,X_MINUS)= ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
-			     }
-
-			     if ( x < _n_x - 1 ) {
-			       _table(site,target_cb,X_PLUS) = ((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t));
-			     }
-			     else {
-			       _table(site,target_cb,X_PLUS) = 0 + _n_xh*(y + _n_y*(z + _n_z*t));
-			     }
-
-			     if( y < _n_y-1 ) {
-			       _table(site,target_cb,Y_PLUS) = xcb + _n_xh*((y+1) + _n_y*(z + _n_z*t));
-			     }
-			     else {
-			       _table(site,target_cb,Y_PLUS) = xcb + _n_xh*(0 + _n_y*(z + _n_z*t));
-			     }
-
-			     if( z < _n_z-1 ) {
-			       _table(site,target_cb,Z_PLUS) = xcb + _n_xh*(y + _n_y*((z+1) + _n_z*t));
-			     }
-			     else {
-			       _table(site,target_cb,Z_PLUS) = xcb + _n_xh*(y + _n_y*(0 + _n_z*t));
-			     }
-
-			     if( t < _n_t-1 ) {
-			       _table(site,target_cb,T_PLUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(t+1)));
-			     }
-			     else {
-			       _table(site,target_cb,T_PLUS) = xcb + _n_xh*(y + _n_y*(z + _n_z*(0)));
-			     }
-			    } // target CB
-		        });
-
-	}
+	  SiteTable( const SiteTable& st):
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+	  _table(st._table),
 #endif
+	  _n_x(st._n_x),
+	  _n_xh(st._n_xh),
+	  _n_y(st._n_y),
+	  _n_z(st._n_z),
+	  _n_t(st._n_t) {}
+
+	KOKKOS_INLINE_FUNCTION
+	  SiteTable& operator=(const  SiteTable& st) {
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+	  _table = st._table;
+#endif
+	  _n_x = st._n_x;
+	  _n_xh = st._n_xh;
+	  _n_y = st._n_y;
+	  _n_z = st._n_z;
+	  _n_t = st._n_t;
+
+	  return *this;
+	}
 
 private:
-	const LatticeInfo _info;
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
 	Kokkos::View<int*[2][8], NeighLayout,MemorySpace > _table;
 #endif
-	const int _n_x;
-	const int _n_xh;
-	const int _n_y;
-	const int _n_z;
-	const int _n_t;
+       int _n_x;
+       int _n_xh;
+       int _n_y;
+       int _n_z;
+       int _n_t;
 
 };
 
@@ -402,7 +431,8 @@ class KokkosDslash {
 public:
 
 KokkosDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info),
-	_neigh_table(info), _sites_per_team(sites_per_team)
+	  _neigh_table(info.GetCBLatticeDimensions()[0],info.GetCBLatticeDimensions()[1],info.GetCBLatticeDimensions()[2],info.GetCBLatticeDimensions()[3]),
+	  _sites_per_team(sites_per_team)
 	  {}
 	
 	void operator()(const KokkosCBFineSpinor<ST,4>& fine_in,

@@ -30,7 +30,7 @@ using MGComplex = Kokkos::complex<T>;
   using ExecSpace = Kokkos::Cuda::execution_space;
   using MemorySpace = Kokkos::Cuda::memory_space;
 
-#if 1
+#if 0
   using Layout = Kokkos::LayoutRight;
   using GaugeLayout = Kokkos::LayoutRight;
   using NeighLayout = Kokkos::LayoutRight;
