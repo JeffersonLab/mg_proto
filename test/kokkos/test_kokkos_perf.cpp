@@ -20,7 +20,7 @@ using namespace QDP;
 
 
 #ifdef KOKKOS_HAVE_CUDA
-        constexpr static int V = 16;
+constexpr static int V = 16;
 #else
         constexpr static int V = 8;
 #endif
@@ -295,12 +295,11 @@ TEST(TestKokkos, TestMultHalfSpinor)
 }
 #endif
 
-#if 0
-
+#if 1
 TEST(TestKokkos, TestDslash)
 {
   IndexArray latdims={{32,32,32,32}};
-	int iters = 400;
+	int iters = 1000;
 
 	initQDPXXLattice(latdims);
 	LatticeInfo info(latdims,4,3,NodeInfo());
@@ -410,7 +409,7 @@ TEST(TestKokkos, TestDslashVec)
 
 	for(int per_team=1; per_team < 512; per_team *= 2) {
 
-	  KokkosDslash<MGComplex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
+	KokkosDslash<MGComplex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
 	for(int rep=0; rep < 2; ++rep) {
 	  for(int isign=-1; isign < 2; isign+=2) {
 	    MasterLog(INFO, "Sites per Team=%d Timing Dslash: isign == %d", per_team, isign);
@@ -448,7 +447,7 @@ TEST(TestKokkos, TestDslashVecLonger)
 #ifdef MG_USE_AVX512
 	int iters = 1000;
 #else 
-	int iters = 900;
+	int iters = 400;
 #endif
 
 
@@ -489,7 +488,7 @@ TEST(TestKokkos, TestDslashVecLonger)
 	for(int rep=0; rep < 2; ++rep) {
 	  // for(int isign=-1; isign < 2; isign+=2) {
 	    int isign=1;
-	    MasterLog(INFO, "Sites per Team=%d Timing Dslash: isign == %d", per_team, isign);
+	    MasterLog(INFO, "V=%d Sites per Team=%d Timing Dslash: isign == %d", V, per_team, isign);
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < iters; ++i) {
 	      D(kokkos_spinor_in,kokkos_gauge,kokkos_spinor_out,isign);

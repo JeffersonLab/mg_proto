@@ -966,9 +966,9 @@ TEST(TestKokkos, TestDslash)
 	QDPGaugeFieldToKokkosGaugeField(gauge_in, kokkos_gauge);
 
 
-	int per_team = 1;
+	int per_team = 2;
 	KokkosDslash<MGComplex<REAL>,MGComplex<REAL>,MGComplex<REAL>> D(info,per_team);
-	MasterLog(INFO, "per_team=%d", 1);
+	MasterLog(INFO, "per_team=%d", per_team);
 
 	LatticeFermion psi_out = zero;
 	LatticeFermion  kokkos_out=zero;
@@ -997,7 +997,7 @@ TEST(TestKokkos, TestDslash)
 	      double norm_diff = toDouble(sqrt(norm2(psi_out,rb[cb])));
 	      
 	      MasterLog(INFO, "sites_per_team=%d norm_diff = %lf", per_team, norm_diff);
-	      //ASSERT_LT( norm_diff, 1.0e-5);
+	      ASSERT_LT( norm_diff, 1.0e-5);
 	    }
 	}
 	

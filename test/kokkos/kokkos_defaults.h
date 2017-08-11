@@ -10,7 +10,7 @@
 
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Complex.hpp>
-
+#include "./my_complex.h"
 
 
 namespace MG
@@ -18,15 +18,23 @@ namespace MG
  
 
 template<typename T>
-using MGComplex = Kokkos::complex<T>;
+using MGComplex = Balint::complex<T>;
 
 #if defined(KOKKOS_HAVE_CUDA)
   using ExecSpace = Kokkos::Cuda::execution_space;
   using MemorySpace = Kokkos::Cuda::memory_space;
+
+#if 1
   using Layout = Kokkos::LayoutRight;
-  using GaugeLayout = Kokkos::Cuda::array_layout;
-  using NeighLayout = Kokkos::Cuda::array_layout;
-  //using NeighLayout = Kokkos::LayoutRight;
+  using GaugeLayout = Kokkos::LayoutRight;
+  using NeighLayout = Kokkos::LayoutRight;
+#else
+
+  using Layout = Kokkos::LayoutLeft;
+  using GaugeLayout = Kokkos::LayoutLeft;
+  using NeighLayout = Kokkos::LayoutLeft;
+#endif
+
 #else
   using ExecSpace = Kokkos::OpenMP::execution_space;
   using MemorySpace = Kokkos::OpenMP::memory_space;
@@ -34,7 +42,8 @@ using MGComplex = Kokkos::complex<T>;
   using NeighLayout = Kokkos::OpenMP::array_layout;
 #endif
 
-using ThreadExecPolicy =  Kokkos::TeamPolicy<ExecSpace,Kokkos::LaunchBounds<256,1>>;
+using ThreadExecPolicy =  Kokkos::TeamPolicy<ExecSpace,Kokkos::LaunchBounds<128,1>>;
+//using ThreadExecPolicy =  Kokkos::TeamPolicy<ExecSpace>;
 using TeamHandle =  ThreadExecPolicy::member_type;
 using VectorPolicy = Kokkos::Impl::ThreadVectorRangeBoundariesStruct<int,TeamHandle>;
   

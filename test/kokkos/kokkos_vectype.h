@@ -26,7 +26,7 @@ namespace MG
 
 // General
 template<typename T, int N>
-  struct alignas(2*sizeof(T)) SIMDComplex {
+  struct  alignas(8) SIMDComplex {
   MGComplex<T> _data[N]; 
   constexpr static int len() { return N; }
   
@@ -50,7 +50,7 @@ template<typename T, int N>
 
  // On the GPU only one elemen per 'VectorThread'
 template<typename T, int N>
-  struct alignas(2*sizeof(T)) GPUThreadSIMDComplex {
+  struct GPUThreadSIMDComplex {
 
   MGComplex<T> _data;
 
@@ -96,7 +96,8 @@ KOKKOS_FORCEINLINE_FUNCTION
    void ComplexCopy(T1<T,N>& result, const T2<T,N>& source)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      result(i) = source(i);
+      auto _s = source(i);
+      result(i) = _s;
     });
 }
 
@@ -106,11 +107,8 @@ KOKKOS_FORCEINLINE_FUNCTION
 {
   
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      result(i) = source(i);
-  //    T* res=reinterpret_cast<T*>(&(result(i)));
-  //    const T* src = reinterpret_cast<const T*>(&(source(i)));
-  //    res[0] = src[0];
-  //    res[1] = src[1];
+      auto _s = source(i);
+      result(i) = _s;;
 
     });
 }
@@ -120,13 +118,8 @@ KOKKOS_FORCEINLINE_FUNCTION
    void Store(T1<T,N>& result, const T2<T,N>& source)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      result(i) = source(i);
-#if 0
-      T* res=reinterpret_cast<T*>(&(result(i)));
-      const T* src = reinterpret_cast<const T*>(&(source(i)));
-      res[0] = src[0];
-      res[1] = src[1];
-#endif
+      auto _s = source(i);
+      result(i) = _s;;
     });
 }
 
@@ -135,13 +128,8 @@ KOKKOS_FORCEINLINE_FUNCTION
  void Stream(T1<T,N>& result, const T2<T,N>& source)
  {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      result(i) = source(i);
-#if 0
-      T* res=reinterpret_cast<T*>(&(result(i)));
-      const T* src = reinterpret_cast<const T*>(&(source(i)));
-      res[0] = src[0];
-      res[1] = src[1];
-#endif
+      auto _s = source(i);
+      result(i) = _s;
     });
 }
 
@@ -151,12 +139,6 @@ void ComplexZero(T1<T,N>& result)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
       result(i)=MGComplex<T>(0,0);
-#if 0
-      T* res=reinterpret_cast<T*>(&(result(i)));
-      res[0] = 0;
-      res[1] = 0;
-#endif
-
     });
 }
 
@@ -167,10 +149,17 @@ ComplexPeq(T1<T,N>& res, const T2<T,N>& a)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
       // res(i) += a(i); // Complex Addition
-      T* r = reinterpret_cast<T*>( &(res(i)) );
-      const T* src = reinterpret_cast<const T*>(&(a(i)));
-      r[0] += src[0];
-      r[1] += src[1];
+
+      auto _a = a(i);
+      auto _r = res(i);
+#if 0
+	T a_re = a(i).real();
+	T a_im = a(i).imag();
+	T res_re = res(i).real();
+	T res_im = res(i).imag();
+#endif
+
+	res(i) = MGComplex<T>(_r.real() + _a.real() ,_r.imag() + _a.imag());
     });
 }
 
@@ -182,14 +171,14 @@ ComplexCMadd(T1<T,N>& res, const MGComplex<T>& a, const T2<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
       // res(i)+= a*b(i); // Complex Multiplication
-      T* r = reinterpret_cast<T*>(&(res(i)));
-      const T* ap = reinterpret_cast<const T*>(&(a));
-      const T* bp = reinterpret_cast<const T*>(&(b(i)));
-      
-      r[0] += ap[0]*bp[0];
-      r[1] += ap[1]*bp[0];
-      r[0] -= ap[1]*bp[1];
-      r[1] += ap[0]*bp[1];
+      auto _b = b(i);
+      auto _res = res(i);
+      auto _a = a;
+
+      T res_re = ( _res.real()  + _a.real()*_b.real() ) - _a.imag()*_b.imag();
+      T res_im = ( _res.imag() +  _a.real()*_b.imag() ) + _a.imag()*_b.real();
+
+      res(i) = MGComplex<T>( res_re, res_im);
 
     });
 }
@@ -202,13 +191,15 @@ ComplexConjMadd(T1<T,N>& res, const MGComplex<T>& a, const T2<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
       // res(i) += Kokkos::conj(a)*b(i); // Complex Multiplication
-      T* r = reinterpret_cast<T*>(&(res(i)));
-      const T* ap = reinterpret_cast<const T*>(&(a));
-      const T* bp = reinterpret_cast<const T*>(&(b(i)));
-      r[0] += ap[0]*bp[0];
-      r[0] += ap[1]*bp[1];
-      r[1] -= ap[1]*bp[0];
-      r[1] += ap[0]*bp[1];
+
+      auto _b = b(i);
+      auto _res = res(i);
+      auto _a = a;
+
+      T res_re = ( _res.real()  + _a.real()*_b.real() ) + _a.imag()*_b.imag();
+      T res_im = ( _res.imag() +  _a.real()*_b.imag() ) - _a.imag()*_b.real();
+
+      res(i) = MGComplex<T>(res_re,res_im);
 
     });
 
@@ -223,14 +214,14 @@ ComplexCMadd(T1<T,N>& res, const T2<T,N>& a, const T3<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
       // res(i) += a(i)*b(i); // Complex Multiplication
-      T* r = reinterpret_cast<T*>(&(res(i)));
-      const T* ap = reinterpret_cast<const T*>(&(a(i)));
-      const T* bp = reinterpret_cast<const T*>(&(b(i)));
-      
-      r[0] += ap[0]*bp[0];
-      r[1] += ap[1]*bp[0];
-      r[0] -= ap[1]*bp[1];
-      r[1] += ap[0]*bp[1];
+      auto _b = b(i);
+      auto _res = res(i);
+      auto _a = a(i);
+
+      T res_re = ( _res.real()  + _a.real()*_b.real() ) - _a.imag()*_b.imag();
+      T res_im = ( _res.imag() +  _a.real()*_b.imag() ) + _a.imag()*_b.real();
+
+      res(i) = MGComplex<T>( res_re, res_im);
 
     });
 }
@@ -242,13 +233,15 @@ void
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
       // res(i) += Kokkos::conj(a(i))*b(i); // Complex Multiplication
-      T* r = reinterpret_cast<T*>(&(res(i)));
-      const T* ap = reinterpret_cast<const T*>(&(a(i)));
-      const T* bp = reinterpret_cast<const T*>(&(b(i)));
-      r[0] += ap[0]*bp[0];
-      r[0] += ap[1]*bp[1];
-      r[1] -= ap[1]*bp[0];
-      r[1] += ap[0]*bp[1];
+      auto _b = b(i);
+      auto _res = res(i);
+      auto _a = a(i);
+
+      T res_re = ( _res.real()  + _a.real()*_b.real() ) + _a.imag()*_b.imag();
+      T res_im = ( _res.imag() +  _a.real()*_b.imag() ) - _a.imag()*_b.real();
+
+
+      res(i) = MGComplex<T>(res_re,res_im);
 
     });
 }
@@ -260,14 +253,16 @@ void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>&
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
       //      res(i).real() = a(i).real() + sign*b(i).real();
       //      res(i).imag() = a(i).imag() + sign*b(i).imag();
-      T* r=reinterpret_cast<T*>(&(res(i)));
-      const T* ap=reinterpret_cast<const T*>(&(a(i)));
-      const T* bp=reinterpret_cast<const T*>(&(b(i)));
+      auto _a = a(i);
+      auto _b = b(i);
+      auto _res = res(i);
 
-      r[0] = ap[0] + sign * bp[0];
-      r[1] = ap[1] + sign * bp[1];
+      T res_re = _a.real() + sign*_b.real();
+      T res_im = _a.imag() + sign*_b.imag();
+
+      res(i) = MGComplex<T>(res_re,res_im);
+
     });
-
 }
 
   template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3>
@@ -277,12 +272,15 @@ void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
       //res(i).real() = a(i).real() - sign*b(i).imag();
       //res(i).imag() = a(i).imag() + sign*b(i).real();
-      T* r=reinterpret_cast<T*>(&(res(i)));
-      const T* ap=reinterpret_cast<const T*>(&(a(i)));
-      const T* bp=reinterpret_cast<const T*>(&(b(i)));
 
-      r[0] = ap[0] - sign * bp[1];
-      r[1] = ap[1] + sign * bp[0];
+      auto _a = a(i);
+      auto _b = b(i);
+      auto _res = res(i);
+
+      T res_re = _a.real() - sign*_b.imag();
+      T res_im = _a.imag() + sign*_b.real();
+
+  res(i) = MGComplex<T>(res_re, res_im);
 
     });
 }
@@ -293,12 +291,13 @@ KOKKOS_FORCEINLINE_FUNCTION
 void A_peq_sign_miB( T1<T,N>& a, const T& sign, const T2<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      T* ap=reinterpret_cast<T*>(&(a(i)));
-      const T* bp=reinterpret_cast<const T*>(&(b(i)));
 
-      ap[0] += sign*bp[1];
-      ap[1] -= sign*bp[0];
-    });
+      auto _a = a(i);
+      auto _b = b(i);
+   
+      a(i) = MGComplex<T>( _a.real() + sign*_b.imag(),_a.imag() -sign*_b.real() );
+  
+});
 }
 
     
@@ -308,13 +307,13 @@ KOKKOS_FORCEINLINE_FUNCTION
   void A_peq_sign_B( T1<T,N>& a, const T& sign, const T2<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
-     T* ap=reinterpret_cast<T*>(&(a(i)));
-      const T* bp=reinterpret_cast<const T*>(&(b(i)));
-
-      //      a(i).real() += sign*b(i).real();
+      // a(i).real() += sign*b(i).real();
       // a(i).imag() += sign*b(i).imag();
-      ap[0] += sign*bp[0];
-      ap[1] += sign*bp[1];
+
+      auto _a = a(i);
+      auto _b = b(i);
+
+      a(i) = MGComplex<T>( _a.real() + sign*_b.real(), _a.imag() + sign*_b.imag());
     });
 }
 
