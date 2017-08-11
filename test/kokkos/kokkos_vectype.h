@@ -26,7 +26,7 @@ namespace MG
 
 // General
 template<typename T, int N>
-  struct  alignas(8) SIMDComplex {
+  struct  SIMDComplex {
   MGComplex<T> _data[N]; 
   constexpr static int len() { return N; }
   
