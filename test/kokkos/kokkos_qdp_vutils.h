@@ -374,6 +374,28 @@ namespace MG
 			       );
 	}
 
+
+
+
+
+	    template<typename T, typename VN, typename GF>
+	void
+	QDPGaugeFieldToKokkosVGaugeField(const GF& qdp_in,
+					KokkosFineVGaugeField<T,VN>& kokkos_out)
+	{
+		QDPGaugeFieldToKokkosCBVGaugeField( qdp_in, kokkos_out(EVEN));
+		QDPGaugeFieldToKokkosCBVGaugeField( qdp_in, kokkos_out(ODD));
+	}
+
+	    template<typename T, typename VN, typename GF>
+	void
+	      KokkosGaugeFieldToQDPVGaugeField(const KokkosFineVGaugeField<T,VN>& kokkos_in,
+									GF& qdp_out)
+	{
+		KokkosCBGaugeFieldToQDPVGaugeField( kokkos_in(EVEN),qdp_out);
+		KokkosCBGaugeFieldToQDPVGaugeField( kokkos_in(ODD), qdp_out);
+	}
+
 }
 
 

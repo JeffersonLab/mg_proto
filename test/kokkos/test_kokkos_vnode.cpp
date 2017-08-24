@@ -17,6 +17,7 @@
 #include "kokkos_vtypes.h"
 #include "kokkos_qdp_vutils.h"
 #include "kokkos_traits.h"
+#include "kokkos_vdslash.h"
 #include <type_traits>
 
 using namespace MG;
@@ -655,6 +656,74 @@ TEST(TestKokkos, TestVSpinProject)
 
  
 }
+
+TEST(TestKokkos, TestDslash)
+{
+	IndexArray latdims={{4,4,4,4}};
+	initQDPXXLattice(latdims);
+	multi1d<LatticeColorMatrix> gauge_in(n_dim);
+	for(int mu=0; mu < n_dim; ++mu) {
+		gaussian(gauge_in[mu]);
+		reunit(gauge_in[mu]);
+	}
+
+	LatticeFermion psi_in=zero;
+	gaussian(psi_in);
+
+	LatticeInfo info(latdims,4,3,NodeInfo());
+	LatticeInfo hinfo(latdims,2,3,NodeInfo());
+       
+	using VN = VNode<MGComplex<REAL>,1>;
+	using SpinorType = KokkosCBFineVSpinor<MGComplex<REAL>,VN,4>;
+	using GaugeType = KokkosFineVGaugeField<MGComplex<REAL>,VN>;
+
+	SpinorType  kokkos_spinor_even(info,EVEN);
+	SpinorType  kokkos_spinor_odd(info,ODD);
+	GaugeType  kokkos_gauge(info);
+       
+
+	// Import Gauge Field
+	QDPGaugeFieldToKokkosVGaugeField(gauge_in, kokkos_gauge);
+
+
+	int per_team = 2;
+	KokkosVDslash<VN,MGComplex<REAL>,MGComplex<REAL>,
+		      ThreadSIMDComplex<REAL,VN::VecLen>,ThreadSIMDComplex<REAL,VN::VecLen>> D(info,per_team);
+	MasterLog(INFO, "per_team=%d", per_team);
+
+	LatticeFermion psi_out = zero;
+	LatticeFermion  kokkos_out=zero;
+	for(int cb=0; cb < 2; ++cb) {
+	  SpinorType& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
+	  SpinorType& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
+	  
+	    for(int isign=-1; isign < 2; isign+=2) {
+	      
+	      // In the Host
+	      psi_out = zero;
+	      
+	      // Target cb=1 for now.
+	      dslash(psi_out,gauge_in,psi_in,isign,cb);
+	      
+	      QDPLatticeFermionToKokkosCBVSpinor(psi_in, in_spinor);
+	      
+	      
+	      D(in_spinor,kokkos_gauge,out_spinor,isign);
+	      
+	      kokkos_out = zero;
+	      KokkosCBVSpinorToQDPLatticeFermion(out_spinor, kokkos_out);
+	      
+	      // Check Diff on Odd
+	      psi_out[rb[cb]] -= kokkos_out;
+	      double norm_diff = toDouble(sqrt(norm2(psi_out,rb[cb])));
+	      
+	      MasterLog(INFO, "sites_per_team=%d norm_diff = %lf", per_team, norm_diff);
+	      ASSERT_LT( norm_diff, 1.0e-5);
+	    }
+	}
+	
+}
+
 
 
 

@@ -150,7 +150,30 @@ namespace MG {
    const IndexType _cb;
  };
 
+ template<typename T,typename VN>
+   using VGaugeView = typename KokkosCBFineVGaugeField<T,VN>::DataType;
 
+ template<typename T, typename VN>
+   class KokkosFineVGaugeField {
+ private:
+   const LatticeInfo& _info;
+   KokkosCBFineVGaugeField<T,VN>  _gauge_data_even;
+   KokkosCBFineVGaugeField<T,VN>  _gauge_data_odd;
+ public:
+ KokkosFineVGaugeField(const LatticeInfo& info) :  _info(info), _gauge_data_even(info,EVEN), _gauge_data_odd(info,ODD) {
+		}
+
+   const KokkosCBFineVGaugeField<T,VN>& operator()(IndexType cb) const
+     {
+       return  (cb == EVEN) ? _gauge_data_even : _gauge_data_odd;
+       //return *(_gauge_data[cb]);
+     }
+   
+   KokkosCBFineVGaugeField<T,VN>& operator()(IndexType cb) {
+     return (cb == EVEN) ? _gauge_data_even : _gauge_data_odd;
+     //return *(_gauge_data[cb]);
+   }
+ };
 
 }
 

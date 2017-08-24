@@ -5,23 +5,22 @@
  *      Author: bjoo
  */
 
-#ifndef TEST_KOKKOS_KOKKOS_DSLASH_H_
-#define TEST_KOKKOS_KOKKOS_DSLASH_H_
+#ifndef TEST_KOKKOS_KOKKOS_VDSLASH_H_
+#define TEST_KOKKOS_KOKKOS_VDSLASH_H_
 #include "Kokkos_Macros.hpp"
 #include "Kokkos_Core.hpp"
 #include "kokkos_defaults.h"
 #include "kokkos_types.h"
+#include "kokkos_vtypes.h"
 #include "kokkos_spinproj.h"
-#include "kokkos_matvec.h"
+#include "kokkos_vspinproj.h"
+#include "kokkos_vnode.h"
+#include "kokkos_vmatvec.h"
 #include "kokkos_traits.h"
 #include "MG_config.h"
 namespace MG {
 
 
-
-
-  // Try an N-dimensional threading policy for cache blocking
-typedef Kokkos::Experimental::MDRangePolicy<Kokkos::Experimental::Rank<4,Kokkos::Experimental::Iterate::Left,Kokkos::Experimental::Iterate::Left>> t_policy;
 
 enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_PLUS=6, T_PLUS=7 };
 
@@ -331,13 +330,18 @@ private:
 
 
 
- template<typename GT, typename ST, typename TST, const int isign, const int target_cb>
-   struct DslashFunctor { 
+ template<typename VN,
+   typename GT, 
+   typename ST, 
+   typename TGT, 
+   typename TST, 
+   const int isign, const int target_cb>
+   struct VDslashFunctor { 
 
-     SpinorView<ST> s_in;
-     GaugeView<GT> g_in_src_cb;
-     GaugeView<GT> g_in_target_cb;
-     SpinorView<ST> s_out;
+     VSpinorView<ST,VN> s_in;
+     VGaugeView<GT,VN> g_in_src_cb;
+     VGaugeView<GT,VN> g_in_target_cb;
+     VSpinorView<ST,VN> s_out;
      int num_sites;
      int sites_per_team;
      SiteTable neigh_table;
@@ -349,80 +353,188 @@ private:
 
 		    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int site) {
 
-		    // Warning: GCC Alignment Attribute!
-		    // Site Sum: Not a true Kokkos View
+			// Warning: GCC Alignment Attribute!
+			// Site Sum: Not a true Kokkos View
 			SpinorSiteView<TST> res_sum;// __attribute__((aligned(64)));
 			
-		    // Temporaries: Not a true Kokkos View
+			// Temporaries: Not a true Kokkos View
 			HalfSpinorSiteView<TST> proj_res; // __attribute__((aligned(64)));
 			HalfSpinorSiteView<TST> mult_proj_res; // __attribute__((aligned(64)));
 		    
+			// A GaugeLink
+			GaugeSiteView<TGT> gauge_in;
 
-		    for(int color=0; color < 3; ++color) {
-		      for(int spin=0; spin < 4; ++spin) {
-			ComplexZero(res_sum(color,spin));
-		      }
-		    }
+
+			// Zero Result
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    ComplexZero(res_sum(color,spin));
+			  }
+			}
 			
-		    // T - minus
-		    KokkosProjectDir3<ST,TST,isign>(s_in, proj_res,neigh_table.NeighborTMinus(site,target_cb));
-		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table.NeighborTMinus(site,target_cb),3);
-		    KokkosRecons23Dir3<TST,isign>(mult_proj_res,res_sum);
+			// T - minus
+			// spinor
+			SpinorSiteView<TST> spinor_in;
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    Load( spinor_in(color,spin), s_in( neigh_table.NeighborTMinus(site,target_cb), color,spin));
+			  }
+			}
 
-		    // Z - minus
-		    KokkosProjectDir2<ST,TST,isign>(s_in, proj_res,neigh_table.NeighborZMinus(site,target_cb));
-		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table.NeighborZMinus(site,target_cb),2);
-		    KokkosRecons23Dir2<TST,isign>(mult_proj_res,res_sum);
+
+			// gauge 
+			for(int color=0; color < 3; ++color) {
+			  for(int color2=0; color2 < 3; ++color2) {
+			    Load( gauge_in(color,color2), g_in_src_cb( neigh_table.NeighborTMinus(site,target_cb), 3, color,color2) );
+			  }
+			}
+			
+
+			KokkosProjectDir3<TST,isign>(spinor_in, proj_res);
+			mult_adj_u_halfspinor<TGT,TST>(gauge_in, proj_res,mult_proj_res);
+			KokkosRecons23Dir3<TST,isign>(mult_proj_res,res_sum);
+			
+			// Z - minus
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    Load( spinor_in(color,spin), s_in( neigh_table.NeighborZMinus(site,target_cb),color,spin));
+			  }
+			}
+			
+			for(int color=0; color < 3; ++color) {
+			  for(int color2=0; color2 < 3; ++color2) {
+			    Load( gauge_in(color,color2), g_in_src_cb( neigh_table.NeighborZMinus(site,target_cb), 2, color,color2) );
+			  }
+			}
+			
+			KokkosProjectDir2<TST,isign>(spinor_in, proj_res);
+			mult_adj_u_halfspinor<TGT,TST>(gauge_in, proj_res,mult_proj_res);
+			KokkosRecons23Dir2<TST,isign>(mult_proj_res,res_sum);
+
+			// Y - minus
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    Load( spinor_in(color,spin), s_in( neigh_table.NeighborYMinus(site,target_cb),color,spin));
+			  }
+			}
+
+			for(int color=0; color < 3; ++color) {
+			  for(int color2=0; color2 < 3; ++color2) {
+			    Load( gauge_in(color,color2), g_in_src_cb( neigh_table.NeighborYMinus(site,target_cb), 1, color,color2) );
+			  }
+			}
+			
+
+			KokkosProjectDir1<TST,isign>(spinor_in, proj_res);
+			mult_adj_u_halfspinor<TGT,TST>(gauge_in, proj_res, mult_proj_res);
+			KokkosRecons23Dir1<TST,isign>(mult_proj_res,res_sum);
+			
+
+			// X - minus
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    Load( spinor_in(color,spin), s_in( neigh_table.NeighborXMinus(site,target_cb),color,spin));
+			  }
+			}
+
+			for(int color=0; color < 3; ++color) {
+			  for(int color2=0; color2 < 3; ++color2) {
+			    Load( gauge_in(color,color2), g_in_src_cb( neigh_table.NeighborXMinus(site,target_cb), 0, color,color2) );
+			  }
+			}
+
+			KokkosProjectDir0<TST,isign>(spinor_in, proj_res);
+			mult_adj_u_halfspinor<TGT,TST>(gauge_in,proj_res,mult_proj_res);
+			KokkosRecons23Dir0<TST,isign>(mult_proj_res,res_sum);
+
 		    
-		    // Y - minus
-		    KokkosProjectDir1<ST,TST,isign>(s_in, proj_res,neigh_table.NeighborYMinus(site,target_cb));
-		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table.NeighborYMinus(site,target_cb),1);
-		    KokkosRecons23Dir1<TST,isign>(mult_proj_res,res_sum);
+			// X - plus
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    Load( spinor_in(color,spin), s_in( neigh_table.NeighborXPlus(site,target_cb),color,spin));
+			  }
+			}
 
+			for(int color=0; color < 3; ++color) {
+			  for(int color2=0; color2 < 3; ++color2) {
+			    Load( gauge_in(color,color2), g_in_target_cb(site, 0, color,color2));
+			  }
+			}
 
-		    // X - minus
-		    KokkosProjectDir0<ST,TST,isign>(s_in, proj_res,neigh_table.NeighborXMinus(site,target_cb));
-		    mult_adj_u_halfspinor<GT,TST>(g_in_src_cb,proj_res,mult_proj_res,neigh_table.NeighborXMinus(site,target_cb),0);
-		    KokkosRecons23Dir0<TST,isign>(mult_proj_res,res_sum);
+			KokkosProjectDir0<TST,-isign>(spinor_in,proj_res);
+			mult_u_halfspinor<TGT,TST>(gauge_in,proj_res,mult_proj_res);
+			KokkosRecons23Dir0<TST,-isign>(mult_proj_res, res_sum);
 
 		    
-		    // X - plus
-		    KokkosProjectDir0<ST,TST,-isign>(s_in,proj_res,neigh_table.NeighborXPlus(site,target_cb));
-		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,0);
-		    KokkosRecons23Dir0<TST,-isign>(mult_proj_res, res_sum);
-
-		    
-		    // Y - plus
-		    KokkosProjectDir1<ST,TST,-isign>(s_in,proj_res,neigh_table.NeighborYPlus(site,target_cb));
-		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,1);
-		    KokkosRecons23Dir1<TST,-isign>(mult_proj_res, res_sum);
-
+			// Y - plus
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    Load( spinor_in(color,spin), s_in( neigh_table.NeighborYPlus(site,target_cb),color,spin));
+			  }
+			}
+			
+			for(int color=0; color < 3; ++color) {
+			  for(int color2=0; color2 < 3; ++color2) {
+			    Load( gauge_in(color,color2), g_in_target_cb(site, 1, color,color2));
+			  }
+			}
+			
+			KokkosProjectDir1<TST,-isign>(spinor_in,proj_res);
+			mult_u_halfspinor<TGT,TST>(gauge_in,proj_res,mult_proj_res);
+			KokkosRecons23Dir1<TST,-isign>(mult_proj_res, res_sum);
+			
 
 		    // Z - plus
-		    KokkosProjectDir2<ST,TST,-isign>(s_in,proj_res,neigh_table.NeighborZPlus(site,target_cb));
-		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,2);
-		    KokkosRecons23Dir2<TST,-isign>(mult_proj_res, res_sum);
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    Load( spinor_in(color,spin), s_in( neigh_table.NeighborZPlus(site,target_cb),color,spin));
+			  }
+			}
 
+			for(int color=0; color < 3; ++color) {
+			  for(int color2=0; color2 < 3; ++color2) {
+			    Load( gauge_in(color,color2), g_in_target_cb(site, 2, color,color2));
+			  }
+			}
+
+
+			KokkosProjectDir2<TST,-isign>(spinor_in,proj_res);
+			mult_u_halfspinor<TGT,TST>(gauge_in,proj_res,mult_proj_res);
+			KokkosRecons23Dir2<TST,-isign>(mult_proj_res, res_sum);
+			
 		    
-		    // T - plus
-		    KokkosProjectDir3<ST,TST,-isign>(s_in,proj_res,neigh_table.NeighborTPlus(site,target_cb));
-		    mult_u_halfspinor<GT,TST>(g_in_target_cb,proj_res,mult_proj_res,site,3);
-		    KokkosRecons23Dir3<TST,-isign>(mult_proj_res, res_sum);
+			// T - plus
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    Load( spinor_in(color,spin), s_in( neigh_table.NeighborTPlus(site,target_cb),color,spin));
+			  }
+			}
+			
+			for(int color=0; color < 3; ++color) {
+			  for(int color2=0; color2 < 3; ++color2) {
+			    Load( gauge_in(color,color2), g_in_target_cb(site, 3, color,color2));
+			  }
+			}
+			
 
-		    // Stream out spinor
- 		    for(int color=0; color < 3; ++color) {
-		      for(int spin=0; spin < 4; ++spin) {
-		    	  Stream(s_out(site,color,spin),res_sum(color,spin));
-		      }
-		    }
+			KokkosProjectDir3<TST,-isign>(spinor_in,proj_res);
+			mult_u_halfspinor<TGT,TST>(gauge_in, proj_res,mult_proj_res);
+			KokkosRecons23Dir3<TST,-isign>(mult_proj_res, res_sum);
+			
+			// Stream out spinor
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin < 4; ++spin) {
+			    Stream(s_out(site,color,spin),res_sum(color,spin));
+			  }
+			}
 		      });
      }
-
-
+     
+     
    };
 
-template<typename GT, typename ST, typename TST>
-class KokkosDslash {
+ template<typename VN, typename GT, typename ST,  typename TGT, typename TST>
+   class KokkosVDslash {
  public:
 	const LatticeInfo& _info;
 
@@ -430,45 +542,45 @@ class KokkosDslash {
 	const int _sites_per_team;
 public:
 
-KokkosDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info),
+ KokkosVDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info),
 	  _neigh_table(info.GetCBLatticeDimensions()[0],info.GetCBLatticeDimensions()[1],info.GetCBLatticeDimensions()[2],info.GetCBLatticeDimensions()[3]),
 	  _sites_per_team(sites_per_team)
 	  {}
 	
-	void operator()(const KokkosCBFineSpinor<ST,4>& fine_in,
-		      const KokkosFineGaugeField<GT>& gauge_in,
-		      KokkosCBFineSpinor<ST,4>& fine_out,
+	void operator()(const KokkosCBFineVSpinor<ST,VN,4>& fine_in,
+			const KokkosFineVGaugeField<GT,VN>& gauge_in,
+			KokkosCBFineVSpinor<ST,VN,4>& fine_out,
 		      int plus_minus) const
 	{
 	  int source_cb = fine_in.GetCB();
 	  int target_cb = (source_cb == EVEN) ? ODD : EVEN;
-	  const SpinorView<ST>& s_in = fine_in.GetData();
-	  const GaugeView<GT>& g_in_src_cb = (gauge_in(source_cb)).GetData();
-	  const GaugeView<GT>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
-	  SpinorView<ST>& s_out = fine_out.GetData();
+	  const VSpinorView<ST,VN>& s_in = fine_in.GetData();
+	  const VGaugeView<GT,VN>& g_in_src_cb = (gauge_in(source_cb)).GetData();
+	  const VGaugeView<GT,VN>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
+	  VSpinorView<ST,VN>& s_out = fine_out.GetData();
 	  const int num_sites = _info.GetNumCBSites();
 
-	  ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(),Veclen<ST>::value);
+	  ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(), VN::VecLen);
 	  if( plus_minus == 1 ) {
 	    if (target_cb == 0 ) {
-	      DslashFunctor<GT,ST,TST,1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
+	      VDslashFunctor<VN,GT,ST,TGT,TST,1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
 	    		  num_sites, _sites_per_team,_neigh_table};
 	      Kokkos::parallel_for(policy, f); // Outer Lambda 
 	    }
 	    else {
-	      DslashFunctor<GT,ST,TST,1,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
+	      VDslashFunctor<VN,GT,ST,TGT,TST,1,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
 	    		  num_sites, _sites_per_team, _neigh_table};
 	      Kokkos::parallel_for(policy, f); // Outer Lambda 
 	    }
 	  }
 	  else {
 	    if( target_cb == 0 ) { 
-	      DslashFunctor<GT,ST,TST,-1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
+	      VDslashFunctor<VN,GT,ST,TGT,TST,-1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
 	    		  num_sites, _sites_per_team, _neigh_table};
 	      Kokkos::parallel_for(policy, f); // Outer Lambda 
 	    }
 	    else {
-	      DslashFunctor<GT,ST,TST,-1,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
+	      VDslashFunctor<VN,GT,ST,TGT,TST,-1,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
 	    		  num_sites, _sites_per_team, _neigh_table };
 	      Kokkos::parallel_for(policy, f); // Outer Lambda 
 	    }

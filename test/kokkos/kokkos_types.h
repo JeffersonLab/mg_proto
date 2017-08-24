@@ -175,6 +175,9 @@ namespace MG
 	using HalfSpinorSiteView = SiteView<T,2,3>;
 
 	template<typename T>
+	  using GaugeSiteView = SiteView<T,3,3>;
+
+	template<typename T>
 	using GaugeView = typename KokkosCBFineGaugeField<T>::DataType;
 
 	template<typename T, int N>
