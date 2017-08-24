@@ -78,6 +78,12 @@ namespace MG {
  };
 
  template<typename T, typename VN>
+   using VSpinorView =  typename KokkosCBFineVSpinor<T,VN,4>::DataType;
+
+ template<typename T, typename VN>
+   using VHalfSpinorView =  typename KokkosCBFineVSpinor<T,VN,2>::DataType;
+
+ template<typename T, typename VN>
  class KokkosCBFineVGaugeField {
  public:
  KokkosCBFineVGaugeField(const LatticeInfo& info, IndexType cb)

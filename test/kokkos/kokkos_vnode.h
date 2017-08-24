@@ -1,7 +1,7 @@
 #ifndef TEST_KOKKOS_VNODE_H
 #define TEST_KOKKOS_VNODE_H
 
-
+#include "kokkos_traits.h"
 #include "kokkos_vectype.h"
 #include "lattice/lattice_info.h"
 #include "utils/print_utils.h"
@@ -15,7 +15,7 @@ template<typename T>
   struct VNode<T,1> {
   using VecType =  ThreadSIMDComplex<typename BaseType<T>::Type,1>;
 
-  static constexpr int vecLen = 1 ;
+  static constexpr int VecLen = 1 ;
   static constexpr int nDim = 0;
 
   static const  int Dims[4];

@@ -9,9 +9,9 @@
 #include "./kokkos_types.h"
 #include "./kokkos_defaults.h"
 #include "./kokkos_qdp_utils.h"
-#include "./kokkos_spinproj.h"
+#include "./kokkos_vspinproj.h"
 #include "./kokkos_matvec.h"
-#include "./kokkos_dslash.h"
+
 #include "MG_config.h"
 #include "kokkos_vnode.h"
 #include "kokkos_vtypes.h"
@@ -312,6 +312,52 @@ TEST(TestVNode, TestPackSpinor2)
     }
 
 
+TEST(TestVNode, TestPackHalfSpinor2)
+{
+  IndexArray latdims={{4,4,4,4}};
+  initQDPXXLattice(latdims);
+  QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+  LatticeInfo info(latdims,4,3,NodeInfo());
+  LatticeInfo hinfo(latdims,2,3,NodeInfo());
+  int num_cbsites = info.GetNumCBSites();
+
+  using VN = VNode<MGComplex<float>,16>;
+  using HalfSpinorType = KokkosCBFineVSpinor<MGComplex<float>,VN,2>;
+
+  LatticeFermion qdp_in;
+  gaussian(qdp_in);
+
+  HalfSpinorType kokkos_spinor_e(hinfo,EVEN);
+  HalfSpinorType kokkos_spinor_o(hinfo,ODD);
+
+  // Import 
+  QDPLatticeHalfFermionToKokkosCBVSpinor2(qdp_in, kokkos_spinor_e);
+  QDPLatticeHalfFermionToKokkosCBVSpinor2(qdp_in, kokkos_spinor_o);
+
+  // Export 
+  LatticeFermion qdp_out;
+  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_spinor_e, qdp_out);
+  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_spinor_o, qdp_out);
+
+  for(int cb=EVEN; cb <= ODD; ++cb) { 
+      Kokkos::parallel_for( Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_cbsites), [=](int i) {
+      for(int color=0; color <3; ++color) {                                                                                             
+      for(int spin=0; spin < 2; ++spin) {                                                                                               
+      float ref_re = qdp_in.elem(rb[cb].siteTable()[i]).elem(spin).elem(color).real();
+      float ref_im = qdp_in.elem(rb[cb].siteTable()[i]).elem(spin).elem(color).imag();
+
+      float out_re = qdp_out.elem(rb[cb].siteTable()[i]).elem(spin).elem(color).real();
+      float out_im = qdp_out.elem(rb[cb].siteTable()[i]).elem(spin).elem(color).imag();
+
+      ASSERT_FLOAT_EQ( ref_re, out_re); 
+      ASSERT_FLOAT_EQ( ref_im, out_im);
+    } // spin                                                                                                                           
+    } // color            
+    });
+    } // cb
+    }
+
+
 TEST(TestVNode, TestPackGauge)
 {
   IndexArray latdims={{4,4,4,4}};
@@ -447,6 +493,168 @@ TEST(TestVNode, TestPackGauge2)
     } // cb
 }//mu
     }
+
+
+TEST(TestKokkos, TestVSpinProject)
+{
+  IndexArray latdims={{4,4,4,4}};
+	initQDPXXLattice(latdims);
+
+	LatticeInfo info(latdims,4,3,NodeInfo());
+	LatticeInfo hinfo(latdims,2,3,NodeInfo());
+
+
+	LatticeFermion qdp_in;
+	LatticeHalfFermion qdp_out;
+	LatticeHalfFermion kokkos_out;
+
+	using VN = VNode<MGComplex<REAL>,16>;
+	using SpinorType = KokkosCBFineVSpinor<MGComplex<REAL>,VN,4>;
+	using HalfSpinorType = KokkosCBFineVSpinor<MGComplex<REAL>,VN,2>;
+
+	gaussian(qdp_in);
+	SpinorType kokkos_in(info,EVEN);
+	HalfSpinorType kokkos_hspinor_out(hinfo,EVEN);
+
+	QDPLatticeFermionToKokkosCBVSpinor(qdp_in, kokkos_in);
+	
+	{
+	  // sign = -1 dir = 0
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",0,-1);
+	  qdp_out[rb[0]] = spinProjectDir0Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosVProjectLattice<MGComplex<REAL>,
+				VN, ThreadSIMDComplex<REAL,VN::VecLen>,0,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out, rb[0])));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  // sign = -1 dir = 1
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",1,-1);
+	  qdp_out[rb[0]] = spinProjectDir1Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosVProjectLattice<MGComplex<REAL>,
+				VN, ThreadSIMDComplex<REAL,VN::VecLen>,1,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out, rb[0])));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+
+	}
+
+	{
+	  // sign = -1 dir = 2
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",2,-1);
+	  qdp_out[rb[0]] = spinProjectDir2Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosVProjectLattice<MGComplex<REAL>,
+				VN, ThreadSIMDComplex<REAL,VN::VecLen>,2,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out, rb[0])));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+
+	}
+
+	{
+	  // sign = -1 dir = 3
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",3,-1);
+	  qdp_out[rb[0]] = spinProjectDir3Minus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosVProjectLattice<MGComplex<REAL>,
+				VN, ThreadSIMDComplex<REAL,VN::VecLen>,3,-1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out, rb[0])));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+
+	}
+
+
+	{
+	  // sign = 1 dir = 0
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",0,1);
+	  qdp_out[rb[0]] = spinProjectDir0Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosVProjectLattice<MGComplex<REAL>,
+				VN, ThreadSIMDComplex<REAL,VN::VecLen>,0,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out, rb[0])));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+	}
+
+	{
+	  // sign = 1 dir = 1
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",1,1);
+	  qdp_out[rb[0]] = spinProjectDir1Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosVProjectLattice<MGComplex<REAL>,
+				VN, ThreadSIMDComplex<REAL,VN::VecLen>,1,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out, rb[0])));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+
+	}
+
+	{
+	  // sign = 1 dir = 2
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",2,1);
+	  qdp_out[rb[0]] = spinProjectDir2Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosVProjectLattice<MGComplex<REAL>,
+				VN, ThreadSIMDComplex<REAL,VN::VecLen>,2,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out, rb[0])));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+
+	}
+
+	{
+	  // sign = 1 dir = 3
+	  MasterLog(INFO,"SpinProjectTest: dir=%d sign=%d",3,1);
+	  qdp_out[rb[0]] = spinProjectDir3Plus(qdp_in);
+	  qdp_out[rb[1]] = zero;
+
+	  KokkosVProjectLattice<MGComplex<REAL>,
+				VN, ThreadSIMDComplex<REAL,VN::VecLen>,3,1>(kokkos_in,kokkos_hspinor_out);
+	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
+	  qdp_out[rb[0]] -= kokkos_out;
+
+	  double norm_diff = toDouble(sqrt(norm2(qdp_out, rb[0])));
+	  MasterLog(INFO, "norm_diff = %lf", norm_diff);
+	  ASSERT_LT( norm_diff, 1.0e-5);
+
+	}
+
+ 
+}
 
 
 
