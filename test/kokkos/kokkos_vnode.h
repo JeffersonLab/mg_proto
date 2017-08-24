@@ -19,6 +19,38 @@ template<typename T>
   static constexpr int nDim = 0;
 
   static const  int Dims[4];
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void  permuteTMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXPlus(VecType& vec) {}
  };
  
 template<typename T>
@@ -33,6 +65,74 @@ struct VNode<T,2> {
   static constexpr int NDim = 1;
 
   static const int Dims[4];
+
+#ifdef KOKKOS_HAVE_CUDA 
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXPlus(VecType& vec) {}
+#else 
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTMinus(VecType& vec) {}
+  
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXPlus(VecType& vec) {}
+#endif
+
 };
 
 template<typename T>
@@ -48,6 +148,74 @@ struct VNode<T,4> {
   static constexpr int NDim = 2;
 
   static const int Dims[4];
+
+#ifdef KOKKOS_HAVE_CUDA 
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXPlus(VecType& vec) {}
+#else 
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTMinus(VecType& vec) {}
+  
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXPlus(VecType& vec) {}
+#endif
+
 };
 
 template<typename T>
@@ -62,6 +230,74 @@ struct VNode<T,8> {
   static constexpr int NDim = 3;
 
   static const  int Dims[4];
+
+#ifdef KOKKOS_HAVE_CUDA 
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXPlus(VecType& vec) {}
+#else 
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTMinus(VecType& vec) {}
+  
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXPlus(VecType& vec) {}
+#endif
+
 };
 
 template<typename T>
@@ -76,6 +312,74 @@ struct VNode<T,16> {
   static constexpr int NDim =4; 
 
   static const int Dims[4];
+
+#ifdef KOKKOS_HAVE_CUDA 
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXPlus(VecType& vec) {}
+#else 
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTMinus(VecType& vec) {}
+  
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteTPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteZPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteYPlus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXMinus(VecType& vec) {}
+
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  void permuteXPlus(VecType& vec) {}
+#endif
+
 };
 
 template<typename T>
