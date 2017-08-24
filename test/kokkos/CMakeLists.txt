@@ -9,7 +9,8 @@ LIST(APPEND kokkos_source_list kokkos_constants.h
 								kokkos_qdp_utils.h
 								kokkos_spinproj.h
 								kokkos_types.h
-								kokkos_vectype.h)
+								kokkos_vectype.h
+								kokkos_vnode.h)
 
 add_compile_options(${EXT_CXXFLAGS})
 			
@@ -18,6 +19,9 @@ target_link_libraries(test_kokkos qdpxx_utils gtest_all mg_test mg kokkos ${EXT_
 
 add_executable(test_kokkos_perf test_kokkos_perf.cpp ${kokkos_source_list})
 target_link_libraries(test_kokkos_perf  qdpxx_utils gtest_all mg_test mg kokkos ${EXT_LIBS})
+
+add_executable(test_kokkos_vnode test_kokkos_vnode.cpp ${kokkos_source_list})
+target_link_libraries(test_kokkos_vnode  qdpxx_utils gtest_all mg_test mg kokkos ${EXT_LIBS})
 
 #add_executable(test_kokkos_vectype test_kokkos_vectype.cpp ${kokkos_source_list})
 #target_link_libraries(test_kokkos_vectype  qdpxx_utils gtest_all mg_test mg kokkos ${EXT_LIBS})

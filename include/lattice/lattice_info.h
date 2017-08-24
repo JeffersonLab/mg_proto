@@ -147,6 +147,7 @@ public:
 			local_coord[dim] = global_coord[dim] - _lat_origin[dim];
 		}
 	}
+
 private:
 	IndexArray _lat_origin;
 	IndexArray _lat_dims;         // The lattice dimensions (COPIED In)
@@ -154,8 +155,6 @@ private:
 	IndexType _n_color;
 	IndexType _n_spin;
 	const NodeInfo& _node_info;			   	   // The Node Info -- copied in
-
-
 	IndexType _n_sites;                          // The total number of sites
 	IndexType _n_cb_sites;
 	IndexType _sum_orig_coords;

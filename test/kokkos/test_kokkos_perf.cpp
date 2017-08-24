@@ -447,7 +447,7 @@ TEST(TestKokkos, TestDslashVecLonger)
 #ifdef MG_USE_AVX512
 	int iters = 1000;
 #else 
-	int iters = 4000;
+	int iters = 400;
 #endif
 
 

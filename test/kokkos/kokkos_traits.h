@@ -36,17 +36,17 @@ template<typename T>
 
 template<typename T>
 struct Veclen<MGComplex<T>> {
-  static const int value = 1;
+  static constexpr int value = 1;
  };
 
  template<typename T, int N>
   struct Veclen<SIMDComplex<T,N>> { 
-  static const int value = N;
+  static constexpr int value = N;
  };
 
 template<typename T, int N>
 struct Veclen<GPUThreadSIMDComplex<T,N>> {
-	static const int value = N;
+	static constexpr int value = N;
 };
 
 }
