@@ -77,6 +77,7 @@ namespace MG {
    const IndexType _cb;
  };
 
+ 
  template<typename T, typename VN>
    using VSpinorView =  typename KokkosCBFineVSpinor<T,VN,4>::DataType;
 
