@@ -22,14 +22,15 @@ namespace MG {
 
      IndexArray l_orig = _g_info.GetLatticeOrigin();
      IndexArray l_dims = _g_info.GetLatticeDimensions();
+     IndexArray VNDims = { VN::Dim0, VN::Dim1, VN::Dim2, VN::Dim3 };
      for(int mu=0; mu < 4; ++mu ) {
-       if( l_dims[mu] % VN::Dims[mu] == 0 ) { 
-	 l_orig[mu] /= VN::Dims[mu];
-	 l_dims[mu] /= VN::Dims[mu];
+       if( l_dims[mu] % VNDims[mu] == 0 ) { 
+	 l_orig[mu] /= VNDims[mu];
+	 l_dims[mu] /= VNDims[mu];
        }
        else{
 	 MasterLog(ERROR, "Local dimension %d (=%d) not divisible by VNode::dims[%d]=%d",
-		   mu, l_dims[mu], mu, VN::Dims[mu]);
+		   mu, l_dims[mu], mu, VNDims[mu]);
        }
      }
      
@@ -96,14 +97,15 @@ namespace MG {
     
      IndexArray l_orig = _g_info.GetLatticeOrigin();
      IndexArray l_dims = _g_info.GetLatticeDimensions();
+     IndexArray VNDims = { VN::Dim0, VN::Dim1, VN::Dim2, VN::Dim3};
      for(int mu=0; mu < 4; ++mu ) {
-       if( l_dims[mu] % VN::Dims[mu] == 0 ) { 
-	 l_orig[mu] /= VN::Dims[mu];
-	 l_dims[mu] /= VN::Dims[mu];
+       if( l_dims[mu] % VNDims[mu] == 0 ) { 
+	 l_orig[mu] /= VNDims[mu];
+	 l_dims[mu] /= VNDims[mu];
        }
        else{
 	 MasterLog(ERROR, "Local dimension %d (=%d) not divisible by VNode::dims[%d]=%d",
-		   mu, l_dims[mu], mu, VN::Dims[mu]);
+		   mu, l_dims[mu], mu, VNDims[mu]);
        }
      }
      

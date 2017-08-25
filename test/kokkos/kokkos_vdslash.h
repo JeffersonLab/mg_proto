@@ -394,7 +394,7 @@ private:
 			for(int color=0; color < 3; ++color) {
 			  for(int spin=0; spin < 4; ++spin) {
 			    Load( spinor_in(color,spin), s_in(n_idx, color,spin));
-			    if( permuteP ) VN::permuteTMinus(spinor_in(color,spin));
+			    if( permuteP ) VN::permuteT(spinor_in(color,spin));
 			  }
 			}
 
@@ -403,7 +403,7 @@ private:
 			for(int color=0; color < 3; ++color) {
 			  for(int color2=0; color2 < 3; ++color2) {
 			    Load( gauge_in(color,color2), g_in_src_cb( n_idx, 3, color,color2) );
-			    if( permuteP ) VN::permuteTMinus(gauge_in(color,color2));
+			    if( permuteP ) VN::permuteT(gauge_in(color,color2));
 			  }
 			}
 			
@@ -420,14 +420,14 @@ private:
 			for(int color=0; color < 3; ++color) {
 			  for(int spin=0; spin < 4; ++spin) {
 			    Load( spinor_in(color,spin), s_in( n_idx,color,spin));
-			    if( permuteP ) VN::permuteZMinus(spinor_in(color,spin));
+			    if( permuteP ) VN::permuteZ(spinor_in(color,spin));
 			  }
 			}
 			
 			for(int color=0; color < 3; ++color) {
 			  for(int color2=0; color2 < 3; ++color2) {
 			    Load( gauge_in(color,color2), g_in_src_cb(n_idx, 2, color,color2) );
-			    if( permuteP) VN::permuteZMinus(gauge_in(color,color2));
+			    if( permuteP) VN::permuteZ(gauge_in(color,color2));
 			  }
 			}
 			
@@ -443,14 +443,14 @@ private:
 			for(int color=0; color < 3; ++color) {
 			  for(int spin=0; spin < 4; ++spin) {
 			    Load( spinor_in(color,spin), s_in( n_idx,color,spin));
-			    if( permuteP ) VN::permuteYMinus(spinor_in(color,spin));
+			    if( permuteP ) VN::permuteY(spinor_in(color,spin));
 			  }
 			}
 
 			for(int color=0; color < 3; ++color) {
 			  for(int color2=0; color2 < 3; ++color2) {
 			    Load( gauge_in(color,color2), g_in_src_cb( n_idx, 1, color,color2) );
-			    if( permuteP) VN::permuteYMinus(gauge_in(color,color2));
+			    if( permuteP) VN::permuteY(gauge_in(color,color2));
 			  }
 			}
 			
@@ -468,14 +468,14 @@ private:
 			for(int color=0; color < 3; ++color) {
 			  for(int spin=0; spin < 4; ++spin) {
 			    Load( spinor_in(color,spin), s_in( n_idx,color,spin));
-			    if( permuteP ) VN::permuteXMinus( spinor_in(color,spin));
+			    if( permuteP ) VN::permuteX( spinor_in(color,spin));
 			  }
 			}
 
 			for(int color=0; color < 3; ++color) {
 			  for(int color2=0; color2 < 3; ++color2) {
 			    Load( gauge_in(color,color2), g_in_src_cb(n_idx, 0, color,color2) );
-			    if( permuteP ) VN::permuteXMinus( gauge_in(color,color2));
+			    if( permuteP ) VN::permuteX( gauge_in(color,color2));
 			  }
 			}
 
@@ -492,7 +492,7 @@ private:
 			for(int color=0; color < 3; ++color) {
 			  for(int spin=0; spin < 4; ++spin) {
 			    Load( spinor_in(color,spin), s_in( n_idx,color,spin));
-			    if( permuteP ) VN::permuteXPlus( spinor_in(color,spin));
+			    if( permuteP ) VN::permuteX( spinor_in(color,spin));
 			  }
 			}
 
@@ -515,7 +515,7 @@ private:
 			for(int color=0; color < 3; ++color) {
 			  for(int spin=0; spin < 4; ++spin) {
 			    Load( spinor_in(color,spin), s_in( n_idx,color,spin));
-			    if( permuteP ) VN::permuteYPlus( spinor_in(color,spin));
+			    if( permuteP ) VN::permuteY( spinor_in(color,spin));
 			  }
 			}
 			
@@ -538,7 +538,7 @@ private:
 			for(int color=0; color < 3; ++color) {
 			  for(int spin=0; spin < 4; ++spin) {
 			    Load( spinor_in(color,spin), s_in(n_idx,color,spin));
-			    if( permuteP ) VN::permuteZPlus( spinor_in(color,spin));
+			    if( permuteP ) VN::permuteZ( spinor_in(color,spin));
 			  }
 			}
 
@@ -562,7 +562,7 @@ private:
 			for(int color=0; color < 3; ++color) {
 			  for(int spin=0; spin < 4; ++spin) {
 			    Load( spinor_in(color,spin), s_in(n_idx,color,spin));
-			    if( permuteP ) VN::permuteTPlus( spinor_in(color,spin));
+			    if( permuteP ) VN::permuteT( spinor_in(color,spin));
 			  }
 			}
 			

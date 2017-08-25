@@ -56,7 +56,7 @@ namespace MG
 				     
 				     for(int lane =0; lane < VN::VecLen; ++lane) { 
 				       IndexArray p_coords;
-				       IndexArray vn_dims={VN::Dims[0], VN::Dims[1], VN::Dims[2], VN::Dims[3]};
+				       IndexArray vn_dims={VN::Dim0, VN::Dim1, VN::Dim2, VN::Dim3};
 				       IndexToCoords(lane, vn_dims,p_coords);
 
 				       IndexArray g_coords;
@@ -116,7 +116,7 @@ namespace MG
 				     
 				     for(int lane =0; lane < VN::VecLen; ++lane) { 
 				       IndexArray p_coords;
-				       IndexArray vn_dims={VN::Dims[0], VN::Dims[1], VN::Dims[2], VN::Dims[3]};
+				       IndexArray vn_dims={VN::Dim0, VN::Dim1, VN::Dim2, VN::Dim3};
 				       IndexToCoords(lane, vn_dims,p_coords);
 
 				       IndexArray g_coords;
@@ -178,7 +178,7 @@ namespace MG
 
 					 for(int lane=0; lane < VN::VecLen;++lane) {
 					   IndexArray p_coords;
-					   IndexArray vn_dims={VN::Dims[0], VN::Dims[1], VN::Dims[2], VN::Dims[3]};
+					   IndexArray vn_dims={VN::Dim0, VN::Dim1, VN::Dim2, VN::Dim3};
 					   IndexToCoords(lane, vn_dims, p_coords);
 					   IndexArray g_coords;
 					   for(int mu=0; mu < 4; ++mu ) {
@@ -235,7 +235,7 @@ namespace MG
 
 					 for(int lane=0; lane < VN::VecLen;++lane) {
 					   IndexArray p_coords;
-					   IndexArray vn_dims={VN::Dims[0], VN::Dims[1], VN::Dims[2], VN::Dims[3]};
+					   IndexArray vn_dims={VN::Dim0, VN::Dim1, VN::Dim2, VN::Dim3};
 					   IndexToCoords(lane, vn_dims, p_coords);
 					   IndexArray g_coords;
 					   for(int mu=0; mu < 4; ++mu ) {
@@ -291,7 +291,7 @@ namespace MG
 				     
 				       for(int lane =0; lane < VN::VecLen; ++lane) { 
 					 IndexArray p_coords;
-				       IndexArray vn_dims={VN::Dims[0], VN::Dims[1], VN::Dims[2], VN::Dims[3]};
+				       IndexArray vn_dims={VN::Dim0, VN::Dim1, VN::Dim2, VN::Dim3};
 					 IndexToCoords(lane, vn_dims, p_coords);
 
 					 IndexArray g_coords;
@@ -356,7 +356,7 @@ namespace MG
 				     IndexToCoords(i,c_dims,c_coords);
 				     for(int lane=0; lane < VN::VecLen;++lane) {
 				       IndexArray p_coords;
-				       IndexArray vn_dims={VN::Dims[0], VN::Dims[1], VN::Dims[2], VN::Dims[3]};
+				       IndexArray vn_dims={VN::Dim0, VN::Dim1, VN::Dim2, VN::Dim3};
 				       IndexToCoords(lane, vn_dims, p_coords);
 				       IndexArray g_coords;
 				       for(int mu=0; mu < 4; ++mu ) {

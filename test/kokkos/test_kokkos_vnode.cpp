@@ -20,6 +20,7 @@
 #include "kokkos_vdslash.h"
 #include <type_traits>
 
+#include <cmath>
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
@@ -38,9 +39,10 @@ TEST(TestVNode,TestVSpinor)
   SpinorType vnode_spinor(info, MG::EVEN);
 
   const LatticeInfo& c_info = vnode_spinor.GetInfo();
+  IndexArray VNDims = { VN::Dim0, VN::Dim1, VN::Dim2, VN::Dim3 };
   for(int mu=0; mu < 4;++mu) {
     ASSERT_EQ( c_info.GetLatticeDimensions()[mu],
-	       info.GetLatticeDimensions()[mu]/VN::Dims[mu] );
+	       info.GetLatticeDimensions()[mu]/VNDims[mu] );
   }
   bool same_global_vectype = std::is_same< SpinorType::VecType, SIMDComplex<float,16> >::value;
   ASSERT_EQ( same_global_vectype, true); 
@@ -64,9 +66,10 @@ TEST(TestVNode,TestVGauge)
   GaugeType vnode_spinor(info, MG::EVEN);
 
   const LatticeInfo& c_info = vnode_spinor.GetInfo();
+  IndexArray VNDims = { VN::Dim0, VN::Dim1, VN::Dim2, VN::Dim3 };
   for(int mu=0; mu < 4;++mu) {
     ASSERT_EQ( c_info.GetLatticeDimensions()[mu],
-	       info.GetLatticeDimensions()[mu]/VN::Dims[mu] );
+	       info.GetLatticeDimensions()[mu]/VNDims[mu] );
   }
   bool same_global_vectype = std::is_same< GaugeType::VecType, SIMDComplex<float,16> >::value;
   ASSERT_EQ( same_global_vectype, true); 
@@ -659,7 +662,7 @@ TEST(TestKokkos, TestVSpinProject)
 
 TEST(TestKokkos, TestDslash)
 {
-	IndexArray latdims={{4,4,4,4}};
+  IndexArray latdims={{8,8,8,8}};
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
 	for(int mu=0; mu < n_dim; ++mu) {
@@ -673,9 +676,9 @@ TEST(TestKokkos, TestDslash)
 	LatticeInfo info(latdims,4,3,NodeInfo());
 	LatticeInfo hinfo(latdims,2,3,NodeInfo());
        
-	using VN = VNode<MGComplex<REAL>,1>;
-	using SpinorType = KokkosCBFineVSpinor<MGComplex<REAL>,VN,4>;
-	using GaugeType = KokkosFineVGaugeField<MGComplex<REAL>,VN>;
+	using VN = VNode<MGComplex<REAL32>,1>;
+	using SpinorType = KokkosCBFineVSpinor<MGComplex<REAL32>,VN,4>;
+	using GaugeType = KokkosFineVGaugeField<MGComplex<REAL32>,VN>;
 
 	SpinorType  kokkos_spinor_even(info,EVEN);
 	SpinorType  kokkos_spinor_odd(info,ODD);
@@ -687,8 +690,8 @@ TEST(TestKokkos, TestDslash)
 
 
 	int per_team = 2;
-	KokkosVDslash<VN,MGComplex<REAL>,MGComplex<REAL>,
-		      ThreadSIMDComplex<REAL,VN::VecLen>,ThreadSIMDComplex<REAL,VN::VecLen>> D(info,per_team);
+	KokkosVDslash<VN,MGComplex<REAL32>,MGComplex<REAL32>,
+		      ThreadSIMDComplex<REAL32,VN::VecLen>,ThreadSIMDComplex<REAL32,VN::VecLen>> D(info,per_team);
 	MasterLog(INFO, "per_team=%d", per_team);
 
 	LatticeFermion psi_out = zero;
@@ -718,7 +721,19 @@ TEST(TestKokkos, TestDslash)
 	      double norm_diff = toDouble(sqrt(norm2(psi_out,rb[cb])));
 	      
 	      MasterLog(INFO, "sites_per_team=%d norm_diff = %lf", per_team, norm_diff);
-	      ASSERT_LT( norm_diff, 1.0e-5);
+	      int num_sites = info.GetNumCBSites();
+	      Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
+				   [=](int i) {
+				     int qdp_idx = rb[cb].siteTable()[i];
+				     for(int spin=0; spin < 4; ++spin) { 
+				       for(int color=0; color < 3; ++color ) { 
+					 REAL32 re=std::abs(psi_out.elem(qdp_idx).elem(spin).elem(color).real());
+					 REAL32 im=std::abs(psi_out.elem(qdp_idx).elem(spin).elem(color).imag());
+					 ASSERT_LT( re, 2.5e-6);
+					 ASSERT_LT( im, 2.5e-6 );
+				       }
+				     }
+				   });
 	    }
 	}
 	
