@@ -28,7 +28,7 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
 
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
 
-   void ComputeSiteTable(int _n_xh, int _n_x, int _n_y, int _n_z, int _n_t,  Kokkos::View<int*[2][8],NeighLayout, MemorySpace> _table) {
+   void ComputeSiteTable(int _n_xh, int _n_x, int _n_y, int _n_z, int _n_t,  Kokkos::View<Kokkos::pair<int,bool>*[2][8],NeighLayout, MemorySpace> _table) {
 		int num_sites =  _n_xh*_n_y*_n_z*_n_t;
 			Kokkos::parallel_for(Kokkos::RangePolicy<ExecSpace>(0,num_sites), KOKKOS_LAMBDA(int site) {
 		        for(int target_cb=0; target_cb < 2; ++target_cb) {
@@ -47,7 +47,7 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
 			       _table(site,target_cb,T_MINUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1))),false);
 			     }
 			     else {
-			       _table(site,target_cb,T_MINUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1))),true;
+			       _table(site,target_cb,T_MINUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1))),true);
 			     }
 
 			     if( z > 0 ) {
@@ -328,7 +328,7 @@ public:
 
 private:
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-	Kokkos::View<int*[2][8], NeighLayout,MemorySpace > _table;
+	Kokkos::View<Kokkos::pair<int,bool>*[2][8], NeighLayout,MemorySpace > _table;
 #endif
        int _n_x;
        int _n_xh;
@@ -411,7 +411,8 @@ private:
 			KokkosProjectDir3<TST,isign>(spinor_in, proj_res);
 			mult_adj_u_halfspinor<TGT,TST>(gauge_in, proj_res,mult_proj_res);
 			KokkosRecons23Dir3<TST,isign>(mult_proj_res,res_sum);
-			
+
+
 			// Z - minus
 			neighbor = neigh_table.NeighborZMinus(site,target_cb);
 			n_idx = neighbor.first;
@@ -552,7 +553,6 @@ private:
 			KokkosProjectDir2<TST,-isign>(spinor_in,proj_res);
 			mult_u_halfspinor<TGT,TST>(gauge_in,proj_res,mult_proj_res);
 			KokkosRecons23Dir2<TST,-isign>(mult_proj_res, res_sum);
-			
 		    
 			// T - plus
 			neighbor = neigh_table.NeighborTPlus(site,target_cb);
@@ -576,7 +576,7 @@ private:
 			KokkosProjectDir3<TST,-isign>(spinor_in,proj_res);
 			mult_u_halfspinor<TGT,TST>(gauge_in, proj_res,mult_proj_res);
 			KokkosRecons23Dir3<TST,-isign>(mult_proj_res, res_sum);
-			
+
 			// Stream out spinor
 			for(int color=0; color < 3; ++color) {
 			  for(int spin=0; spin < 4; ++spin) {

@@ -445,7 +445,7 @@ TEST(TestKokkos, TestDslashVecLonger)
   IndexArray latdims={{16,16,16,32}};
 
 #ifdef MG_USE_AVX512
-	int iters = 1000;
+	int iters = 2000;
 #else 
 	int iters = 400;
 #endif

@@ -25,6 +25,8 @@ using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
 
+static constexpr int VectorLength=8;
+
 TEST(TestVNode,TestVSpinor)
 {
 
@@ -33,7 +35,7 @@ TEST(TestVNode,TestVSpinor)
   QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
   LatticeInfo info(latdims,4,3,NodeInfo());
   
-  using VN = VNode<MGComplex<float>,16>;
+  using VN = VNode<MGComplex<float>,VectorLength>;
   using SpinorType = KokkosCBFineVSpinor<MGComplex<float>,VN,4>;
   // 4 spins
   SpinorType vnode_spinor(info, MG::EVEN);
@@ -44,10 +46,10 @@ TEST(TestVNode,TestVSpinor)
     ASSERT_EQ( c_info.GetLatticeDimensions()[mu],
 	       info.GetLatticeDimensions()[mu]/VNDims[mu] );
   }
-  bool same_global_vectype = std::is_same< SpinorType::VecType, SIMDComplex<float,16> >::value;
+  bool same_global_vectype = std::is_same< SpinorType::VecType, SIMDComplex<float,VectorLength> >::value;
   ASSERT_EQ( same_global_vectype, true); 
 
-  bool same_thread_vectype = std::is_same< VN::VecType, ThreadSIMDComplex<float,16> >::value;
+  bool same_thread_vectype = std::is_same< VN::VecType, ThreadSIMDComplex<float,VectorLength> >::value;
   ASSERT_EQ( same_thread_vectype, true);
 
 
@@ -60,7 +62,7 @@ TEST(TestVNode,TestVGauge)
   QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
   LatticeInfo info(latdims,4,3,NodeInfo());
   
-  using VN = VNode<MGComplex<float>,16>;
+  using VN = VNode<MGComplex<float>,VectorLength>;
   using GaugeType = KokkosCBFineVGaugeField<MGComplex<float>,VN>;
   
   GaugeType vnode_spinor(info, MG::EVEN);
@@ -71,10 +73,10 @@ TEST(TestVNode,TestVGauge)
     ASSERT_EQ( c_info.GetLatticeDimensions()[mu],
 	       info.GetLatticeDimensions()[mu]/VNDims[mu] );
   }
-  bool same_global_vectype = std::is_same< GaugeType::VecType, SIMDComplex<float,16> >::value;
+  bool same_global_vectype = std::is_same< GaugeType::VecType, SIMDComplex<float,VectorLength> >::value;
   ASSERT_EQ( same_global_vectype, true); 
 
-  bool same_thread_vectype = std::is_same< VN::VecType, ThreadSIMDComplex<float,16> >::value;
+  bool same_thread_vectype = std::is_same< VN::VecType, ThreadSIMDComplex<float,VectorLength> >::value;
   ASSERT_EQ( same_thread_vectype, true);
 
 
@@ -82,6 +84,97 @@ TEST(TestVNode,TestVGauge)
 float computeLane(const IndexArray& coords, const IndexArray& cb_latdims)
 {
   float value;
+  if( VectorLength == 1) {
+	  value = 0;
+	  return value;
+  }
+
+  if (VectorLength == 2) {
+	  if( coords[3] < cb_latdims[3]/2 ) {
+		  value = 0;
+	  }
+	  else {
+		  value = 1;
+	  }
+	  return value;
+  }
+
+  if( VectorLength == 4 ) {
+	  if( coords[2] < cb_latdims[2]/2
+			  && coords[3] < cb_latdims[3]/2 ) {
+		  value = 0;
+	  }
+	  if( coords[2] >= cb_latdims[2]/2
+			  && coords[3] < cb_latdims[3]/2 ) {
+		  value = 1;
+	  }
+	  if( coords[2] < cb_latdims[2]/2
+			  && coords[3] >= cb_latdims[3]/2 ) {
+		  value = 2;
+	  }
+	  if( coords[2] >= cb_latdims[2]/2
+			  && coords[3] >= cb_latdims[3]/2 ) {
+		  value = 3;
+	  }
+   }
+
+  if( VectorLength == 8) {
+		 if( coords[1] < cb_latdims[1]/2
+		     && coords[2] < cb_latdims[2]/2
+		     && coords[3] < cb_latdims[3]/2 ) {
+		   value = 0;
+		 }
+
+		 if(  coords[1] >= cb_latdims[1]/2
+		     && coords[2] < cb_latdims[2]/2
+		     && coords[3] < cb_latdims[3]/2 ) {
+		   value = 1;
+		 }
+
+		 if(  coords[1] < cb_latdims[1]/2
+		     && coords[2] >=  cb_latdims[2]/2
+		     && coords[3] <  cb_latdims[3]/2 ) {
+		   value = 2;
+		 }
+
+		 if(  coords[1] >= cb_latdims[1]/2
+		     && coords[2] >=  cb_latdims[2]/2
+		     && coords[3] < cb_latdims[3]/2 ) {
+		   value = 3;
+		 }
+
+		 if(   coords[1] < cb_latdims[1]/2
+		     && coords[2] < cb_latdims[2]/2
+		     && coords[3] >= cb_latdims[3]/2 ) {
+		   value = 4;
+		 }
+
+		 if( coords[1] >= cb_latdims[1]/2
+		     && coords[2] < cb_latdims[2]/2
+		     && coords[3] >= cb_latdims[3]/2 ) {
+		   value = 5;
+		 }
+
+		 if( coords[1] < cb_latdims[1]/2
+		     && coords[2] >=  cb_latdims[2]/2
+		     && coords[3] >=  cb_latdims[3]/2 ) {
+		   value = 6;
+		 }
+
+		 if(    coords[1] >= cb_latdims[1]/2
+		     && coords[2] >= cb_latdims[2]/2
+		     && coords[3] >= cb_latdims[3]/2 ) {
+		   value = 7;
+		 }
+
+		 return value;
+  }
+
+
+
+
+
+  if( VectorLength == 16 ) {
  			 if(    coords[0] < cb_latdims[0]/2 
 			     && coords[1] < cb_latdims[1]/2  
 			     && coords[2] < cb_latdims[2]/2 
@@ -193,19 +286,21 @@ float computeLane(const IndexArray& coords, const IndexArray& cb_latdims)
 			     && coords[3] >= cb_latdims[3]/2 ) {
 			   value = 15;
 			 }
+ 			 return value;
+  }
 
 
-			 return value;
+  return value;
 }
 
 TEST(TestVNode, TestPackSpinor)
 {
-  IndexArray latdims={{4,4,4,4}};
+  IndexArray latdims={{8,8,8,8}};
   initQDPXXLattice(latdims);
   QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
   LatticeInfo info(latdims,4,3,NodeInfo());
   
-  using VN = VNode<MGComplex<float>,16>;
+  using VN = VNode<MGComplex<float>,VectorLength>;
   using SpinorType = KokkosCBFineVSpinor<MGComplex<float>,VN,4>;
 
   LatticeFermion qdp_in = zero;
@@ -273,13 +368,13 @@ TEST(TestVNode, TestPackSpinor)
 
 TEST(TestVNode, TestPackSpinor2)
 {
-  IndexArray latdims={{4,4,4,4}};
+  IndexArray latdims={{8,8,8,8}};
   initQDPXXLattice(latdims);
   QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
   LatticeInfo info(latdims,4,3,NodeInfo());
   int num_cbsites = info.GetNumCBSites();
 
-  using VN = VNode<MGComplex<float>,16>;
+  using VN = VNode<MGComplex<float>,VectorLength>;
   using SpinorType = KokkosCBFineVSpinor<MGComplex<float>,VN,4>;
 
   LatticeFermion qdp_in;
@@ -318,14 +413,14 @@ TEST(TestVNode, TestPackSpinor2)
 
 TEST(TestVNode, TestPackHalfSpinor2)
 {
-  IndexArray latdims={{4,4,4,4}};
+  IndexArray latdims={{8,8,8,8}};
   initQDPXXLattice(latdims);
   QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
   LatticeInfo info(latdims,4,3,NodeInfo());
   LatticeInfo hinfo(latdims,2,3,NodeInfo());
   int num_cbsites = info.GetNumCBSites();
 
-  using VN = VNode<MGComplex<float>,16>;
+  using VN = VNode<MGComplex<float>,VectorLength>;
   using HalfSpinorType = KokkosCBFineVSpinor<MGComplex<float>,VN,2>;
 
   LatticeFermion qdp_in;
@@ -364,12 +459,12 @@ TEST(TestVNode, TestPackHalfSpinor2)
 
 TEST(TestVNode, TestPackGauge)
 {
-  IndexArray latdims={{4,4,4,4}};
+  IndexArray latdims={{8,8,8,8}};
   initQDPXXLattice(latdims);
   QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
   LatticeInfo info(latdims,4,3,NodeInfo());
   
-  using VN = VNode<MGComplex<float>,16>;
+  using VN = VNode<MGComplex<float>,VectorLength>;
   using GaugeType = KokkosCBFineVGaugeField<MGComplex<float>,VN>;
 
   multi1d<LatticeColorMatrix> u(Nd);
@@ -451,13 +546,13 @@ TEST(TestVNode, TestPackGauge)
 
 TEST(TestVNode, TestPackGauge2)
 {
-  IndexArray latdims={{4,4,4,4}};
+  IndexArray latdims={{8,8,8,8}};
   initQDPXXLattice(latdims);
   QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
   LatticeInfo info(latdims,4,3,NodeInfo());
   int num_cbsites = info.GetNumCBSites();
 
-  using VN = VNode<MGComplex<float>,16>;
+  using VN = VNode<MGComplex<float>,VectorLength>;
   using GaugeType = KokkosCBFineVGaugeField<MGComplex<float>,VN>;
 
   multi1d<LatticeColorMatrix> qdp_in(Nd);
@@ -501,7 +596,7 @@ TEST(TestVNode, TestPackGauge2)
 
 TEST(TestKokkos, TestVSpinProject)
 {
-  IndexArray latdims={{4,4,4,4}};
+  IndexArray latdims={{8,8,8,8}};
 	initQDPXXLattice(latdims);
 
 	LatticeInfo info(latdims,4,3,NodeInfo());
@@ -512,7 +607,7 @@ TEST(TestKokkos, TestVSpinProject)
 	LatticeHalfFermion qdp_out;
 	LatticeHalfFermion kokkos_out;
 
-	using VN = VNode<MGComplex<REAL>,16>;
+	using VN = VNode<MGComplex<REAL>,VectorLength>;
 	using SpinorType = KokkosCBFineVSpinor<MGComplex<REAL>,VN,4>;
 	using HalfSpinorType = KokkosCBFineVSpinor<MGComplex<REAL>,VN,2>;
 
@@ -676,7 +771,7 @@ TEST(TestKokkos, TestDslash)
 	LatticeInfo info(latdims,4,3,NodeInfo());
 	LatticeInfo hinfo(latdims,2,3,NodeInfo());
        
-	using VN = VNode<MGComplex<REAL32>,1>;
+	using VN = VNode<MGComplex<REAL32>,VectorLength>;
 	using SpinorType = KokkosCBFineVSpinor<MGComplex<REAL32>,VN,4>;
 	using GaugeType = KokkosFineVGaugeField<MGComplex<REAL32>,VN>;
 
@@ -689,9 +784,9 @@ TEST(TestKokkos, TestDslash)
 	QDPGaugeFieldToKokkosVGaugeField(gauge_in, kokkos_gauge);
 
 
-	int per_team = 2;
+	int per_team = 1;
 	KokkosVDslash<VN,MGComplex<REAL32>,MGComplex<REAL32>,
-		      ThreadSIMDComplex<REAL32,VN::VecLen>,ThreadSIMDComplex<REAL32,VN::VecLen>> D(info,per_team);
+		      ThreadSIMDComplex<REAL32,VN::VecLen>,ThreadSIMDComplex<REAL32,VN::VecLen>> D(kokkos_spinor_even.GetInfo(),per_team);
 	MasterLog(INFO, "per_team=%d", per_team);
 
 	LatticeFermion psi_out = zero;

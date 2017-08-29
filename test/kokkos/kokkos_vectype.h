@@ -615,29 +615,40 @@ KOKKOS_FORCEINLINE_FUNCTION
 template<>
   struct SIMDComplex<float,8> {
 
+
   explicit SIMDComplex<float,8>() {}
+  SIMDComplex<float,8>(const SIMDComplex<float,8>& in)
+  {
+	  _vdata = in._vdata;
+  }
+
+  SIMDComplex<float,8>& operator=(const SIMDComplex<float,8>& in)
+  {
+	  _vdata = in._vdata;
+	  return (*this);
+  }
 
   union {
-    Complex<float> _data[8];
+    MGComplex<float> _data[8];
     __m512 _vdata;
   };
 
   constexpr static int len() { return 8; }
 
   inline
-    void set(int l, const Complex<float>& value)
+    void set(int l, const MGComplex<float>& value)
   {
 		_data[l] = value;
   }
 
   inline
-    const Complex<float>& operator()(int i) const
+    const MGComplex<float>& operator()(int i) const
   {
     return _data[i];
   }
 
   inline
-  Complex<float>& operator()(int i) {
+  MGComplex<float>& operator()(int i) {
     return _data[i];
   }
 };
@@ -726,7 +737,7 @@ template<>
 KOKKOS_FORCEINLINE_FUNCTION
 void
 ComplexCMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, 
-	     const Complex<float>& a, 
+	     const MGComplex<float>& a,
 	     const SIMDComplex<float,8>& b)
 {
   __m512 avec_re = _mm512_set1_ps( a.real() );
@@ -743,7 +754,7 @@ ComplexCMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res,
   template<>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-  ComplexConjMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, const Complex<float>& a, 
+  ComplexConjMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, const MGComplex<float>& a,
 		const SIMDComplex<float,8>& b)
 {
   __m512 sgnvec2 = _mm512_set_ps(-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1);
