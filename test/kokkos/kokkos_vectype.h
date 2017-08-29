@@ -9,7 +9,6 @@
 #define TEST_KOKKOS_KOKKOS_VECTYPE_H_
 
 #include "kokkos_defaults.h"
-#include "kokkos_types.h"
 
 #include "MG_config.h"
 #if defined(MG_USE_AVX512)

@@ -8,14 +8,13 @@
 #ifndef TEST_KOKKOS_KOKKOS_TYPES_H_
 #define TEST_KOKKOS_KOKKOS_TYPES_H_
 #include <memory>
-
 #include <Kokkos_Core.hpp>
-#include <Kokkos_Complex.hpp>
-#include "kokkos_defaults.h"
 
 #include "lattice/lattice_info.h"
 #include "utils/print_utils.h"
-#include "kokkos_vectype.h"
+
+#include "./kokkos_defaults.h"
+#include "./kokkos_vectype.h"
 namespace MG
 {
 

@@ -242,9 +242,13 @@ struct VNode<T,8> {
 } // namespace
 
 #if defined(MG_USE_AVX512)
+
+
 #include <immintrin.h>
 
 namespace MG {
+
+
 template<>
 struct VNode<MGComplex<float>,8> {
 
@@ -268,21 +272,6 @@ struct VNode<MGComplex<float>,8> {
 
 	  vec._vdata = _mm512_permutexvar_ps(_mm512_set_epi32(7,6,5,4,3,2,1,0,15,14,13,12,11,10,9,8), vec._vdata);
 
-#if 0
-	  auto tmp0 = vec(0);
-	  auto tmp1 = vec(1);
-	  auto tmp2 = vec(2);
-	  auto tmp3 = vec(3);
-
-	  vec(0)=vec(4);
-	  vec(1)=vec(5);
-	  vec(2)=vec(6);
-	  vec(3)=vec(7);
-	  vec(4)=tmp0;
-	  vec(5)=tmp1;
-	  vec(6)=tmp2;
-	  vec(7)=tmp3;
-#endif
   }
 
   static
@@ -291,22 +280,6 @@ struct VNode<MGComplex<float>,8> {
   {
 	  vec._vdata = _mm512_permutexvar_ps(_mm512_set_epi32(11,10,9,8,15,14,13,12,3,2,1,0,7,6,5,4), vec._vdata);
 
-#if 0
-	  // permute ab cd ef gh -> cd ab gh ef
-	  auto tmp0 = vec(0);
-	  auto tmp1 = vec(1);
-	  vec(0)=vec(2);
-	  vec(1)=vec(3);
-	  vec(2)=tmp0;
-	  vec(3)=tmp1;
-
-	  auto tmp2 = vec(4);
-	  auto tmp3 = vec(5);
-	  vec(4)=vec(6);
-	  vec(5)=vec(7);
-	  vec(6)=tmp2;
-	  vec(7)=tmp3;
-#endif
   }
 
   static
@@ -315,24 +288,6 @@ struct VNode<MGComplex<float>,8> {
   {
 	  vec._vdata = _mm512_permutexvar_ps(_mm512_set_epi32(13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2), vec._vdata);
 
-#if 0
-	  // permute ab cd ef gh -> ba dc fe hg
-	  auto tmp0 = vec(0);
-	  vec(0)=vec(1);
-	  vec(1)=tmp0;
-
-	  auto tmp1 =vec(2);
-	  vec(2)=vec(3);
-	  vec(3)=tmp1;
-
-	  auto tmp2 = vec(4);
-	  vec(4)=vec(5);
-	  vec(5)=tmp2;
-
-	  auto tmp3 = vec(6);
-	  vec(6)=vec(7);
-	  vec(7)=tmp3;
-#endif
   }
 
   static
@@ -342,10 +297,8 @@ struct VNode<MGComplex<float>,8> {
   }
 }; // struct vector length = 8
 
-
-#endif
-
 } // Namespace
+#endif // AVX512
 
 
 #endif

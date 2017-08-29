@@ -1,6 +1,10 @@
 #ifndef TEST_KOKKOS_VTYPE_H
 #define TEST_KOKKOS_VTYPE_H
 
+#include <memory>
+#include "Kokkos_Core.hpp"
+#include "lattice/lattice_info.h"
+#include "kokkos_defaults.h"
 #include "kokkos_vectype.h"
 #include "kokkos_vnode.h"
 
