@@ -549,7 +549,7 @@ public:
 	  VSpinorView<ST,VN>& s_out = fine_out.GetData();
 	  const int num_sites = _info.GetNumCBSites();
 
-	  ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(), VN::VecLen);
+	  ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(), 1);
 	  if( plus_minus == 1 ) {
 	    if (target_cb == 0 ) {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
