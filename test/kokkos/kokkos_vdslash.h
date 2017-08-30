@@ -381,10 +381,10 @@ private:
     		 // spinor
     		 // Temporaries: Not a true Kokkos View
     		 {
-    			 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res __attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in __attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in __attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> proj_res; //  __attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> mult_proj_res; // __attribute__((aligned(64)));
+    			 GaugeSiteView<TGT> gauge_in; // __attribute__((aligned(64)));
+    			 SpinorSiteView<TST> spinor_in; // __attribute__((aligned(64)));
 
     			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborTMinus(site,target_cb);
     			 int n_idx = neighbor.first;
@@ -393,9 +393,10 @@ private:
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int spin=0; spin < 4; ++spin) {
-    					 Load( spinor_in(color,spin), s_in(n_idx, color,spin));
-    					 if( permuteP )
-    						 VN::permuteT(spinor_in(color,spin));
+    					 TST tmp;
+    					 Load( tmp, s_in(n_idx, color,spin));
+    					 permuteP ? VN::permuteT(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
+
     				 }
     			 }
 
@@ -403,9 +404,10 @@ private:
     			 // gauge
     			 for(int color=0; color < 3; ++color) {
     				 for(int color2=0; color2 < 3; ++color2) {
-    					 Load( gauge_in(color,color2), g_in_src_cb( n_idx, 3, color,color2) );
-    					 if( permuteP )
-    						 VN::permuteT(gauge_in(color,color2));
+    					 TGT tmp;
+    					 Load( tmp, g_in_src_cb( n_idx, 3, color,color2) );
+    					 permuteP ? VN::permuteT(gauge_in(color,color2),tmp) : ComplexCopy(gauge_in(color,color2), tmp);
+
     				 }
     			 }
 
@@ -418,10 +420,10 @@ private:
     		 // Z-Minus
     		 {
 
-    			 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res __attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in __attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in __attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
+    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
+    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
 
     			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborZMinus(site,target_cb);
     			 int n_idx = neighbor.first;
@@ -429,17 +431,19 @@ private:
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int spin=0; spin < 4; ++spin) {
-    					 Load( spinor_in(color,spin), s_in( n_idx,color,spin));
-    					 if( permuteP )
-    						 VN::permuteZ(spinor_in(color,spin));
+    					 TST tmp;
+    					 Load( tmp, s_in( n_idx,color,spin));
+    					 permuteP ? VN::permuteZ(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
+
     				 }
     			 }
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int color2=0; color2 < 3; ++color2) {
-    					 Load( gauge_in(color,color2), g_in_src_cb(n_idx, 2, color,color2) );
-    					 if( permuteP)
-    						 VN::permuteZ(gauge_in(color,color2));
+    					 TGT tmp;
+    					 Load( tmp, g_in_src_cb(n_idx, 2, color,color2) );
+    					 permuteP ? VN::permuteZ(gauge_in(color,color2),tmp) : ComplexCopy(gauge_in(color,color2), tmp);
+
     				 }
     			 }
 
@@ -451,10 +455,10 @@ private:
     		 // Y-Minus
     		 {
 
-    			 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res __attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in __attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in __attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> proj_res; // __attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
+    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
+    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
 
     			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborYMinus(site,target_cb);
     			 int n_idx = neighbor.first;
@@ -462,17 +466,19 @@ private:
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int spin=0; spin < 4; ++spin) {
-    					 Load( spinor_in(color,spin), s_in( n_idx,color,spin));
-    					 if( permuteP )
-    						 VN::permuteY(spinor_in(color,spin));
+    					 TST tmp;
+    					 Load( tmp, s_in( n_idx,color,spin));
+    					 permuteP ? VN::permuteY(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
+
     				 }
     			 }
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int color2=0; color2 < 3; ++color2) {
-    					 Load( gauge_in(color,color2), g_in_src_cb( n_idx, 1, color,color2) );
-    					 if(permuteP)
-    						 VN::permuteY(gauge_in(color,color2));
+    					 TGT tmp;
+    					 Load( tmp, g_in_src_cb( n_idx, 1, color,color2) );
+    					 permuteP ? VN::permuteY(gauge_in(color,color2),tmp) : ComplexCopy(gauge_in(color,color2), tmp);
+
     				 }
     			 }
 
@@ -484,10 +490,10 @@ private:
 
     		 // X-Minus
     		 {
-    			 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res __attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in __attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in __attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
+    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
+    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
 
     			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborXMinus(site,target_cb);
     			 int n_idx = neighbor.first;
@@ -495,17 +501,19 @@ private:
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int spin=0; spin < 4; ++spin) {
-    					 Load( spinor_in(color,spin), s_in( n_idx,color,spin));
-    					 if( permuteP )
-    						 VN::permuteX( spinor_in(color,spin));
+    					 TST tmp;
+    					 Load( tmp, s_in( n_idx,color,spin));
+    					 permuteP ? VN::permuteX(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
+
     				 }
     			 }
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int color2=0; color2 < 3; ++color2) {
-    					 Load( gauge_in(color,color2), g_in_src_cb(n_idx, 0, color,color2) );
-    					 if( permuteP )
-    						 VN::permuteX( gauge_in(color,color2));
+    					 TGT tmp;
+    					 Load( tmp, g_in_src_cb(n_idx, 0, color,color2) );
+    					 permuteP ? VN::permuteX(gauge_in(color,color2),tmp) : ComplexCopy(gauge_in(color,color2), tmp);
+
     				 }
     			 }
 
@@ -516,10 +524,10 @@ private:
 
     		 // X-Plus
     		 {
-    			 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res __attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in __attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in __attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
+    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
+    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
 
     			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborXPlus(site,target_cb);
     			 int n_idx = neighbor.first;
@@ -527,9 +535,10 @@ private:
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int spin=0; spin < 4; ++spin) {
-    					 Load( spinor_in(color,spin), s_in( n_idx,color,spin));
-    					 if( permuteP )
-    						 VN::permuteX( spinor_in(color,spin));
+    					 TST tmp;
+    					 Load(tmp, s_in( n_idx,color,spin));
+    					 permuteP ? VN::permuteX(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
+
     				 }
     			 }
 
@@ -546,10 +555,10 @@ private:
 
     		 {
 
-    			 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res __attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in __attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in __attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
+    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
+    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
 
     			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborYPlus(site,target_cb);
     			 int n_idx = neighbor.first;
@@ -557,9 +566,10 @@ private:
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int spin=0; spin < 4; ++spin) {
-    					 Load( spinor_in(color,spin), s_in( n_idx,color,spin));
-    					 if( permuteP )
-    						 VN::permuteY( spinor_in(color,spin));
+    					 TST tmp;
+    					 Load( tmp, s_in( n_idx,color,spin));
+    					 permuteP ? VN::permuteY(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
+
     				 }
     			 }
 
@@ -576,10 +586,10 @@ private:
 
     		 // Z-Plus
     		 {
-    			 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res __attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in __attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in __attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
+    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
+    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
 
     			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborZPlus(site,target_cb);
     			 int n_idx = neighbor.first;
@@ -587,9 +597,10 @@ private:
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int spin=0; spin < 4; ++spin) {
-    					 Load( spinor_in(color,spin), s_in(n_idx,color,spin));
-    					 if( permuteP )
-    						 VN::permuteZ( spinor_in(color,spin));
+    					 TST tmp;
+    					 Load( tmp, s_in(n_idx,color,spin));
+    					 permuteP ? VN::permuteZ(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
+
     				 }
     			 }
 
@@ -607,10 +618,10 @@ private:
 
     		 // T-plus
     		 {
-    			 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res __attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in __attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in __attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
+    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
+    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
+    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
 
     			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborTPlus(site,target_cb);
     			 int n_idx = neighbor.first;
@@ -618,9 +629,10 @@ private:
 
     			 for(int color=0; color < 3; ++color) {
     				 for(int spin=0; spin < 4; ++spin) {
-    					 Load( spinor_in(color,spin), s_in(n_idx,color,spin));
-    					 if( permuteP )
-    						 VN::permuteT( spinor_in(color,spin));
+    					 TST tmp;
+    					 Load( tmp, s_in(n_idx,color,spin));
+    					 permuteP ? VN::permuteT(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
+
     				 }
     			 }
 

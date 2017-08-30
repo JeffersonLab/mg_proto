@@ -101,8 +101,8 @@ TEST(TestKokkos, TestDslash)
 
 TEST(TestKokkos, TestDslashTime)
 {
-	IndexArray latdims={{8,16,16,16}};
-	int iters = 10000;
+	IndexArray latdims={{32,32,32,32}};
+	int iters = 2000;
 
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
