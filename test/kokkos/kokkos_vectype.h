@@ -772,6 +772,7 @@ ComplexCMadd<float,8,SIMDComplex,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& 
 		      const SIMDComplex<float,8>& a, 
 		      const SIMDComplex<float,8>& b)
 {
+
   __m512 avec_re = _mm512_shuffle_ps( a._vdata, a._vdata, 0xa0 );
   __m512 avec_im = _mm512_shuffle_ps( a._vdata, a._vdata, 0xf5 );
   
@@ -786,8 +787,11 @@ ComplexCMadd<float,8,SIMDComplex,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& 
 template<>
 KOKKOS_FORCEINLINE_FUNCTION
 void
-ComplexConjMadd<float,8,SIMDComplex,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, const SIMDComplex<float,8>& a, const SIMDComplex<float,8>& b)
+ComplexConjMadd<float,8,SIMDComplex,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res,
+		const SIMDComplex<float,8>& a,
+		const SIMDComplex<float,8>& b)
 {
+
   __m512 sgnvec2 = _mm512_set_ps(-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1);
   __m512 avec_re = _mm512_shuffle_ps( a._vdata, a._vdata, 0xa0 );
   __m512 avec_im = _mm512_shuffle_ps( a._vdata, a._vdata, 0xf5 );
