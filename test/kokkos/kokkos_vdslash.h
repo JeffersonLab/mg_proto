@@ -358,16 +358,17 @@ private:
      SiteTable neigh_table;
 
      KOKKOS_FORCEINLINE_FUNCTION
+
 	 void operator()(const TeamHandle& team) const {
     	 const int start_idx = team.league_rank()*sites_per_team;
     	 const int end_idx = start_idx + sites_per_team  < num_sites ? start_idx + sites_per_team : num_sites;
 
     	 Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int site) {
-
     		 // Warning: GCC Alignment Attribute!
     		 // Site Sum: Not a true Kokkos View
     		 SpinorSiteView<TST> res_sum __attribute__((aligned(64)));
-
+    		 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
+    		 HalfSpinorSiteView<TST> mult_proj_res  __attribute__((aligned(64)));
 
 
     		 // Zero Result
@@ -378,282 +379,144 @@ private:
     		 }
 
     		 // T - minus
-    		 // spinor
-    		 // Temporaries: Not a true Kokkos View
-    		 {
-    			 HalfSpinorSiteView<TST> proj_res; //  __attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res; // __attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in; // __attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in; // __attribute__((aligned(64)));
+    		 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborTMinus(site,target_cb);
+    		 int n_idx = neighbor.first;
+    		 bool  permuteP = neighbor.second;
 
-    			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborTMinus(site,target_cb);
-    			 int n_idx = neighbor.first;
-    			 bool  permuteP = neighbor.second;
-
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int spin=0; spin < 4; ++spin) {
-    					 TST tmp;
-    					 Load( tmp, s_in(n_idx, color,spin));
-    					 permuteP ? VN::permuteT(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
-
-    				 }
-    			 }
-
-
-    			 // gauge
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int color2=0; color2 < 3; ++color2) {
-    					 TGT tmp;
-    					 Load( tmp, g_in_src_cb( n_idx, 3, color,color2) );
-    					 permuteP ? VN::permuteT(gauge_in(color,color2),tmp) : ComplexCopy(gauge_in(color,color2), tmp);
-
-    				 }
-    			 }
-
-
-    			 KokkosProjectDir3<TST,isign>(spinor_in, proj_res);
-    			 mult_adj_u_halfspinor<TGT,TST>(gauge_in, proj_res,mult_proj_res);
-    			 KokkosRecons23Dir3<TST,isign>(mult_proj_res,res_sum);
+    		 if( permuteP ) {
+    			 KokkosProjectDir3Perm<ST,VN,TST,isign>(s_in, proj_res,n_idx);
+    			 mult_adj_u_halfspinor3_perm<GT,VN,TST>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
     		 }
-
-    		 // Z-Minus
-    		 {
-
-    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
-
-    			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborZMinus(site,target_cb);
-    			 int n_idx = neighbor.first;
-    			 int permuteP = neighbor.second;
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int spin=0; spin < 4; ++spin) {
-    					 TST tmp;
-    					 Load( tmp, s_in( n_idx,color,spin));
-    					 permuteP ? VN::permuteZ(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
-
-    				 }
-    			 }
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int color2=0; color2 < 3; ++color2) {
-    					 TGT tmp;
-    					 Load( tmp, g_in_src_cb(n_idx, 2, color,color2) );
-    					 permuteP ? VN::permuteZ(gauge_in(color,color2),tmp) : ComplexCopy(gauge_in(color,color2), tmp);
-
-    				 }
-    			 }
-
-    			 KokkosProjectDir2<TST,isign>(spinor_in, proj_res);
-    			 mult_adj_u_halfspinor<TGT,TST>(gauge_in, proj_res,mult_proj_res);
-    			 KokkosRecons23Dir2<TST,isign>(mult_proj_res,res_sum);
+    		 else {
+    			 KokkosProjectDir3<ST,VN,TST,isign>(s_in, proj_res,n_idx);
+    			 mult_adj_u_halfspinor<GT,VN,TST,3>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
     		 }
+    		 KokkosRecons23Dir3<TST,isign>(mult_proj_res,res_sum);
+
+
+
+    		 neighbor = neigh_table.NeighborZMinus(site,target_cb);
+    		 n_idx = neighbor.first;
+    		 permuteP = neighbor.second;
+
+    		 if( permuteP ) {
+    			 KokkosProjectDir2Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx);
+    			 mult_adj_u_halfspinor2_perm<GT,VN,TST>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
+    		 }
+    		 else {
+    			 KokkosProjectDir2<ST,VN,TST,isign>(s_in, proj_res, n_idx);
+    			 mult_adj_u_halfspinor<GT,VN,TST,2>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
+    		 }
+    		 KokkosRecons23Dir2<TST,isign>(mult_proj_res,res_sum);
+
+
+
 
     		 // Y-Minus
-    		 {
 
-    			 HalfSpinorSiteView<TST> proj_res; // __attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
+    		 neighbor = neigh_table.NeighborYMinus(site,target_cb);
+    		 n_idx = neighbor.first;
+    		 permuteP = neighbor.second;
 
-    			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborYMinus(site,target_cb);
-    			 int n_idx = neighbor.first;
-    			 bool permuteP = neighbor.second;
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int spin=0; spin < 4; ++spin) {
-    					 TST tmp;
-    					 Load( tmp, s_in( n_idx,color,spin));
-    					 permuteP ? VN::permuteY(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
-
-    				 }
-    			 }
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int color2=0; color2 < 3; ++color2) {
-    					 TGT tmp;
-    					 Load( tmp, g_in_src_cb( n_idx, 1, color,color2) );
-    					 permuteP ? VN::permuteY(gauge_in(color,color2),tmp) : ComplexCopy(gauge_in(color,color2), tmp);
-
-    				 }
-    			 }
-
-
-    			 KokkosProjectDir1<TST,isign>(spinor_in, proj_res);
-    			 mult_adj_u_halfspinor<TGT,TST>(gauge_in, proj_res, mult_proj_res);
-    			 KokkosRecons23Dir1<TST,isign>(mult_proj_res,res_sum);
+    		 if( permuteP ) {
+    			 KokkosProjectDir1Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx);
+    			 mult_adj_u_halfspinor1_perm<GT,VN,TST>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
     		 }
-
-    		 // X-Minus
-    		 {
-    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
-
-    			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborXMinus(site,target_cb);
-    			 int n_idx = neighbor.first;
-    			 bool permuteP = neighbor.second;
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int spin=0; spin < 4; ++spin) {
-    					 TST tmp;
-    					 Load( tmp, s_in( n_idx,color,spin));
-    					 permuteP ? VN::permuteX(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
-
-    				 }
-    			 }
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int color2=0; color2 < 3; ++color2) {
-    					 TGT tmp;
-    					 Load( tmp, g_in_src_cb(n_idx, 0, color,color2) );
-    					 permuteP ? VN::permuteX(gauge_in(color,color2),tmp) : ComplexCopy(gauge_in(color,color2), tmp);
-
-    				 }
-    			 }
-
-    			 KokkosProjectDir0<TST,isign>(spinor_in, proj_res);
-    			 mult_adj_u_halfspinor<TGT,TST>(gauge_in,proj_res,mult_proj_res);
-    			 KokkosRecons23Dir0<TST,isign>(mult_proj_res,res_sum);
+    		 else {
+    			 KokkosProjectDir1<ST,VN,TST,isign>(s_in, proj_res, n_idx);
+    			 mult_adj_u_halfspinor<GT,VN,TST,1>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
     		 }
+    		 KokkosRecons23Dir1<TST,isign>(mult_proj_res,res_sum);
+
+
+
+
+    		 neighbor = neigh_table.NeighborXMinus(site,target_cb);
+    		 n_idx = neighbor.first;
+    		 permuteP = neighbor.second;
+
+    		 if( permuteP ) {
+    			 KokkosProjectDir0Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx);
+    			 mult_adj_u_halfspinor0_perm<GT,VN,TST>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
+    		 }
+    		 else {
+    			 KokkosProjectDir0<ST,VN,TST,isign>(s_in, proj_res, n_idx);
+    			 mult_adj_u_halfspinor<GT,VN,TST,0>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
+    		 }
+    		 KokkosRecons23Dir0<TST,isign>(mult_proj_res,res_sum);
+
 
     		 // X-Plus
-    		 {
-    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
+    		 neighbor = neigh_table.NeighborXPlus(site,target_cb);
+    		 n_idx = neighbor.first;
+    		 permuteP = neighbor.second;
 
-    			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborXPlus(site,target_cb);
-    			 int n_idx = neighbor.first;
-    			 bool permuteP = neighbor.second;
 
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int spin=0; spin < 4; ++spin) {
-    					 TST tmp;
-    					 Load(tmp, s_in( n_idx,color,spin));
-    					 permuteP ? VN::permuteX(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
-
-    				 }
-    			 }
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int color2=0; color2 < 3; ++color2) {
-    					 Load( gauge_in(color,color2), g_in_target_cb(site, 0, color,color2));
-    				 }
-    			 }
-
-    			 KokkosProjectDir0<TST,-isign>(spinor_in,proj_res);
-    			 mult_u_halfspinor<TGT,TST>(gauge_in,proj_res,mult_proj_res);
-    			 KokkosRecons23Dir0<TST,-isign>(mult_proj_res, res_sum);
+    		 if( permuteP ) {
+    			 KokkosProjectDir0Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx);
     		 }
-
-    		 {
-
-    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
-
-    			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborYPlus(site,target_cb);
-    			 int n_idx = neighbor.first;
-    			 bool permuteP = neighbor.second;
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int spin=0; spin < 4; ++spin) {
-    					 TST tmp;
-    					 Load( tmp, s_in( n_idx,color,spin));
-    					 permuteP ? VN::permuteY(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
-
-    				 }
-    			 }
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int color2=0; color2 < 3; ++color2) {
-    					 Load( gauge_in(color,color2), g_in_target_cb(site, 1, color,color2));
-    				 }
-    			 }
-
-    			 KokkosProjectDir1<TST,-isign>(spinor_in,proj_res);
-    			 mult_u_halfspinor<TGT,TST>(gauge_in,proj_res,mult_proj_res);
-    			 KokkosRecons23Dir1<TST,-isign>(mult_proj_res, res_sum);
+    		 else {
+    			 KokkosProjectDir0<ST,VN,TST,-isign>(s_in,proj_res,n_idx);
     		 }
+    		 mult_u_halfspinor<GT,VN,TST,0>(g_in_target_cb,proj_res,mult_proj_res,site);
+    		 KokkosRecons23Dir0<TST,-isign>(mult_proj_res, res_sum);
+
+
+
+
+
+    		 neighbor = neigh_table.NeighborYPlus(site,target_cb);
+    		 n_idx = neighbor.first;
+    		 permuteP = neighbor.second;
+
+    		 if (permuteP) {
+    			 KokkosProjectDir1Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx);
+    		 }
+    		 else {
+    			 KokkosProjectDir1<ST,VN,TST,-isign>(s_in,proj_res,n_idx);
+    		 }
+    		 mult_u_halfspinor<GT,VN,TST,1>(g_in_target_cb,proj_res,mult_proj_res,site);
+    		 KokkosRecons23Dir1<TST,-isign>(mult_proj_res, res_sum);
+
 
     		 // Z-Plus
-    		 {
-    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
+			 neighbor = neigh_table.NeighborZPlus(site,target_cb);
+			 n_idx = neighbor.first;
+			 permuteP = neighbor.second;
 
-    			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborZPlus(site,target_cb);
-    			 int n_idx = neighbor.first;
-    			 bool permuteP = neighbor.second;
+			 if( permuteP ) {
+				 KokkosProjectDir2Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx);
+			 }
+			 else {
+				 KokkosProjectDir2<ST,VN,TST,-isign>(s_in,proj_res,n_idx);
+			 }
 
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int spin=0; spin < 4; ++spin) {
-    					 TST tmp;
-    					 Load( tmp, s_in(n_idx,color,spin));
-    					 permuteP ? VN::permuteZ(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
-
-    				 }
-    			 }
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int color2=0; color2 < 3; ++color2) {
-    					 Load( gauge_in(color,color2), g_in_target_cb(site, 2, color,color2));
-    				 }
-    	 		 }
+			 mult_u_halfspinor<GT,VN,TST,2>(g_in_target_cb,proj_res,mult_proj_res,site);
+			 KokkosRecons23Dir2<TST,-isign>(mult_proj_res, res_sum);
 
 
-    			 KokkosProjectDir2<TST,-isign>(spinor_in,proj_res);
-    			 mult_u_halfspinor<TGT,TST>(gauge_in,proj_res,mult_proj_res);
-    			 KokkosRecons23Dir2<TST,-isign>(mult_proj_res, res_sum);
-    		 }
+			 neighbor = neigh_table.NeighborTPlus(site,target_cb);
+			 n_idx = neighbor.first;
+			 permuteP = neighbor.second;
 
-    		 // T-plus
-    		 {
-    			 HalfSpinorSiteView<TST> proj_res;  //__attribute__((aligned(64)));
-    			 HalfSpinorSiteView<TST> mult_proj_res; //__attribute__((aligned(64)));
-    			 GaugeSiteView<TGT> gauge_in; //__attribute__((aligned(64)));
-    			 SpinorSiteView<TST> spinor_in; //__attribute__((aligned(64)));
+			 if( permuteP ) {
+				 KokkosProjectDir3Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx);
+			 }
+			 else {
+				 KokkosProjectDir3<ST,VN,TST,-isign>(s_in,proj_res,n_idx);
+			 }
+			 mult_u_halfspinor<GT,VN,TST,3>(g_in_target_cb,proj_res,mult_proj_res,site);
+			 KokkosRecons23Dir3<TST,-isign>(mult_proj_res, res_sum);
 
-    			 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborTPlus(site,target_cb);
-    			 int n_idx = neighbor.first;
-    			 bool permuteP = neighbor.second;
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int spin=0; spin < 4; ++spin) {
-    					 TST tmp;
-    					 Load( tmp, s_in(n_idx,color,spin));
-    					 permuteP ? VN::permuteT(spinor_in(color,spin),tmp) : ComplexCopy(spinor_in(color,spin), tmp);
-
-    				 }
-    			 }
-
-    			 for(int color=0; color < 3; ++color) {
-    				 for(int color2=0; color2 < 3; ++color2) {
-    					 Load( gauge_in(color,color2), g_in_target_cb(site, 3, color,color2));
-    				 }
-    			 }
-
-
-    			 KokkosProjectDir3<TST,-isign>(spinor_in,proj_res);
-    			 mult_u_halfspinor<TGT,TST>(gauge_in, proj_res,mult_proj_res);
-    			 KokkosRecons23Dir3<TST,-isign>(mult_proj_res, res_sum);
-    		 }
-    		 // Stream out spinor
-    		 for(int color=0; color < 3; ++color) {
-    			 for(int spin=0; spin < 4; ++spin) {
-    				 Stream(s_out(site,color,spin),res_sum(color,spin));
-    			 }
-    		 }
+			 // Stream out spinor
+			 for(int color=0; color < 3; ++color) {
+				 for(int spin=0; spin < 4; ++spin) {
+					 Stream(s_out(site,color,spin),res_sum(color,spin));
+				 }
+			 }
+#if 1
     	 });
+#endif
      }
 
      
@@ -691,24 +554,28 @@ public:
 	    if (target_cb == 0 ) {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
 	    		  num_sites, _sites_per_team,_neigh_table};
-	      Kokkos::parallel_for(policy, f); // Outer Lambda 
+	      Kokkos::parallel_for(policy, f); // Outer Lambda
+	      // Kokkos::parallel_for(num_sites,f);
 	    }
 	    else {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,1,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
 	    		  num_sites, _sites_per_team, _neigh_table};
-	      Kokkos::parallel_for(policy, f); // Outer Lambda 
+	      Kokkos::parallel_for(policy, f); // Outer Lambda
+	      // Kokkos::parallel_for(num_sites,f);
 	    }
 	  }
 	  else {
 	    if( target_cb == 0 ) { 
 	      VDslashFunctor<VN,GT,ST,TGT,TST,-1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
 	    		  num_sites, _sites_per_team, _neigh_table};
-	      Kokkos::parallel_for(policy, f); // Outer Lambda 
+	      Kokkos::parallel_for(policy, f); // Outer Lambda
+	      // Kokkos::parallel_for(num_sites,f);
 	    }
 	    else {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,-1,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
 	    		  num_sites, _sites_per_team, _neigh_table };
-	      Kokkos::parallel_for(policy, f); // Outer Lambda 
+	      Kokkos::parallel_for(policy, f); // Outer Lambda
+	      // Kokkos::parallel_for(num_sites,f);
 	    }
 	  }
 	  

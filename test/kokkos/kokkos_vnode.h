@@ -13,6 +13,8 @@
 namespace MG {
 
 
+
+
 template<typename T, int N>
 struct VNode;
 
@@ -28,30 +30,33 @@ template<typename T>
   static constexpr int Dim2 = 1;
   static constexpr int Dim3 = 1;
 
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+   VecType permute0(const VecType& vec_in) {
+	  VecType vec_out = vec_in;
+ 	  return vec_out;
+   }
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  void  permuteT(VecType& vec_out, const VecType& vec_in) {
-	  vec_out(0) = vec_in(0);
-  }
+    VecType permute1(const VecType& vec_in){
+ 	  VecType vec_out = vec_in;
+  	  return vec_out;
+    }
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  void permuteZ(VecType& vec_out, const VecType& vec_in) {
-	  vec_out(0) = vec_in(0);
-  }
+    VecType permute2(const VecType& vec_in) {
+ 	  VecType vec_out = vec_in;
+  	  return vec_out;
+    }
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  void permuteY(VecType& vec_out, const VecType& vec_in) {
-	  vec_out(0) = vec_in(0);
-  }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  void permuteX(VecType& vec_out, const VecType& vec_in) {
-	  vec_out(0) = vec_in(0);
-  }
+    VecType permute3(const VecType& vec_in) {
+ 	  VecType vec_out = vec_in;
+  	  return vec_out;
+    }
 
  }; // Struct Vector Length = 1
 
@@ -67,43 +72,38 @@ struct VNode<T,2> {
   static constexpr int Dim2 = 1;
   static constexpr int Dim3 = 2;
 
-
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  void permuteT(VecType& vec_out, const VecType& vec_in)
-  {
+    VecType permute0(const VecType& vec_in) {
+ 	  VecType vec_out = vec_in;
+  	  return vec_out;
+    }
+
+  static
+   KOKKOS_FORCEINLINE_FUNCTION
+     VecType permute1(const VecType& vec_in){
+  	  VecType vec_out = vec_in;
+   	  return vec_out;
+     }
+
+  static
+   KOKKOS_FORCEINLINE_FUNCTION
+     VecType permute2(const VecType& vec_in){
+  	  VecType vec_out = vec_in;
+   	  return vec_out;
+     }
+
+   static
+    KOKKOS_FORCEINLINE_FUNCTION
+    VecType permute3(const VecType& vec_in) {
+  	  VecType vec_out;
 	  vec_out(0)=vec_in(1);
 	  vec_out(1)=vec_in(0);
-  }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  void permuteZ(VecType& vec_out, const VecType& vec_in)
-  {
-	  vec_out(0) = vec_in(0);
-	  vec_out(1) = vec_in(1);
-  }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  void permuteY(VecType& vec_out, const VecType& vec_in)
-  {
-	  vec_out(0) = vec_in(0);
-	  vec_out(1) = vec_in(1);
-
-  }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  void permuteX(VecType& vec_out, const VecType& vec_in)
-  {
-	  vec_out(0) = vec_in(0);
-	  vec_out(1) = vec_in(1);
-
-  }
-
+	  return vec_out;
+    }
 
 }; // Struct Vector Length = 2
+
 
 
 template<typename T>
@@ -119,56 +119,48 @@ struct VNode<T,4> {
   static constexpr int Dim2 = 2;
   static constexpr int Dim3 = 2;
 
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+    VecType permute0(const VecType& vec_in) {
+ 	  VecType vec_out = vec_in;
+  	  return vec_out;
+    }
+
+   static
+   KOKKOS_FORCEINLINE_FUNCTION
+     VecType permute1(const VecType& vec_in) {
+  	  VecType vec_out = vec_in;
+   	  return vec_out;
+     }
+
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  void permuteT(VecType& vec_out, const VecType& vec_in)
-  {
-	  // Permute  abcd -> cdba
-
-
-	  vec_out(0)=vec_in(2);
-	  vec_out(1)=vec_in(3);
-	  vec_out(2)=vec_in(0);
-	  vec_out(3)=vec_in(1);
-
-  }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  void permuteZ(VecType& vec_out, const VecType& vec_in)
-  {
-
+  VecType permute2(const VecType& vec_in) {
+	  VecType vec_out;
 	  // permute: ab cd -> ba dc
 	  vec_out(0)=vec_in(1);
 	  vec_out(1)=vec_in(0);
 
 	  vec_out(2)=vec_in(3);
 	  vec_out(3)=vec_in(2);
+	  return vec_out;
   }
 
-  static
+   static
   KOKKOS_FORCEINLINE_FUNCTION
-  void permuteY(VecType& vec_out, const VecType& vec_in)
-  {
-	  vec_out(0)=vec_in(0);
-	  vec_out(1)=vec_in(1);
-	  vec_out(2)=vec_in(2);
-	  vec_out(3)=vec_in(3);
-  }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  void permuteX(VecType& vec_out, const VecType& vec_in)
-  {
-	  vec_out(0)=vec_in(0);
-	  vec_out(1)=vec_in(1);
-	  vec_out(2)=vec_in(2);
-	  vec_out(3)=vec_in(3);
-  }
+   VecType permute3(const VecType& vec_in) {
+ 	  VecType vec_out;
+	  vec_out(0)=vec_in(2);
+	  vec_out(1)=vec_in(3);
+	  vec_out(2)=vec_in(0);
+	  vec_out(3)=vec_in(1);
+	  return vec_out;
+   }
 
 
 };   // struct vector length = 4
+
 
 template<typename T>
 struct VNode<T,8> {
@@ -184,27 +176,36 @@ struct VNode<T,8> {
   static constexpr int Dim3 = 2;
 
 
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  void permuteT(VecType& vec_out, const VecType& vec_in)
-  {
-	  // Permute ab cd ef gh -> ef gh ab cd
 
-	  vec_out(0)=vec_in(4);
-	  vec_out(1)=vec_in(5);
-	  vec_out(2)=vec_in(6);
-	  vec_out(3)=vec_in(7);
-	  vec_out(4)=vec_in(0);
-	  vec_out(5)=vec_in(1);
-	  vec_out(6)=vec_in(2);
-	  vec_out(7)=vec_in(3);
+   static
+   KOKKOS_FORCEINLINE_FUNCTION
+     VecType permute0(const VecType& vec_in) {
+  	  VecType vec_out = vec_in;
+   	  return vec_out;
+     }
 
-  }
-
-  static
+    static
     KOKKOS_FORCEINLINE_FUNCTION
-    void permuteZ(VecType& vec_out, const VecType& vec_in)
+    VecType permute3(const VecType& vec_in) {
+  	  VecType vec_out;
+  	  vec_out(0)=vec_in(4);
+  		  vec_out(1)=vec_in(5);
+  		  vec_out(2)=vec_in(6);
+  		  vec_out(3)=vec_in(7);
+  		  vec_out(4)=vec_in(0);
+  		  vec_out(5)=vec_in(1);
+  		  vec_out(6)=vec_in(2);
+  		  vec_out(7)=vec_in(3);
+
+	  return vec_out;
+    }
+
+    static
+  KOKKOS_FORCEINLINE_FUNCTION
+  VecType permute2(const VecType& vec_in)
   {
+	  VecType vec_out;
+	  // permute: ab cd -> ba dc
 	  vec_out(0)=vec_in(2);
 	  vec_out(1)=vec_in(3);
 	  vec_out(2)=vec_in(0);
@@ -214,14 +215,15 @@ struct VNode<T,8> {
 	  vec_out(5)=vec_in(7);
 	  vec_out(6)=vec_in(4);
 	  vec_out(7)=vec_in(5);
-
+	  return vec_out;
   }
 
-  static
+   static
   KOKKOS_FORCEINLINE_FUNCTION
-  void permuteY(VecType& vec_out, const VecType& vec_in)
+  VecType permute1(const VecType& vec_in)
   {
-	  // permute ab cd ef gh -> ba dc fe hg
+	  VecType vec_out;
+	  // permute: ab cd -> ba dc
 	  vec_out(0)=vec_in(1);
 	  vec_out(1)=vec_in(0);
 
@@ -233,24 +235,12 @@ struct VNode<T,8> {
 
 	  vec_out(6)=vec_in(7);
 	  vec_out(7)=vec_in(6);
-
+	  return vec_out;
   }
 
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  void permuteX(VecType& vec_out, const VecType& vec_in)
-  {
-	  vec_out(0)=vec_in(0);
-	  vec_out(1)=vec_in(1);
-	  vec_out(2)=vec_in(2);
-	  vec_out(3)=vec_in(3);
-	  vec_out(4)=vec_in(4);
-	  vec_out(5)=vec_in(5);
-	  vec_out(6)=vec_in(6);
-	  vec_out(7)=vec_in(7);
-
-  }
 }; // struct vector length = 8
+
+
 } // namespace
 
 #if defined(MG_USE_AVX512)
@@ -276,42 +266,44 @@ struct VNode<MGComplex<float>,8> {
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  void permuteT(VecType& vec_out, const VecType& vec_in)
-  {
-	  // printf(".");
-	  // Permute ab cd ef gh -> ef gh ab cd
+  VecType permute0(const VecType& vec_in)  {
+	  VecType vec_out;
+	  vec_out._vdata=vec_in._vdata;
+	  return vec_out;
+  }
 
+  static
+  KOKKOS_FORCEINLINE_FUNCTION
+  VecType permute3(const VecType& vec_in)  {
+	  VecType vec_out;
 	  vec_out._vdata = _mm512_permutexvar_ps(_mm512_set_epi32(7,6,5,4,3,2,1,0,15,14,13,12,11,10,9,8), vec_in._vdata);
-
+	  return vec_out;
   }
 
   static
-    KOKKOS_FORCEINLINE_FUNCTION
-    void permuteZ(VecType& vec_out, const VecType& vec_in)
-  {
+  KOKKOS_FORCEINLINE_FUNCTION
+  VecType permute2(const VecType& vec_in)  {
+	  VecType vec_out;
 	  vec_out._vdata = _mm512_permutexvar_ps(_mm512_set_epi32(11,10,9,8,15,14,13,12,3,2,1,0,7,6,5,4), vec_in._vdata);
-
+	  return vec_out;
   }
 
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  void permuteY(VecType& vec_out, const VecType& vec_in)
-  {
+static
+   KOKKOS_FORCEINLINE_FUNCTION
+   VecType permute1(const VecType& vec_in)  {
+	  VecType vec_out;
 	  vec_out._vdata = _mm512_permutexvar_ps(_mm512_set_epi32(13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2), vec_in._vdata);
+ 	  return vec_out;
+   }
 
-  }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  void permuteX(VecType& vec_out, const VecType& vec_in)
-  {
-	  vec_out._vdata = vec_in._vdata;
-
-  }
 }; // struct vector length = 8
+
 
 } // Namespace
 #endif // AVX512
+
+
+
 
 
 #endif

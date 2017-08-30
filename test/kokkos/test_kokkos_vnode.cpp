@@ -25,7 +25,11 @@ using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
 
+#ifdef KOKKOS_HAVE_CUDA
+static constexpr int VectorLenght=1;
+#else
 static constexpr int VectorLength=8;
+#endif
 
 TEST(TestVNode,TestVSpinor)
 {
@@ -754,6 +758,7 @@ TEST(TestKokkos, TestVSpinProject)
 
  
 }
+
 
 TEST(TestKokkos, TestDslash)
 {

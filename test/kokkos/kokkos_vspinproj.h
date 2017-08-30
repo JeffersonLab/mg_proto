@@ -15,15 +15,16 @@
 #include "kokkos_traits.h"
 #include "kokkos_types.h"
 #include "kokkos_vtypes.h"
+#include "kokkos_vnode.h"
 #include "kokkos_vectype.h"
 
 namespace MG {
 
 
-  template<typename T, int isign>
+  template<typename T, typename VN, typename T2,  int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-  void KokkosProjectDir0( const SpinorSiteView<T>& in,
-			  HalfSpinorSiteView<T>& spinor_out)
+  void KokkosProjectDir0( const  VSpinorView<T, VN>& in,
+			  HalfSpinorSiteView<T2>& spinor_out,int i)
 {
   using FType = typename BaseType<T>::Type;
   constexpr FType sign = static_cast<FType>(isign);
@@ -43,21 +44,59 @@ KOKKOS_FORCEINLINE_FUNCTION
 	for(int color=0; color < 3; ++color) {
 		//		spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,3,K_IM);
 		//		spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,3,K_RE);
-		A_add_sign_iB(spinor_out(color,0), in(color,0), sign, in(color,3) );
+		A_add_sign_iB(spinor_out(color,0), in(i,color,0), sign, in(i,color,3) );
 
 	}
 
 	for(int color=0; color < 3; ++color) {
 		//	spinor_out(color,1,K_RE) = in(i,color,1,K_RE)-sign*in(i,color,2,K_IM);
 		//	spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,2,K_RE);
-		A_add_sign_iB(spinor_out(color,1), in(color,1), sign, in(color,2));
+		A_add_sign_iB(spinor_out(color,1), in(i,color,1), sign, in(i,color,2));
 	}
 }
 
-  template<typename T,  int isign>
+  template<typename T, typename VN, typename T2, int isign>
+ KOKKOS_FORCEINLINE_FUNCTION
+   void KokkosProjectDir0Perm( const  VSpinorView<T,VN>& in,
+ 			  HalfSpinorSiteView<T2>& spinor_out,int i)
+ {
+   using FType = typename BaseType<T>::Type;
+   constexpr FType sign = static_cast<FType>(isign);
+
+ 	/*                              ( 1  0  0 -i)  ( a0 )    ( a0 - i a3 )
+ 	 *  B  :=  ( 1 - Gamma  ) A  =  ( 0  1 -i  0)  ( a1 )  = ( a1 - i a2 )
+ 	 *                    0         ( 0  i  1  0)  ( a2 )    ( a2 + i a1 )
+ 	 *                              ( i  0  0  1)  ( a3 )    ( a3 + i a0 )
+ 	 * Therefore the top components are
+ 	 *      ( b0r + i b0i )  =  ( {a0r + a3i} + i{a0i - a3r} )
+ 	 *      ( b1r + i b1i )     ( {a1r + a2i} + i{a1i - a2r} )
+ 	 * The bottom components of be may be reconstructed using the formula
+ 	 *      ( b2r + i b2i )  =  ( {a2r - a1i} + i{a2i + a1r} )  =  ( - b1i + i b1r )
+ 	 *      ( b3r + i b3i )     ( {a3r - a0i} + i{a3i + a0r} )     ( - b0i + i b0r )
+ 	 */
+
+ 	for(int color=0; color < 3; ++color) {
+ 		//		spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,3,K_IM);
+ 		//		spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,3,K_RE);
+
+ 		A_add_sign_iB(spinor_out(color,0),
+ 					VN::permute0(in(i,color,0)),
+					sign,
+					VN::permute0(in(i,color,3)) );
+
+ 	}
+
+ 	for(int color=0; color < 3; ++color) {
+ 		//	spinor_out(color,1,K_RE) = in(i,color,1,K_RE)-sign*in(i,color,2,K_IM);
+ 		//	spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,2,K_RE);
+ 		A_add_sign_iB(spinor_out(color,1), VN::permute0(in(i,color,1)), sign,VN::permute0(in(i,color,2)));
+ 	}
+ }
+
+  template<typename T, typename VN, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-    void KokkosProjectDir1(const SpinorSiteView<T>& in,
-		HalfSpinorSiteView<T>& spinor_out)
+    void KokkosProjectDir1(const VSpinorView<T, VN>& in,
+		HalfSpinorSiteView<T2>& spinor_out,int i)
 {
 	  using FType = typename BaseType<T>::Type;
 	  constexpr FType sign = static_cast<FType>(isign);
@@ -75,20 +114,50 @@ KOKKOS_FORCEINLINE_FUNCTION
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,3,K_RE);
 		// spinor_out(color,0,K_IM) = in(i,color,0,K_IM)-sign*in(i,color,3,K_IM);
-		A_add_sign_B(spinor_out(color,0),in(color,0),-sign,in(color,3));
+		A_add_sign_B(spinor_out(color,0),in(i,color,0),-sign,in(i,color,3));
 	}
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,2,K_RE);
 		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,2,K_IM);
-		A_add_sign_B(spinor_out(color,1), in(color,1),sign,in(color,2));
+		A_add_sign_B(spinor_out(color,1), in(i,color,1),sign,in(i,color,2));
 	}
 }
 
-
-  template<typename T, int isign>
+  template<typename T, typename VN, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir2(const SpinorSiteView<T>& in,
-		HalfSpinorSiteView<T>& spinor_out)
+    void KokkosProjectDir1Perm(const VSpinorView<T, VN>& in,
+		HalfSpinorSiteView<T2>& spinor_out,int i)
+{
+	  using FType = typename BaseType<T>::Type;
+	  constexpr FType sign = static_cast<FType>(isign);
+
+	/*                              ( 1  0  0  1)  ( a0 )    ( a0 + a3 )
+	 *  B  :=  ( 1 - Gamma  ) A  =  ( 0  1 -1  0)  ( a1 )  = ( a1 - a2 )
+	 *                    1         ( 0 -1  1  0)  ( a2 )    ( a2 - a1 )
+	 *                              ( 1  0  0  1)  ( a3 )    ( a3 + a0 )
+
+	 * Therefore the top components are
+
+	 *      ( b0r + i b0i )  =  ( {a0r + a3r} + i{a0i + a3i} )
+	 *      ( b1r + i b1i )     ( {a1r - a2r} + i{a1i - a2i} )
+	 */
+	for(int color=0; color < 3; ++color) {
+		// spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,3,K_RE);
+		// spinor_out(color,0,K_IM) = in(i,color,0,K_IM)-sign*in(i,color,3,K_IM);
+		A_add_sign_B(spinor_out(color,0),VN::permute1(in(i,color,0)),-sign,
+				VN::permute1(in(i,color,3)) );
+	}
+	for(int color=0; color < 3; ++color) {
+		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,2,K_RE);
+		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,2,K_IM);
+		A_add_sign_B(spinor_out(color,1), VN::permute1(in(i,color,1)),sign,
+					VN::permute1(in(i,color,2)) );
+	}
+}
+  template<typename T, typename VN, typename T2, int isign>
+KOKKOS_FORCEINLINE_FUNCTION
+void KokkosProjectDir2(const VSpinorView<T, VN>& in,
+		HalfSpinorSiteView<T2>& spinor_out, int i)
 {
 
   using FType =  typename BaseType<T>::Type;
@@ -106,20 +175,87 @@ void KokkosProjectDir2(const SpinorSiteView<T>& in,
 	for(int color=0; color < 3; ++color) {
 		//spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,2,K_IM);
 		//spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,2,K_RE);
-		A_add_sign_iB(spinor_out(color,0),in(color,0),sign,in(color,2));
+		A_add_sign_iB(spinor_out(color,0),in(i,color,0),sign,in(i,color,2));
 	}
 
 	for(int color=0; color < 3; ++color ) {
 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,3,K_IM);
 		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)-sign*in(i,color,3,K_RE);
-		A_add_sign_iB(spinor_out(color,1), in(color,1), -sign,in(color,3));
+		A_add_sign_iB(spinor_out(color,1), in(i,color,1), -sign,in(i,color,3));
 	}
 }
 
-  template<typename T, int isign>
+
+  template<typename T, typename VN, typename T2, int isign>
+ KOKKOS_FORCEINLINE_FUNCTION
+ void KokkosProjectDir2Perm(const VSpinorView<T, VN>& in,
+ 		HalfSpinorSiteView<T2>& spinor_out, int i)
+ {
+
+   using FType =  typename BaseType<T>::Type;
+   constexpr FType sign = static_cast<FType>(isign);
+
+ 	/*                              ( 1  0  i  0)  ( a0 )    ( a0 + i a2 )
+ 	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  0 -i)  ( a1 )  = ( a1 - i a3 )
+ 	 *                    2         (-i  0  1  0)  ( a2 )    ( a2 - i a0 )
+ 	 *                              ( 0  i  0  1)  ( a3 )    ( a3 + i a1 )
+ 	 * Therefore the top components are
+ 	 *      ( b0r + i b0i )  =  ( {a0r - a2i} + i{a0i + a2r} )
+ 	 *      ( b1r + i b1i )     ( {a1r + a3i} + i{a1i - a3r} )
+ 	 */
+
+ 	for(int color=0; color < 3; ++color) {
+ 		//spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,2,K_IM);
+ 		//spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,2,K_RE);
+ 		A_add_sign_iB(spinor_out(color,0),
+ 					VN::permute2(in(i,color,0)),
+					sign,
+					VN::permute2(in(i,color,2)) );
+ 	}
+
+ 	for(int color=0; color < 3; ++color ) {
+ 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,3,K_IM);
+ 		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)-sign*in(i,color,3,K_RE);
+ 		A_add_sign_iB(spinor_out(color,1),
+ 						VN::permute2(in(i,color,1)),
+						-sign,
+						VN::permute2(in(i,color,3)));
+ 	}
+ }
+
+  template<typename T, typename VN, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
-void KokkosProjectDir3(const SpinorSiteView<T>& in,
-		       HalfSpinorSiteView<T>& spinor_out)
+void KokkosProjectDir3(const VSpinorView<T, VN>& in,
+		       HalfSpinorSiteView<T2>& spinor_out, int i)
+
+{
+	  using FType = typename BaseType<T>::Type;
+	  constexpr FType sign = static_cast<FType>(isign);
+	/*                              ( 1  0  1  0)  ( a0 )    ( a0 + a2 )
+	 *  B  :=  ( 1 + Gamma  ) A  =  ( 0  1  0  1)  ( a1 )  = ( a1 + a3 )
+	 *                    3         ( 1  0  1  0)  ( a2 )    ( a2 + a0 )
+	 *                              ( 0  1  0  1)  ( a3 )    ( a3 + a1 )
+	 * Therefore the top components are
+	 *      ( b0r + i b0i )  =  ( {a0r + a2r} + i{a0i + a2i} )
+	 *      ( b1r + i b1i )     ( {a1r + a3r} + i{a1i + a3i} )
+	 */
+	for(int color=0; color < 3; ++color) {
+		// spinor_out(color,0,K_RE) = in(i,color,0,K_RE)+sign*in(i,color,2,K_RE);
+		// spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,2,K_IM);
+		A_add_sign_B(spinor_out(color,0), in(i,color,0), sign, in(i,color,2));
+	}
+
+	for(int color=0; color < 3; ++color) {
+		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,3,K_RE);
+		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,3,K_IM);
+		A_add_sign_B(spinor_out(color,1), in(i,color,1), sign, in(i,color,3));
+	}
+}
+
+  template<typename T, typename VN, typename T2,  int isign>
+KOKKOS_FORCEINLINE_FUNCTION
+void KokkosProjectDir3Perm(const VSpinorView<T, VN>& in,
+		       HalfSpinorSiteView<T2>& spinor_out, int i)
 		
 {
 	  using FType = typename BaseType<T>::Type;
@@ -135,18 +271,23 @@ void KokkosProjectDir3(const SpinorSiteView<T>& in,
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,0,K_RE) = in(i,color,0,K_RE)+sign*in(i,color,2,K_RE);
 		// spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,2,K_IM);
-		A_add_sign_B(spinor_out(color,0), in(color,0), sign, in(color,2));
+		A_add_sign_B(spinor_out(color,0),
+					VN::permute3(in(i,color,0)),
+					sign,
+					VN::permute3(in(i,color,2)));
 	}
 
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,3,K_RE);
 		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,3,K_IM);
-		A_add_sign_B(spinor_out(color,1), in(color,1), sign, in(color,3));
+		A_add_sign_B(spinor_out(color,1),
+					VN::permute3(in(i,color,1)), sign,
+					VN::permute3(in(i,color,3))) ;
 	}
 }
 
 
-  template<typename T, typename VN,  typename T2, int dir, int isign>
+  template<typename T, typename VN, typename T2, int dir, int isign>
     void KokkosVProjectLattice(const KokkosCBFineVSpinor<T,VN,4>& kokkos_in,
 			      KokkosCBFineVSpinor<T,VN,2>& kokkos_hspinor_out, int _sites_per_team = 2)
 {
@@ -160,28 +301,22 @@ void KokkosProjectDir3(const SpinorSiteView<T>& in,
 		    const int end_idx = start_idx + _sites_per_team  < num_sites ? start_idx + _sites_per_team : num_sites;
 		    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int i) {
 
-			SpinorSiteView<T2> s_in;
 			HalfSpinorSiteView<T2> res;
 
-			for(int color=0; color < 3; ++color) {
-			  for(int spin=0; spin < 4; ++spin) { 
-			    Load(s_in(color,spin),spinor_in(i,color,spin));
-			  }
-			}
+
 
 			if( dir == 0) {
-			  //			KokkosProjectDir<T,0>(spinor_in,plus_minus,res,i);
-			  KokkosProjectDir0<T2,isign>(s_in, res);
+			  KokkosProjectDir0<T,VN,T2,isign>(spinor_in, res,i);
 			}
 			else if (dir == 1) {
 			  //			KokkosProjectDir<T,1>(spinor_in,plus_minus,res,i);
-			  KokkosProjectDir1<T2,isign>(s_in, res);
+			  KokkosProjectDir1<T,VN,T2,isign>(spinor_in, res,i);
 			}
 			else if (dir == 2 ) {
-			  KokkosProjectDir2<T2,isign>(s_in, res);
+			  KokkosProjectDir2<T,VN,T2,isign>(spinor_in, res,i);
 			}
 			else {
-			  KokkosProjectDir3<T2,isign>(s_in, res);
+			  KokkosProjectDir3<T,VN,T2,isign>(spinor_in, res,i);
 			}
 			
 			for(int color=0; color < 3; ++color) {
@@ -194,6 +329,88 @@ void KokkosProjectDir3(const SpinorSiteView<T>& in,
 		  });
 	    });
 }
+
+  template<typename T, typename VN, typename T2, int dir, int isign>
+    void KokkosVProjectLatticePerm(const KokkosCBFineVSpinor<T,VN,4>& kokkos_in,
+			      KokkosCBFineVSpinor<T,VN,2>& kokkos_hspinor_out, int _sites_per_team = 2)
+{
+	int num_sites = kokkos_in.GetInfo().GetNumCBSites();
+	const VSpinorView<T,VN>& spinor_in = kokkos_in.GetData();
+	VHalfSpinorView<T,VN>& hspinor_out = kokkos_hspinor_out.GetData();
+
+	const MG::ThreadExecPolicy  policy(num_sites/_sites_per_team,Kokkos::AUTO(),VN::VecLen);
+	  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle&  team) {
+		    const int start_idx = team.league_rank()*_sites_per_team;
+		    const int end_idx = start_idx + _sites_per_team  < num_sites ? start_idx + _sites_per_team : num_sites;
+		    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int i) {
+
+			HalfSpinorSiteView<T2> res;
+
+
+
+			if( dir == 0) {
+			  KokkosProjectDir0Perm<T,VN,T2,isign>(spinor_in, res,i);
+			}
+			else if (dir == 1) {
+			  //			KokkosProjectDir<T,1>(spinor_in,plus_minus,res,i);
+			  KokkosProjectDir1Perm<T,VN,T2,isign>(spinor_in, res,i);
+			}
+			else if (dir == 2 ) {
+			  KokkosProjectDir2Perm<T,VN,T2,isign>(spinor_in, res,i);
+			}
+			else {
+			  KokkosProjectDir3Perm<T,VN,T2,isign>(spinor_in, res,i);
+			}
+
+			for(int color=0; color < 3; ++color) {
+			  for(int spin=0; spin<2; ++spin) {
+
+			    //hspinor_out(i,spin,color,reim) = res(spin,color,reim);
+			    Store(hspinor_out(i,color,spin), res(color,spin));
+			  }
+			}
+		  });
+	    });
+}
+
+  template<typename T, typename VN, typename T2, int dir>
+     void KokkosLatticeVHSpinorPerm(KokkosCBFineVSpinor<T,VN,2>& kokkos_in,
+ 			      int _sites_per_team = 2)
+ {
+ 	int num_sites = kokkos_in.GetInfo().GetNumCBSites();
+ 	VHalfSpinorView<T,VN>& spinor = kokkos_in.GetData();
+
+ 	const MG::ThreadExecPolicy  policy(num_sites/_sites_per_team,Kokkos::AUTO(),VN::VecLen);
+ 	  Kokkos::parallel_for(policy, KOKKOS_LAMBDA (const TeamHandle&  team) {
+ 		    const int start_idx = team.league_rank()*_sites_per_team;
+ 		    const int end_idx = start_idx + _sites_per_team  < num_sites ? start_idx + _sites_per_team : num_sites;
+ 		    Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int i) {
+
+ 			for(int color=0; color <3; ++color) {
+ 				for(int spin=0; spin <2; ++spin) {
+ 					T2 tmp;
+ 					if(dir ==0 ) {
+ 						tmp = VN::permute0(spinor(i,color,spin));
+ 					}
+
+ 					if(dir ==1 ) {
+ 						tmp = VN::permute1(spinor(i,color,spin));
+ 					}
+
+ 					if(dir ==2 ) {
+ 						tmp = VN::permute2(spinor(i,color,spin));
+ 					}
+
+ 					if(dir ==3 ) {
+ 						tmp = VN::permute3(spinor(i,color,spin));
+ 					}
+
+ 					spinor(i,color,spin) = tmp;
+ 				}
+ 			}
+ 		  });
+ 	    });
+ }
 
 #if 0 
  template<typename T, int isign>
