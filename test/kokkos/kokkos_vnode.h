@@ -127,7 +127,7 @@ struct VNode<T,4> {
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  VecType permute(const MaskType& mask, const VecType& vec_in)
+  VecType permute(const MaskType& mask, const VecTypeGlobal& vec_in)
   {
 	  VecType vec_out;
 	  Kokkos::parallel_for(VectorPolicy(4),[&](const int& i){
@@ -163,7 +163,7 @@ struct VNode<T,8> {
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  VecType permute(const MaskType& mask, const VecType& vec_in)
+  VecType permute(const MaskType& mask, const VecTypeGlobal& vec_in)
   {
 	  VecType vec_out;
 	  Kokkos::parallel_for(VectorPolicy(8),[&](const int& i){
@@ -186,6 +186,7 @@ namespace MG {
 template<>
 struct VNode<MGComplex<float>,8> {
 
+  using VecTypeGlobal = SIMDComplex<float,8>;
   using VecType = SIMDComplex<float,8>;
 
   static constexpr int VecLen = 8;
@@ -207,7 +208,7 @@ struct VNode<MGComplex<float>,8> {
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  VecType permute(const MaskType& mask, const VecType& vec_in)
+  VecType permute(const MaskType& mask, const VecTypeGlobal& vec_in)
   {
 	VecType vec_out;
 	vec_out._vdata = _mm512_permutexvar_ps(mask, vec_in._vdata);
