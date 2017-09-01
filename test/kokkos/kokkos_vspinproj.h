@@ -24,7 +24,8 @@ namespace MG {
   template<typename T, typename VN, typename T2,  int isign>
 KOKKOS_FORCEINLINE_FUNCTION
   void KokkosProjectDir0( const  VSpinorView<T, VN>& in,
-			  HalfSpinorSiteView<T2>& spinor_out,int i)
+			  HalfSpinorSiteView<T2>& spinor_out,
+			  const int& i)
 {
   using FType = typename BaseType<T>::Type;
   constexpr FType sign = static_cast<FType>(isign);
@@ -58,7 +59,9 @@ KOKKOS_FORCEINLINE_FUNCTION
   template<typename T, typename VN, typename T2, int isign>
  KOKKOS_FORCEINLINE_FUNCTION
    void KokkosProjectDir0Perm( const  VSpinorView<T,VN>& in,
- 			  HalfSpinorSiteView<T2>& spinor_out,int i)
+ 			  HalfSpinorSiteView<T2>& spinor_out,
+			  const int& i,
+			  const typename VN::MaskType& mask)
  {
    using FType = typename BaseType<T>::Type;
    constexpr FType sign = static_cast<FType>(isign);
@@ -80,23 +83,27 @@ KOKKOS_FORCEINLINE_FUNCTION
  		//		spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,3,K_RE);
 
  		A_add_sign_iB(spinor_out(color,0),
- 					VN::permute0(in(i,color,0)),
+ 					VN::permute(mask,in(i,color,0)),
 					sign,
-					VN::permute0(in(i,color,3)) );
+					VN::permute(mask,in(i,color,3)) );
 
  	}
 
  	for(int color=0; color < 3; ++color) {
  		//	spinor_out(color,1,K_RE) = in(i,color,1,K_RE)-sign*in(i,color,2,K_IM);
  		//	spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,2,K_RE);
- 		A_add_sign_iB(spinor_out(color,1), VN::permute0(in(i,color,1)), sign,VN::permute0(in(i,color,2)));
+ 		A_add_sign_iB(spinor_out(color,1),
+ 					VN::permute(mask,in(i,color,1)),
+					sign,
+					VN::permute(mask,in(i,color,2)));
  	}
  }
 
   template<typename T, typename VN, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
     void KokkosProjectDir1(const VSpinorView<T, VN>& in,
-		HalfSpinorSiteView<T2>& spinor_out,int i)
+		HalfSpinorSiteView<T2>& spinor_out,
+		const int& i)
 {
 	  using FType = typename BaseType<T>::Type;
 	  constexpr FType sign = static_cast<FType>(isign);
@@ -126,7 +133,9 @@ KOKKOS_FORCEINLINE_FUNCTION
   template<typename T, typename VN, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
     void KokkosProjectDir1Perm(const VSpinorView<T, VN>& in,
-		HalfSpinorSiteView<T2>& spinor_out,int i)
+		HalfSpinorSiteView<T2>& spinor_out,
+		const int& i,
+		const typename VN::MaskType& mask)
 {
 	  using FType = typename BaseType<T>::Type;
 	  constexpr FType sign = static_cast<FType>(isign);
@@ -144,20 +153,25 @@ KOKKOS_FORCEINLINE_FUNCTION
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,3,K_RE);
 		// spinor_out(color,0,K_IM) = in(i,color,0,K_IM)-sign*in(i,color,3,K_IM);
-		A_add_sign_B(spinor_out(color,0),VN::permute1(in(i,color,0)),-sign,
-				VN::permute1(in(i,color,3)) );
+		A_add_sign_B(spinor_out(color,0),
+				VN::permute(mask,in(i,color,0)),
+				-sign,
+				VN::permute(mask,in(i,color,3)) );
 	}
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,2,K_RE);
 		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,2,K_IM);
-		A_add_sign_B(spinor_out(color,1), VN::permute1(in(i,color,1)),sign,
-					VN::permute1(in(i,color,2)) );
+		A_add_sign_B(spinor_out(color,1),
+					VN::permute(mask,in(i,color,1)),
+					sign,
+					VN::permute(mask,in(i,color,2)) );
 	}
 }
   template<typename T, typename VN, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir2(const VSpinorView<T, VN>& in,
-		HalfSpinorSiteView<T2>& spinor_out, int i)
+		HalfSpinorSiteView<T2>& spinor_out,
+		const int& i)
 {
 
   using FType =  typename BaseType<T>::Type;
@@ -189,7 +203,9 @@ void KokkosProjectDir2(const VSpinorView<T, VN>& in,
   template<typename T, typename VN, typename T2, int isign>
  KOKKOS_FORCEINLINE_FUNCTION
  void KokkosProjectDir2Perm(const VSpinorView<T, VN>& in,
- 		HalfSpinorSiteView<T2>& spinor_out, int i)
+ 		HalfSpinorSiteView<T2>& spinor_out,
+		const int& i,
+		const typename VN::MaskType& mask)
  {
 
    using FType =  typename BaseType<T>::Type;
@@ -208,25 +224,26 @@ void KokkosProjectDir2(const VSpinorView<T, VN>& in,
  		//spinor_out(color,0,K_RE) = in(i,color,0,K_RE)-sign*in(i,color,2,K_IM);
  		//spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,2,K_RE);
  		A_add_sign_iB(spinor_out(color,0),
- 					VN::permute2(in(i,color,0)),
+ 					VN::permute(mask,in(i,color,0)),
 					sign,
-					VN::permute2(in(i,color,2)) );
+					VN::permute(mask,in(i,color,2)) );
  	}
 
  	for(int color=0; color < 3; ++color ) {
  		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,3,K_IM);
  		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)-sign*in(i,color,3,K_RE);
  		A_add_sign_iB(spinor_out(color,1),
- 						VN::permute2(in(i,color,1)),
+ 						VN::permute(mask, in(i,color,1)),
 						-sign,
-						VN::permute2(in(i,color,3)));
+						VN::permute(mask, in(i,color,3)));
  	}
  }
 
   template<typename T, typename VN, typename T2, int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir3(const VSpinorView<T, VN>& in,
-		       HalfSpinorSiteView<T2>& spinor_out, int i)
+		       HalfSpinorSiteView<T2>& spinor_out,
+			   const int& i)
 
 {
 	  using FType = typename BaseType<T>::Type;
@@ -255,7 +272,9 @@ void KokkosProjectDir3(const VSpinorView<T, VN>& in,
   template<typename T, typename VN, typename T2,  int isign>
 KOKKOS_FORCEINLINE_FUNCTION
 void KokkosProjectDir3Perm(const VSpinorView<T, VN>& in,
-		       HalfSpinorSiteView<T2>& spinor_out, int i)
+		       HalfSpinorSiteView<T2>& spinor_out,
+			   const int& i,
+			   const typename VN::MaskType& mask)
 		
 {
 	  using FType = typename BaseType<T>::Type;
@@ -272,17 +291,17 @@ void KokkosProjectDir3Perm(const VSpinorView<T, VN>& in,
 		// spinor_out(color,0,K_RE) = in(i,color,0,K_RE)+sign*in(i,color,2,K_RE);
 		// spinor_out(color,0,K_IM) = in(i,color,0,K_IM)+sign*in(i,color,2,K_IM);
 		A_add_sign_B(spinor_out(color,0),
-					VN::permute3(in(i,color,0)),
+					VN::permute(mask, in(i,color,0)),
 					sign,
-					VN::permute3(in(i,color,2)));
+					VN::permute(mask, in(i,color,2)));
 	}
 
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,1,K_RE) = in(i,color,1,K_RE)+sign*in(i,color,3,K_RE);
 		// spinor_out(color,1,K_IM) = in(i,color,1,K_IM)+sign*in(i,color,3,K_IM);
 		A_add_sign_B(spinor_out(color,1),
-					VN::permute3(in(i,color,1)), sign,
-					VN::permute3(in(i,color,3))) ;
+					VN::permute(mask, in(i,color,1)), sign,
+					VN::permute(mask, in(i,color,3))) ;
 	}
 }
 
@@ -349,17 +368,17 @@ void KokkosProjectDir3Perm(const VSpinorView<T, VN>& in,
 
 
 			if( dir == 0) {
-			  KokkosProjectDir0Perm<T,VN,T2,isign>(spinor_in, res,i);
+			  KokkosProjectDir0Perm<T,VN,T2,isign>(spinor_in, res,i, VN::XPermuteMask);
 			}
 			else if (dir == 1) {
 			  //			KokkosProjectDir<T,1>(spinor_in,plus_minus,res,i);
-			  KokkosProjectDir1Perm<T,VN,T2,isign>(spinor_in, res,i);
+			  KokkosProjectDir1Perm<T,VN,T2,isign>(spinor_in, res,i, VN::YPermuteMask);
 			}
 			else if (dir == 2 ) {
-			  KokkosProjectDir2Perm<T,VN,T2,isign>(spinor_in, res,i);
+			  KokkosProjectDir2Perm<T,VN,T2,isign>(spinor_in, res,i, VN::ZPermuteMask);
 			}
 			else {
-			  KokkosProjectDir3Perm<T,VN,T2,isign>(spinor_in, res,i);
+			  KokkosProjectDir3Perm<T,VN,T2,isign>(spinor_in, res,i, VN::TPermuteMask);
 			}
 
 			for(int color=0; color < 3; ++color) {
@@ -390,19 +409,20 @@ void KokkosProjectDir3Perm(const VSpinorView<T, VN>& in,
  				for(int spin=0; spin <2; ++spin) {
  					T2 tmp;
  					if(dir ==0 ) {
- 						tmp = VN::permute0(spinor(i,color,spin));
+
+ 						tmp = VN::permute(VN::XPermuteMask, spinor(i,color,spin));
  					}
 
  					if(dir ==1 ) {
- 						tmp = VN::permute1(spinor(i,color,spin));
+ 						tmp = VN::permute(VN::YPermuteMask, spinor(i,color,spin));
  					}
 
  					if(dir ==2 ) {
- 						tmp = VN::permute2(spinor(i,color,spin));
+ 						tmp = VN::permute(VN::ZPermuteMask, spinor(i,color,spin));
  					}
 
  					if(dir ==3 ) {
- 						tmp = VN::permute3(spinor(i,color,spin));
+ 						tmp = VN::permute(VN::TPermuteMask, spinor(i,color,spin));
  					}
 
  					spinor(i,color,spin) = tmp;

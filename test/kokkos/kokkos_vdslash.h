@@ -27,8 +27,8 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
 
 
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-
-   void ComputeSiteTable(int _n_xh, int _n_x, int _n_y, int _n_z, int _n_t,  Kokkos::View<Kokkos::pair<int,bool>*[2][8],NeighLayout, MemorySpace> _table) {
+   template<typename VN>
+   void ComputeSiteTable(int _n_xh, int _n_x, int _n_y, int _n_z, int _n_t,  Kokkos::View<Kokkos::pair<int,typename VN::MaskType>*[2][8],NeighLayout, MemorySpace> _table) {
 		int num_sites =  _n_xh*_n_y*_n_z*_n_t;
 			Kokkos::parallel_for(Kokkos::RangePolicy<ExecSpace>(0,num_sites), KOKKOS_LAMBDA(int site) {
 		        for(int target_cb=0; target_cb < 2; ++target_cb) {
@@ -44,59 +44,59 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
 			     IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);
 
 			     if( t > 0 ) {
-			       _table(site,target_cb,T_MINUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1))),false);
+			       _table(site,target_cb,T_MINUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1))),VN::NoPermuteMask);
 			     }
 			     else {
-			       _table(site,target_cb,T_MINUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1))),true);
+			       _table(site,target_cb,T_MINUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1))),VN::TPermuteMask);
 			     }
 
 			     if( z > 0 ) {
-			       _table(site,target_cb,Z_MINUS) = Kokkos::make_pair( xcb + _n_xh*(y + _n_y*((z-1) + _n_z*t)), false);
+			       _table(site,target_cb,Z_MINUS) = Kokkos::make_pair( xcb + _n_xh*(y + _n_y*((z-1) + _n_z*t)), VN::NoPermuteMask);
 			     }
 			     else {
-			       _table(site,target_cb,Z_MINUS) = Kokkos::make_pair( xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t)),true);
+			       _table(site,target_cb,Z_MINUS) = Kokkos::make_pair( xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t)),VN::ZPermuteMask);
 			     }
 
 			     if( y > 0 ) {
-			       _table(site,target_cb,Y_MINUS) = Kokkos::make_pair( xcb + _n_xh*((y-1) + _n_y*(z + _n_z*t)), false);
+			       _table(site,target_cb,Y_MINUS) = Kokkos::make_pair( xcb + _n_xh*((y-1) + _n_y*(z + _n_z*t)), VN::NoPermuteMask);
 			     }
 			     else {
-			       _table(site,target_cb,Y_MINUS) = Kokkos::make_pair( xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t)),true);
+			       _table(site,target_cb,Y_MINUS) = Kokkos::make_pair( xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t)),VN::YPermuteMask);
 			     }
 
 			     if ( x > 0 ) {
-			       _table(site,target_cb,X_MINUS)= Kokkos::make_pair(((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t)), false);
+			       _table(site,target_cb,X_MINUS)= Kokkos::make_pair(((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t)), VN::NoPermuteMask);
 			     }
 			     else {
-			       _table(site,target_cb,X_MINUS)= Kokkos::make_pair(((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t)),true);
+			       _table(site,target_cb,X_MINUS)= Kokkos::make_pair(((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t)),VN::XPermuteMask);
 			     }
 
 			     if ( x < _n_x - 1 ) {
-			       _table(site,target_cb,X_PLUS) = Kokkos::make_pair(((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t)),false);
+			       _table(site,target_cb,X_PLUS) = Kokkos::make_pair(((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t)),VN::NoPermuteMask);
 			     }
 			     else {
-			       _table(site,target_cb,X_PLUS) = Kokkos::make_pair(0 + _n_xh*(y + _n_y*(z + _n_z*t)),true);
+			       _table(site,target_cb,X_PLUS) = Kokkos::make_pair(0 + _n_xh*(y + _n_y*(z + _n_z*t)),VN::XPermuteMask);
 			     }
 
 			     if( y < _n_y-1 ) {
-			       _table(site,target_cb,Y_PLUS) = Kokkos::make_pair(xcb + _n_xh*((y+1) + _n_y*(z + _n_z*t)),false);
+			       _table(site,target_cb,Y_PLUS) = Kokkos::make_pair(xcb + _n_xh*((y+1) + _n_y*(z + _n_z*t)),VN::NoPermuteMask);
 			     }
 			     else {
-			       _table(site,target_cb,Y_PLUS) = Kokkos::make_pair(xcb + _n_xh*(0 + _n_y*(z + _n_z*t)),true);
+			       _table(site,target_cb,Y_PLUS) = Kokkos::make_pair(xcb + _n_xh*(0 + _n_y*(z + _n_z*t)),VN::YPermuteMask);
 			     }
 
 			     if( z < _n_z-1 ) {
-			       _table(site,target_cb,Z_PLUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*((z+1) + _n_z*t)),false);
+			       _table(site,target_cb,Z_PLUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*((z+1) + _n_z*t)),VN::NoPermuteMask);
 			     }
 			     else {
-			       _table(site,target_cb,Z_PLUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(0 + _n_z*t)), true);
+			       _table(site,target_cb,Z_PLUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(0 + _n_z*t)), VN::ZPermuteMask);
 			     }
 
 			     if( t < _n_t-1 ) {
-			       _table(site,target_cb,T_PLUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(t+1))),false);
+			       _table(site,target_cb,T_PLUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(t+1))),VN::NoPermuteMask);
 			     }
 			     else {
-			       _table(site,target_cb,T_PLUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(0))),true);
+			       _table(site,target_cb,T_PLUS) = Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(0))),VN::TPermuteMask);
 			     }
 			    } // target CB
 		        });
@@ -105,7 +105,7 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
 #endif
 
 
-
+template<typename VN>
 class SiteTable {
 public:
 
@@ -121,182 +121,189 @@ public:
 	 _n_t(n_t) {
 
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-	   _table = Kokkos::View<Kokkos::pair<int,bool>*[2][8],NeighLayout,MemorySpace>("table", n_xh*n_y*n_z*n_t);
-	   ComputeSiteTable(n_xh, 2*n_xh, n_y, n_z, n_t, _table);
+	   _table = Kokkos::View<Kokkos::pair<int,typename VN::MaskType>*[2][8],NeighLayout,MemorySpace>("table", n_xh*n_y*n_z*n_t);
+	   ComputeSiteTable<VN>(n_xh, 2*n_xh, n_y, n_z, n_t, _table);
 #endif
 	}
 
 
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-	KOKKOS_INLINE_FUNCTION
-	  const Kokkos::pair<int,bool>&  NeighborTMinus(int site, int target_cb) const {
-		return _table(site,target_cb,T_MINUS);
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborTMinus(int site, int target_cb, int& n_idx, typename VN::MaskType& mask) const {
+		const Kokkos::pair<int,typename VN::MaskType>& lookup = _table(site,target_cb,T_MINUS);
+		n_idx = lookup.first;
+		mask = lookup.second;
 	}
 
-	KOKKOS_INLINE_FUNCTION
-	 const Kokkos::pair<int,bool>& NeighborTPlus(int site, int target_cb) const {
-		return _table(site,target_cb,T_PLUS);
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborTPlus(int site, int target_cb, int& n_idx, typename VN::MaskType& mask) const {
+		const Kokkos::pair<int,typename VN::MaskType>& lookup = _table(site,target_cb,T_PLUS);
+		n_idx = lookup.first;
+		mask = lookup.second;
 	}
-	KOKKOS_INLINE_FUNCTION
-	const Kokkos::pair<int,bool>& NeighborZMinus(int site, int target_cb) const {
-		return _table(site,target_cb,Z_MINUS);
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborZMinus(int site, int target_cb, int& n_idx, typename VN::MaskType& mask) const {
+		const Kokkos::pair<int,typename VN::MaskType>& lookup = _table(site,target_cb,Z_MINUS);
+		n_idx = lookup.first;
+		mask = lookup.second;
 	}
-	KOKKOS_INLINE_FUNCTION
-	 const  Kokkos::pair<int,bool>& NeighborZPlus(int site, int target_cb) const {
-		return _table(site,target_cb,Z_PLUS);
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborZPlus(int site, int target_cb, int& n_idx, typename VN::MaskType& mask) const {
+		const Kokkos::pair<int,typename VN::MaskType>& lookup = _table(site,target_cb,Z_PLUS);
+		n_idx = lookup.first;
+		mask = lookup.second;
 	}
-	KOKKOS_INLINE_FUNCTION
-	 const  Kokkos::pair<int,bool>& NeighborYMinus(int site, int target_cb) const {
-		return _table(site,target_cb,Y_MINUS);
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborYMinus(int site, int target_cb, int& n_idx, typename VN::MaskType& mask) const {
+		const Kokkos::pair<int,typename VN::MaskType>& lookup = _table(site,target_cb,Y_MINUS);
+		n_idx = lookup.first;
+		mask = lookup.second;
 	}
-	KOKKOS_INLINE_FUNCTION
-	const  Kokkos::pair<int,bool>& NeighborYPlus(int site, int target_cb) const {
-		return _table(site,target_cb,Y_PLUS);
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborYPlus(int site, int target_cb, int& n_idx, typename VN::MaskType& mask) const {
+		const Kokkos::pair<int,typename VN::MaskType>& lookup = _table(site,target_cb,Y_PLUS);
+		n_idx = lookup.first;
+		mask = lookup.second;
 	}
-	KOKKOS_INLINE_FUNCTION
-	 const Kokkos::pair<int,bool>& NeighborXMinus(int site, int target_cb) const {
-		return _table(site,target_cb,X_MINUS);
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborXMinus(int site, int target_cb, int& n_idx, typename VN::MaskType& mask) const {
+		const Kokkos::pair<int,typename VN::MaskType>& lookup = _table(site,target_cb,X_MINUS);
+		n_idx = lookup.first;
+		mask = lookup.second;
 	}
-	KOKKOS_INLINE_FUNCTION
-	  const Kokkos::pair<int,bool>& NeighborXPlus(int site, int target_cb) const {
-		return _table(site,target_cb,X_PLUS);
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborXPlus(int site, int target_cb, int& n_idx, typename VN::MaskType& mask) const {
+		const Kokkos::pair<int,typename VN::MaskType>& lookup = _table(site,target_cb,X_PLUS);
+		n_idx = lookup.first;
+		mask = lookup.second;
 	}
+
 #else
 
-
-
-	KOKKOS_INLINE_FUNCTION
-	  Kokkos::pair<int,bool> NeighborTMinus(int site, int target_cb) const {
-		// Break down site index into xcb, y,z and t
+	KOKKOS_FORCEINLINE_FUNCTION
+	void idx_to_coords(int site, int& xcb, int& y, int& z, int& t) const
+	{
 		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
+		xcb = site - _n_xh * tmp_yzt;
 		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
+		y = tmp_yzt - _n_y * tmp_zt;
+		t = tmp_zt / _n_z;
+		z = tmp_zt - _n_z * t;
+	}
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborTMinus(int xcb, int y, int z, int t, int& n_idx, typename VN::MaskType& mask) const {
+		if( t >  0) {
+			n_idx=xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1)));
+			mask=VN::NoPermuteMask;
+		}
+		else {
+			n_idx = xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1)));
+			mask=VN::TPermuteMask;
+		}
+	}
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	 void NeighborZMinus(int xcb, int y, int z, int t, int& n_idx, typename VN::MaskType& mask) const {
+		if( z >  0 ) {
+			n_idx=xcb + _n_xh*(y + _n_y*((z-1) + _n_z*t));
+		    mask=VN::NoPermuteMask;
+		}
+		else {
+			n_idx=xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t));
+			mask=VN::ZPermuteMask;
+		}
+	}
 
 
-		return  ( t > 0 ) ? Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(t-1))),false) 
-		  : Kokkos::make_pair( xcb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1))),true) ;
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborYMinus(int xcb, int y, int z, int t, int& n_idx, typename VN::MaskType& mask) const {
+		if ( y > 0 ) {
+			n_idx = xcb + _n_xh*((y-1) + _n_y*(z + _n_z*t));
+			mask  = VN::NoPermuteMask;
+		}
+		else {
+			n_idx = xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t));
+			mask  = VN::YPermuteMask;
+		}
+	}
+
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	void NeighborXMinus(int xcb, int y, int z, int t, int target_cb, int& n_idx, typename VN::MaskType& mask) const {
+		int x = 2*xcb + ((target_cb+y+z+t)&0x1);
+		if ( x > 0 ) {
+				n_idx = ((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
+				mask  = VN::NoPermuteMask;
+		}
+		else {
+				n_idx = ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t));
+				mask = VN::XPermuteMask;
+		}
+	}
+
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborXPlus(int xcb, int y, int z, int t, int target_cb, int& n_idx, typename VN::MaskType& mask) const {
+		int x = 2*xcb + ((target_cb+y+z+t)&0x1);
+		if ( x < _n_x - 1) {
+			n_idx = ((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t));
+			mask = VN::NoPermuteMask;
+		}
+		else {
+			n_idx = _n_xh*(y + _n_y*(z + _n_z*t));
+			mask = VN::XPermuteMask;
+
+		}
 	}
 
 
 
-	KOKKOS_INLINE_FUNCTION
-	  Kokkos::pair<int,bool> NeighborZMinus(int site, int target_cb) const {
-		// Break down site index into xcb, y,z and t
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-
-		return  ( z > 0 ) ? Kokkos::make_pair( xcb + _n_xh*(y + _n_y*((z-1) + _n_z*t)),false) :
-		  Kokkos::make_pair(xcb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t)),true);
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborYPlus(int xcb, int y, int z, int t, int& n_idx, typename VN::MaskType& mask) const {
+		if (y < _n_y - 1) {
+			n_idx = xcb + _n_xh*((y+1) + _n_y*(z + _n_z*t));
+			mask = VN::NoPermuteMask;
+		}
+		else {
+			n_idx = xcb + _n_xh*(0 + _n_y*(z + _n_z*t));
+			mask = VN::YPermuteMask;
+		}
 	}
 
 
-	KOKKOS_INLINE_FUNCTION
-	  Kokkos::pair<int,bool> NeighborYMinus(int site, int target_cb) const {
-		// Break down site index into xcb, y,z and t
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborZPlus(int xcb, int y, int z, int t, int& n_idx, typename VN::MaskType& mask) const {
 
 
-		return  ( y > 0 ) ? Kokkos::make_pair(xcb + _n_xh*((y-1) + _n_y*(z + _n_z*t)),false) : 
-		  Kokkos::make_pair(xcb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t)),true);
-
+		if(z < _n_z - 1) {
+			n_idx = xcb + _n_xh*(y + _n_y*((z+1) + _n_z*t));
+			mask = VN::NoPermuteMask;
+		}
+		else {
+		    n_idx = xcb + _n_xh*(y + _n_y*(0 + _n_z*t));
+		    mask = VN::ZPermuteMask;
+		}
 	}
 
 
-	KOKKOS_INLINE_FUNCTION
-	  Kokkos::pair<int,bool> NeighborXMinus(int site, int target_cb) const {
-		// Break down site index into xcb, y,z and t
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
+	KOKKOS_FORCEINLINE_FUNCTION
+	  void NeighborTPlus(int xcb, int y, int z, int t, int& n_idx, typename VN::MaskType& mask) const {
 
-		// Global, uncheckerboarded x, assumes cb = (x + y + z + t ) & 1
-		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);
-
-		return  (x > 0) ? Kokkos::make_pair( ((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t)),false) :
-		  Kokkos::make_pair(((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t)),true);
-	}
-
-
-	KOKKOS_INLINE_FUNCTION
-	  Kokkos::pair<int,bool> NeighborXPlus(int site, int target_cb) const {
-		// Break down site index into xcb, y,z and t
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-		// Global, uncheckerboarded x, assumes cb = (x + y + z + t ) & 1
-		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);
-
-		return  (x < _n_x - 1) ? Kokkos::make_pair(((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t)),false) : 
-		  Kokkos::make_pair(0 + _n_xh*(y + _n_y*(z + _n_z*t)),true);
-	}
-
-
-
-	KOKKOS_INLINE_FUNCTION
-	  Kokkos::pair<int,bool> NeighborYPlus(int site, int target_cb) const {
-		// Break down site index into xcb, y,z and t
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-
-
-		return  (y < _n_y - 1) ? Kokkos::make_pair(xcb + _n_xh*((y+1) + _n_y*(z + _n_z*t)),false) : 
-		  Kokkos::make_pair(xcb + _n_xh*(0 + _n_y*(z + _n_z*t)),true);
-	}
-
-
-	KOKKOS_INLINE_FUNCTION
-	  Kokkos::pair<int,bool> NeighborZPlus(int site, int target_cb) const {
-		// Break down site index into xcb, y,z and t
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-		return  (z < _n_z - 1) ? Kokkos::make_pair( xcb + _n_xh*(y + _n_y*((z+1) + _n_z*t)),false) : 
-		  Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(0 + _n_z*t)),true);
-	}
-
-
-	KOKKOS_INLINE_FUNCTION
-	  Kokkos::pair<int,bool> NeighborTPlus(int site, int target_cb) const {
-		// Break down site index into xcb, y,z and t
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-
-		return  (t < _n_t - 1) ? Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(t+1))),false) :
-		  Kokkos::make_pair(xcb + _n_xh*(y + _n_y*(z + _n_z*(0))),true);
+		if (t < _n_t - 1) {
+			n_idx = xcb + _n_xh*(y + _n_y*(z + _n_z*(t+1)));
+			mask = VN::NoPermuteMask;
+		}
+		else {
+			n_idx = xcb + _n_xh*(y + _n_y*(z + _n_z*(0)));
+			mask = VN::TPermuteMask;
+		}
 	}
 #endif
 
@@ -328,7 +335,7 @@ public:
 
 private:
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-	Kokkos::View<Kokkos::pair<int,bool>*[2][8], NeighLayout,MemorySpace > _table;
+	Kokkos::View<Kokkos::pair<int,typename VN::MaskType>*[2][8], NeighLayout,MemorySpace > _table;
 #endif
        int _n_x;
        int _n_xh;
@@ -355,15 +362,22 @@ private:
      VSpinorView<ST,VN> s_out;
      int num_sites;
      int sites_per_team;
-     SiteTable neigh_table;
+     SiteTable<VN> neigh_table;
 
      KOKKOS_FORCEINLINE_FUNCTION
-
 	 void operator()(const TeamHandle& team) const {
     	 const int start_idx = team.league_rank()*sites_per_team;
     	 const int end_idx = start_idx + sites_per_team  < num_sites ? start_idx + sites_per_team : num_sites;
 
     	 Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int site) {
+
+#ifndef MG_KOKKOS_USE_NEIGHBOR_TABLE
+    		 int xcb, y, z, t;
+    		 neigh_table.idx_to_coords(site, xcb, y, z, t);
+#endif
+    		 int n_idx;
+    		 typename VN::MaskType mask;
+
     		 // Warning: GCC Alignment Attribute!
     		 // Site Sum: Not a true Kokkos View
     		 SpinorSiteView<TST> res_sum __attribute__((aligned(64)));
@@ -379,132 +393,84 @@ private:
     		 }
 
     		 // T - minus
-    		 Kokkos::pair<int,bool> neighbor = neigh_table.NeighborTMinus(site,target_cb);
-    		 int n_idx = neighbor.first;
-    		 bool  permuteP = neighbor.second;
-
-    		 if( permuteP ) {
-    			 KokkosProjectDir3Perm<ST,VN,TST,isign>(s_in, proj_res,n_idx);
-    			 mult_adj_u_halfspinor3_perm<GT,VN,TST>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
-    		 }
-    		 else {
-    			 KokkosProjectDir3<ST,VN,TST,isign>(s_in, proj_res,n_idx);
-    			 mult_adj_u_halfspinor<GT,VN,TST,3>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
-    		 }
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+    		 neigh_table.NeighborTMinus(site,target_cb,n_idx,mask);
+#else
+    		 neigh_table.NeighborTMinus(xcb,y,z,t,n_idx,mask);
+#endif
+    		 KokkosProjectDir3Perm<ST,VN,TST,isign>(s_in, proj_res,n_idx,mask);
+    		 mult_adj_u_halfspinor_perm<GT,VN,TST,3>(g_in_src_cb, proj_res,mult_proj_res,n_idx,mask);
     		 KokkosRecons23Dir3<TST,isign>(mult_proj_res,res_sum);
 
-
-
-    		 neighbor = neigh_table.NeighborZMinus(site,target_cb);
-    		 n_idx = neighbor.first;
-    		 permuteP = neighbor.second;
-
-    		 if( permuteP ) {
-    			 KokkosProjectDir2Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx);
-    			 mult_adj_u_halfspinor2_perm<GT,VN,TST>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
-    		 }
-    		 else {
-    			 KokkosProjectDir2<ST,VN,TST,isign>(s_in, proj_res, n_idx);
-    			 mult_adj_u_halfspinor<GT,VN,TST,2>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
-    		 }
+    		 // Z - minus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+    		 neigh_table.NeighborZMinus(site,target_cb,n_idx,mask);
+#else
+    		 neigh_table.NeighborZMinus(xcb,y,z,t,n_idx,mask);
+#endif
+    		 KokkosProjectDir2Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx, mask);
+    		 mult_adj_u_halfspinor_perm<GT,VN,TST,2>(g_in_src_cb, proj_res,mult_proj_res,n_idx,mask);
     		 KokkosRecons23Dir2<TST,isign>(mult_proj_res,res_sum);
 
-
-
-
-    		 // Y-Minus
-
-    		 neighbor = neigh_table.NeighborYMinus(site,target_cb);
-    		 n_idx = neighbor.first;
-    		 permuteP = neighbor.second;
-
-    		 if( permuteP ) {
-    			 KokkosProjectDir1Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx);
-    			 mult_adj_u_halfspinor1_perm<GT,VN,TST>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
-    		 }
-    		 else {
-    			 KokkosProjectDir1<ST,VN,TST,isign>(s_in, proj_res, n_idx);
-    			 mult_adj_u_halfspinor<GT,VN,TST,1>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
-    		 }
+    		 // Y - minus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+    		 neigh_table.NeighborYMinus(site,target_cb,n_idx,mask);
+#else
+    		 neigh_table.NeighborYMinus(xcb,y,z,t,n_idx,mask);
+#endif
+    		 KokkosProjectDir1Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx,mask);
+    		 mult_adj_u_halfspinor_perm<GT,VN,TST,1>(g_in_src_cb, proj_res,mult_proj_res,n_idx,mask);
     		 KokkosRecons23Dir1<TST,isign>(mult_proj_res,res_sum);
 
-
-
-
-    		 neighbor = neigh_table.NeighborXMinus(site,target_cb);
-    		 n_idx = neighbor.first;
-    		 permuteP = neighbor.second;
-
-    		 if( permuteP ) {
-    			 KokkosProjectDir0Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx);
-    			 mult_adj_u_halfspinor0_perm<GT,VN,TST>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
-    		 }
-    		 else {
-    			 KokkosProjectDir0<ST,VN,TST,isign>(s_in, proj_res, n_idx);
-    			 mult_adj_u_halfspinor<GT,VN,TST,0>(g_in_src_cb, proj_res,mult_proj_res,n_idx);
-    		 }
+    		 // X - minus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+    		 neigh_table.NeighborXMinus(site,target_cb,n_idx,mask);
+#else
+    		 neigh_table.NeighborXMinus(xcb,y,z,t,target_cb,n_idx,mask);
+#endif
+    		 KokkosProjectDir0Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx,mask);
+    		 mult_adj_u_halfspinor_perm<GT,VN,TST,0>(g_in_src_cb, proj_res,mult_proj_res,n_idx,mask);
     		 KokkosRecons23Dir0<TST,isign>(mult_proj_res,res_sum);
 
 
-    		 // X-Plus
-    		 neighbor = neigh_table.NeighborXPlus(site,target_cb);
-    		 n_idx = neighbor.first;
-    		 permuteP = neighbor.second;
+    		 // X - plus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+    		 neigh_table.NeighborXPlus(site, target_cb, n_idx, mask);
+#else
 
-
-    		 if( permuteP ) {
-    			 KokkosProjectDir0Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx);
-    		 }
-    		 else {
-    			 KokkosProjectDir0<ST,VN,TST,-isign>(s_in,proj_res,n_idx);
-    		 }
+    		 neigh_table.NeighborXPlus(xcb,y,z,t,target_cb,n_idx, mask);
+#endif
+    		 KokkosProjectDir0Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx,mask);
     		 mult_u_halfspinor<GT,VN,TST,0>(g_in_target_cb,proj_res,mult_proj_res,site);
     		 KokkosRecons23Dir0<TST,-isign>(mult_proj_res, res_sum);
 
-
-
-
-
-    		 neighbor = neigh_table.NeighborYPlus(site,target_cb);
-    		 n_idx = neighbor.first;
-    		 permuteP = neighbor.second;
-
-    		 if (permuteP) {
-    			 KokkosProjectDir1Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx);
-    		 }
-    		 else {
-    			 KokkosProjectDir1<ST,VN,TST,-isign>(s_in,proj_res,n_idx);
-    		 }
+    		 // Y - plus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+    		 neigh_table.NeighborYPlus(site, target_cb, n_idx, mask);
+#else
+    		 neigh_table.NeighborYPlus(xcb,y,z,t, n_idx, mask);
+#endif
+    		 KokkosProjectDir1Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx,mask);
     		 mult_u_halfspinor<GT,VN,TST,1>(g_in_target_cb,proj_res,mult_proj_res,site);
     		 KokkosRecons23Dir1<TST,-isign>(mult_proj_res, res_sum);
 
-
-    		 // Z-Plus
-			 neighbor = neigh_table.NeighborZPlus(site,target_cb);
-			 n_idx = neighbor.first;
-			 permuteP = neighbor.second;
-
-			 if( permuteP ) {
-				 KokkosProjectDir2Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx);
-			 }
-			 else {
-				 KokkosProjectDir2<ST,VN,TST,-isign>(s_in,proj_res,n_idx);
-			 }
-
+    		 // Z - plus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+			 neigh_table.NeighborZPlus(site, target_cb, n_idx, mask);
+#else
+			 neigh_table.NeighborZPlus(xcb,y,z,t, n_idx, mask);
+#endif
+			 KokkosProjectDir2Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx,mask);
 			 mult_u_halfspinor<GT,VN,TST,2>(g_in_target_cb,proj_res,mult_proj_res,site);
 			 KokkosRecons23Dir2<TST,-isign>(mult_proj_res, res_sum);
 
-
-			 neighbor = neigh_table.NeighborTPlus(site,target_cb);
-			 n_idx = neighbor.first;
-			 permuteP = neighbor.second;
-
-			 if( permuteP ) {
-				 KokkosProjectDir3Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx);
-			 }
-			 else {
-				 KokkosProjectDir3<ST,VN,TST,-isign>(s_in,proj_res,n_idx);
-			 }
+			 // T - plus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+			 neigh_table.NeighborTPlus(site,target_cb, n_idx, mask);
+#else
+			 neigh_table.NeighborTPlus(xcb,y,z,t, n_idx, mask);
+#endif
+			 KokkosProjectDir3Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx,mask);
 			 mult_u_halfspinor<GT,VN,TST,3>(g_in_target_cb,proj_res,mult_proj_res,site);
 			 KokkosRecons23Dir3<TST,-isign>(mult_proj_res, res_sum);
 
@@ -527,7 +493,7 @@ private:
  public:
 	const LatticeInfo& _info;
 
-	SiteTable _neigh_table;
+	SiteTable<VN> _neigh_table;
 	const int _sites_per_team;
 public:
 

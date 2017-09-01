@@ -4,8 +4,12 @@
 //#ifdef KOKKOS_HAVE_CUDA
 //#include <sm_30_intrinsics.h>
 //#endif
+
+#include "Kokkos_Core.hpp"
 #include "MG_config.h"
+#include "kokkos_defaults.h"
 #include "kokkos_traits.h"
+#include "kokkos_ops.h"
 #include "kokkos_vectype.h"
 #include "lattice/lattice_info.h"
 
@@ -13,7 +17,17 @@
 namespace MG {
 
 
+template<int N>
+struct MaskArray {
+	int _data[N];
 
+	KOKKOS_FORCEINLINE_FUNCTION
+	int& operator()(int i) { return _data[i]; }
+
+	KOKKOS_FORCEINLINE_FUNCTION
+	const int& operator()(int i) const { return _data[i]; }
+
+};
 
 template<typename T, int N>
 struct VNode;
@@ -21,6 +35,13 @@ struct VNode;
 template<typename T>
   struct VNode<T,1> {
   using VecType =  ThreadSIMDComplex<typename BaseType<T>::Type,1>;
+  using MaskType = MaskArray<1>;
+
+  static constexpr MaskType XPermuteMask = {0};
+  static constexpr MaskType YPermuteMask = {0};
+  static constexpr MaskType ZPermuteMask = {0};
+  static constexpr MaskType TPermuteMask = {0};
+  static constexpr MaskType NoPermuteMask = {0};
 
   static constexpr int VecLen = 1 ;
   static constexpr int nDim = 0;
@@ -32,31 +53,14 @@ template<typename T>
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-   VecType permute0(const VecType& vec_in) {
-	  VecType vec_out = vec_in;
- 	  return vec_out;
-   }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-    VecType permute1(const VecType& vec_in){
- 	  VecType vec_out = vec_in;
-  	  return vec_out;
-    }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-    VecType permute2(const VecType& vec_in) {
- 	  VecType vec_out = vec_in;
-  	  return vec_out;
-    }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-    VecType permute3(const VecType& vec_in) {
- 	  VecType vec_out = vec_in;
-  	  return vec_out;
-    }
+  VecType permute(const MaskType& mask, const VecType& vec_in)
+  {
+	  VecType vec_out;
+	  Kokkos::parallel_for(VectorPolicy(VecLen),[&](const int& i){
+		  ComplexCopy( vec_out(i), vec_in( mask(i) ));
+	  });
+	  return vec_out;
+  }
 
  }; // Struct Vector Length = 1
 
@@ -67,6 +71,14 @@ struct VNode<T,2> {
   static constexpr int VecLen =  2;
   static constexpr int NDim = 1;
 
+  using MaskType = MaskArray<2>;
+
+  static constexpr MaskType XPermuteMask  = {0,1};
+  static constexpr MaskType YPermuteMask  = {0,1};
+  static constexpr MaskType ZPermuteMask  = {0,1};
+  static constexpr MaskType TPermuteMask  = {1,0};
+  static constexpr MaskType NoPermuteMask = {0,1};
+
   static constexpr int Dim0 = 1;
   static constexpr int Dim1 = 1;
   static constexpr int Dim2 = 1;
@@ -74,33 +86,15 @@ struct VNode<T,2> {
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-    VecType permute0(const VecType& vec_in) {
- 	  VecType vec_out = vec_in;
-  	  return vec_out;
-    }
-
-  static
-   KOKKOS_FORCEINLINE_FUNCTION
-     VecType permute1(const VecType& vec_in){
-  	  VecType vec_out = vec_in;
-   	  return vec_out;
-     }
-
-  static
-   KOKKOS_FORCEINLINE_FUNCTION
-     VecType permute2(const VecType& vec_in){
-  	  VecType vec_out = vec_in;
-   	  return vec_out;
-     }
-
-   static
-    KOKKOS_FORCEINLINE_FUNCTION
-    VecType permute3(const VecType& vec_in) {
-  	  VecType vec_out;
-	  vec_out(0)=vec_in(1);
-	  vec_out(1)=vec_in(0);
+  VecType permute(const MaskType& mask, const VecType& vec_in)
+  {
+	  VecType vec_out;
+	  Kokkos::parallel_for(VectorPolicy(VecLen),[&](const int& i){
+		  ComplexCopy( vec_out(i), vec_in( mask(i) ));
+	  });
 	  return vec_out;
-    }
+  }
+
 
 }; // Struct Vector Length = 2
 
@@ -119,44 +113,24 @@ struct VNode<T,4> {
   static constexpr int Dim2 = 2;
   static constexpr int Dim3 = 2;
 
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-    VecType permute0(const VecType& vec_in) {
- 	  VecType vec_out = vec_in;
-  	  return vec_out;
-    }
+  using MaskType = MaskArray<4>;
 
-   static
-   KOKKOS_FORCEINLINE_FUNCTION
-     VecType permute1(const VecType& vec_in) {
-  	  VecType vec_out = vec_in;
-   	  return vec_out;
-     }
-
+  static constexpr MaskType XPermuteMask  = {0,1,2,3};
+  static constexpr MaskType YPermuteMask  = {0,1,2,3};
+  static constexpr MaskType ZPermuteMask  = {1,0,3,2};
+  static constexpr MaskType TPermuteMask  = {2,3,0,1};
+  static constexpr MaskType NoPermuteMask = {0,1,2,3};
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  VecType permute2(const VecType& vec_in) {
+  VecType permute(const MaskType& mask, const VecType& vec_in)
+  {
 	  VecType vec_out;
-	  // permute: ab cd -> ba dc
-	  vec_out(0)=vec_in(1);
-	  vec_out(1)=vec_in(0);
-
-	  vec_out(2)=vec_in(3);
-	  vec_out(3)=vec_in(2);
+	  Kokkos::parallel_for(VectorPolicy(VecLen),[&](const int& i){
+		  ComplexCopy( vec_out(i), vec_in( mask(i) ));
+	  });
 	  return vec_out;
   }
-
-   static
-  KOKKOS_FORCEINLINE_FUNCTION
-   VecType permute3(const VecType& vec_in) {
- 	  VecType vec_out;
-	  vec_out(0)=vec_in(2);
-	  vec_out(1)=vec_in(3);
-	  vec_out(2)=vec_in(0);
-	  vec_out(3)=vec_in(1);
-	  return vec_out;
-   }
 
 
 };   // struct vector length = 4
@@ -175,66 +149,22 @@ struct VNode<T,8> {
   static constexpr int Dim2 = 2;
   static constexpr int Dim3 = 2;
 
+  using MaskType = MaskArray<8>;
 
+  static constexpr MaskType NoPermuteMask = {0,1,2,3,4,5,6,7};
+  static constexpr MaskType XPermuteMask  = {0,1,2,3,4,5,6,7};
+  static constexpr MaskType YPermuteMask  = {1,0,3,2,5,4,7,6};
+  static constexpr MaskType ZPermuteMask  = {2,3,0,1,6,7,4,5};
+  static constexpr MaskType TPermuteMask  = {4,5,6,7,0,1,2,3};
 
-   static
-   KOKKOS_FORCEINLINE_FUNCTION
-     VecType permute0(const VecType& vec_in) {
-  	  VecType vec_out = vec_in;
-   	  return vec_out;
-     }
-
-    static
-    KOKKOS_FORCEINLINE_FUNCTION
-    VecType permute3(const VecType& vec_in) {
-  	  VecType vec_out;
-  	  vec_out(0)=vec_in(4);
-  		  vec_out(1)=vec_in(5);
-  		  vec_out(2)=vec_in(6);
-  		  vec_out(3)=vec_in(7);
-  		  vec_out(4)=vec_in(0);
-  		  vec_out(5)=vec_in(1);
-  		  vec_out(6)=vec_in(2);
-  		  vec_out(7)=vec_in(3);
-
-	  return vec_out;
-    }
-
-    static
+  static
   KOKKOS_FORCEINLINE_FUNCTION
-  VecType permute2(const VecType& vec_in)
+  VecType permute(const MaskType& mask, const VecType& vec_in)
   {
 	  VecType vec_out;
-	  // permute: ab cd -> ba dc
-	  vec_out(0)=vec_in(2);
-	  vec_out(1)=vec_in(3);
-	  vec_out(2)=vec_in(0);
-	  vec_out(3)=vec_in(1);
-
-	  vec_out(4)=vec_in(6);
-	  vec_out(5)=vec_in(7);
-	  vec_out(6)=vec_in(4);
-	  vec_out(7)=vec_in(5);
-	  return vec_out;
-  }
-
-   static
-  KOKKOS_FORCEINLINE_FUNCTION
-  VecType permute1(const VecType& vec_in)
-  {
-	  VecType vec_out;
-	  // permute: ab cd -> ba dc
-	  vec_out(0)=vec_in(1);
-	  vec_out(1)=vec_in(0);
-
-	  vec_out(2)=vec_in(3);
-	  vec_out(3)=vec_in(2);
-
-	  vec_out(4)=vec_in(5);
-	  vec_out(5)=vec_in(4);
-
-	  vec_out(6)=vec_in(7);
-	  vec_out(7)=vec_in(6);
+	  Kokkos::parallel_for(VectorPolicy(VecLen),[&](const int& i){
+		  ComplexCopy( vec_out(i), vec_in( mask(i) ));
+	  });
 	  return vec_out;
   }
 
@@ -249,7 +179,6 @@ struct VNode<T,8> {
 
 namespace MG {
 
-
 template<>
 struct VNode<MGComplex<float>,8> {
 
@@ -263,41 +192,24 @@ struct VNode<MGComplex<float>,8> {
   static constexpr int Dim2 = 2;
   static constexpr int Dim3 = 2;
 
+  using MaskType = __m512i;
+
+  // These initializations rely on __m512i being a union type
+  static constexpr MaskType NoPermuteMask = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+  static constexpr MaskType XPermuteMask = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+  static constexpr MaskType YPermuteMask = {2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13};
+  static constexpr MaskType ZPermuteMask = {4,5,6,7,0,1,2,3,12,13,14,15,8,9,10,11};
+  static constexpr MaskType TPermuteMask = {8,9,10,11,12,13,14,15,0,1,2,3,4,5,6,7};
 
   static
   KOKKOS_FORCEINLINE_FUNCTION
-  VecType permute0(const VecType& vec_in)  {
-	  VecType vec_out;
-	  vec_out._vdata=vec_in._vdata;
-	  return vec_out;
+  VecType permute(const MaskType& mask, const VecType& vec_in)
+  {
+	VecType vec_out;
+	vec_out._vdata = _mm512_permutexvar_ps(mask, vec_in._vdata);
+	return vec_out;
   }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  VecType permute3(const VecType& vec_in)  {
-	  VecType vec_out;
-	  vec_out._vdata = _mm512_permutexvar_ps(_mm512_set_epi32(7,6,5,4,3,2,1,0,15,14,13,12,11,10,9,8), vec_in._vdata);
-	  return vec_out;
-  }
-
-  static
-  KOKKOS_FORCEINLINE_FUNCTION
-  VecType permute2(const VecType& vec_in)  {
-	  VecType vec_out;
-	  vec_out._vdata = _mm512_permutexvar_ps(_mm512_set_epi32(11,10,9,8,15,14,13,12,3,2,1,0,7,6,5,4), vec_in._vdata);
-	  return vec_out;
-  }
-
-static
-   KOKKOS_FORCEINLINE_FUNCTION
-   VecType permute1(const VecType& vec_in)  {
-	  VecType vec_out;
-	  vec_out._vdata = _mm512_permutexvar_ps(_mm512_set_epi32(13,12,15,14,9,8,11,10,5,4,7,6,1,0,3,2), vec_in._vdata);
- 	  return vec_out;
-   }
-
 }; // struct vector length = 8
-
 
 } // Namespace
 #endif // AVX512

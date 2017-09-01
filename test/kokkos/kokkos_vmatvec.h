@@ -22,7 +22,8 @@ namespace MG
 	KOKKOS_FORCEINLINE_FUNCTION
 	void mult_u_halfspinor(const VGaugeView<GT,VN>& gauge_in,
 			const HalfSpinorSiteView<ST>& v_in,
-			HalfSpinorSiteView<ST>& v_out, int i)
+			HalfSpinorSiteView<ST>& v_out,
+			const int& i)
 	{
 
 		for(int row=0; row < 3; ++row) {
@@ -42,11 +43,13 @@ namespace MG
 	}
 
 	// Permute Versions
-	template<typename GT, typename VN, typename ST>
+	template<typename GT, typename VN, typename ST, int dir>
 	KOKKOS_FORCEINLINE_FUNCTION
-	void mult_u_halfspinor0_perm(const VGaugeView<GT,VN>& gauge_in,
+	void mult_u_halfspinor_perm(const VGaugeView<GT,VN>& gauge_in,
 			const HalfSpinorSiteView<ST>& v_in,
-			HalfSpinorSiteView<ST>& v_out, int i)
+			HalfSpinorSiteView<ST>& v_out,
+			const int& i,
+			const typename VN::MaskType& mask)
 	{
 
 		for(int row=0; row < 3; ++row) {
@@ -57,83 +60,13 @@ namespace MG
 
 			for(int col=0; col < 3; ++col) {
 				for(int spin = 0; spin < 2; ++spin) {
-					ComplexCMadd(v_out(row,spin), VN::permute0(gauge_in(i,0,row,col)), v_in(col,spin));
+					ComplexCMadd(v_out(row,spin), VN::permute(mask,gauge_in(i,dir,row,col)), v_in(col,spin));
 				}
 			}
 		}
 
 
 	}
-
-	template<typename GT, typename VN, typename ST>
-	KOKKOS_FORCEINLINE_FUNCTION
-	void mult_u_halfspinor1_perm(const VGaugeView<GT,VN>& gauge_in,
-			const HalfSpinorSiteView<ST>& v_in,
-			HalfSpinorSiteView<ST>& v_out, int i)
-	{
-
-		for(int row=0; row < 3; ++row) {
-
-			for(int spin = 0; spin < 2; ++spin) {
-				ComplexZero(v_out(row,spin));
-			}
-
-			for(int col=0; col < 3; ++col) {
-				for(int spin = 0; spin < 2; ++spin) {
-					ComplexCMadd(v_out(row,spin), VN::permute1(gauge_in(i,1,row,col)), v_in(col,spin));
-				}
-			}
-		}
-
-
-	}
-
-	template<typename GT, typename VN, typename ST>
-	KOKKOS_FORCEINLINE_FUNCTION
-	void mult_u_halfspinor2_perm(const VGaugeView<GT,VN>& gauge_in,
-			const HalfSpinorSiteView<ST>& v_in,
-			HalfSpinorSiteView<ST>& v_out, int i)
-	{
-
-		for(int row=0; row < 3; ++row) {
-
-			for(int spin = 0; spin < 2; ++spin) {
-				ComplexZero(v_out(row,spin));
-			}
-
-			for(int col=0; col < 3; ++col) {
-				for(int spin = 0; spin < 2; ++spin) {
-					ComplexCMadd(v_out(row,spin), VN::permute2(gauge_in(i,2,row,col)), v_in(col,spin));
-				}
-			}
-		}
-
-
-	}
-
-	template<typename GT, typename VN, typename ST>
-	KOKKOS_FORCEINLINE_FUNCTION
-	void mult_u_halfspinor3_perm(const VGaugeView<GT,VN>& gauge_in,
-			const HalfSpinorSiteView<ST>& v_in,
-			HalfSpinorSiteView<ST>& v_out, int i)
-	{
-
-		for(int row=0; row < 3; ++row) {
-
-			for(int spin = 0; spin < 2; ++spin) {
-				ComplexZero(v_out(row,spin));
-			}
-
-			for(int col=0; col < 3; ++col) {
-				for(int spin = 0; spin < 2; ++spin) {
-					ComplexCMadd(v_out(row,spin), VN::permute3(gauge_in(i,3,row,col)), v_in(col,spin));
-				}
-			}
-		}
-
-
-	}
-
 
 
 
@@ -144,7 +77,8 @@ namespace MG
 	KOKKOS_FORCEINLINE_FUNCTION
 	void mult_adj_u_halfspinor(const VGaugeView<GT,VN>& gauge_in,
 			const HalfSpinorSiteView<ST>& v_in,
-			HalfSpinorSiteView<ST>& v_out, int i)
+			HalfSpinorSiteView<ST>& v_out,
+			const int& i)
 	{
 
 				for(int row=0; row < 3; ++row) {
@@ -165,11 +99,13 @@ namespace MG
 
 	}
 
-	template<typename GT, typename VN, typename ST>
+	template<typename GT, typename VN, typename ST, int dir>
 	KOKKOS_FORCEINLINE_FUNCTION
-	void mult_adj_u_halfspinor0_perm(const VGaugeView<GT,VN>& gauge_in,
+	void mult_adj_u_halfspinor_perm(const VGaugeView<GT,VN>& gauge_in,
 			const HalfSpinorSiteView<ST>& v_in,
-			HalfSpinorSiteView<ST>& v_out, int i)
+			HalfSpinorSiteView<ST>& v_out,
+			const int& i,
+			const typename VN::MaskType& mask)
 	{
 
 				for(int row=0; row < 3; ++row) {
@@ -182,7 +118,7 @@ namespace MG
 				for(int col=0; col < 3; ++col) {
 				  for(int row=0; row < 3; ++row) {
 				    for(int spin=0; spin < 2; ++spin) {
-				      ComplexConjMadd(v_out(row,spin), VN::permute0(gauge_in(i,0,col,row)), v_in(col,spin));
+				      ComplexConjMadd(v_out(row,spin), VN::permute(mask,gauge_in(i,dir,col,row)), v_in(col,spin));
 				    }
 				  }
 				}
@@ -190,80 +126,7 @@ namespace MG
 
 	}
 
-	template<typename GT, typename VN, typename ST>
-	KOKKOS_FORCEINLINE_FUNCTION
-	void mult_adj_u_halfspinor1_perm(const VGaugeView<GT,VN>& gauge_in,
-			const HalfSpinorSiteView<ST>& v_in,
-			HalfSpinorSiteView<ST>& v_out, int i)
-	{
 
-				for(int row=0; row < 3; ++row) {
-					for(int spin = 0; spin < 2; ++spin) {
-
-						ComplexZero(v_out(row,spin));
-					}
-				}
-
-				for(int col=0; col < 3; ++col) {
-				  for(int row=0; row < 3; ++row) {
-				    for(int spin=0; spin < 2; ++spin) {
-				      ComplexConjMadd(v_out(row,spin), VN::permute1(gauge_in(i,1,col,row)), v_in(col,spin));
-				    }
-				  }
-				}
-
-
-	}
-
-	template<typename GT, typename VN, typename ST>
-	KOKKOS_FORCEINLINE_FUNCTION
-	void mult_adj_u_halfspinor2_perm(const VGaugeView<GT,VN>& gauge_in,
-			const HalfSpinorSiteView<ST>& v_in,
-			HalfSpinorSiteView<ST>& v_out, int i)
-	{
-
-				for(int row=0; row < 3; ++row) {
-					for(int spin = 0; spin < 2; ++spin) {
-
-						ComplexZero(v_out(row,spin));
-					}
-				}
-
-				for(int col=0; col < 3; ++col) {
-				  for(int row=0; row < 3; ++row) {
-				    for(int spin=0; spin < 2; ++spin) {
-				      ComplexConjMadd(v_out(row,spin), VN::permute2(gauge_in(i,2,col,row)), v_in(col,spin));
-				    }
-				  }
-				}
-
-
-	}
-
-	template<typename GT, typename VN, typename ST>
-	KOKKOS_FORCEINLINE_FUNCTION
-	void mult_adj_u_halfspinor3_perm(const VGaugeView<GT,VN>& gauge_in,
-			const HalfSpinorSiteView<ST>& v_in,
-			HalfSpinorSiteView<ST>& v_out, int i)
-	{
-
-				for(int row=0; row < 3; ++row) {
-					for(int spin = 0; spin < 2; ++spin) {
-
-						ComplexZero(v_out(row,spin));
-					}
-				}
-
-				for(int col=0; col < 3; ++col) {
-				  for(int row=0; row < 3; ++row) {
-				    for(int spin=0; spin < 2; ++spin) {
-				      ComplexConjMadd(v_out(row,spin), VN::permute3(gauge_in(i,3,col,row)), v_in(col,spin));
-				    }
-				  }
-				}
-
-
-	}
 	template<typename GT, typename VN, typename TGT, typename ST, typename TST>
 	void KokkosMVLattice(const KokkosCBFineVGaugeField<GT,VN>& u_in,
 			const KokkosCBFineVSpinor<ST,VN,2>& hspinor_in,

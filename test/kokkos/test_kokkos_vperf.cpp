@@ -33,7 +33,7 @@ using namespace MGTesting;
 
 TEST(TestKokkos, TestDslash)
 {
-	IndexArray latdims={{24,24,24,256}};
+	IndexArray latdims={{32,32,32,32}};
 	int iters = 200;
 
 	initQDPXXLattice(latdims);
@@ -102,7 +102,7 @@ TEST(TestKokkos, TestDslash)
 TEST(TestKokkos, TestDslashTime)
 {
 	IndexArray latdims={{32,32,32,32}};
-	int iters =1000;
+	int iters =50;
 
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
@@ -132,7 +132,7 @@ TEST(TestKokkos, TestDslashTime)
 	QDPLatticeFermionToKokkosCBVSpinor(psi_in, kokkos_spinor_even);
 
 	// for(int per_team=1; per_team < 256; per_team *=2 ) {
-	int per_team = 2;
+	int per_team = 8;
 	KokkosVDslash<VN,
 	MGComplex<REAL32>,
 	MGComplex<REAL32>,
