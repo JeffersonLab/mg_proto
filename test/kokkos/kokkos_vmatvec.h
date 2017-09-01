@@ -26,13 +26,18 @@ namespace MG
 			const int& i)
 	{
 
+#pragma unroll
 		for(int row=0; row < 3; ++row) {
 
+#pragma unroll
 			for(int spin = 0; spin < 2; ++spin) {
 				ComplexZero(v_out(row,spin));
 			}
 
+#pragma unroll
 			for(int col=0; col < 3; ++col) {
+
+#pragma unroll
 				for(int spin = 0; spin < 2; ++spin) {
 					ComplexCMadd(v_out(row,spin), gauge_in(i,dir,row,col), v_in(col,spin));
 				}
@@ -52,13 +57,18 @@ namespace MG
 			const typename VN::MaskType& mask)
 	{
 
+#pragma unroll
 		for(int row=0; row < 3; ++row) {
 
+#pragma unroll
 			for(int spin = 0; spin < 2; ++spin) {
 				ComplexZero(v_out(row,spin));
 			}
 
+#pragma unroll
 			for(int col=0; col < 3; ++col) {
+
+#pragma unroll
 				for(int spin = 0; spin < 2; ++spin) {
 					ComplexCMadd(v_out(row,spin), VN::permute(mask,gauge_in(i,dir,row,col)), v_in(col,spin));
 				}
@@ -81,15 +91,23 @@ namespace MG
 			const int& i)
 	{
 
+#pragma unroll
 				for(int row=0; row < 3; ++row) {
+
+#pragma unroll
 					for(int spin = 0; spin < 2; ++spin) {
 
 						ComplexZero(v_out(row,spin));
 					}
 				}
 
+#pragma unroll
 				for(int col=0; col < 3; ++col) {
+
+#pragma unroll
 				  for(int row=0; row < 3; ++row) {
+
+#pragma unroll
 				    for(int spin=0; spin < 2; ++spin) {
 				      ComplexConjMadd(v_out(row,spin), gauge_in(i,dir,col,row), v_in(col,spin));
 				    }
@@ -108,15 +126,23 @@ namespace MG
 			const typename VN::MaskType& mask)
 	{
 
+#pragma unroll
 				for(int row=0; row < 3; ++row) {
+
+#pragma unroll
 					for(int spin = 0; spin < 2; ++spin) {
 
 						ComplexZero(v_out(row,spin));
 					}
 				}
 
+#pragma unroll
 				for(int col=0; col < 3; ++col) {
+
+#pragma unroll
 				  for(int row=0; row < 3; ++row) {
+
+#pragma unroll
 				    for(int spin=0; spin < 2; ++spin) {
 				      ComplexConjMadd(v_out(row,spin), VN::permute(mask,gauge_in(i,dir,col,row)), v_in(col,spin));
 				    }

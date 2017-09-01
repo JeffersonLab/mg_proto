@@ -102,7 +102,7 @@ TEST(TestKokkos, TestDslash)
 TEST(TestKokkos, TestDslashTime)
 {
 	IndexArray latdims={{32,32,32,32}};
-	int iters =50;
+	int iters =2000;
 
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
@@ -141,7 +141,8 @@ TEST(TestKokkos, TestDslashTime)
 
 	MasterLog(INFO, "per_team=%d", per_team);
 	for(int rep=0; rep < 4; ++rep ) {
-		for(int isign=-1; isign < 2; isign+=2) {
+		int isign = 1;
+		//for(int isign=-1; isign < 2; isign+=2) {
 			// Time it.
 			double start_time = omp_get_wtime();
 			for(int i=0; i < iters; ++i) {
@@ -163,7 +164,7 @@ TEST(TestKokkos, TestDslashTime)
 
 
 
-		} // isign
+		// } // isign
 		MasterLog(INFO,"");
 	} // rep
 }
