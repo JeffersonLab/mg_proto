@@ -26,7 +26,7 @@ using namespace MGTesting;
 using namespace QDP;
 
 #ifdef KOKKOS_HAVE_CUDA
-static constexpr int VectorLenght=1;
+static constexpr int VectorLength=1;
 #else
 static constexpr int VectorLength=8;
 #endif

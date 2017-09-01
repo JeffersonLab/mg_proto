@@ -85,7 +85,8 @@ namespace MG {
 
       KOKKOS_INLINE_FUNCTION
 	complex<float>( const complex<float>& src ) {
-	(*this) = src;
+	x = src.x;
+        y = src.y;
       }
 
       KOKKOS_INLINE_FUNCTION

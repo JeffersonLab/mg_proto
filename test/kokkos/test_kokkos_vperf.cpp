@@ -102,7 +102,7 @@ TEST(TestKokkos, TestDslash)
 TEST(TestKokkos, TestDslashTime)
 {
 	IndexArray latdims={{32,32,32,32}};
-	int iters =2000;
+	int iters=25;
 
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
@@ -132,7 +132,7 @@ TEST(TestKokkos, TestDslashTime)
 	QDPLatticeFermionToKokkosCBVSpinor(psi_in, kokkos_spinor_even);
 
 	// for(int per_team=1; per_team < 256; per_team *=2 ) {
-	int per_team = 8;
+	int per_team = 32;
 	KokkosVDslash<VN,
 	MGComplex<REAL32>,
 	MGComplex<REAL32>,
