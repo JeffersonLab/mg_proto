@@ -183,6 +183,13 @@ struct VNode<T,8> {
 
 namespace MG {
 
+struct PermMaskAVX512 {
+ union { 
+   unsigned int maskdata[16];
+   __m512i maskvalue;
+ };
+};
+
 template<>
 struct VNode<MGComplex<float>,8> {
 
@@ -197,7 +204,7 @@ struct VNode<MGComplex<float>,8> {
   static constexpr int Dim2 = 2;
   static constexpr int Dim3 = 2;
 
-  using MaskType = __m512i;
+  using MaskType = PermMaskAVX512;
 
   // These initializations rely on __m512i being a union type
   static constexpr MaskType NoPermuteMask = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
@@ -211,7 +218,7 @@ struct VNode<MGComplex<float>,8> {
   VecType permute(const MaskType& mask, const VecTypeGlobal& vec_in)
   {
 	VecType vec_out;
-	vec_out._vdata = _mm512_permutexvar_ps(mask, vec_in._vdata);
+	vec_out._vdata = _mm512_permutexvar_ps(mask.maskvalue, vec_in._vdata);
 	return vec_out;
   }
 }; // struct vector length = 8

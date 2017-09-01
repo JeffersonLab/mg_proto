@@ -685,7 +685,8 @@ template<>
 		      const SIMDComplex<float,8>& source)
   {
     void* dest = reinterpret_cast<void*>(&(result._data[0]));
-    _mm512_stream_ps(dest,source._vdata);
+     _mm512_stream_ps(dest,source._vdata);
+   // _mm512_store_ps(dest,source._vdata);
   }
   
 
