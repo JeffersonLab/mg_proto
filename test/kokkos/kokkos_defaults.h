@@ -58,6 +58,9 @@ using ThreadExecPolicy = Kokkos::TeamPolicy<ExecSpace>;
 
 using TeamHandle =  ThreadExecPolicy::member_type;
 using VectorPolicy = Kokkos::Impl::ThreadVectorRangeBoundariesStruct<int,TeamHandle>;
+
+  // Try an N-dimensional threading policy for cache blocking
+ using MDPolicy =  Kokkos::Experimental::MDRangePolicy<Kokkos::Experimental::Rank<4,Kokkos::Experimental::Iterate::Left,Kokkos::Experimental::Iterate::Left>>;
   
 }
 

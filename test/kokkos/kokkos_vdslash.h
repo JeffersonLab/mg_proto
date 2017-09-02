@@ -184,7 +184,15 @@ public:
 		mask = lookup.second;
 	}
 
+	KOKKOS_FORCEINLINE_FUNCTION
+	int  coords_to_idx(const int& xcb, const int& y, const int& z, const int& t) const
+	{
+	  return xcb+_n_xh*(y + _n_y*(z + _n_z*t));
+	}
+
+
 #else
+
 
 	KOKKOS_FORCEINLINE_FUNCTION
 	void idx_to_coords(int site, int& xcb, int& y, int& z, int& t) const
@@ -360,25 +368,19 @@ private:
      VGaugeView<GT,VN> g_in_src_cb;
      VGaugeView<GT,VN> g_in_target_cb;
      VSpinorView<ST,VN> s_out;
-     int num_sites;
-     int sites_per_team;
      SiteTable<VN> neigh_table;
 
      KOKKOS_FORCEINLINE_FUNCTION
-	 void operator()(const TeamHandle& team) const {
-    	 const int start_idx = team.league_rank()*sites_per_team;
-    	 const int end_idx = start_idx + sites_per_team  < num_sites ? start_idx + sites_per_team : num_sites;
-
-    	 Kokkos::parallel_for(Kokkos::TeamThreadRange(team,start_idx,end_idx),[=](const int site) {
-
-#ifndef MG_KOKKOS_USE_NEIGHBOR_TABLE
-    		 int xcb, y, z, t;
-    		 neigh_table.idx_to_coords(site, xcb, y, z, t);
+       void operator()(const int& xcb, const int& y, const int& z, const int& t) const
+     {
+#ifdef MG_KOKKOS_USE_NEIGHBOR_TABLE
+       int site = neigh_table.coords_to_idx(xcb,y,z,t);
 #endif
-    		 int n_idx;
-    		 typename VN::MaskType mask;
 
-    		 // Warning: GCC Alignment Attribute!
+       int n_idx;
+       typename VN::MaskType mask;
+     
+      // Warning: GCC Alignment Attribute!
     		 // Site Sum: Not a true Kokkos View
     		 SpinorSiteView<TST> res_sum __attribute__((aligned(64)));
     		 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
@@ -480,9 +482,7 @@ private:
 					 Stream(s_out(site,color,spin),res_sum(color,spin));
 				 }
 			 }
-#if 1
-    	 });
-#endif
+
      }
 
      
@@ -492,14 +492,11 @@ private:
    class KokkosVDslash {
  public:
 	const LatticeInfo& _info;
-
 	SiteTable<VN> _neigh_table;
-	const int _sites_per_team;
 public:
 
  KokkosVDslash(const LatticeInfo& info, int sites_per_team=1) : _info(info),
-	  _neigh_table(info.GetCBLatticeDimensions()[0],info.GetCBLatticeDimensions()[1],info.GetCBLatticeDimensions()[2],info.GetCBLatticeDimensions()[3]),
-	  _sites_per_team(sites_per_team)
+	  _neigh_table(info.GetCBLatticeDimensions()[0],info.GetCBLatticeDimensions()[1],info.GetCBLatticeDimensions()[2],info.GetCBLatticeDimensions()[3])
 	  {}
 	
 	void operator()(const KokkosCBFineVSpinor<ST,VN,4>& fine_in,
@@ -513,33 +510,32 @@ public:
 	  const VGaugeView<GT,VN>& g_in_src_cb = (gauge_in(source_cb)).GetData();
 	  const VGaugeView<GT,VN>&  g_in_target_cb = (gauge_in(target_cb)).GetData();
 	  VSpinorView<ST,VN>& s_out = fine_out.GetData();
-	  const int num_sites = _info.GetNumCBSites();
 
-	  ThreadExecPolicy policy(num_sites/_sites_per_team,Kokkos::AUTO(), 1);
+	  IndexArray cb_latdims = _info.GetCBLatticeDimensions();
+	  MDPolicy policy({0,0,0,0},{cb_latdims[0],cb_latdims[1],cb_latdims[2],cb_latdims[3]});
 	  if( plus_minus == 1 ) {
 	    if (target_cb == 0 ) {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
-	    		  num_sites, _sites_per_team,_neigh_table};
+	    		  _neigh_table};
 	      Kokkos::parallel_for(policy, f); // Outer Lambda
-	      // Kokkos::parallel_for(num_sites,f);
+
 	    }
 	    else {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,1,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
-	    		  num_sites, _sites_per_team, _neigh_table};
+	    		   _neigh_table};
 	      Kokkos::parallel_for(policy, f); // Outer Lambda
-	      // Kokkos::parallel_for(num_sites,f);
 	    }
 	  }
 	  else {
 	    if( target_cb == 0 ) { 
 	      VDslashFunctor<VN,GT,ST,TGT,TST,-1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
-	    		  num_sites, _sites_per_team, _neigh_table};
+	    		  _neigh_table};
 	      Kokkos::parallel_for(policy, f); // Outer Lambda
 	      // Kokkos::parallel_for(num_sites,f);
 	    }
 	    else {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,-1,1> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
-	    		  num_sites, _sites_per_team, _neigh_table };
+	    		  _neigh_table };
 	      Kokkos::parallel_for(policy, f); // Outer Lambda
 	      // Kokkos::parallel_for(num_sites,f);
 	    }
