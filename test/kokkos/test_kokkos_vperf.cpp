@@ -30,10 +30,10 @@ using namespace QDP;
 using namespace MG;
 using namespace MGTesting;
 
-
+#if 0
 TEST(TestKokkos, TestDslash)
 {
-	IndexArray latdims={{8,16,16,16}};
+	IndexArray latdims={{32,32,32,32}};
 	int iters = 100;
 
 	initQDPXXLattice(latdims);
@@ -98,11 +98,12 @@ TEST(TestKokkos, TestDslash)
 		} // isign
 	} // per team
 }
+#endif
 
 TEST(TestKokkos, TestDslashTime)
 {
-	IndexArray latdims={{8,16,16,16}};
-	int iters=10000;
+	IndexArray latdims={{32,32,32,32}};
+	int iters=1000;
 
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);

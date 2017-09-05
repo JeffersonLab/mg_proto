@@ -762,7 +762,7 @@ TEST(TestKokkos, TestVSpinProject)
 
 TEST(TestKokkos, TestDslash)
 {
-  IndexArray latdims={{8,8,8,8}};
+  IndexArray latdims={{24,24,24,64}};
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
 	for(int mu=0; mu < n_dim; ++mu) {
@@ -829,8 +829,8 @@ TEST(TestKokkos, TestDslash)
 				       for(int color=0; color < 3; ++color ) { 
 					 REAL32 re=std::abs(psi_out.elem(qdp_idx).elem(spin).elem(color).real());
 					 REAL32 im=std::abs(psi_out.elem(qdp_idx).elem(spin).elem(color).imag());
-					 ASSERT_LT( re, 2.5e-6);
-					 ASSERT_LT( im, 2.5e-6 );
+					 ASSERT_LT( re, 3.5e-6);
+					 ASSERT_LT( im, 3.5e-6 );
 				       }
 				     }
 				   });

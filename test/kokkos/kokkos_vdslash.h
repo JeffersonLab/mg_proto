@@ -126,6 +126,12 @@ public:
 #endif
 	}
 
+	  KOKKOS_FORCEINLINE_FUNCTION
+	  	int  coords_to_idx(const int& xcb, const int& y, const int& z, const int& t) const
+	  	{
+	  	  return xcb+_n_xh*(y + _n_y*(z + _n_z*t));
+	  	}
+
 
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
 	KOKKOS_FORCEINLINE_FUNCTION
@@ -184,11 +190,6 @@ public:
 		mask = lookup.second;
 	}
 
-	KOKKOS_FORCEINLINE_FUNCTION
-	int  coords_to_idx(const int& xcb, const int& y, const int& z, const int& t) const
-	{
-	  return xcb+_n_xh*(y + _n_y*(z + _n_z*t));
-	}
 
 
 #else
@@ -373,9 +374,8 @@ private:
      KOKKOS_FORCEINLINE_FUNCTION
        void operator()(const int& xcb, const int& y, const int& z, const int& t) const
      {
-#ifdef MG_KOKKOS_USE_NEIGHBOR_TABLE
+
        int site = neigh_table.coords_to_idx(xcb,y,z,t);
-#endif
 
        int n_idx;
        typename VN::MaskType mask;
@@ -512,7 +512,9 @@ public:
 	  VSpinorView<ST,VN>& s_out = fine_out.GetData();
 
 	  IndexArray cb_latdims = _info.GetCBLatticeDimensions();
-	  MDPolicy policy({0,0,0,0},{cb_latdims[0],cb_latdims[1],cb_latdims[2],cb_latdims[3]});
+	  MDPolicy policy({0,0,0,0},
+			  	  {cb_latdims[0],cb_latdims[1],cb_latdims[2],cb_latdims[3]},
+	  	  	  	  {3,3,3,cb_latdims[3]/4});
 	  if( plus_minus == 1 ) {
 	    if (target_cb == 0 ) {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,
