@@ -740,15 +740,11 @@ ComplexCMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res,
 	     const MGComplex<float>& a,
 	     const SIMDComplex<float,8>& b)
 {
-  __m512 avec_re = _mm512_set1_ps( a.real() );
-  __m512 avec_im = _mm512_set1_ps( a.imag() );
-  
-  __m512 sgnvec = _mm512_set_ps( 1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1);
-  __m512 perm_b = _mm512_mul_ps(sgnvec,_mm512_shuffle_ps(b._vdata,b._vdata,0xb1));
-		
- 
-  res._vdata = _mm512_fmadd_ps( avec_re, b._vdata, res._vdata);
-  res._vdata = _mm512_fmadd_ps( avec_im,perm_b, res._vdata);
+  __m512 a_vec_re = _mm512_set1_ps( a.real() );
+  __m512 a_vec_im = _mm512_set1_ps( a.imag() );
+  __m512 b_perm = _mm512_shuffle_ps( b._vdata, b._vdata,0xb1 );
+  __m512 t = _mm512_fmaddsub_ps( a_vec_im, b_perm, res._vdata);
+  res._vdata = _mm512_fmaddsub_ps( a_vec_re, b._vdata, t );
 }
 
   template<>
@@ -757,12 +753,13 @@ void
   ComplexConjMadd<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& res, const MGComplex<float>& a,
 		const SIMDComplex<float,8>& b)
 {
-  __m512 sgnvec2 = _mm512_set_ps(-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1);
-  __m512 avec_re = _mm512_set1_ps( a.real() );
-  __m512 avec_im = _mm512_set1_ps( a.imag() );
-  __m512 perm_b = _mm512_mul_ps(sgnvec2,_mm512_shuffle_ps(b._vdata,b._vdata,0xb1));
-  res._vdata = _mm512_fmadd_ps( avec_re, b._vdata, res._vdata);
-  res._vdata = _mm512_fmadd_ps( avec_im, perm_b, res._vdata);
+
+  __m512 a_vec_re = _mm512_set1_ps( a.real() );
+  __m512 a_vec_im = _mm512_set1_ps( a.imag() );
+  __m512 b_perm = _mm512_shuffle_ps(b._vdata,b._vdata, 0xb1);
+  __m512 t = _mm512_fmsubadd_ps(a_vec_im, b_perm, res._vdata);
+  res._vdata = _mm512_fmsubadd_ps( a_vec_re, b._vdata, t);
+
 }
 
 
@@ -773,7 +770,7 @@ ComplexCMadd<float,8,SIMDComplex,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& 
 		      const SIMDComplex<float,8>& a, 
 		      const SIMDComplex<float,8>& b)
 {
-
+#if 0
   __m512 avec_re = _mm512_shuffle_ps( a._vdata, a._vdata, 0xa0 );
   __m512 avec_im = _mm512_shuffle_ps( a._vdata, a._vdata, 0xf5 );
   
@@ -782,7 +779,13 @@ ComplexCMadd<float,8,SIMDComplex,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& 
 
   res._vdata = _mm512_fmadd_ps( avec_re, b._vdata, res._vdata);
   res._vdata = _mm512_fmadd_ps( avec_im, perm_b, res._vdata);
-
+#else
+  __m512 a_vec_re = _mm512_shuffle_ps( a._vdata, a._vdata, 0xa0 );
+  __m512 a_vec_im = _mm512_shuffle_ps( a._vdata, a._vdata, 0xf5 );
+  __m512 b_perm = _mm512_shuffle_ps( b._vdata, b._vdata,0xb1 );
+  __m512 t = _mm512_fmaddsub_ps( a_vec_im, b_perm, res._vdata);
+  res._vdata = _mm512_fmaddsub_ps( a_vec_re, b._vdata, t );
+#endif
 }
 
 template<>
@@ -792,14 +795,12 @@ ComplexConjMadd<float,8,SIMDComplex,SIMDComplex,SIMDComplex>(SIMDComplex<float,8
 		const SIMDComplex<float,8>& a,
 		const SIMDComplex<float,8>& b)
 {
+  __m512 a_vec_re = _mm512_shuffle_ps( a._vdata, a._vdata, 0xa0 );
+  __m512 a_vec_im = _mm512_shuffle_ps( a._vdata, a._vdata, 0xf5 );
+  __m512 b_perm = _mm512_shuffle_ps(b._vdata,b._vdata, 0xb1);
+  __m512 t = _mm512_fmsubadd_ps(a_vec_im, b_perm, res._vdata);
+  res._vdata = _mm512_fmsubadd_ps( a_vec_re, b._vdata, t);
 
-  __m512 sgnvec2 = _mm512_set_ps(-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1);
-  __m512 avec_re = _mm512_shuffle_ps( a._vdata, a._vdata, 0xa0 );
-  __m512 avec_im = _mm512_shuffle_ps( a._vdata, a._vdata, 0xf5 );
-  __m512 perm_b = _mm512_mul_ps(sgnvec2,_mm512_shuffle_ps(b._vdata,b._vdata,0xb1));
-
-  res._vdata = _mm512_fmadd_ps( avec_re, b._vdata, res._vdata);
-  res._vdata = _mm512_fmadd_ps( avec_im, perm_b, res._vdata);
 }
 
 template<>
@@ -810,9 +811,8 @@ void A_add_sign_iB<float,8,SIMDComplex,SIMDComplex,SIMDComplex>( SIMDComplex<flo
 			     const SIMDComplex<float,8>& b)
 {
   __m512 perm_b = _mm512_shuffle_ps( b._vdata, b._vdata, 0xb1);
-  __m512 sgnvec = _mm512_mul_ps( _mm512_set_ps(1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1),
-				 _mm512_set1_ps(sign) );
-  res._vdata = _mm512_fmadd_ps( sgnvec,perm_b, a._vdata);
+  __m512 sgnvec = _mm512_set1_ps(sign);
+  res._vdata = _mm512_mul_ps(sgnvec,_mm512_fmaddsub_ps( sgnvec, a._vdata, perm_b));
 }
 
 
@@ -824,11 +824,8 @@ void A_peq_sign_miB<float,8,SIMDComplex,SIMDComplex>( SIMDComplex<float,8>& a,
 			      const SIMDComplex<float,8>& b)
 {
   __m512 perm_b = _mm512_shuffle_ps( b._vdata, b._vdata, 0xb1);
-  __m512 sgnvec2 = _mm512_mul_ps(
-				 _mm512_set_ps(-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1),
-				 _mm512_set1_ps(sign) );
-
-  a._vdata = _mm512_fmadd_ps(sgnvec2,perm_b,a._vdata);
+  __m512 sgnvec =_mm512_set1_ps(sign);
+  a._vdata = _mm512_mul_ps( sgnvec, _mm512_fmsubadd_ps(sgnvec, a._vdata, perm_b));
 }
 
 #endif

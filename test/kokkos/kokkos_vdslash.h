@@ -502,7 +502,7 @@ public:
 	void operator()(const KokkosCBFineVSpinor<ST,VN,4>& fine_in,
 			const KokkosFineVGaugeField<GT,VN>& gauge_in,
 			KokkosCBFineVSpinor<ST,VN,4>& fine_out,
-		      int plus_minus) const
+		      int plus_minus, const IndexArray& blocks) const
 	{
 	  int source_cb = fine_in.GetCB();
 	  int target_cb = (source_cb == EVEN) ? ODD : EVEN;
@@ -514,7 +514,8 @@ public:
 	  IndexArray cb_latdims = _info.GetCBLatticeDimensions();
 	  MDPolicy policy({0,0,0,0},
 			  	  {cb_latdims[0],cb_latdims[1],cb_latdims[2],cb_latdims[3]},
-	  	  	  	  {3,3,3,cb_latdims[3]/4});
+			  	  {blocks[0],blocks[1],blocks[2],blocks[3]}
+	  	  	  	  );
 	  if( plus_minus == 1 ) {
 	    if (target_cb == 0 ) {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,1,0> f = {s_in, g_in_src_cb, g_in_target_cb, s_out,

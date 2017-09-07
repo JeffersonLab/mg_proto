@@ -811,7 +811,7 @@ TEST(TestKokkos, TestDslash)
 	      QDPLatticeFermionToKokkosCBVSpinor(psi_in, in_spinor);
 	      
 	      
-	      D(in_spinor,kokkos_gauge,out_spinor,isign);
+	      D(in_spinor,kokkos_gauge,out_spinor,isign,{1,1,1,1});
 	      
 	      kokkos_out = zero;
 	      KokkosCBVSpinorToQDPLatticeFermion(out_spinor, kokkos_out);

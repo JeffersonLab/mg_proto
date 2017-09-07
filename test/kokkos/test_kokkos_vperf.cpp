@@ -140,14 +140,60 @@ TEST(TestKokkos, TestDslashTime)
 	ThreadSIMDComplex<REAL32,VN::VecLen>,
 	ThreadSIMDComplex<REAL32,VN::VecLen> > D(kokkos_spinor_even.GetInfo(),per_team);
 
-	MasterLog(INFO, "per_team=%d", per_team);
-	for(int rep=0; rep < 4; ++rep ) {
+	IndexArray cb_latdims = kokkos_spinor_even.GetInfo().GetCBLatticeDimensions();
+	double num_sites = static_cast<double>(V*cb_latdims[0]*cb_latdims[1]*cb_latdims[2]*cb_latdims[3]);
+
+#if 1
+	int titers=100;
+	double best_flops = 0;
+	IndexArray best_blocks={1,1,1,1};
+	for(int t=cb_latdims[3]; t >= 1; t /= 2) {
+		for(int z=cb_latdims[2]; z >= 1; z /= 2) {
+			for(int y=cb_latdims[1]; y >= 1; y/=2 ) {
+				for(int x = cb_latdims[0]; x >= 1; x/= 2 ) {
+					int isign=1;
+					int num_blocks = 1;
+					num_blocks *= cb_latdims[0]/x;
+					num_blocks *= cb_latdims[1]/y;
+					num_blocks *= cb_latdims[2]/z;
+					num_blocks *= cb_latdims[3]/t;
+					if ( num_blocks >= 128) {
+						double start_time = omp_get_wtime();
+						for(int i=0; i < titers; ++i) {
+							D(kokkos_spinor_even,kokkos_gauge,kokkos_spinor_odd,isign,{x,y,z,t});
+						}
+						double end_time = omp_get_wtime();
+						double time_taken = end_time - start_time;
+						double flops = static_cast<double>(1320.0*num_sites*titers);
+						double floprate = flops/(time_taken*1.0e9);
+						MasterLog(INFO,"Tuning: (Bx,By,Bz,Bt)=(%d,%d,%d,%d) GFLOPS=%lf", x,y,z,t,floprate);
+						if (floprate > best_flops){
+							best_flops = floprate;
+							best_blocks[0]=x;
+							best_blocks[1]=y;
+							best_blocks[2]=z;
+							best_blocks[3]=t;
+						}
+					}
+
+
+				}
+			}
+		}
+	}
+#else
+	IndexArray best_blocks={4,16,1,4};
+#endif
+	MasterLog(INFO, "Main timing: (Bx,By,Bz,Bt)=(%d,%d,%d,%d)",
+				best_blocks[0],best_blocks[1],best_blocks[2],best_blocks[3]);
+
+	for(int rep=0; rep < 10; ++rep ) {
 		int isign = 1;
 		//for(int isign=-1; isign < 2; isign+=2) {
 			// Time it.
 			double start_time = omp_get_wtime();
 			for(int i=0; i < iters; ++i) {
-				D(kokkos_spinor_even,kokkos_gauge,kokkos_spinor_odd,isign);
+				D(kokkos_spinor_even,kokkos_gauge,kokkos_spinor_odd,isign, best_blocks);
 			}
 			double end_time = omp_get_wtime();
 			double time_taken = end_time - start_time;
