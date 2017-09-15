@@ -204,7 +204,9 @@ void KokkosRecons23Dir0(const HalfSpinorSiteView<T>& hspinor_in,
 	 *      ( b2r + i b2i )  =  ( {a2r + a1i} + i{a2i - a1r} )  =  ( b1i - i b1r )
 	 *      ( b3r + i b3i )     ( {a3r + a0i} + i{a3i - a0r} )     ( b0i - i b0r )
 	 */
+#pragma unroll
   for(int color=0; color < 3; ++color) { 
+#pragma unroll
     for(int spin=0; spin < 2; ++spin) { 
       ComplexPeq(spinor_out(color,spin),hspinor_in(color,spin));
     }
@@ -212,12 +214,14 @@ void KokkosRecons23Dir0(const HalfSpinorSiteView<T>& hspinor_in,
 
 
 	// Spin 2
+#pragma unroll
 	for(int color=0; color < 3; ++color ) {
 		//	spinor_out(color,2).real() = sign*hspinor_in(color,1).imag();
 		//	spinor_out(color,2).imag() = -sign*hspinor_in(color,1).real();
 		A_peq_sign_miB(spinor_out(color,2), sign, hspinor_in(color,1));
 	}
 
+#pragma unroll
 	for(int color=0; color < 3; ++color) {
 		//	spinor_out(color,3).real() = sign*hspinor_in(color,0).imag();
 		//	spinor_out(color,3).imag() = -sign*hspinor_in(color,0).real();
@@ -243,19 +247,24 @@ void KokkosRecons23Dir1(const HalfSpinorSiteView<T>& hspinor_in,
 	 *      ( b2r + i b2i )  =  ( {a2r + a1r} + i{a2i + a1i} )  =  (   b1r + i b1i )
 	 *      ( b3r + i b3i )     ( {a3r - a0r} + i{a3i - a0i} )     ( - b0r - i b0i )
 	 */
-  for(int color=0; color < 3; ++color) { 
+
+#pragma unroll
+  for(int color=0; color < 3; ++color) {
+#pragma unroll
     for(int spin=0; spin < 2; ++spin) { 
       ComplexPeq(spinor_out(color,spin),hspinor_in(color,spin));
     }
   }
 
 	// Spin 2
+#pragma unroll
 	for(int color=0; color < 3; ++color ) {
 		// spinor_out(color,2).real() = sign*hspinor_in(color,1).real();
 		// spinor_out(color,2).imag() = sign*hspinor_in(color,1).imag();
 		A_peq_sign_B(spinor_out(color,2),sign,hspinor_in(color,1));
 	}
 
+#pragma unroll
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,3).real() = -sign*hspinor_in(color,0).real();
 		// spinor_out(color,3).imag() = -sign*hspinor_in(color,0).imag();
@@ -282,7 +291,9 @@ void KokkosRecons23Dir2(const HalfSpinorSiteView<T>& hspinor_in,
 	 *      ( b3r + i b3i )     ( {a3r - a1i} + i{a3i + a1r} )     ( - b1i + i b1r )
 	 */
 
+#pragma unroll
   for(int color=0; color < 3; ++color) { 
+#pragma unroll
     for(int spin=0; spin < 2; ++spin) { 
       ComplexPeq(spinor_out(color,spin),hspinor_in(color,spin));
     }
@@ -290,12 +301,14 @@ void KokkosRecons23Dir2(const HalfSpinorSiteView<T>& hspinor_in,
 
 
 	// Spin 2
+#pragma unroll
 	for(int color=0; color < 3; ++color ) {
 		// spinor_out(color,2).real() = sign*hspinor_in(color,0).imag();
 		// spinor_out(color,2).imag() = -sign*hspinor_in(color,0).real();
 		A_peq_sign_miB(spinor_out(color,2), sign, hspinor_in(color,0));
 	}
 
+#pragma unroll
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,3,K_RE) = -sign*hspinor_in(color,1,K_IM);
 		// spinor_out(color,3,K_IM) = sign*hspinor_in(color,1,K_RE);
@@ -322,19 +335,23 @@ void KokkosRecons23Dir3(const HalfSpinorSiteView<T>& hspinor_in,
 	 *      ( b2r + i b2i )  =  ( {a2r + a0r} + i{a2i + a0i} )  =  ( b0r + i b0i )
 	 *      ( b3r + i b3i )     ( {a3r + a1r} + i{a3i + a1i} )     ( b1r + i b1i )
 	 */
+#pragma unroll
   for(int color=0; color < 3; ++color) { 
+#pragma unroll
     for(int spin=0; spin < 2; ++spin) { 
       ComplexPeq(spinor_out(color,spin),hspinor_in(color,spin));
     }
   }
 
 	// Spin 2
+#pragma unroll
 	for(int color=0; color < 3; ++color ) {
 		// spinor_out(color,2,K_RE) = sign*hspinor_in(color,0,K_RE);
 		// spinor_out(color,2,K_IM) = sign*hspinor_in(color,0,K_IM);
 		A_peq_sign_B(spinor_out(color,2),sign,hspinor_in(color,0));
 	}
 
+#pragma unroll
 	for(int color=0; color < 3; ++color) {
 		// spinor_out(color,3,K_RE) = sign*hspinor_in(color,1,K_RE);
 		// spinor_out(color,3,K_IM) = sign*hspinor_in(color,1,K_IM);

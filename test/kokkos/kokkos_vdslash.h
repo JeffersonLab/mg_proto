@@ -387,13 +387,29 @@ private:
     		 HalfSpinorSiteView<TST> mult_proj_res  __attribute__((aligned(64)));
 
 
+#if 0
     		 // Zero Result
+#pragma unroll
     		 for(int color=0; color < 3; ++color) {
+
+#pragma unroll
     			 for(int spin=0; spin < 4; ++spin) {
     				 ComplexZero(res_sum(color,spin));
     			 }
     		 }
+#else
+                 // Zero Result
+#pragma unroll
+                 for(int spin=0; spin < 4; ++spin ) { 
 
+#pragma unroll
+                         for(int color=0; color < 3; ++color) {
+                                 ComplexZero(res_sum(color,spin));
+                         }
+                 }
+
+
+#endif 
     		 // T - minus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
     		 neigh_table.NeighborTMinus(site,target_cb,n_idx,mask);
@@ -402,7 +418,7 @@ private:
 #endif
     		 KokkosProjectDir3Perm<ST,VN,TST,isign>(s_in, proj_res,n_idx,mask);
     		 mult_adj_u_halfspinor_perm<GT,VN,TST,3>(g_in_src_cb, proj_res,mult_proj_res,n_idx,mask);
-    		 KokkosRecons23Dir3<TST,isign>(mult_proj_res,res_sum);
+    		 KokkosRecons23Dir3<TST,VN,isign>(mult_proj_res,res_sum);
 
     		 // Z - minus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
@@ -412,7 +428,7 @@ private:
 #endif
     		 KokkosProjectDir2Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx, mask);
     		 mult_adj_u_halfspinor_perm<GT,VN,TST,2>(g_in_src_cb, proj_res,mult_proj_res,n_idx,mask);
-    		 KokkosRecons23Dir2<TST,isign>(mult_proj_res,res_sum);
+    		 KokkosRecons23Dir2<TST,VN,isign>(mult_proj_res,res_sum);
 
     		 // Y - minus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
@@ -422,7 +438,7 @@ private:
 #endif
     		 KokkosProjectDir1Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx,mask);
     		 mult_adj_u_halfspinor_perm<GT,VN,TST,1>(g_in_src_cb, proj_res,mult_proj_res,n_idx,mask);
-    		 KokkosRecons23Dir1<TST,isign>(mult_proj_res,res_sum);
+    		 KokkosRecons23Dir1<TST,VN,isign>(mult_proj_res,res_sum);
 
     		 // X - minus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
@@ -432,7 +448,7 @@ private:
 #endif
     		 KokkosProjectDir0Perm<ST,VN,TST,isign>(s_in, proj_res, n_idx,mask);
     		 mult_adj_u_halfspinor_perm<GT,VN,TST,0>(g_in_src_cb, proj_res,mult_proj_res,n_idx,mask);
-    		 KokkosRecons23Dir0<TST,isign>(mult_proj_res,res_sum);
+    		 KokkosRecons23Dir0<TST,VN,isign>(mult_proj_res,res_sum);
 
 
     		 // X - plus
@@ -444,7 +460,7 @@ private:
 #endif
     		 KokkosProjectDir0Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx,mask);
     		 mult_u_halfspinor<GT,VN,TST,0>(g_in_target_cb,proj_res,mult_proj_res,site);
-    		 KokkosRecons23Dir0<TST,-isign>(mult_proj_res, res_sum);
+    		 KokkosRecons23Dir0<TST,VN,-isign>(mult_proj_res, res_sum);
 
     		 // Y - plus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
@@ -454,17 +470,17 @@ private:
 #endif
     		 KokkosProjectDir1Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx,mask);
     		 mult_u_halfspinor<GT,VN,TST,1>(g_in_target_cb,proj_res,mult_proj_res,site);
-    		 KokkosRecons23Dir1<TST,-isign>(mult_proj_res, res_sum);
+    		 KokkosRecons23Dir1<TST,VN,-isign>(mult_proj_res, res_sum);
 
     		 // Z - plus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-			 neigh_table.NeighborZPlus(site, target_cb, n_idx, mask);
+		        	 neigh_table.NeighborZPlus(site, target_cb, n_idx, mask);
 #else
 			 neigh_table.NeighborZPlus(xcb,y,z,t, n_idx, mask);
 #endif
 			 KokkosProjectDir2Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx,mask);
 			 mult_u_halfspinor<GT,VN,TST,2>(g_in_target_cb,proj_res,mult_proj_res,site);
-			 KokkosRecons23Dir2<TST,-isign>(mult_proj_res, res_sum);
+			 KokkosRecons23Dir2<TST,VN,-isign>(mult_proj_res, res_sum);
 
 			 // T - plus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
@@ -474,10 +490,12 @@ private:
 #endif
 			 KokkosProjectDir3Perm<ST,VN, TST,-isign>(s_in,proj_res,n_idx,mask);
 			 mult_u_halfspinor<GT,VN,TST,3>(g_in_target_cb,proj_res,mult_proj_res,site);
-			 KokkosRecons23Dir3<TST,-isign>(mult_proj_res, res_sum);
+			 KokkosRecons23Dir3<TST,VN,-isign>(mult_proj_res, res_sum);
 
 			 // Stream out spinor
+#pragma unroll
 			 for(int color=0; color < 3; ++color) {
+#pragma unroll
 				 for(int spin=0; spin < 4; ++spin) {
 					 Stream(s_out(site,color,spin),res_sum(color,spin));
 				 }

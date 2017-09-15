@@ -791,7 +791,7 @@ TEST(TestKokkos, TestDslash)
 
 	int per_team = 1;
 	KokkosVDslash<VN,MGComplex<REAL32>,MGComplex<REAL32>,
-		      ThreadSIMDComplex<REAL32,VN::VecLen>,ThreadSIMDComplex<REAL32,VN::VecLen>> D(kokkos_spinor_even.GetInfo(),per_team);
+		      SIMDComplex<REAL32,VN::VecLen>,SIMDComplex<REAL32,VN::VecLen>> D(kokkos_spinor_even.GetInfo(),per_team);
 	MasterLog(INFO, "per_team=%d", per_team);
 
 	LatticeFermion psi_out = zero;

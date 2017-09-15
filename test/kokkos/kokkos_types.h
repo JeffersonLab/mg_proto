@@ -158,12 +158,12 @@ namespace MG
 
 	template<typename T,const int S, const int C>
 	struct SiteView {
-		T _data[C][S];
+		T _data[S][C];
 		KOKKOS_INLINE_FUNCTION T& operator()(int color, int spin) {
-			return _data[color][spin];
+			return _data[spin][color];
 		}
 		KOKKOS_INLINE_FUNCTION const T& operator()(int color, int spin) const {
-			return _data[color][spin];
+			return _data[spin][color];
 		}
 	};
 

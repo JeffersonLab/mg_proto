@@ -103,7 +103,7 @@ TEST(TestKokkos, TestDslash)
 TEST(TestKokkos, TestDslashTime)
 {
 	IndexArray latdims={{32,32,32,32}};
-	int iters=1000;
+	int iters=400;
 
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
@@ -137,13 +137,13 @@ TEST(TestKokkos, TestDslashTime)
 	KokkosVDslash<VN,
 	MGComplex<REAL32>,
 	MGComplex<REAL32>,
-	ThreadSIMDComplex<REAL32,VN::VecLen>,
-	ThreadSIMDComplex<REAL32,VN::VecLen> > D(kokkos_spinor_even.GetInfo(),per_team);
+	SIMDComplex<REAL32,VN::VecLen>,
+	SIMDComplex<REAL32,VN::VecLen> > D(kokkos_spinor_even.GetInfo(),per_team);
 
 	IndexArray cb_latdims = kokkos_spinor_even.GetInfo().GetCBLatticeDimensions();
 	double num_sites = static_cast<double>(V*cb_latdims[0]*cb_latdims[1]*cb_latdims[2]*cb_latdims[3]);
 
-#if 1
+#if 0
 	int titers=100;
 	double best_flops = 0;
 	IndexArray best_blocks={1,1,1,1};
@@ -182,7 +182,7 @@ TEST(TestKokkos, TestDslashTime)
 		}
 	}
 #else
-	IndexArray best_blocks={4,16,1,4};
+	IndexArray best_blocks={2,4,8,4};
 #endif
 	MasterLog(INFO, "Main timing: (Bx,By,Bz,Bt)=(%d,%d,%d,%d)",
 				best_blocks[0],best_blocks[1],best_blocks[2],best_blocks[3]);

@@ -78,7 +78,8 @@ template<typename T, int N>
   }
 };
 
-  // THIS IS WHERE WE INTRODUCE SOME NONPORTABILITY
+ 
+ // THIS IS WHERE WE INTRODUCE SOME NONPORTABILITY
   // ThreadSIMDComplex ***MUST** only be instantiated in 
   // a Kokkos parallel region
 #ifdef KOKKOS_HAVE_CUDA
@@ -88,6 +89,11 @@ template<typename T, int N>
   template<typename T, int N>
   using ThreadSIMDComplex = SIMDComplex<T,N>;
 #endif
+
+
+
+
+
 
 #ifndef KOKKOS_HAVE_CUDA
 
@@ -150,18 +156,11 @@ void
 ComplexPeq(T1<T,N>& res, const T2<T,N>& a)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      // res(i) += a(i); // Complex Addition
 
       auto _a = a(i);
       auto _r = res(i);
-#if 0
-	T a_re = a(i).real();
-	T a_im = a(i).imag();
-	T res_re = res(i).real();
-	T res_im = res(i).imag();
-#endif
 
-	res(i) = MGComplex<T>(_r.real() + _a.real() ,_r.imag() + _a.imag());
+      res(i) = MGComplex<T>(_r.real() + _a.real() ,_r.imag() + _a.imag());
     });
 }
 
@@ -173,7 +172,7 @@ ComplexCMadd(T1<T,N>& res, const MGComplex<T>& a, const T2<T,N>& b)
 {
   auto _a = a;
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      // res(i)+= a*b(i); // Complex Multiplication
+
       auto _b = b(i);
       auto _res = res(i);
 
@@ -248,7 +247,6 @@ void
   ComplexConjMadd(T1<T,N>& res, const T2<T,N>& a, const T3<T,N>& b)
 {
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
-      // res(i) += Kokkos::conj(a(i))*b(i); // Complex Multiplication
       auto _b = b(i);
       auto _res = res(i);
       auto _a = a(i);
@@ -286,6 +284,33 @@ void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>&
     });
 }
 
+  template<typename T, int N, 
+    template <typename,int> class T1, 
+    template<typename,int> class T2, 
+    template<typename,int> class T3, int sign>
+KOKKOS_FORCEINLINE_FUNCTION
+void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a, const T3<T,N>& b)
+{
+
+//  printf(".");
+  const T fsign = static_cast<const T>(sign);
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
+      //      res(i).real() = a(i).real() + sign*b(i).real();
+      //      res(i).imag() = a(i).imag() + sign*b(i).imag();
+      auto _a = a(i);
+      auto _b = b(i);
+      auto _res = res(i);
+
+      T res_re = _a.real();
+      res_re +=  fsign*_b.real();
+      T res_im = _a.imag();
+      res_im +=  fsign*_b.imag();
+
+      res(i) = MGComplex<T>(res_re,res_im);
+
+    });
+}
+
   template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3>
 KOKKOS_FORCEINLINE_FUNCTION
 void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>& b)
@@ -308,6 +333,28 @@ void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>
     });
 }
 
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3, int sign>
+KOKKOS_FORCEINLINE_FUNCTION
+void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T3<T,N>& b)
+{
+  const T fsign=static_cast<const T>(sign);
+
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+
+      auto _a = a(i);
+      auto _b = b(i);
+      auto _res = res(i);
+
+      T res_re = _a.real() ;
+      res_re -= fsign*_b.imag();
+      T res_im = _a.imag();
+      res_im += fsign*_b.real();
+
+      res(i) = MGComplex<T>(res_re, res_im);
+
+    });
+}
+
 // a = -i b
   template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
@@ -321,6 +368,25 @@ void A_peq_sign_miB( T1<T,N>& a, const T& sign, const T2<T,N>& b)
       res_re += sign*_b.imag();
       T res_im = _a.imag();
       res_im -= sign*_b.real();
+      a(i) = MGComplex<T>(res_re,res_im );
+  
+});
+}
+
+// a = -i b
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, int sign>
+KOKKOS_FORCEINLINE_FUNCTION
+void A_peq_sign_miB( T1<T,N>& a, const T2<T,N>& b)
+{
+  const T fsign=static_cast<const T>(sign);
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
+
+      auto _a = a(i);
+      auto _b = b(i);
+      T res_re = _a.real();
+      res_re += fsign*_b.imag();
+      T res_im = _a.imag();
+      res_im -= fsign*_b.real();
       a(i) = MGComplex<T>(res_re,res_im );
   
 });
@@ -343,6 +409,28 @@ KOKKOS_FORCEINLINE_FUNCTION
       res_re += sign*_b.real();
       T res_im = _a.imag();
       res_im += sign*_b.imag();
+
+      a(i) = MGComplex<T>( res_re,res_im );
+    });
+}
+
+// a = b
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, int sign>
+KOKKOS_FORCEINLINE_FUNCTION
+  void A_peq_sign_B( T1<T,N>& a, const T2<T,N>& b)
+{
+  const T fsign = static_cast<const T>(sign);
+  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
+      // a(i).real() += sign*b(i).real();
+      // a(i).imag() += sign*b(i).imag();
+
+      auto _a = a(i);
+      auto _b = b(i);
+
+      T res_re = _a.real();
+      res_re += fsign*_b.real();
+      T res_im = _a.imag();
+      res_im += fsign*_b.imag();
 
       a(i) = MGComplex<T>( res_re,res_im );
     });
@@ -523,13 +611,13 @@ void
       //});
 }
 
+
+
   template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3>
 KOKKOS_FORCEINLINE_FUNCTION
 void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>& b)
 {
-  //Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
-      //      res(threadIdx.x).real() = a(threadIdx.x).real() + sign*b(threadIdx.x).real();
-      //      res(threadIdx.x).imag() = a(threadIdx.x).imag() + sign*b(threadIdx.x).imag();
+
       auto _a = a(threadIdx.x);
       auto _b = b(threadIdx.x);
       auto _res = res(threadIdx.x);
@@ -544,14 +632,27 @@ void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>&
       //});
 }
 
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3, int sign >
+KOKKOS_FORCEINLINE_FUNCTION
+void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a,  const T3<T,N>& b)
+{
+  const T fsign = static_cast<const T>(sign);
+      auto _a = a(threadIdx.x);
+      auto _b = b(threadIdx.x);
+      auto _res = res(threadIdx.x);
+
+      T res_re = _a.real();
+      res_re +=  fsign*_b.real();
+      T res_im = _a.imag();
+      res_im +=  fsign*_b.imag();
+
+      res(threadIdx.x) = MGComplex<T>(res_re,res_im);
+}
+
   template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3>
 KOKKOS_FORCEINLINE_FUNCTION
 void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>& b)
 {
-  //Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
-      //res(threadIdx.x).real() = a(threadIdx.x).real() - sign*b(threadIdx.x).imag();
-      //res(threadIdx.x).imag() = a(threadIdx.x).imag() + sign*b(threadIdx.x).real();
-
       auto _a = a(threadIdx.x);
       auto _b = b(threadIdx.x);
       auto _res = res(threadIdx.x);
@@ -562,8 +663,23 @@ void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>
       res_im += sign*_b.real();
 
   res(threadIdx.x) = MGComplex<T>(res_re, res_im);
+}
 
-  //});
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, template<typename,int> class T3, int sign>
+KOKKOS_FORCEINLINE_FUNCTION
+void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a,  const T3<T,N>& b)
+{
+  const T fsign = static_cast<const T>(sign);
+      auto _a = a(threadIdx.x);
+      auto _b = b(threadIdx.x);
+      auto _res = res(threadIdx.x);
+
+      T res_re = _a.real() ;
+      res_re -= fsign*_b.imag();
+      T res_im = _a.imag();
+      res_im += fsign*_b.real();
+
+  res(threadIdx.x) = MGComplex<T>(res_re, res_im);
 }
 
 // a = -i b
@@ -584,16 +700,30 @@ void A_peq_sign_miB( T1<T,N>& a, const T& sign, const T2<T,N>& b)
       //});
 }
 
-    
+// a = -i b
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, int sign>
+KOKKOS_FORCEINLINE_FUNCTION
+void A_peq_sign_miB( T1<T,N>& a, const T2<T,N>& b)
+{
+
+  const T fsign = static_cast<const T>(sign);
+
+      auto _a = a(threadIdx.x);
+      auto _b = b(threadIdx.x);
+      T res_re = _a.real();
+      res_re += fsign*_b.imag();
+      T res_im = _a.imag();
+      res_im -= fsign*_b.real();
+      a(threadIdx.x) = MGComplex<T>(res_re,res_im );
+  
+}
+
+ 
 // a = b
   template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2>
 KOKKOS_FORCEINLINE_FUNCTION
-  void A_peq_sign_B( T1<T,N>& a, const T& sign, const T2<T,N>& b)
+    void A_peq_sign_B( T1<T,N>& a, const T& sign, const T2<T,N>& b)
 {
-  //  Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
-      // a(threadIdx.x).real() += sign*b(threadIdx.x).real();
-      // a(threadIdx.x).imag() += sign*b(threadIdx.x).imag();
-
       auto _a = a(threadIdx.x);
       auto _b = b(threadIdx.x);
 
@@ -603,9 +733,28 @@ KOKKOS_FORCEINLINE_FUNCTION
       res_im += sign*_b.imag();
 
       a(threadIdx.x) = MGComplex<T>( res_re,res_im );
-      // });
+
+}   
+// a = b
+  template<typename T, int N, template <typename,int> class T1, template<typename,int> class T2, int sign>
+KOKKOS_FORCEINLINE_FUNCTION
+  void A_peq_sign_B( T1<T,N>& a, const T2<T,N>& b)
+{
+  const T fsign = static_cast<const T>(sign);
+      auto _a = a(threadIdx.x);
+      auto _b = b(threadIdx.x);
+
+      T res_re = _a.real();
+      res_re += fsign*_b.real();
+      T res_im = _a.imag();
+      res_im += fsign*_b.imag();
+
+      a(threadIdx.x) = MGComplex<T>( res_re,res_im );
+
 }
 #endif
+
+ 
 
 
 #if defined(MG_USE_AVX512)
@@ -627,37 +776,39 @@ template<>
 	  return (*this);
   }
 
-  union {
-    MGComplex<float> _data[8];
-    __m512 _vdata;
-  };
+  __m512 _vdata;
 
   constexpr static int len() { return 8; }
 
   inline
     void set(int l, const MGComplex<float>& value)
   {
-		_data[l] = value;
+      MGComplex<float> *data = reinterpret_cast<MGComplex<float>*>(&_vdata);
+      data[l] = value;
   }
 
   inline
     const MGComplex<float>& operator()(int i) const
-  {
-    return _data[i];
+  { 
+     const MGComplex<float>* data = reinterpret_cast<const MGComplex<float>*>(&_vdata);  
+    return data[i];
   }
 
   inline
   MGComplex<float>& operator()(int i) {
-    return _data[i];
+    MGComplex<float>* data  = reinterpret_cast<MGComplex<float>*>(&_vdata);
+    return data[i];
   }
 };
+
+ 
 
   template<>
   KOKKOS_FORCEINLINE_FUNCTION
   void Load<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& result, 
 		     const SIMDComplex<float,8>& source)
   {
-    void const* src = reinterpret_cast<void const*>(&(source._data[0]));
+    void const* src = reinterpret_cast<void const*>(&(source._vdata));
     
     result._vdata = _mm512_load_ps(src);
   }
@@ -675,7 +826,7 @@ template<>
   void Store<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& result, 
 		      const SIMDComplex<float,8>& source)
   {
-    void* dest = reinterpret_cast<void*>(&(result._data[0]));
+    void* dest = reinterpret_cast<void*>(&(result._vdata));
     _mm512_store_ps(dest,source._vdata);
   }
 
@@ -684,7 +835,7 @@ template<>
   void Stream<float,8,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& result, 
 		      const SIMDComplex<float,8>& source)
   {
-    void* dest = reinterpret_cast<void*>(&(result._data[0]));
+    void* dest = reinterpret_cast<void*>(&(result._vdata));
      _mm512_stream_ps(dest,source._vdata);
    // _mm512_store_ps(dest,source._vdata);
   }
@@ -720,7 +871,31 @@ A_add_sign_B<float,8,SIMDComplex,SIMDComplex,SIMDComplex>( SIMDComplex<float,8>&
   res._vdata = _mm512_fmadd_ps(sgnvec,b._vdata,a._vdata);
 }
 
-// a = b
+// sign == 1
+template<>
+KOKKOS_FORCEINLINE_FUNCTION
+void 
+  A_add_sign_B<float,8,SIMDComplex,SIMDComplex,SIMDComplex,1>( SIMDComplex<float,8>& res, 
+			    const SIMDComplex<float,8>& a, 
+			    const SIMDComplex<float,8>& b)
+{
+  res._vdata = _mm512_add_ps(a._vdata,b._vdata);
+}
+
+// sign == -1 
+template<>
+KOKKOS_FORCEINLINE_FUNCTION
+void 
+  A_add_sign_B<float,8,SIMDComplex,SIMDComplex,SIMDComplex,-1>( SIMDComplex<float,8>& res, 
+			    const SIMDComplex<float,8>& a, 
+			    const SIMDComplex<float,8>& b)
+{
+  res._vdata = _mm512_sub_ps(a._vdata,b._vdata);
+}
+
+
+
+// a += b
 template<>
 KOKKOS_FORCEINLINE_FUNCTION
 void 
@@ -730,6 +905,26 @@ A_peq_sign_B<float,8,SIMDComplex,SIMDComplex>( SIMDComplex<float,8>& a,
 {
   __m512 sgnvec=_mm512_set1_ps(sign);
   a._vdata = _mm512_fmadd_ps( sgnvec, b._vdata, a._vdata);
+}
+
+// a += b
+template<>
+KOKKOS_FORCEINLINE_FUNCTION
+void 
+  A_peq_sign_B<float,8,SIMDComplex,SIMDComplex,1>( SIMDComplex<float,8>& a, 
+						   const SIMDComplex<float,8>& b)
+{
+  a._vdata = _mm512_add_ps(a._vdata, b._vdata);
+}
+
+// a -= b
+template<>
+KOKKOS_FORCEINLINE_FUNCTION
+void 
+  A_peq_sign_B<float,8,SIMDComplex,SIMDComplex,-1>( SIMDComplex<float,8>& a, 
+						   const SIMDComplex<float,8>& b)
+{
+  a._vdata = _mm512_sub_ps(a._vdata, b._vdata);
 }
 
 
@@ -770,22 +965,11 @@ ComplexCMadd<float,8,SIMDComplex,SIMDComplex,SIMDComplex>(SIMDComplex<float,8>& 
 		      const SIMDComplex<float,8>& a, 
 		      const SIMDComplex<float,8>& b)
 {
-#if 0
-  __m512 avec_re = _mm512_shuffle_ps( a._vdata, a._vdata, 0xa0 );
-  __m512 avec_im = _mm512_shuffle_ps( a._vdata, a._vdata, 0xf5 );
-  
-  __m512 sgnvec = _mm512_set_ps( 1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1,1,-1);
-  __m512 perm_b = _mm512_mul_ps(sgnvec,_mm512_shuffle_ps(b._vdata,b._vdata,0xb1));
-
-  res._vdata = _mm512_fmadd_ps( avec_re, b._vdata, res._vdata);
-  res._vdata = _mm512_fmadd_ps( avec_im, perm_b, res._vdata);
-#else
   __m512 a_vec_re = _mm512_shuffle_ps( a._vdata, a._vdata, 0xa0 );
   __m512 a_vec_im = _mm512_shuffle_ps( a._vdata, a._vdata, 0xf5 );
   __m512 b_perm = _mm512_shuffle_ps( b._vdata, b._vdata,0xb1 );
   __m512 t = _mm512_fmaddsub_ps( a_vec_im, b_perm, res._vdata);
   res._vdata = _mm512_fmaddsub_ps( a_vec_re, b._vdata, t );
-#endif
 }
 
 template<>
@@ -815,6 +999,28 @@ void A_add_sign_iB<float,8,SIMDComplex,SIMDComplex,SIMDComplex>( SIMDComplex<flo
   res._vdata = _mm512_mul_ps(sgnvec,_mm512_fmaddsub_ps( sgnvec, a._vdata, perm_b));
 }
 
+// sign == 1
+template<>
+KOKKOS_FORCEINLINE_FUNCTION
+  void A_add_sign_iB<float,8,SIMDComplex,SIMDComplex,SIMDComplex,1>( SIMDComplex<float,8>& res, 
+								     const SIMDComplex<float,8>& a, 
+								     const SIMDComplex<float,8>& b)
+{
+  __m512 perm_b = _mm512_shuffle_ps( b._vdata, b._vdata, 0xb1);
+  res._vdata = _mm512_fmaddsub_ps( _mm512_set1_ps(1), a._vdata, perm_b);
+}
+
+// sign == -1
+template<>
+KOKKOS_FORCEINLINE_FUNCTION
+  void A_add_sign_iB<float,8,SIMDComplex,SIMDComplex,SIMDComplex,-1>( SIMDComplex<float,8>& res, 
+								     const SIMDComplex<float,8>& a, 
+								     const SIMDComplex<float,8>& b)
+{
+  __m512 perm_b = _mm512_shuffle_ps( b._vdata, b._vdata, 0xb1);
+  res._vdata = _mm512_fmsubadd_ps( _mm512_set1_ps(1),a._vdata, perm_b);
+}
+
 
 // a = -i b
 template<>
@@ -828,7 +1034,29 @@ void A_peq_sign_miB<float,8,SIMDComplex,SIMDComplex>( SIMDComplex<float,8>& a,
   a._vdata = _mm512_mul_ps( sgnvec, _mm512_fmsubadd_ps(sgnvec, a._vdata, perm_b));
 }
 
+// a += -i b or a -= ib
+template<>
+KOKKOS_FORCEINLINE_FUNCTION
+void A_peq_sign_miB<float,8,SIMDComplex,SIMDComplex,1>( SIMDComplex<float,8>& a, 
+							const SIMDComplex<float,8>& b)
+{
+  __m512 perm_b = _mm512_shuffle_ps( b._vdata, b._vdata, 0xb1);
+  a._vdata = _mm512_fmsubadd_ps(_mm512_set1_ps(1),a._vdata, perm_b);;
+}
+
+// a -= -i b or a += ib
+template<>
+KOKKOS_FORCEINLINE_FUNCTION
+void A_peq_sign_miB<float,8,SIMDComplex,SIMDComplex,-1>( SIMDComplex<float,8>& a, 
+							const SIMDComplex<float,8>& b)
+{
+  __m512 perm_b = _mm512_shuffle_ps( b._vdata, b._vdata, 0xb1);
+  a._vdata = _mm512_fmaddsub_ps(_mm512_set1_ps(1),a._vdata, perm_b);;
+}
+
 #endif
+
+
 
 } // namespace
 
