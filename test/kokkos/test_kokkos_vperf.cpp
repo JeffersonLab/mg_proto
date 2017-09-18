@@ -119,26 +119,36 @@ TEST(TestKokkos, TestDslashTime)
 
 	using VN = VNode<MGComplex<REAL32>,V>;
 	using SpinorType = KokkosCBFineVSpinor<MGComplex<REAL32>,VN,4>;
-	using GaugeType = KokkosFineVGaugeField<MGComplex<REAL32>,VN>;
+	using FullGaugeType = KokkosFineVGaugeField<MGComplex<REAL32>,VN>;
+	using GaugeType = KokkosCBFineVGaugeFieldDoubleCopy<MGComplex<REAL32>,VN>;
 
 	SpinorType  kokkos_spinor_even(info,EVEN);
 	SpinorType  kokkos_spinor_odd(info,ODD);
-	GaugeType  kokkos_gauge(info);
+	FullGaugeType  kokkos_gauge(info);
+
 
 
 	// Import Gauge Field
 	QDPGaugeFieldToKokkosVGaugeField(gauge_in, kokkos_gauge);
 
+
+	// Double Store Gauge field. This benchmark is always even cb.
+	GaugeType  gauge_even(info,EVEN);
+
+
+	// Import gets the rear neighbors, and permutes them if needed
+	gauge_even.import( kokkos_gauge(EVEN), kokkos_gauge(ODD));
+
 	// Import spinor
 	QDPLatticeFermionToKokkosCBVSpinor(psi_in, kokkos_spinor_even);
 
 	// for(int per_team=1; per_team < 256; per_team *=2 ) {
-	int per_team = 8;
+
 	KokkosVDslash<VN,
 	MGComplex<REAL32>,
 	MGComplex<REAL32>,
 	SIMDComplex<REAL32,VN::VecLen>,
-	SIMDComplex<REAL32,VN::VecLen> > D(kokkos_spinor_even.GetInfo(),per_team);
+		      SIMDComplex<REAL32,VN::VecLen> > D(kokkos_spinor_even.GetInfo());
 
 	IndexArray cb_latdims = kokkos_spinor_even.GetInfo().GetCBLatticeDimensions();
 	double num_sites = static_cast<double>(V*cb_latdims[0]*cb_latdims[1]*cb_latdims[2]*cb_latdims[3]);
@@ -160,7 +170,7 @@ TEST(TestKokkos, TestDslashTime)
 					if ( num_blocks >= 128) {
 						double start_time = omp_get_wtime();
 						for(int i=0; i < titers; ++i) {
-							D(kokkos_spinor_even,kokkos_gauge,kokkos_spinor_odd,isign,{x,y,z,t});
+						  D(kokkos_spinor_even,gauge_even,kokkos_spinor_odd,isign,{x,y,z,t});
 						}
 						double end_time = omp_get_wtime();
 						double time_taken = end_time - start_time;
@@ -182,7 +192,7 @@ TEST(TestKokkos, TestDslashTime)
 		}
 	}
 #else
-	IndexArray best_blocks={2,4,8,4};
+	IndexArray best_blocks={8,1,1,1};
 #endif
 	MasterLog(INFO, "Main timing: (Bx,By,Bz,Bt)=(%d,%d,%d,%d)",
 				best_blocks[0],best_blocks[1],best_blocks[2],best_blocks[3]);
@@ -193,7 +203,7 @@ TEST(TestKokkos, TestDslashTime)
 			// Time it.
 			double start_time = omp_get_wtime();
 			for(int i=0; i < iters; ++i) {
-				D(kokkos_spinor_even,kokkos_gauge,kokkos_spinor_odd,isign, best_blocks);
+				D(kokkos_spinor_even,gauge_even,kokkos_spinor_odd,isign, best_blocks);
 			}
 			double end_time = omp_get_wtime();
 			double time_taken = end_time - start_time;
@@ -205,9 +215,9 @@ TEST(TestKokkos, TestDslashTime)
 			double rfo_bytes_out = (1.0 + rfo)*bytes_out;
 			double flops = static_cast<double>(1320.0*num_sites*iters);
 
-			MasterLog(INFO,"Sites Per Team=%d isign=%d Performance: %lf GFLOPS", per_team, isign, flops/(time_taken*1.0e9));
-			MasterLog(INFO,"Sites Per Team=%d isign=%d Effective BW (RFO=0): %lf GB/sec", per_team, isign, (bytes_in+bytes_out)/(time_taken*1.0e9));
-			MasterLog(INFO,"Sites Per Team=%d isign=%d Effective BW (RFO=1): %lf GB/sec", per_team, isign, (bytes_in+rfo_bytes_out)/(time_taken*1.0e9));
+			MasterLog(INFO,"isign=%d Performance: %lf GFLOPS", isign, flops/(time_taken*1.0e9));
+			MasterLog(INFO,"isign=%d Effective BW (RFO=0): %lf GB/sec",isign, (bytes_in+bytes_out)/(time_taken*1.0e9));
+			MasterLog(INFO,"isign=%d Effective BW (RFO=1): %lf GB/sec",  isign, (bytes_in+rfo_bytes_out)/(time_taken*1.0e9));
 
 
 

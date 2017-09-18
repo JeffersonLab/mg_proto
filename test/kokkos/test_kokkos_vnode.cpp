@@ -762,7 +762,7 @@ TEST(TestKokkos, TestVSpinProject)
 
 TEST(TestKokkos, TestDslash)
 {
-  IndexArray latdims={{24,24,24,64}};
+  IndexArray latdims={{16,24,32,40}};
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
 	for(int mu=0; mu < n_dim; ++mu) {
@@ -778,27 +778,36 @@ TEST(TestKokkos, TestDslash)
        
 	using VN = VNode<MGComplex<REAL32>,VectorLength>;
 	using SpinorType = KokkosCBFineVSpinor<MGComplex<REAL32>,VN,4>;
-	using GaugeType = KokkosFineVGaugeField<MGComplex<REAL32>,VN>;
+	using FullGaugeType = KokkosFineVGaugeField<MGComplex<REAL32>,VN>;
+
+	using GaugeType = KokkosCBFineVGaugeFieldDoubleCopy<MGComplex<REAL32>,VN>;
 
 	SpinorType  kokkos_spinor_even(info,EVEN);
 	SpinorType  kokkos_spinor_odd(info,ODD);
-	GaugeType  kokkos_gauge(info);
+	FullGaugeType  kokkos_gauge(info);
        
 
 	// Import Gauge Field
 	QDPGaugeFieldToKokkosVGaugeField(gauge_in, kokkos_gauge);
 
 
-	int per_team = 1;
+	// Double Stor Gauge field
+	GaugeType  gauge_even(info,EVEN);
+	GaugeType  gauge_odd(info, ODD);
+
+	gauge_even.import( kokkos_gauge(EVEN), kokkos_gauge(ODD));
+	gauge_odd.import( kokkos_gauge(ODD), kokkos_gauge(EVEN));
+
 	KokkosVDslash<VN,MGComplex<REAL32>,MGComplex<REAL32>,
-		      SIMDComplex<REAL32,VN::VecLen>,SIMDComplex<REAL32,VN::VecLen>> D(kokkos_spinor_even.GetInfo(),per_team);
-	MasterLog(INFO, "per_team=%d", per_team);
+		      SIMDComplex<REAL32,VN::VecLen>,SIMDComplex<REAL32,VN::VecLen>> D(kokkos_spinor_even.GetInfo());
 
 	LatticeFermion psi_out = zero;
 	LatticeFermion  kokkos_out=zero;
 	for(int cb=0; cb < 2; ++cb) {
 	  SpinorType& out_spinor = (cb == EVEN) ? kokkos_spinor_even : kokkos_spinor_odd;
 	  SpinorType& in_spinor = (cb == EVEN) ? kokkos_spinor_odd: kokkos_spinor_even;
+	  GaugeType& gauge = ( cb == EVEN ) ? gauge_even : gauge_odd;
+
 	  
 	    for(int isign=-1; isign < 2; isign+=2) {
 	      
@@ -811,7 +820,7 @@ TEST(TestKokkos, TestDslash)
 	      QDPLatticeFermionToKokkosCBVSpinor(psi_in, in_spinor);
 	      
 	      
-	      D(in_spinor,kokkos_gauge,out_spinor,isign,{1,1,1,1});
+	      D(in_spinor,gauge,out_spinor,isign,{1,1,1,1});
 	      
 	      kokkos_out = zero;
 	      KokkosCBVSpinorToQDPLatticeFermion(out_spinor, kokkos_out);
@@ -820,7 +829,7 @@ TEST(TestKokkos, TestDslash)
 	      psi_out[rb[cb]] -= kokkos_out;
 	      double norm_diff = toDouble(sqrt(norm2(psi_out,rb[cb])));
 	      
-	      MasterLog(INFO, "sites_per_team=%d norm_diff = %lf", per_team, norm_diff);
+	      MasterLog(INFO, "norm_diff = %lf", norm_diff);
 	      int num_sites = info.GetNumCBSites();
 	      Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
 				   [=](int i) {
