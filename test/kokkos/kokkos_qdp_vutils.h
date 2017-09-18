@@ -67,7 +67,7 @@ namespace MG
 				       int g_idx = CoordsToIndex(g_coords, fine_dims);
 				       int qdp_index = sub.siteTable()[g_idx];
 					     
-				       h_out(i,color,spin)(lane) = MGComplex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
+				       h_out(i,spin,color)(lane) = MGComplex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
 																	qdp_in.elem(qdp_index).elem(spin).elem(color).imag());
 				     }//lane
 				   } // spin
@@ -127,7 +127,7 @@ namespace MG
 				       int g_idx = CoordsToIndex(g_coords, fine_dims);
 				       int qdp_index = sub.siteTable()[g_idx];
 					     
-				       h_out(i,color,spin)(lane) = MGComplex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
+				       h_out(i,spin,color)(lane) = MGComplex<T>(qdp_in.elem(qdp_index).elem(spin).elem(color).real(),
 																	qdp_in.elem(qdp_index).elem(spin).elem(color).imag());
 				     }//lane
 				   } // spin
@@ -187,8 +187,8 @@ namespace MG
 					   int g_index=CoordsToIndex(g_coords,g_dims);
 					   int qdp_index = sub.siteTable()[g_index];
 					   
-					   qdp_out.elem(qdp_index).elem(spin).elem(color).real() = (h_in(i,color,spin))(lane).real();
-					   qdp_out.elem(qdp_index).elem(spin).elem(color).imag() = (h_in(i,color,spin))(lane).imag();
+					   qdp_out.elem(qdp_index).elem(spin).elem(color).real() = (h_in(i,spin,color))(lane).real();
+					   qdp_out.elem(qdp_index).elem(spin).elem(color).imag() = (h_in(i,spin,color))(lane).imag();
 				     } // lane 
 				   } // spin
 				 } // color
@@ -244,8 +244,8 @@ namespace MG
 					   int g_index=CoordsToIndex(g_coords,g_dims);
 					   int qdp_index = sub.siteTable()[g_index];
 					   
-					   qdp_out.elem(qdp_index).elem(spin).elem(color).real() = (h_in(i,color,spin))(lane).real();
-					   qdp_out.elem(qdp_index).elem(spin).elem(color).imag() = (h_in(i,color,spin))(lane).imag();
+					   qdp_out.elem(qdp_index).elem(spin).elem(color).real() = (h_in(i,spin,color))(lane).real();
+					   qdp_out.elem(qdp_index).elem(spin).elem(color).imag() = (h_in(i,spin,color))(lane).imag();
 				     } // lane 
 				   } // spin
 				 } // color

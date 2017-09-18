@@ -494,11 +494,12 @@ private:
 
 			 // Stream out spinor
 #pragma unroll
-			 for(int color=0; color < 3; ++color) {
+			 for(int spin=0; spin < 4; ++spin) {
 #pragma unroll
-				 for(int spin=0; spin < 4; ++spin) {
-					 Stream(s_out(site,color,spin),res_sum(color,spin));
-				 }
+			   for(int color=0; color < 3; ++color) {
+
+			     Stream(s_out(site,spin,color),res_sum(color,spin));
+			   }
 			 }
 
      }

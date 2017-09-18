@@ -57,7 +57,7 @@ KOKKOS_FORCEINLINE_FUNCTION
 		              SIMDComplex,
 		              SIMDComplex,
 		              SIMDComplex,
-		              isign>(spinor_out(color,0), in(i,color,0),in(i,color,3) );
+		  isign>(spinor_out(color,0), in(i,0,color),in(i,3,color) );
 
 	}
 
@@ -71,7 +71,7 @@ KOKKOS_FORCEINLINE_FUNCTION
 		              SIMDComplex,
 		              SIMDComplex,
 		              SIMDComplex,
-		              isign>(spinor_out(color,1), in(i,color,1), in(i,color,2));
+		  isign>(spinor_out(color,1), in(i,1,color), in(i,2,color));
 	}
 }
 
@@ -108,8 +108,8 @@ KOKKOS_FORCEINLINE_FUNCTION
  		              SIMDComplex,
  		              SIMDComplex,
  		              isign>(spinor_out(color,0),
- 				     VN::permute(mask,in(i,color,0)),
-			             VN::permute(mask,in(i,color,3)) );
+ 				     VN::permute(mask,in(i,0,color)),
+			             VN::permute(mask,in(i,3,color)) );
 
  	}
 
@@ -122,8 +122,8 @@ KOKKOS_FORCEINLINE_FUNCTION
  		              SIMDComplex, // result of VN::permute
  		              SIMDComplex, // result of VN::permute 
  		              isign>(spinor_out(color,1),
- 				     VN::permute(mask,in(i,color,1)),	
-			             VN::permute(mask,in(i,color,2)));
+ 				     VN::permute(mask,in(i,1,color)),	
+			             VN::permute(mask,in(i,2,color)));
  	}
  }
 
@@ -154,7 +154,8 @@ KOKKOS_FORCEINLINE_FUNCTION
 		            SIMDComplex, // Output
 		            SIMDComplex,       // Input
 		            SIMDComplex,       // Input
-		            -isign>(spinor_out(color,0),in(i,color,0),in(i,color,3));
+		            -isign>(spinor_out(color,0),
+				    in(i,0,color),in(i,3,color));
 	}
 
 #pragma unroll
@@ -165,7 +166,8 @@ KOKKOS_FORCEINLINE_FUNCTION
 		             SIMDComplex,
 		             SIMDComplex,
 		             SIMDComplex,
-		             isign>(spinor_out(color,1), in(i,color,1),in(i,color,2));
+		             isign>(spinor_out(color,1), 
+				    in(i,1,color),in(i,2,color));
 	}
 }
 
@@ -198,8 +200,8 @@ KOKKOS_FORCEINLINE_FUNCTION
 		             SIMDComplex, // output of VN::permute
 		             SIMDComplex, // output of VN::permute
 		             -isign>(spinor_out(color,0),
-				VN::permute(mask,in(i,color,0)),
-				VN::permute(mask,in(i,color,3)) );
+				     VN::permute(mask,in(i,0,color)),
+				     VN::permute(mask,in(i,3,color)) );
 	}
 
 #pragma unroll
@@ -211,8 +213,8 @@ KOKKOS_FORCEINLINE_FUNCTION
 		             SIMDComplex,
 		             SIMDComplex,
 		             isign>(spinor_out(color,1),
-					VN::permute(mask,in(i,color,1)),
-					VN::permute(mask,in(i,color,2)) );
+				    VN::permute(mask,in(i,1,color)),
+				    VN::permute(mask,in(i,2,color)) );
 	}
 }
   template<typename T, typename VN, typename T2, int isign>
@@ -242,7 +244,7 @@ void KokkosProjectDir2(const VSpinorView<T, VN>& in,
 		              SIMDComplex,
 		              SIMDComplex,
 		              isign>
-		              (spinor_out(color,0),in(i,color,0),in(i,color,2));
+		  (spinor_out(color,0),in(i,0,color),in(i,2,color));
 	}
 
 #pragma unroll
@@ -253,7 +255,7 @@ void KokkosProjectDir2(const VSpinorView<T, VN>& in,
 		              SIMDComplex,
 		              SIMDComplex,
 		              SIMDComplex,
-		              -isign>(spinor_out(color,1), in(i,color,1),in(i,color,3));
+		  -isign>(spinor_out(color,1), in(i,1,color),in(i,3,color));
 	}
 }
 
@@ -285,8 +287,8 @@ void KokkosProjectDir2(const VSpinorView<T, VN>& in,
  		              SIMDComplex,
  		              SIMDComplex,
  		              isign>(spinor_out(color,0),
- 					        VN::permute(mask,in(i,color,0)),
-					        VN::permute(mask,in(i,color,2)) );
+				     VN::permute(mask,in(i,0,color)),
+				     VN::permute(mask,in(i,2,color)) );
  	}
 
 #pragma unroll
@@ -298,8 +300,8 @@ void KokkosProjectDir2(const VSpinorView<T, VN>& in,
  		              SIMDComplex,
  		              SIMDComplex,
  		              -isign>(spinor_out(color,1),
- 						VN::permute(mask, in(i,color,1)),
-						VN::permute(mask, in(i,color,3)));
+				      VN::permute(mask, in(i,1,color)),
+				      VN::permute(mask, in(i,3,color)));
  	}
  }
 
@@ -328,7 +330,8 @@ void KokkosProjectDir3(const VSpinorView<T, VN>& in,
 		             SIMDComplex,
 		             SIMDComplex,
 		             SIMDComplex,
-		             isign>(spinor_out(color,0), in(i,color,0), in(i,color,2));
+		             isign>(spinor_out(color,0), 
+				    in(i,0,color), in(i,2,color));
 	}
 
 #pragma unroll
@@ -339,7 +342,7 @@ void KokkosProjectDir3(const VSpinorView<T, VN>& in,
 		             SIMDComplex,
 		             SIMDComplex,
 		             SIMDComplex,
-		             isign>(spinor_out(color,1), in(i,color,1), in(i,color,3));
+		  isign>(spinor_out(color,1), in(i,1,color), in(i,3,color));
 	}
 }
 
@@ -370,8 +373,8 @@ void KokkosProjectDir3Perm(const VSpinorView<T, VN>& in,
 		             SIMDComplex,
 		             SIMDComplex,
 		             isign>(spinor_out(color,0),
-					VN::permute(mask, in(i,color,0)),
-					VN::permute(mask, in(i,color,2)));
+				    VN::permute(mask, in(i,0,color)),
+				    VN::permute(mask, in(i,2,color)));
 	}
 
 #pragma unroll
@@ -383,8 +386,8 @@ void KokkosProjectDir3Perm(const VSpinorView<T, VN>& in,
 		             SIMDComplex,
 		             SIMDComplex,
 		             isign>(spinor_out(color,1),
-					VN::permute(mask, in(i,color,1)), 
-					VN::permute(mask, in(i,color,3))) ;
+				    VN::permute(mask, in(i,1,color)), 
+				    VN::permute(mask, in(i,3,color))) ;
 	}
 }
 
@@ -425,7 +428,7 @@ void KokkosProjectDir3Perm(const VSpinorView<T, VN>& in,
 			  for(int spin=0; spin<2; ++spin) {
 			    
 			    //hspinor_out(i,spin,color,reim) = res(spin,color,reim);
-			    Store(hspinor_out(i,color,spin), res(color,spin));
+			    Store(hspinor_out(i,spin,color), res(color,spin));
 			  }
 			}
 		  });
@@ -468,7 +471,7 @@ void KokkosProjectDir3Perm(const VSpinorView<T, VN>& in,
 			  for(int spin=0; spin<2; ++spin) {
 
 			    //hspinor_out(i,spin,color,reim) = res(spin,color,reim);
-			    Store(hspinor_out(i,color,spin), res(color,spin));
+			    Store(hspinor_out(i,spin,color), res(color,spin));
 			  }
 			}
 		  });
@@ -508,7 +511,7 @@ void KokkosProjectDir3Perm(const VSpinorView<T, VN>& in,
  						tmp = VN::permute(VN::TPermuteMask, spinor(i,color,spin));
  					}
 
- 					spinor(i,color,spin) = tmp;
+ 					spinor(i,spin,color) = tmp;
  				}
  			}
  		  });

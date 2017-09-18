@@ -38,7 +38,7 @@ namespace MG {
        }
      }
      
-     _info=std::make_shared<LatticeInfo>(l_orig,l_dims,_g_info.GetNumSpins(), _g_info.GetNumSpins(), _g_info.GetNodeInfo());
+     _info=std::make_shared<LatticeInfo>(l_orig,l_dims,_g_info.GetNumSpins(), _g_info.GetNumColors(), _g_info.GetNodeInfo());
      
      // Init the data
      _cb_data=DataType("cb_data", _info->GetNumCBSites());
@@ -62,7 +62,7 @@ namespace MG {
    }
 
    using VecType = SIMDComplex<typename BaseType<T>::Type, VN::VecLen>;
-   using DataType = Kokkos::View<VecType*[3][_num_spins],Layout,MemorySpace>;
+   using DataType = Kokkos::View<VecType*[_num_spins][3],Layout,MemorySpace>;
 
 
    const DataType& GetData() const {
@@ -113,7 +113,7 @@ namespace MG {
        }
      }
      
-     _info=std::make_shared<LatticeInfo>(l_orig,l_dims,_g_info.GetNumSpins(), _g_info.GetNumSpins(), _g_info.GetNodeInfo());
+     _info=std::make_shared<LatticeInfo>(l_orig,l_dims,_g_info.GetNumSpins(), _g_info.GetNumColors(), _g_info.GetNodeInfo());
      
      // Init the data
      _cb_data=DataType("cb_data", _info->GetNumCBSites());
