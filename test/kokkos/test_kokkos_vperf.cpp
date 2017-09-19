@@ -30,76 +30,6 @@ using namespace QDP;
 using namespace MG;
 using namespace MGTesting;
 
-#if 0
-TEST(TestKokkos, TestDslash)
-{
-	IndexArray latdims={{32,32,32,32}};
-	int iters = 100;
-
-	initQDPXXLattice(latdims);
-	multi1d<LatticeColorMatrix> gauge_in(n_dim);
-	for(int mu=0; mu < n_dim; ++mu) {
-		gaussian(gauge_in[mu]);
-		reunit(gauge_in[mu]);
-	}
-
-	LatticeFermion psi_in=zero;
-	gaussian(psi_in);
-
-	LatticeInfo info(latdims,4,3,NodeInfo());
-
-	using VN = VNode<MGComplex<REAL32>,V>;
-	using SpinorType = KokkosCBFineVSpinor<MGComplex<REAL32>,VN,4>;
-	using GaugeType = KokkosFineVGaugeField<MGComplex<REAL32>,VN>;
-
-	SpinorType  kokkos_spinor_even(info,EVEN);
-	SpinorType  kokkos_spinor_odd(info,ODD);
-	GaugeType  kokkos_gauge(info);
-
-
-	// Import Gauge Field
-	QDPGaugeFieldToKokkosVGaugeField(gauge_in, kokkos_gauge);
-
-	// Import spinor
-	QDPLatticeFermionToKokkosCBVSpinor(psi_in, kokkos_spinor_even);
-
-    for(int per_team=1; per_team < 2048; per_team *=2 ) {
-
-		KokkosVDslash<VN,
-		MGComplex<REAL32>,
-		MGComplex<REAL32>,
-		ThreadSIMDComplex<REAL32,VN::VecLen>,
-		ThreadSIMDComplex<REAL32,VN::VecLen> > D(kokkos_spinor_even.GetInfo(),per_team);
-
-		MasterLog(INFO, "per_team=%d", per_team);
-
-		for(int isign=-1; isign < 2; isign+=2) {
-			// Time it.
-			double start_time = omp_get_wtime();
-			for(int i=0; i < iters; ++i) {
-				D(kokkos_spinor_even,kokkos_gauge,kokkos_spinor_odd,isign);
-			}
-			double end_time = omp_get_wtime();
-			double time_taken = end_time - start_time;
-
-			double rfo = 1.0;
-			double num_sites = static_cast<double>((latdims[0]/2)*latdims[1]*latdims[2]*latdims[3]);
-			double bytes_in = static_cast<double>((8*4*3*2*sizeof(REAL32)+8*3*3*2*sizeof(REAL32))*num_sites*iters);
-			double bytes_out = static_cast<double>(4*3*2*sizeof(REAL32)*num_sites*iters);
-			double rfo_bytes_out = (1.0 + rfo)*bytes_out;
-			double flops = static_cast<double>(1320.0*num_sites*iters);
-
-			MasterLog(INFO,"Sites Per Team=%d isign=%d Performance: %lf GFLOPS", per_team, isign, flops/(time_taken*1.0e9));
-			MasterLog(INFO,"Sites Per Team=%d isign=%d Effective BW (RFO=0): %lf GB/sec", per_team, isign, (bytes_in+bytes_out)/(time_taken*1.0e9));
-			MasterLog(INFO,"Sites Per Team=%d isign=%d Effective BW (RFO=1): %lf GB/sec", per_team, isign, (bytes_in+rfo_bytes_out)/(time_taken*1.0e9));
-
-
-
-		} // isign
-	} // per team
-}
-#endif
-
 TEST(TestKokkos, TestDslashTime)
 {
 	IndexArray latdims={{32,32,32,32}};
@@ -137,7 +67,7 @@ TEST(TestKokkos, TestDslashTime)
 
 
 	// Import gets the rear neighbors, and permutes them if needed
-	gauge_even.import( kokkos_gauge(EVEN), kokkos_gauge(ODD));
+	import(gauge_even,  kokkos_gauge(EVEN), kokkos_gauge(ODD));
 
 	// Import spinor
 	QDPLatticeFermionToKokkosCBVSpinor(psi_in, kokkos_spinor_even);
@@ -154,7 +84,7 @@ TEST(TestKokkos, TestDslashTime)
 	double num_sites = static_cast<double>(V*cb_latdims[0]*cb_latdims[1]*cb_latdims[2]*cb_latdims[3]);
 
 #if 0
-	int titers=100;
+	int titers=10;
 	double best_flops = 0;
 	IndexArray best_blocks={1,1,1,1};
 	for(int t=cb_latdims[3]; t >= 1; t /= 2) {
@@ -167,7 +97,11 @@ TEST(TestKokkos, TestDslashTime)
 					num_blocks *= cb_latdims[1]/y;
 					num_blocks *= cb_latdims[2]/z;
 					num_blocks *= cb_latdims[3]/t;
-					if ( num_blocks >= 128) {
+#ifdef KOKKOS_HAVE_CUDA
+					if( x*y*z*t  <= 512 ) { 
+#else
+					if ( num_blocks <= 256) {
+#endif
 						double start_time = omp_get_wtime();
 						for(int i=0; i < titers; ++i) {
 						  D(kokkos_spinor_even,gauge_even,kokkos_spinor_odd,isign,{x,y,z,t});
@@ -192,7 +126,7 @@ TEST(TestKokkos, TestDslashTime)
 		}
 	}
 #else
-	IndexArray best_blocks={8,1,1,1};
+	IndexArray best_blocks={8,32,1,1};
 #endif
 	MasterLog(INFO, "Main timing: (Bx,By,Bz,Bt)=(%d,%d,%d,%d)",
 				best_blocks[0],best_blocks[1],best_blocks[2],best_blocks[3]);

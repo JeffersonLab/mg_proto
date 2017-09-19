@@ -53,7 +53,7 @@ TEST(TestVNode,TestVSpinor)
   bool same_global_vectype = std::is_same< SpinorType::VecType, SIMDComplex<float,VectorLength> >::value;
   ASSERT_EQ( same_global_vectype, true); 
 
-  bool same_thread_vectype = std::is_same< VN::VecType, ThreadSIMDComplex<float,VectorLength> >::value;
+  bool same_thread_vectype = std::is_same< VN::VecType, SIMDComplex<float,VectorLength> >::value;
   ASSERT_EQ( same_thread_vectype, true);
 
 
@@ -80,7 +80,7 @@ TEST(TestVNode,TestVGauge)
   bool same_global_vectype = std::is_same< GaugeType::VecType, SIMDComplex<float,VectorLength> >::value;
   ASSERT_EQ( same_global_vectype, true); 
 
-  bool same_thread_vectype = std::is_same< VN::VecType, ThreadSIMDComplex<float,VectorLength> >::value;
+  bool same_thread_vectype = std::is_same< VN::VecType, SIMDComplex<float,VectorLength> >::value;
   ASSERT_EQ( same_thread_vectype, true);
 
 
@@ -92,6 +92,7 @@ float computeLane(const IndexArray& coords, const IndexArray& cb_latdims)
 	  value = 0;
 	  return value;
   }
+
 
   if (VectorLength == 2) {
 	  if( coords[3] < cb_latdims[3]/2 ) {
@@ -342,7 +343,7 @@ TEST(TestVNode, TestPackSpinor)
       Kokkos::parallel_for( Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_vcbsites), [=](int i) {
       for(int color=0; color <3; ++color) { 
       for(int spin=0; spin < 4; ++spin) { 
-      auto vec_data = kokkos_h(i,color,spin);
+	auto vec_data = kokkos_h(i,spin,color);
 	  for(int lane=0; lane < VN::VecLen; ++lane) { 
             float ref = lane;
 	    ASSERT_FLOAT_EQ( ref, vec_data(lane).real() );
@@ -628,7 +629,7 @@ TEST(TestKokkos, TestVSpinProject)
 	  qdp_out[rb[1]] = zero;
 
 	  KokkosVProjectLattice<MGComplex<REAL>,
-				VN, ThreadSIMDComplex<REAL,VN::VecLen>,0,-1>(kokkos_in,kokkos_hspinor_out);
+				VN, SIMDComplex<REAL,VN::VecLen>,0,-1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -644,7 +645,7 @@ TEST(TestKokkos, TestVSpinProject)
 	  qdp_out[rb[1]] = zero;
 
 	  KokkosVProjectLattice<MGComplex<REAL>,
-				VN, ThreadSIMDComplex<REAL,VN::VecLen>,1,-1>(kokkos_in,kokkos_hspinor_out);
+				VN, SIMDComplex<REAL,VN::VecLen>,1,-1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -661,7 +662,7 @@ TEST(TestKokkos, TestVSpinProject)
 	  qdp_out[rb[1]] = zero;
 
 	  KokkosVProjectLattice<MGComplex<REAL>,
-				VN, ThreadSIMDComplex<REAL,VN::VecLen>,2,-1>(kokkos_in,kokkos_hspinor_out);
+				VN, SIMDComplex<REAL,VN::VecLen>,2,-1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -678,7 +679,7 @@ TEST(TestKokkos, TestVSpinProject)
 	  qdp_out[rb[1]] = zero;
 
 	  KokkosVProjectLattice<MGComplex<REAL>,
-				VN, ThreadSIMDComplex<REAL,VN::VecLen>,3,-1>(kokkos_in,kokkos_hspinor_out);
+				VN, SIMDComplex<REAL,VN::VecLen>,3,-1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -696,7 +697,7 @@ TEST(TestKokkos, TestVSpinProject)
 	  qdp_out[rb[1]] = zero;
 
 	  KokkosVProjectLattice<MGComplex<REAL>,
-				VN, ThreadSIMDComplex<REAL,VN::VecLen>,0,1>(kokkos_in,kokkos_hspinor_out);
+				VN, SIMDComplex<REAL,VN::VecLen>,0,1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -712,7 +713,7 @@ TEST(TestKokkos, TestVSpinProject)
 	  qdp_out[rb[1]] = zero;
 
 	  KokkosVProjectLattice<MGComplex<REAL>,
-				VN, ThreadSIMDComplex<REAL,VN::VecLen>,1,1>(kokkos_in,kokkos_hspinor_out);
+				VN, SIMDComplex<REAL,VN::VecLen>,1,1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -729,7 +730,7 @@ TEST(TestKokkos, TestVSpinProject)
 	  qdp_out[rb[1]] = zero;
 
 	  KokkosVProjectLattice<MGComplex<REAL>,
-				VN, ThreadSIMDComplex<REAL,VN::VecLen>,2,1>(kokkos_in,kokkos_hspinor_out);
+				VN, SIMDComplex<REAL,VN::VecLen>,2,1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -746,7 +747,7 @@ TEST(TestKokkos, TestVSpinProject)
 	  qdp_out[rb[1]] = zero;
 
 	  KokkosVProjectLattice<MGComplex<REAL>,
-				VN, ThreadSIMDComplex<REAL,VN::VecLen>,3,1>(kokkos_in,kokkos_hspinor_out);
+				VN, SIMDComplex<REAL,VN::VecLen>,3,1>(kokkos_in,kokkos_hspinor_out);
 	  KokkosCBVSpinor2ToQDPLatticeHalfFermion(kokkos_hspinor_out,kokkos_out);
 	  qdp_out[rb[0]] -= kokkos_out;
 
@@ -762,7 +763,7 @@ TEST(TestKokkos, TestVSpinProject)
 
 TEST(TestKokkos, TestDslash)
 {
-  IndexArray latdims={{16,24,32,40}};
+  IndexArray latdims={{8,8,8,8}};
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
 	for(int mu=0; mu < n_dim; ++mu) {
@@ -793,10 +794,10 @@ TEST(TestKokkos, TestDslash)
 
 	// Double Stor Gauge field
 	GaugeType  gauge_even(info,EVEN);
-	GaugeType  gauge_odd(info, ODD);
+     	import(gauge_even, kokkos_gauge(EVEN), kokkos_gauge(ODD));
 
-	gauge_even.import( kokkos_gauge(EVEN), kokkos_gauge(ODD));
-	gauge_odd.import( kokkos_gauge(ODD), kokkos_gauge(EVEN));
+ 	GaugeType  gauge_odd(info, ODD); 
+	import(gauge_odd, kokkos_gauge(ODD), kokkos_gauge(EVEN));
 
 	KokkosVDslash<VN,MGComplex<REAL32>,MGComplex<REAL32>,
 		      SIMDComplex<REAL32,VN::VecLen>,SIMDComplex<REAL32,VN::VecLen>> D(kokkos_spinor_even.GetInfo());
@@ -816,11 +817,10 @@ TEST(TestKokkos, TestDslash)
 	      
 	      // Target cb=1 for now.
 	      dslash(psi_out,gauge_in,psi_in,isign,cb);
-	      
+	    
 	      QDPLatticeFermionToKokkosCBVSpinor(psi_in, in_spinor);
-	      
-	      
-	      D(in_spinor,gauge,out_spinor,isign,{1,1,1,1});
+	
+	      D(in_spinor,gauge,out_spinor,isign,{4,4,2,2});
 	      
 	      kokkos_out = zero;
 	      KokkosCBVSpinorToQDPLatticeFermion(out_spinor, kokkos_out);
@@ -831,6 +831,20 @@ TEST(TestKokkos, TestDslash)
 	      
 	      MasterLog(INFO, "norm_diff = %lf", norm_diff);
 	      int num_sites = info.GetNumCBSites();
+#if 0
+	      for(int site=0; site < num_sites; ++site) {
+	        for(int spin=0; spin < 4; ++spin ) { 
+		  for(int color=0; color < 3; ++color) { 
+		   QDPIO::cout << "psi_out("<<site<<","<<color<<","<<spin<<") = (" <<	psi_out.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).real() << "," << psi_out.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).imag() << ")     kokkos_out("<<site<<","<<color<<","<<spin<<") = (" <<
+	kokkos_out.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).real() 
+	<< " , " << kokkos_out.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).imag() << " ) " << std::endl;
+
+                } 
+              }
+             }
+
+#endif
+
 	      Kokkos::parallel_for(Kokkos::RangePolicy<Kokkos::OpenMP>(0,num_sites),
 				   [=](int i) {
 				     int qdp_idx = rb[cb].siteTable()[i];
@@ -843,8 +857,10 @@ TEST(TestKokkos, TestDslash)
 				       }
 				     }
 				   });
+
 	    }
 	}
+
 	
 }
 

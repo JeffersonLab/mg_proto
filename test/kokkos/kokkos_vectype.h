@@ -94,8 +94,8 @@ template<typename T, int N>
 
 
 
-
-#ifndef KOKKOS_HAVE_CUDA
+#if 1
+  //#ifndef KOKKOS_HAVE_CUDA
 
 // GENERAL THREADVECTORRANGE
 // T1 must support indexing with operator()
@@ -293,7 +293,7 @@ void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a, const T3<T,N>& b)
 {
 
 //  printf(".");
-  const T fsign = static_cast<const T>(sign);
+  const T fsign = static_cast<T>(sign);
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
       //      res(i).real() = a(i).real() + sign*b(i).real();
       //      res(i).imag() = a(i).imag() + sign*b(i).imag();
@@ -337,7 +337,7 @@ void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>
 KOKKOS_FORCEINLINE_FUNCTION
 void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T3<T,N>& b)
 {
-  const T fsign=static_cast<const T>(sign);
+  const T fsign=static_cast<T>(sign);
 
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
 
@@ -378,7 +378,7 @@ void A_peq_sign_miB( T1<T,N>& a, const T& sign, const T2<T,N>& b)
 KOKKOS_FORCEINLINE_FUNCTION
 void A_peq_sign_miB( T1<T,N>& a, const T2<T,N>& b)
 {
-  const T fsign=static_cast<const T>(sign);
+  const T fsign=static_cast<T>(sign);
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) {
 
       auto _a = a(i);
@@ -419,7 +419,7 @@ KOKKOS_FORCEINLINE_FUNCTION
 KOKKOS_FORCEINLINE_FUNCTION
   void A_peq_sign_B( T1<T,N>& a, const T2<T,N>& b)
 {
-  const T fsign = static_cast<const T>(sign);
+  const T fsign = static_cast<T>(sign);
   Kokkos::parallel_for(VectorPolicy(N),[&](const int& i) { 
       // a(i).real() += sign*b(i).real();
       // a(i).imag() += sign*b(i).imag();
@@ -636,7 +636,7 @@ void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>&
 KOKKOS_FORCEINLINE_FUNCTION
 void A_add_sign_B( T1<T,N>& res, const T2<T,N>& a,  const T3<T,N>& b)
 {
-  const T fsign = static_cast<const T>(sign);
+      const T fsign = static_cast<T>(sign);
       auto _a = a(threadIdx.x);
       auto _b = b(threadIdx.x);
       auto _res = res(threadIdx.x);
@@ -669,7 +669,7 @@ void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a, const T& sign, const T3<T,N>
 KOKKOS_FORCEINLINE_FUNCTION
 void A_add_sign_iB( T1<T,N>& res, const T2<T,N>& a,  const T3<T,N>& b)
 {
-  const T fsign = static_cast<const T>(sign);
+  const T fsign = static_cast<T>(sign);
       auto _a = a(threadIdx.x);
       auto _b = b(threadIdx.x);
       auto _res = res(threadIdx.x);
@@ -706,7 +706,7 @@ KOKKOS_FORCEINLINE_FUNCTION
 void A_peq_sign_miB( T1<T,N>& a, const T2<T,N>& b)
 {
 
-  const T fsign = static_cast<const T>(sign);
+  const T fsign = static_cast<T>(sign);
 
       auto _a = a(threadIdx.x);
       auto _b = b(threadIdx.x);
@@ -740,7 +740,7 @@ KOKKOS_FORCEINLINE_FUNCTION
 KOKKOS_FORCEINLINE_FUNCTION
   void A_peq_sign_B( T1<T,N>& a, const T2<T,N>& b)
 {
-  const T fsign = static_cast<const T>(sign);
+  const T fsign = static_cast<T>(sign);
       auto _a = a(threadIdx.x);
       auto _b = b(threadIdx.x);
 

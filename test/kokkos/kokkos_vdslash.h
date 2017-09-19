@@ -47,16 +47,20 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
      {
 
        int site = neigh_table.coords_to_idx(xcb,y,z,t);
-
        int n_idx;
        typename VN::MaskType mask;
      
       // Warning: GCC Alignment Attribute!
     		 // Site Sum: Not a true Kokkos View
+#if 0
     		 SpinorSiteView<TST> res_sum __attribute__((aligned(64)));
     		 HalfSpinorSiteView<TST> proj_res  __attribute__((aligned(64)));
     		 HalfSpinorSiteView<TST> mult_proj_res  __attribute__((aligned(64)));
-
+#else
+                 SpinorSiteView<TST> res_sum ;
+                 HalfSpinorSiteView<TST> proj_res ;
+                 HalfSpinorSiteView<TST> mult_proj_res ;
+#endif
 
 #if 0
     		 // Zero Result

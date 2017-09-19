@@ -98,7 +98,7 @@ void A_add_sign_B( MGComplex<T>& res, const MGComplex<T>& a, const T& sign, cons
 KOKKOS_FORCEINLINE_FUNCTION
 void A_add_sign_B( MGComplex<T>& res, const MGComplex<T>& a, const MGComplex<T>& b)
 {
-  const T fsign = static_cast<const T>(sign);
+  const T fsign = static_cast<T>(sign);
    T res_re = a.real() + fsign*b.real();
    T res_im = a.imag() + fsign*b.imag();
    res = MGComplex<T>(res_re,res_im);
@@ -118,7 +118,7 @@ void A_add_sign_iB( MGComplex<T>& res, const MGComplex<T>& a, const T& sign, con
 KOKKOS_FORCEINLINE_FUNCTION
 void A_add_sign_iB( MGComplex<T>& res, const MGComplex<T>& a, const MGComplex<T>& b)
 {
-  const T fsign=static_cast<const T>(sign);
+  const T fsign=static_cast<T>(sign);
   T res_re =  a.real()-sign*b.imag();
   T res_im =  a.imag()+sign*b.real();
   res = MGComplex<T>(res_re,res_im);
@@ -141,7 +141,7 @@ void A_peq_sign_miB( MGComplex<T>& a, const T& sign, const MGComplex<T>& b)
 KOKKOS_FORCEINLINE_FUNCTION
 void A_peq_sign_miB( MGComplex<T>& a, const MGComplex<T>& b)
 {
-  const T fsign = static_cast<const T>(sign);
+  const T fsign = static_cast<T>(sign);
   T res_re = a.real() + fsign*b.imag();
   T res_im = a.imag() - fsign*b.real();
   a = MGComplex<T>(res_re,res_im);
