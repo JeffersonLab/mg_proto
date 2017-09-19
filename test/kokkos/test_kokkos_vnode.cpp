@@ -762,7 +762,7 @@ TEST(TestKokkos, TestVSpinProject)
 
 TEST(TestKokkos, TestDslash)
 {
-  IndexArray latdims={{16,24,32,40}};
+  IndexArray latdims={{32,32,32,32}};
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
 	for(int mu=0; mu < n_dim; ++mu) {
@@ -801,6 +801,13 @@ TEST(TestKokkos, TestDslash)
 	KokkosVDslash<VN,MGComplex<REAL32>,MGComplex<REAL32>,
 		      SIMDComplex<REAL32,VN::VecLen>,SIMDComplex<REAL32,VN::VecLen>> D(kokkos_spinor_even.GetInfo());
 
+        IndexArray blockings[4] = { {1,1,1,1},
+				    {2,4,8,8},
+				    {16,2,2,4},
+				    {4,2,8,4} };
+
+	for(int b=0; b < 4; ++b) { 
+
 	LatticeFermion psi_out = zero;
 	LatticeFermion  kokkos_out=zero;
 	for(int cb=0; cb < 2; ++cb) {
@@ -819,8 +826,14 @@ TEST(TestKokkos, TestDslash)
 	      
 	      QDPLatticeFermionToKokkosCBVSpinor(psi_in, in_spinor);
 	      
-	      
-	      D(in_spinor,gauge,out_spinor,isign,{1,1,1,1});
+	      int bx=blockings[b][0];
+	      int by=blockings[b][1];
+	      int bz=blockings[b][2];
+	      int bt=blockings[b][3];
+
+	      MasterLog(INFO, "Blocking = (%d,%d,%d,%d)",
+					bx,by,bz,bt ) ;	      
+	      D(in_spinor,gauge,out_spinor,isign,{bx,by,bz,bt});
 	      
 	      kokkos_out = zero;
 	      KokkosCBVSpinorToQDPLatticeFermion(out_spinor, kokkos_out);
@@ -845,7 +858,7 @@ TEST(TestKokkos, TestDslash)
 				   });
 	    }
 	}
-	
+    }//b	
 }
 
 

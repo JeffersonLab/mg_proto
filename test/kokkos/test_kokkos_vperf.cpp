@@ -192,7 +192,7 @@ TEST(TestKokkos, TestDslashTime)
 		}
 	}
 #else
-	IndexArray best_blocks={8,1,1,1};
+	IndexArray best_blocks={4,2,2,16};
 #endif
 	MasterLog(INFO, "Main timing: (Bx,By,Bz,Bt)=(%d,%d,%d,%d)",
 				best_blocks[0],best_blocks[1],best_blocks[2],best_blocks[3]);
