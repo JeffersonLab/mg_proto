@@ -802,12 +802,21 @@ TEST(TestKokkos, TestDslash)
 	KokkosVDslash<VN,MGComplex<REAL32>,MGComplex<REAL32>,
 		      SIMDComplex<REAL32,VN::VecLen>,SIMDComplex<REAL32,VN::VecLen>> D(kokkos_spinor_even.GetInfo());
 
+#if KOKKOS_HAVE_CUDA
 	IndexArray blockings[6] = { { 1,1,1,1 },
 				    { 2,2,2,4 },
 				    { 4,4,1,2 },
 				    { 4,2,8,4 },
 				    { 8,4,1,4 },
 				    { 16,4,1,1} };
+#else
+	 IndexArray blockings[6] = { { 1,1,1,1 },
+                                    { 2,2,2,4 },
+                                    { 4,4,1,2 },
+                                    { 4,2,8,4 },
+                                    { 8,4,1,4 },
+                                    { 4,2,2,16} };
+#endif
 
         for(int b=0; b < 6; ++b) {
 
