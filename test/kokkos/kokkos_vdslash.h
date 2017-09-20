@@ -217,7 +217,7 @@ public:
 	    		  _neigh_table};
 
 #ifdef MG_KOKKOS_USE_MDRANGE
-	      Kokkos::parallel_for(policy, f); // Outer Lambda
+	      Kokkos::Experimental::md_parallel_for(policy, f); // Outer Lambda
 #else
 	      Kokkos::parallel_for(SimpleRange(0,num_sites),f);
 #endif
@@ -228,7 +228,7 @@ public:
 	    		   _neigh_table};
 
 #ifdef MG_KOKKOS_USE_MDRANGE
-	      Kokkos::parallel_for(policy, f); // Outer Lambda
+	      Kokkos::Experimental::md_parallel_for(policy, f); // Outer Lambda
 #else
 	      Kokkos::parallel_for(SimpleRange(0,num_sites),f);
 #endif
@@ -240,7 +240,7 @@ public:
 	    		  _neigh_table};
 
 #ifdef MG_KOKKOS_USE_MDRANGE
-	      Kokkos::parallel_for(policy, f); // Outer Lambda
+	      Kokkos::Experimental::md_parallel_for(policy, f); // Outer Lambda
 #else
 	      Kokkos::parallel_for(SimpleRange(0,num_sites),f);
 #endif
@@ -250,7 +250,7 @@ public:
 	    		  _neigh_table };
 
 #ifdef MG_KOKKOS_USE_MDRANGE
-	      Kokkos::parallel_for(policy, f); // Outer Lambda
+	      Kokkos::Experimental::md_parallel_for(policy, f); // Outer Lambda
 #else
 	      Kokkos::parallel_for(SimpleRange(0,num_sites),f);
 #endif

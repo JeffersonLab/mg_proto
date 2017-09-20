@@ -33,7 +33,7 @@ using namespace MGTesting;
 TEST(TestKokkos, TestDslashTime)
 {
 	IndexArray latdims={{32,32,32,32}};
-	int iters=50;
+	int iters=40;
 
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
@@ -84,7 +84,7 @@ TEST(TestKokkos, TestDslashTime)
 	double num_sites = static_cast<double>(V*cb_latdims[0]*cb_latdims[1]*cb_latdims[2]*cb_latdims[3]);
 
 #if 0
-	int titers=10;
+	int titers=40;
 	double best_flops = 0;
 	IndexArray best_blocks={1,1,1,1};
 	for(int t=cb_latdims[3]; t >= 1; t /= 2) {
@@ -98,7 +98,7 @@ TEST(TestKokkos, TestDslashTime)
 					num_blocks *= cb_latdims[2]/z;
 					num_blocks *= cb_latdims[3]/t;
 #ifdef KOKKOS_HAVE_CUDA
-					if( x*y*z*t  <= 256 ) { 
+					if( x*y*z*t <= 256) { 
 #else
 					if ( num_blocks <= 256) {
 #endif
@@ -106,6 +106,9 @@ TEST(TestKokkos, TestDslashTime)
 						for(int i=0; i < titers; ++i) {
 						  D(kokkos_spinor_even,gauge_even,kokkos_spinor_odd,isign,{x,y,z,t});
 						}
+#ifdef KOKKOS_HAVE_CUDA
+						Kokkos::fence();
+#endif
 						double end_time = omp_get_wtime();
 						double time_taken = end_time - start_time;
 						double flops = static_cast<double>(1320.0*num_sites*titers);
@@ -126,7 +129,7 @@ TEST(TestKokkos, TestDslashTime)
 		}
 	}
 #else
-	IndexArray best_blocks={8,4,1,4};
+	IndexArray best_blocks={16,4,1,1};
 #endif
 	MasterLog(INFO, "Main timing: (Bx,By,Bz,Bt)=(%d,%d,%d,%d)",
 				best_blocks[0],best_blocks[1],best_blocks[2],best_blocks[3]);
@@ -139,6 +142,9 @@ TEST(TestKokkos, TestDslashTime)
 			for(int i=0; i < iters; ++i) {
 				D(kokkos_spinor_even,gauge_even,kokkos_spinor_odd,isign, best_blocks);
 			}
+#ifdef KOKKOS_HAVE_CUDA
+			Kokkos::fence();
+#endif
 			double end_time = omp_get_wtime();
 			double time_taken = end_time - start_time;
 
