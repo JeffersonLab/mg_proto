@@ -33,7 +33,7 @@ using namespace MGTesting;
 TEST(TestKokkos, TestDslashTime)
 {
 	IndexArray latdims={{32,32,32,32}};
-	int iters=400;
+	int iters=50;
 
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
@@ -98,7 +98,7 @@ TEST(TestKokkos, TestDslashTime)
 					num_blocks *= cb_latdims[2]/z;
 					num_blocks *= cb_latdims[3]/t;
 #ifdef KOKKOS_HAVE_CUDA
-					if( x*y*z*t  <= 512 ) { 
+					if( x*y*z*t  <= 256 ) { 
 #else
 					if ( num_blocks <= 256) {
 #endif
@@ -126,12 +126,12 @@ TEST(TestKokkos, TestDslashTime)
 		}
 	}
 #else
-	IndexArray best_blocks={8,32,1,1};
+	IndexArray best_blocks={8,4,1,4};
 #endif
 	MasterLog(INFO, "Main timing: (Bx,By,Bz,Bt)=(%d,%d,%d,%d)",
 				best_blocks[0],best_blocks[1],best_blocks[2],best_blocks[3]);
 
-	for(int rep=0; rep < 10; ++rep ) {
+	for(int rep=0; rep < 3; ++rep ) {
 		int isign = 1;
 		//for(int isign=-1; isign < 2; isign+=2) {
 			// Time it.

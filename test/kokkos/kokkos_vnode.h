@@ -58,7 +58,7 @@ template<typename T>
   {
 	  VecType vec_out;
 	 // Kokkos::parallel_for(VectorPolicy(1),[&](const int& i){
-		  ComplexCopy( vec_out(0), vec_in( 0  ));
+	  ComplexCopy( vec_out, vec_in);
 	 // });
 	  return vec_out;
   }

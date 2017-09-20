@@ -9,6 +9,8 @@
 #include "kokkos_vectype.h"
 #include "kokkos_vnode.h"
 #include "kokkos_vneighbor_table.h"
+
+#undef MG_KOKKOS_USE_MDRANGE
 namespace MG {
 
  template<typename T, typename VN, int _num_spins>
@@ -411,17 +413,20 @@ namespace MG {
 
      SiteTable<VN> neigh_table(cb_latdims[0],cb_latdims[1],cb_latdims[2],
 			       cb_latdims[3]);
-     // Iterate sites with MDRange -- no blocking for now.
+
+#ifdef MG_KOKKOS_USE_MDRANGE
      MDPolicy policy({0,0,0,0},
 		     {cb_latdims[0],cb_latdims[1],cb_latdims[2],cb_latdims[3]},
 		     {1,1,1,1});
+#endif
+
      auto cb_data_out = target.GetData();
      auto cb_data_in = src_cb.GetData();
      auto othercb_data_in = src_othercb.GetData();
 
      int target_cb = target.GetCB(); // Lambd cannot access member _cb on host
      int num_cbsites = info.GetNumCBSites();	
-#if 1
+#ifdef MG_KOKKOS_USE_MDRANGE
      Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const int xcb,
 						const int y,
 						const int z,
@@ -446,6 +451,7 @@ namespace MG {
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
 			        ComplexCopy(cb_data_out(site,0,col,col2),VN::permute(mask, othercb_data_in(n_idx,3,col,col2)));
+			        //cb_data_out(site,0,col,col2) = VN::permute(mask, othercb_data_in(n_idx,3,col,col2));
 			      }
 			    }
 
@@ -458,7 +464,8 @@ namespace MG {
 			    
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
-			        ComplexCopy(cb_data_out(site,1,col,col2),VN::permute(mask,othercb_data_in(n_idx,2,col,col2)));
+				ComplexCopy(cb_data_out(site,1,col,col2),VN::permute(mask,othercb_data_in(n_idx,2,col,col2)));
+				//cb_data_out(site,1,col,col2) = VN::permute(mask, othercb_data_in(n_idx,2,col,col2));
 			      }
 			    }
 
@@ -472,6 +479,7 @@ namespace MG {
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
 			        ComplexCopy(cb_data_out(site,2,col,col2),VN::permute(mask,othercb_data_in(n_idx,1,col,col2)));
+				//cb_data_out(site,2,col,col2) = VN::permute(mask, othercb_data_in(n_idx,1,col,col2));
 			      }
 			    }
 
@@ -486,12 +494,14 @@ namespace MG {
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
 			        ComplexCopy(cb_data_out(site,3,col,col2),VN::permute(mask, othercb_data_in(n_idx,0,col,col2)));
+				//cb_data_out(site,3,col,col2) = VN::permute(mask, othercb_data_in(n_idx,0,col,col2));
 			      }
 			    }
 
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
 			        ComplexCopy(cb_data_out(site,4,col,col2),cb_data_in(site,0,col,col2));
+				//cb_data_out(site,4,col,col2)=cb_data_in(site,0,col,col2);
 			      }
 			    }
 
@@ -499,6 +509,7 @@ namespace MG {
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
 			        ComplexCopy(cb_data_out(site,5,col,col2),cb_data_in(site,1,col,col2));
+				//cb_data_out(site,5,col,col2)=cb_data_in(site,1,col,col2);
 			      }
 			    }
 
@@ -506,6 +517,7 @@ namespace MG {
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
 			        ComplexCopy(cb_data_out(site,6,col,col2),cb_data_in(site,2,col,col2));
+				//cb_data_out(site,6,col,col2)=cb_data_in(site,2,col,col2);
 			      }
 			    }
 
@@ -513,6 +525,7 @@ namespace MG {
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
 			        ComplexCopy(cb_data_out(site,7,col,col2),cb_data_in(site,3,col,col2));
+				//cb_data_out(site,7,col,col2)=cb_data_in(site,3,col,col2);
 			      }
 			    }
 			    

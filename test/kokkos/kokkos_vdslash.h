@@ -19,6 +19,8 @@
 #include "kokkos_traits.h"
 #include "kokkos_vneighbor_table.h"
 
+#define MG_KOKKOS_USE_MDRANGE
+
 namespace MG {
 
 
@@ -42,11 +44,18 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
      VSpinorView<ST,VN> s_out;
      SiteTable<VN> neigh_table;
 
+#ifdef MG_KOKKOS_USE_MDRANGE 
      KOKKOS_FORCEINLINE_FUNCTION
        void operator()(const int& xcb, const int& y, const int& z, const int& t) const
      {
 
        int site = neigh_table.coords_to_idx(xcb,y,z,t);
+#else
+     KOKKOS_FORCEINLINE_FUNCTION
+     void operator()(const int site) const {
+	int xcb,y,z,t;
+	neigh_table.idx_to_coords(site,xcb,y,z,t);
+#endif
        int n_idx;
        typename VN::MaskType mask;
      
@@ -61,18 +70,6 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
                  HalfSpinorSiteView<TST> proj_res ;
                  HalfSpinorSiteView<TST> mult_proj_res ;
 #endif
-
-#if 0
-    		 // Zero Result
-#pragma unroll
-    		 for(int color=0; color < 3; ++color) {
-
-#pragma unroll
-    			 for(int spin=0; spin < 4; ++spin) {
-    				 ComplexZero(res_sum(color,spin));
-    			 }
-    		 }
-#else
                  // Zero Result
 #pragma unroll
                  for(int spin=0; spin < 4; ++spin ) { 
@@ -84,7 +81,6 @@ enum DirIdx { T_MINUS=0, Z_MINUS=1, Y_MINUS=2, X_MINUS=3, X_PLUS=4, Y_PLUS=5, Z_
                  }
 
 
-#endif 
     		 // T - minus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
     		 neigh_table.NeighborTMinus(site,target_cb,n_idx,mask);
@@ -205,35 +201,59 @@ public:
 	  VSpinorView<ST,VN>& s_out = fine_out.GetData();
 
 	  IndexArray cb_latdims = _info.GetCBLatticeDimensions();
+
+#ifdef MG_KOKKOS_USE_MDRANGE
 	  MDPolicy policy({0,0,0,0},
 			  	  {cb_latdims[0],cb_latdims[1],cb_latdims[2],cb_latdims[3]},
 			  	  {blocks[0],blocks[1],blocks[2],blocks[3]}
 	  	  	  	  );
+#else
+	  int num_sites = fine_in.GetInfo().GetNumCBSites();
+#endif
+
 	  if( plus_minus == 1 ) {
 	    if (target_cb == 0 ) {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,1,0> f = {s_in, g_in, s_out,
 	    		  _neigh_table};
+
+#ifdef MG_KOKKOS_USE_MDRANGE
 	      Kokkos::parallel_for(policy, f); // Outer Lambda
+#else
+	      Kokkos::parallel_for(SimpleRange(0,num_sites),f);
+#endif
 
 	    }
 	    else {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,1,1> f = {s_in, g_in, s_out,
 	    		   _neigh_table};
+
+#ifdef MG_KOKKOS_USE_MDRANGE
 	      Kokkos::parallel_for(policy, f); // Outer Lambda
+#else
+	      Kokkos::parallel_for(SimpleRange(0,num_sites),f);
+#endif
 	    }
 	  }
 	  else {
 	    if( target_cb == 0 ) { 
 	      VDslashFunctor<VN,GT,ST,TGT,TST,-1,0> f = {s_in, g_in,  s_out,
 	    		  _neigh_table};
+
+#ifdef MG_KOKKOS_USE_MDRANGE
 	      Kokkos::parallel_for(policy, f); // Outer Lambda
-	      // Kokkos::parallel_for(num_sites,f);
+#else
+	      Kokkos::parallel_for(SimpleRange(0,num_sites),f);
+#endif
 	    }
 	    else {
 	      VDslashFunctor<VN,GT,ST,TGT,TST,-1,1> f = {s_in, g_in, s_out,
 	    		  _neigh_table };
+
+#ifdef MG_KOKKOS_USE_MDRANGE
 	      Kokkos::parallel_for(policy, f); // Outer Lambda
-	      // Kokkos::parallel_for(num_sites,f);
+#else
+	      Kokkos::parallel_for(SimpleRange(0,num_sites),f);
+#endif
 	    }
 	  }
 	  
