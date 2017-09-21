@@ -33,7 +33,7 @@ using namespace MGTesting;
 TEST(TestKokkos, TestDslashTime)
 {
 	IndexArray latdims={{32,32,32,32}};
-	int iters=40;
+	int iters=1000;
 
 	initQDPXXLattice(latdims);
 	multi1d<LatticeColorMatrix> gauge_in(n_dim);
@@ -83,8 +83,8 @@ TEST(TestKokkos, TestDslashTime)
 	IndexArray cb_latdims = kokkos_spinor_even.GetInfo().GetCBLatticeDimensions();
 	double num_sites = static_cast<double>(V*cb_latdims[0]*cb_latdims[1]*cb_latdims[2]*cb_latdims[3]);
 
-#if 0
-	int titers=5;
+#if 1
+	int titers=40;
 	double best_flops = 0;
 	IndexArray best_blocks={1,1,1,1};
 	for(int t=cb_latdims[3]; t >= 1; t /= 2) {
@@ -129,7 +129,13 @@ TEST(TestKokkos, TestDslashTime)
 		}
 	}
 #else
+
+#ifdef KOKKOS_HAVE_CUDA
+        IndexArray best_blocks={16,4,1,2};
+#else
 	IndexArray best_blocks={4,2,2,16};
+#endif // KOKKOS_HAVE_CUDA
+
 #endif
 	MasterLog(INFO, "Main timing: (Bx,By,Bz,Bt)=(%d,%d,%d,%d)",
 				best_blocks[0],best_blocks[1],best_blocks[2],best_blocks[3]);

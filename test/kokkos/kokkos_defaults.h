@@ -54,7 +54,7 @@ using MGComplex = Kokkos::complex<T>;
 #endif
 
 #if defined(KOKKOS_HAVE_CUDA)
-using ThreadExecPolicy =  Kokkos::TeamPolicy<ExecSpace,Kokkos::LaunchBounds<64,1>>;
+using ThreadExecPolicy =  Kokkos::TeamPolicy<ExecSpace,Kokkos::LaunchBounds<128,1>>;
 using SimpleRange = Kokkos::RangePolicy<ExecSpace>;
 
 #else
