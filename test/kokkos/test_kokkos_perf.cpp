@@ -299,7 +299,7 @@ TEST(TestKokkos, TestMultHalfSpinor)
 TEST(TestKokkos, TestDslash)
 {
   IndexArray latdims={{32,32,32,32}};
-	int iters = 1000;
+	int iters = 100;
 
 	initQDPXXLattice(latdims);
 	LatticeInfo info(latdims,4,3,NodeInfo());
@@ -336,14 +336,17 @@ TEST(TestKokkos, TestDslash)
 	KokkosDslash<MGComplex<REAL32>,MGComplex<REAL32>, MGComplex<REAL32>> D(info,sites_per_team);
 
 
-	for(int rep=0; rep < 3; ++rep) {
-	   for(int isign=-1; isign < 2; isign+=2) {
-	  
+	for(int rep=0; rep < 10; ++rep) {
+	   //for(int isign=-1; isign < 2; isign+=2) {
+	   int isign=1; 
 	    MasterLog(INFO, "Timing Dslash: isign == %d", isign);
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < iters; ++i) {
 	      D(kokkos_spinor_in,kokkos_gauge,kokkos_spinor_out,isign);
 	    }
+#ifdef KOKKOS_HAVE_CUDA
+	    Kokkos::fence();
+#endif
 	    double end_time = omp_get_wtime();
 	    double time_taken = end_time - start_time;
 	    
@@ -358,9 +361,9 @@ TEST(TestKokkos, TestDslash)
 	    
 	    
 	    
-	   } // isign
+	  // } // isign
 	} 
-        // } // -- sites_per_team
+       //  } // -- sites_per_team
 }
 #endif
 
@@ -410,8 +413,9 @@ TEST(TestKokkos, TestDslashVec)
 	for(int per_team=1; per_team < 512; per_team *= 2) {
 
 	KokkosDslash<MGComplex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
-	for(int rep=0; rep < 2; ++rep) {
-	  for(int isign=-1; isign < 2; isign+=2) {
+	for(int rep=0; rep < 1; ++rep) {
+          int isign=1;
+	  //for(int isign=-1; isign < 2; isign+=2) {
 	    MasterLog(INFO, "Sites per Team=%d Timing Dslash: isign == %d", per_team, isign);
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < iters; ++i) {
@@ -431,7 +435,7 @@ TEST(TestKokkos, TestDslashVec)
 
 
 
-	  }
+	  // }
 	}
 	}
 
@@ -447,7 +451,7 @@ TEST(TestKokkos, TestDslashVecLonger)
 #ifdef MG_USE_AVX512
 	int iters = 2000;
 #else 
-	int iters = 400;
+	int iters = 100;
 #endif
 
 
@@ -485,7 +489,7 @@ TEST(TestKokkos, TestDslashVecLonger)
         int per_team = 2;
 	KokkosDslash<MGComplex<REAL32>,SIMDComplex<REAL32,V>,ThreadSIMDComplex<REAL32,V>> D(info,per_team);
 
-	for(int rep=0; rep < 2; ++rep) {
+	for(int rep=0; rep < 10; ++rep) {
 	  // for(int isign=-1; isign < 2; isign+=2) {
 	    int isign=1;
 	    MasterLog(INFO, "V=%d Sites per Team=%d Timing Dslash: isign == %d", V, per_team, isign);
@@ -493,6 +497,10 @@ TEST(TestKokkos, TestDslashVecLonger)
 	    for(int i=0; i < iters; ++i) {
 	      D(kokkos_spinor_in,kokkos_gauge,kokkos_spinor_out,isign);
 	    }
+#ifdef KOKKOS_HAVE_CUDA
+	    Kokkos::fence();
+#endif
+
 	    double end_time = omp_get_wtime();
 	    double time_taken = end_time - start_time;
 

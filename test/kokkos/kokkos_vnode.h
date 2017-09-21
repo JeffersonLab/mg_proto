@@ -35,7 +35,7 @@ struct VNode;
 template<typename T>
   struct VNode<T,1> {
   using VecTypeGlobal = SIMDComplex<typename BaseType<T>::Type,1>;
-  using VecType =  ThreadSIMDComplex<typename BaseType<T>::Type,1>;
+  using VecType =  SIMDComplex<typename BaseType<T>::Type,1>;
   using MaskType = MaskArray<1>;
 
   static constexpr MaskType XPermuteMask = {0};
@@ -58,7 +58,7 @@ template<typename T>
   {
 	  VecType vec_out;
 	 // Kokkos::parallel_for(VectorPolicy(1),[&](const int& i){
-		  ComplexCopy( vec_out(0), vec_in( 0  ));
+	  ComplexCopy( vec_out, vec_in);
 	 // });
 	  return vec_out;
   }
@@ -70,7 +70,7 @@ template<typename T>
 struct VNode<T,2> {
   using FloatType = typename BaseType<T>::Type;
   using VecTypeGlobal = SIMDComplex<typename BaseType<T>::Type,2>;
-  using VecType =  ThreadSIMDComplex<typename BaseType<T>::Type,2>;
+  using VecType =  SIMDComplex<typename BaseType<T>::Type,2>;
   static constexpr int VecLen =  2;
   static constexpr int NDim = 1;
 
@@ -107,7 +107,7 @@ template<typename T>
 struct VNode<T,4> {
 
   using VecTypeGlobal = SIMDComplex<typename BaseType<T>::Type,4>;
-  using VecType = ThreadSIMDComplex<typename BaseType<T>::Type,4>;
+  using VecType = SIMDComplex<typename BaseType<T>::Type,4>;
 
   static constexpr int VecLen =  4;
   static constexpr int NDim = 2;
@@ -143,7 +143,7 @@ struct VNode<T,4> {
 template<typename T>
 struct VNode<T,8> {
   using VecTypeGlobal = SIMDComplex<typename BaseType<T>::Type,8>;
-  using VecType = ThreadSIMDComplex<typename BaseType<T>::Type,8>;
+  using VecType = SIMDComplex<typename BaseType<T>::Type,8>;
 
   static constexpr int VecLen = 8;
   static constexpr int NDim = 3;

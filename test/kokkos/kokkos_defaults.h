@@ -17,10 +17,14 @@
 
 namespace MG
 {
- 
+
 #if defined(KOKKOS_HAVE_CUDA)
 template<typename T>
 using MGComplex = Balint::complex<T>;
+
+//template<typename T>
+//using MGComplex = Kokkos::complex<T>;
+
 #else
 template<typename T>
 using MGComplex = Kokkos::complex<T>;
@@ -51,18 +55,28 @@ using MGComplex = Kokkos::complex<T>;
 
 #if defined(KOKKOS_HAVE_CUDA)
 using ThreadExecPolicy =  Kokkos::TeamPolicy<ExecSpace,Kokkos::LaunchBounds<128,1>>;
+using SimpleRange = Kokkos::RangePolicy<ExecSpace>;
+
 #else
 using ThreadExecPolicy = Kokkos::TeamPolicy<ExecSpace>;
+using SimpleRange = Kokkos::RangePolicy<ExecSpace>;
 #endif
 
 
 using TeamHandle =  ThreadExecPolicy::member_type;
 using VectorPolicy = Kokkos::Impl::ThreadVectorRangeBoundariesStruct<int,TeamHandle>;
 
+#if defined(KOKKOS_HAVE_CUDA)
+  // Try an N-dimensional threading policy for cache blocking
+ using MDPolicy =  Kokkos::Experimental::MDRangePolicy<Kokkos::Experimental::Rank<4,
+		 Kokkos::Experimental::Iterate::Left,Kokkos::Experimental::Iterate::Left>, Kokkos::LaunchBounds<512,1>>;
+
+#else 
   // Try an N-dimensional threading policy for cache blocking
  using MDPolicy =  Kokkos::Experimental::MDRangePolicy<Kokkos::Experimental::Rank<4,
 		 Kokkos::Experimental::Iterate::Left,Kokkos::Experimental::Iterate::Left>>;
-  
+
+#endif  
 }
 
 #if defined(__CUDACC__) 

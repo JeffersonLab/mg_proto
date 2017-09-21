@@ -3,11 +3,14 @@
 
 #include <memory>
 #include "Kokkos_Core.hpp"
+#include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "kokkos_defaults.h"
 #include "kokkos_vectype.h"
 #include "kokkos_vnode.h"
 #include "kokkos_vneighbor_table.h"
+
+#undef MG_KOKKOS_USE_MDRANGE
 namespace MG {
 
  template<typename T, typename VN, int _num_spins>
@@ -65,10 +68,12 @@ namespace MG {
    using DataType = Kokkos::View<VecType*[_num_spins][3],Layout,MemorySpace>;
 
 
+   KOKKOS_INLINE_FUNCTION
    const DataType& GetData() const {
      return _cb_data;
    }
-   
+  
+   KOKKOS_INLINE_FUNCTION 
    DataType& GetData() {
      return _cb_data;
    }
@@ -140,10 +145,12 @@ namespace MG {
    using DataType = Kokkos::View<VecType*[4][3][3],GaugeLayout,MemorySpace>;
 
 
+   KOKKOS_INLINE_FUNCTION
    const DataType& GetData() const {
      return _cb_data;
    }
-   
+  
+   KOKKOS_INLINE_FUNCTION 
    DataType& GetData() {
      return _cb_data;
    }
@@ -213,6 +220,8 @@ namespace MG {
      
      // Init the data
      _cb_data=DataType("cb_data", _info->GetNumCBSites());
+
+     MasterLog(INFO, "Exiting Constructor");
    }
 
 
@@ -236,11 +245,12 @@ namespace MG {
    using VecType = SIMDComplex<typename BaseType<T>::Type, VN::VecLen>;
    using DataType = Kokkos::View<VecType*[8][3][3],GaugeLayout,MemorySpace>;
 
-
+   KOKKOS_INLINE_FUNCTION
    const DataType& GetData() const {
      return _cb_data;
    }
-   
+  
+   KOKKOS_INLINE_FUNCTION 
    DataType& GetData() {
      return _cb_data;
    }
@@ -248,6 +258,8 @@ namespace MG {
    void import(const KokkosCBFineVGaugeField<T,VN>& src_cb,
 	       const KokkosCBFineVGaugeField<T,VN>& src_othercb)
    {
+     using InputType = typename KokkosCBFineVGaugeField<T,VN>::DataType;
+
      // Sanity: src_cb has to match my CB
      if(  GetCB() != src_cb.GetCB() ) {
        MasterLog(ERROR, "cb of src_cb does not match my cb in import()");
@@ -268,25 +280,27 @@ namespace MG {
      MDPolicy policy({0,0,0,0},
 		     {cb_latdims[0],cb_latdims[1],cb_latdims[2],cb_latdims[3]});
      
-     auto cb_data_in = src_cb.GetData();
-     auto othercb_data_in = src_othercb.GetData();
+     const InputType cb_data_in = src_cb.GetData();
+     const InputType othercb_data_in = src_othercb.GetData();
+     //DataType l_cb_data = _cb_data; // Workaround
+     int target_cb = _cb; // Lambd cannot access member _cb on host
+			
 
      Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const int xcb,
-						const int y, 
+						const int y,
 						const int z,
-						const int t) {
-			    
+						const int t) {	
 			    int site = neigh_table.coords_to_idx(xcb,y,z,t);
 			    int n_idx;
 			    typename VN::MaskType mask;
 			    
 			    // T_minus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-			    neigh_table.NeighborTMinus(site,_cb,n_idx,mask);
+			    neigh_table.NeighborTMinus(site,target_cb,n_idx,mask);
 #else
 			    neigh_table.NeighborTMinus(xcb,y,z,t,n_idx,mask);
 #endif
-			    
+
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
 			        ComplexCopy(_cb_data(site,0,col,col2),VN::permute(mask, othercb_data_in(n_idx,3,col,col2)));
@@ -295,7 +309,7 @@ namespace MG {
 
 			    // Z_minus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-			    neigh_table.NeighborZMinus(site,_cb,n_idx,mask);
+			    neigh_table.NeighborZMinus(site,target_cb,n_idx,mask);
 #else
 			    neigh_table.NeighborZMinus(xcb,y,z,t,n_idx,mask);
 #endif
@@ -308,31 +322,30 @@ namespace MG {
 
 			    // Y_minus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-			    neigh_table.NeighborYMinus(site,_cb,n_idx,mask);
+			    neigh_table.NeighborYMinus(site,target_cb,n_idx,mask);
 #else
 			    neigh_table.NeighborYMinus(xcb,y,z,t,n_idx,mask);
 #endif
-			    
+ 
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
 			        ComplexCopy(_cb_data(site,2,col,col2),VN::permute(mask,othercb_data_in(n_idx,1,col,col2)));
 			      }
 			    }
 
-
 			    // X_minus
 #if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
-			    neigh_table.NeighborXMinus(site,_cb,n_idx,mask);
+			    neigh_table.NeighborXMinus(site,target_cb,n_idx,mask);
 #else
-			    neigh_table.NeighborXMinus(xcb,y,z,t,_cb,n_idx,mask);
+			    neigh_table.NeighborXMinus(xcb,y,z,t,target_cb,n_idx,mask);
 #endif
+
 			    
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
 			        ComplexCopy(_cb_data(site,3,col,col2),VN::permute(mask, othercb_data_in(n_idx,0,col,col2)));
 			      }
 			    }
-
 
 			    for(int col=0; col < 3; ++col) {
 			      for(int col2=0; col2 < 3; ++col2) { 
@@ -360,10 +373,9 @@ namespace MG {
 			        ComplexCopy(_cb_data(site,7,col,col2),cb_data_in(site,3,col,col2));
 			      }
 			    }
-
-
 			    
 			  });
+
 
 
    }
@@ -375,6 +387,153 @@ namespace MG {
    const IndexType _cb;
  };
 
+ template<typename T, typename VN>
+   void import(KokkosCBFineVGaugeFieldDoubleCopy<T,VN>& target,
+	       const KokkosCBFineVGaugeField<T,VN>& src_cb,
+	       const KokkosCBFineVGaugeField<T,VN>& src_othercb)
+ {
+     using InputType = typename KokkosCBFineVGaugeField<T,VN>::DataType;
+
+     // Sanity: src_cb has to match my CB
+     if(  target.GetCB() != src_cb.GetCB() ) {
+       MasterLog(ERROR, "cb of src_cb does not match my cb in import()");
+     }
+
+     // Sanity 2: othercb has to be the opposite CB from me.
+     int expected_othercb = (src_cb.GetCB() == EVEN) ? ODD :EVEN;
+     if( expected_othercb != src_othercb.GetCB() ) { 
+       MasterLog(ERROR, "cb of src_othercb is not opposite of mine in import()");
+     }
+
+     // Grab a site table
+     const LatticeInfo&  info = target.GetInfo();
+     IndexArray cb_latdims = info.GetCBLatticeDimensions();
+     MasterLog(INFO, "Double Storing Gauge: Info has size=(%d,%d,%d,%d)",
+	cb_latdims[0],cb_latdims[1],cb_latdims[2],cb_latdims[3]);
+
+     SiteTable<VN> neigh_table(cb_latdims[0],cb_latdims[1],cb_latdims[2],
+			       cb_latdims[3]);
+
+#ifdef MG_KOKKOS_USE_MDRANGE
+     MDPolicy policy({0,0,0,0},
+		     {cb_latdims[0],cb_latdims[1],cb_latdims[2],cb_latdims[3]},
+		     {1,1,1,1});
+#endif
+
+     auto cb_data_out = target.GetData();
+     auto cb_data_in = src_cb.GetData();
+     auto othercb_data_in = src_othercb.GetData();
+
+     int target_cb = target.GetCB(); // Lambd cannot access member _cb on host
+     int num_cbsites = info.GetNumCBSites();	
+#ifdef MG_KOKKOS_USE_MDRANGE
+     Kokkos::parallel_for(policy, KOKKOS_LAMBDA(const int xcb,
+						const int y,
+						const int z,
+						const int t) {	
+			    int site = neigh_table.coords_to_idx(xcb,y,z,t);
+#else
+     Kokkos::parallel_for(num_cbsites, KOKKOS_LAMBDA(const int site) { 
+			    int xcb, y, z, t;
+			    neigh_table.idx_to_coords(site,xcb,y,z,t);
+#endif
+
+			    int n_idx;
+			    typename VN::MaskType mask;
+			     
+			    // T_minus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+			    neigh_table.NeighborTMinus(site,target_cb,n_idx,mask);
+#else
+			    neigh_table.NeighborTMinus(xcb,y,z,t,n_idx,mask);
+#endif
+
+			    for(int col=0; col < 3; ++col) {
+			      for(int col2=0; col2 < 3; ++col2) { 
+			        ComplexCopy(cb_data_out(site,0,col,col2),VN::permute(mask, othercb_data_in(n_idx,3,col,col2)));
+			        //cb_data_out(site,0,col,col2) = VN::permute(mask, othercb_data_in(n_idx,3,col,col2));
+			      }
+			    }
+
+			    // Z_minus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+			    neigh_table.NeighborZMinus(site,target_cb,n_idx,mask);
+#else
+			    neigh_table.NeighborZMinus(xcb,y,z,t,n_idx,mask);
+#endif
+			    
+			    for(int col=0; col < 3; ++col) {
+			      for(int col2=0; col2 < 3; ++col2) { 
+				ComplexCopy(cb_data_out(site,1,col,col2),VN::permute(mask,othercb_data_in(n_idx,2,col,col2)));
+				//cb_data_out(site,1,col,col2) = VN::permute(mask, othercb_data_in(n_idx,2,col,col2));
+			      }
+			    }
+
+			    // Y_minus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+			    neigh_table.NeighborYMinus(site,target_cb,n_idx,mask);
+#else
+			    neigh_table.NeighborYMinus(xcb,y,z,t,n_idx,mask);
+#endif
+ 
+			    for(int col=0; col < 3; ++col) {
+			      for(int col2=0; col2 < 3; ++col2) { 
+			        ComplexCopy(cb_data_out(site,2,col,col2),VN::permute(mask,othercb_data_in(n_idx,1,col,col2)));
+				//cb_data_out(site,2,col,col2) = VN::permute(mask, othercb_data_in(n_idx,1,col,col2));
+			      }
+			    }
+
+			    // X_minus
+#if defined(MG_KOKKOS_USE_NEIGHBOR_TABLE)
+			    neigh_table.NeighborXMinus(site,target_cb,n_idx,mask);
+#else
+			    neigh_table.NeighborXMinus(xcb,y,z,t,target_cb,n_idx,mask);
+#endif
+
+			    
+			    for(int col=0; col < 3; ++col) {
+			      for(int col2=0; col2 < 3; ++col2) { 
+			        ComplexCopy(cb_data_out(site,3,col,col2),VN::permute(mask, othercb_data_in(n_idx,0,col,col2)));
+				//cb_data_out(site,3,col,col2) = VN::permute(mask, othercb_data_in(n_idx,0,col,col2));
+			      }
+			    }
+
+			    for(int col=0; col < 3; ++col) {
+			      for(int col2=0; col2 < 3; ++col2) { 
+			        ComplexCopy(cb_data_out(site,4,col,col2),cb_data_in(site,0,col,col2));
+				//cb_data_out(site,4,col,col2)=cb_data_in(site,0,col,col2);
+			      }
+			    }
+
+			    // Y_Plus
+			    for(int col=0; col < 3; ++col) {
+			      for(int col2=0; col2 < 3; ++col2) { 
+			        ComplexCopy(cb_data_out(site,5,col,col2),cb_data_in(site,1,col,col2));
+				//cb_data_out(site,5,col,col2)=cb_data_in(site,1,col,col2);
+			      }
+			    }
+
+			    // Z_Plus
+			    for(int col=0; col < 3; ++col) {
+			      for(int col2=0; col2 < 3; ++col2) { 
+			        ComplexCopy(cb_data_out(site,6,col,col2),cb_data_in(site,2,col,col2));
+				//cb_data_out(site,6,col,col2)=cb_data_in(site,2,col,col2);
+			      }
+			    }
+
+			    // T_Plus
+			    for(int col=0; col < 3; ++col) {
+			      for(int col2=0; col2 < 3; ++col2) { 
+			        ComplexCopy(cb_data_out(site,7,col,col2),cb_data_in(site,3,col,col2));
+				//cb_data_out(site,7,col,col2)=cb_data_in(site,3,col,col2);
+			      }
+			    }
+			    
+			  });
+
+
+
+   }
 
 
  template<typename T,typename VN>
