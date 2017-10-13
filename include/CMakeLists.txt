@@ -1,6 +1,7 @@
 install (FILES lattice/array2d.h
 			   lattice/cmat_mult.h
 			   lattice/constants.h
+			   lattice/givens.h
 			   lattice/fgmres_common.h 
 			   lattice/geometry_utils.h 
 			   lattice/invbicgstab_coarse.h

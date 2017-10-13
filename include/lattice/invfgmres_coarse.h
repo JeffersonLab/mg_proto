@@ -21,41 +21,12 @@
 #undef DEBUG_SOLVER
 
 #include "lattice/fgmres_common.h"
-
+#include "lattice/givens.h"
 
 namespace MG {
 
 
 
- namespace FGMRESCoarse {
-
- class Givens {
- public:
-
-
-	 Givens(int col, const Array2d<std::complex<double>>& H);
-	 /*! Apply the rotation to column col of the matrix H. The
-	  *  routine affects col and col+1.
-	  *
-	  *  \param col  the columm
-	  *  \param  H   the matrix
-	  */
-
-	 void operator()(int col,  Array2d<std::complex<double>>& H);
-
-	 /*! Apply rotation to Column Vector v */
-	 void operator()(std::vector<std::complex<double>>& v);
-
- private:
-	 int col_;
-	 std::complex<double> s_;
-	 std::complex<double> c_;
-	 std::complex<double> r_;
- };
-
-
-
- }; // Namespace FGMRESCoarse
 
 
  class FGMRESSolverCoarse : public LinearSolver<MG::CoarseSpinor,MG::CoarseGauge>
@@ -81,7 +52,7 @@ namespace MG {
 			 std::vector<CoarseSpinor*>& V,
 			 std::vector<CoarseSpinor*>& Z,
 			 Array2d<std::complex<double>>& H,
-			 std::vector< FGMRESCoarse::Givens* >& givens_rots,
+			 std::vector< FGMRES::Givens* >& givens_rots,
 			 std::vector<std::complex<double>>& c,
 			 int&  ndim_cycle,
 			 ResiduumType resid_type) const;
@@ -103,7 +74,7 @@ namespace MG {
     mutable Array2d<std::complex<double>> R_; // R = H diagonalized with Givens rotations
     mutable std::vector<CoarseSpinor*> V_;  // K(A)
     mutable std::vector<CoarseSpinor*> Z_;  // K(MA)
-    mutable std::vector< FGMRESCoarse::Givens* > givens_rots_;
+    mutable std::vector< FGMRES::Givens* > givens_rots_;
 
     // This is the c = V^H_{k+1} r vector (c is frommers Notation)
     // For regular FGMRES I need to keep only the basis transformed

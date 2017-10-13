@@ -8,7 +8,7 @@
 #include "lattice/fine_qdpxx/invfgmres.h"
 
 namespace MG {
-namespace FGMRES {
+namespace QDPFGMRES {
 	 // Givens rotation.
  	 //   There are a variety of ways to choose the rotations
  	 //   which can do the job. I employ the method given by Saad
@@ -432,14 +432,14 @@ FGMRESSolver::FlexibleArnoldi(int n_krylov,
 		 multi1d<LatticeFermion>& V,
 		 multi1d<LatticeFermion>& Z,
 		 multi2d<DComplex>& H,
-		 multi1d< FGMRES::Givens* >& givens_rots,
+		 multi1d< QDPFGMRES::Givens* >& givens_rots,
 		 multi1d<DComplex>& c,
 		 int&  ndim_cycle,
 		 ResiduumType resid_type) const
 {
 
 
-	FGMRES::FlexibleArnoldiT(n_krylov,
+	QDPFGMRES::FlexibleArnoldiT(n_krylov,
 				rsd_target,
 				_A,
 				_M_prec,

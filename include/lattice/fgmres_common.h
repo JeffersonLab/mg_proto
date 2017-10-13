@@ -21,7 +21,9 @@ namespace MG {
 	 int NKrylov;
  };
 
-};
+
+
+}
 
 
 

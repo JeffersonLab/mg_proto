@@ -20,7 +20,7 @@ namespace MG {
 
 
 
- namespace FGMRES {
+ namespace QDPFGMRES {
 
 
  class Givens {
@@ -97,7 +97,7 @@ namespace MG {
 			 multi1d<LatticeFermion>& V,
 			 multi1d<LatticeFermion>& Z,
 			 multi2d<DComplex>& H,
-			 multi1d< FGMRES::Givens* >& givens_rots,
+			 multi1d< QDPFGMRES::Givens* >& givens_rots,
 			 multi1d<DComplex>& c,
 			 int&  ndim_cycle,
 			 ResiduumType resid_type) const;
@@ -118,7 +118,7 @@ namespace MG {
     mutable multi2d<DComplex> R_; // R = H diagonalized with Givens rotations
     mutable multi1d<LatticeFermion> V_;  // K(A)
     mutable multi1d<LatticeFermion> Z_;  // K(MA)
-    mutable multi1d< FGMRES::Givens* > givens_rots_;
+    mutable multi1d< QDPFGMRES::Givens* > givens_rots_;
 
     // This is the c = V^H_{k+1} r vector (c is frommers Notation)
     // For regular FGMRES I need to keep only the basis transformed

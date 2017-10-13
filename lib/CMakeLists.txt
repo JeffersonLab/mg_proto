@@ -3,6 +3,7 @@ LIST(APPEND library_source_list lattice/aggregate_block_coarse.cpp
 			   lattice/cmat_mult.cpp
 			   lattice/coarse_l1_blas.cpp
 			   lattice/coarse_op.cpp
+			   lattice/givens.cpp
 			   lattice/invfgmres_coarse.cpp
 			   lattice/invbicgstab_coarse.cpp
 			   lattice/invmr_coarse.cpp
