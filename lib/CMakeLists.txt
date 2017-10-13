@@ -40,12 +40,18 @@ if( MG_USE_QDPXX )
 		lattice/fine_qdpxx/vcycle_recursive_qdpxx.cpp)
 endif( MG_USE_QDPXX )
 
+if ( QPhiX_FOUND )
+	LIST(APPEND library_source_list lattice/qphix/geom_utils.cpp
+		lattice/qphix/qphix_qdp_utils.cpp)
+endif()
+
 add_library(mg ${library_source_list})
 
 if (MG_USE_KOKKOS) 
  target_link_libraries(mg kokkos) 
 endif()
 
+	
 if ( QPhiX_FOUND )
   target_link_libraries(mg ${QPhiX_LIBRARIES})
 endif()

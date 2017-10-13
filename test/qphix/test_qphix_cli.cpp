@@ -7,51 +7,29 @@ a * test_qphix_cli.cpp
 
 /* Test Environment */
 #include <gtest/gtest.h>
-#include "../test_env.h"
 
+
+#include "../test_env.h"
+#include "lattice/qphix/qphix_types.h"
 
 /* SOA And Veclens */
-#include <qphix/qphix_config.h>
-#include "./veclen.h"
 
-/* Constants */
 #include "lattice/constants.h"
 #include "../qdpxx/qdpxx_latticeinit.h"
 #include "../qdpxx/qdpxx_utils.h"
 #include "lattice/fine_qdpxx/qdpxx_helpers.h"
 #include <utils/initialize.h>
 #include <qphix/qphix_cli_args.h>
-#include <qphix/geometry.h>
 
 #include "lattice/fine_qdpxx/clover_term_qdp_w.h"
 #include "lattice/fine_qdpxx/dslashm_w.h"
 #include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"
 
-#include <qphix/abs_solver.h>
-#include <qphix/invbicgstab.h>
-#include <qphix/clover.h>
-#include <qphix/invbicgstab.h>
-#include <qphix/qdp_packer.h>
 
 using namespace QDP;
 using namespace MG;
 using namespace MGTesting;
 
-#if 0
-using Geom = QPhiX::Geometry<float, VECLEN_SP, QPHIX_SOALEN, false>;
-using ClovOp = QPhiX::EvenOddCloverOperator<float, VECLEN_SP, QPHIX_SOALEN, false>;
-using BiCGStab = QPhiX::InvBiCGStab<float,VECLEN_SP,QPHIX_SOALEN,false>;
-using QPhiXCBSpinor = QPhiX::FourSpinorHandle<float,VECLEN_SP,QPHIX_SOALEN,false>;
-using QPhiXCBGauge = QPhiX::GaugeHandle<float,VECLEN_SP,QPHIX_SOALEN, false>;
-using QPhiXCBClover = QPhiX::CloverHandle<float, VECLEN_SP,QPHIX_SOALEN, false>;
-#else
-using Geom = QPhiX::Geometry<double, VECLEN_DP, QPHIX_SOALEN, false>;
-using ClovOp = QPhiX::EvenOddCloverOperator<double, VECLEN_DP, QPHIX_SOALEN, false>;
-using BiCGStab = QPhiX::InvBiCGStab<double,VECLEN_DP,QPHIX_SOALEN,false>;
-using QPhiXCBSpinor = QPhiX::FourSpinorHandle<double,VECLEN_DP,QPHIX_SOALEN,false>;
-using QPhiXCBGauge = QPhiX::GaugeHandle<double,VECLEN_DP,QPHIX_SOALEN, false>;
-using QPhiXCBClover = QPhiX::CloverHandle<double, VECLEN_DP,QPHIX_SOALEN, false>;
-#endif
 
 TEST(QPhiXIntegration, TestCreateGeometry)
 {

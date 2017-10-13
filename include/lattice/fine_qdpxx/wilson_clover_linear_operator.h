@@ -81,7 +81,8 @@ public:
 		_params.anisoParam.nu = Real(nu);
 
 		_clov.create(_u,_params);  // Make the clover term
-
+	  _invclov.create(_u,_params,_clov);
+	  _invclov.choles(EVEN);
 
 		// Now scale the links for use in the dslash
 		// By the anisotropy.
