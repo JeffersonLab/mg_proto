@@ -9,9 +9,10 @@
 #define INCLUDE_LATTICE_QPHIX_QPHIX_TYPES_H_
 
 #include <lattice/lattice_info.h>
+#include <lattice/qphix/qphix_veclen.h>
+
 #include <qphix/qphix_config.h>
 #include <qphix/full_spinor.h>
-#include <lattice/qphix/veclen.h>
 #include <qphix/abs_solver.h>
 #include <qphix/abs_solver.h>
 #include <qphix/invbicgstab.h>
@@ -25,9 +26,13 @@
 namespace MG {
 
 using Geom = QPhiX::Geometry<double, VECLEN_DP, QPHIX_SOALEN, false>;
+
+
 using QPhiXCBSpinor = QPhiX::FourSpinorHandle<double,VECLEN_DP,QPHIX_SOALEN,false>;
 using QPhiXCBGauge = QPhiX::GaugeHandle<double,VECLEN_DP,QPHIX_SOALEN, false>;
 using QPhiXCBClover = QPhiX::CloverHandle<double, VECLEN_DP,QPHIX_SOALEN, false>;
+
+
 
 using QPhiXFullSpinor = QPhiX::FullSpinor<double,VECLEN_DP,QPHIX_SOALEN,false>;
 
@@ -74,6 +79,9 @@ public:
       return _data->getCB(cb);
     }
 
+    const Geom& getGeom() const {
+      return MGQPhiX::GetGeom();
+    }
 private:
     std::unique_ptr<QPhiXFullSpinor> _data;
 };
@@ -103,6 +111,11 @@ public:
      const QPhiXCBGauge& getCB(int cb) const {
        return *(_data[cb]);
      }
+
+     const Geom& getGeom() const {
+         return MGQPhiX::GetGeom();
+       }
+
 private:
    std::unique_ptr<QPhiXCBGauge> _data[2];
 };
@@ -144,7 +157,9 @@ public:
        return *_inv;
      }
 
-
+     const Geom& getGeom() const {
+         return MGQPhiX::GetGeom();
+       }
 private:
    std::unique_ptr<QPhiXCBClover> _data[2];
    std::unique_ptr<QPhiXCBClover> _inv;

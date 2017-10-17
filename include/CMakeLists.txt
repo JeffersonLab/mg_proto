@@ -52,8 +52,9 @@ install (FILES lattice/fine_qdpxx/aggregate_block_qdpxx.h
 		 DESTINATION include/lattice/fine_qdpxx)
             
 install (FILES lattice/qphix/qphix_types.h
-						   lattice/qphix/veclen.h
+						   lattice/qphix/qphix_veclen.h
 						   lattice/qphix/qphix_qdp_utils.h
 						   lattice/qphix/qphix_clover_linear_operator.h
+						   lattice/qphix/qphix_blas_wrappers.h
 				 DESTINATION include/lattice/qphix)
 				 

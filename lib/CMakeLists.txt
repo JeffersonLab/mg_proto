@@ -42,7 +42,8 @@ endif( MG_USE_QDPXX )
 
 if ( QPhiX_FOUND )
 	LIST(APPEND library_source_list lattice/qphix/geom_utils.cpp
-		lattice/qphix/qphix_qdp_utils.cpp)
+		lattice/qphix/qphix_qdp_utils.cpp
+		lattice/qphix/qphix_blas_wrappers.cpp)
 endif()
 
 add_library(mg ${library_source_list})

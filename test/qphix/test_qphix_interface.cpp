@@ -9,6 +9,7 @@
 #include "../test_env.h"
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/qphix/qphix_qdp_utils.h"
+#include "./qphix_testutils.h"
 
 #include "lattice/constants.h"
 #include "../qdpxx/qdpxx_latticeinit.h"
@@ -66,48 +67,6 @@ TEST(QPhiXIntegration, CreateQPhiXContainers)
 
 }
 
-void DiffCBSpinor(const LatticeFermion& s1, const QPhiXSpinor& qphix_spinor, int cb, double tol)
-{
-
-  LatticeFermion s2;
-
-  QPhiXSpinorToQDPSpinor(qphix_spinor,s2);
-
-  LatticeFermion diff=zero;
-  diff[rb[cb]]=s1-s2;
-  double vol_cb=static_cast<double>(Layout::vol())/2;
-
-
-  double r_norm_cb = toDouble(sqrt(norm2(diff,rb[cb])));
-  double r_norm_cb_per_site = r_norm_cb / vol_cb;
-  MasterLog(INFO, "CB %d : || r || = %16.8e  || r ||/site = %16.8e",cb, r_norm_cb, r_norm_cb_per_site);
-
-  ASSERT_LT( r_norm_cb, tol);
-
-}
-
-void DiffSpinor(const LatticeFermion& s1, const QPhiXSpinor& qphix_spinor, double tol)
-{
-  LatticeFermion s2;
-  QPhiXSpinorToQDPSpinor(qphix_spinor,s2);
-
-  LatticeFermion diff=s1-s2;
-  double vol=static_cast<double>(Layout::vol());
-  double vol_cb=vol/2;
-
-  double r_norm_cb0 = toDouble(sqrt(norm2(diff,rb[0])));
-  double r_norm_cb1 = toDouble(sqrt(norm2(diff,rb[1])));
-  double r_norm_cb0_per_site = r_norm_cb0 / vol_cb;
-  double r_norm_cb1_per_site = r_norm_cb1 / vol_cb;
-  MasterLog(INFO, "CB 0 : || r || = %16.8e  || r ||/site = %16.8e", r_norm_cb0, r_norm_cb0_per_site);
-  MasterLog(INFO, "CB 1 : || r || = %16.8e  || r ||/site = %16.8e", r_norm_cb1, r_norm_cb1_per_site);
-
-  double r_norm = toDouble(sqrt(norm2(diff)));
-  double r_norm_per_site = r_norm /vol;
-  MasterLog(INFO, "Full: || r || = %16.8e || r ||/site = %16.8e", r_norm, r_norm_per_site);
-  ASSERT_LT( r_norm, tol);
-
-}
 
 TEST(QPhiXIntegration, TestQPhiXUnprecOpIsoConstructor)
 {

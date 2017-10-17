@@ -1,4 +1,8 @@
 #pragma once
+#ifndef MG_QPHIX_VECLEN_H
+#define MG_QPHIX_VECLEN_H
+#include <qphix/qphix_config.h>
+
 
 #ifndef QPHIX_SOALEN
 #define QPHIX_SOALEN 4
@@ -36,10 +40,7 @@
 #endif
 #endif
 
-#include "qphix/geometry.h"
-
-#include "qdp.h"
-
+#include <qphix/geometry.h>
 template <typename FT>
 constexpr int get_veclen()
 {
@@ -122,5 +123,7 @@ constexpr int get_veclen<double>()
 {
   return 4;
 }
+
+#endif
 
 #endif
