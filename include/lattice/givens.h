@@ -10,7 +10,7 @@
 #include "lattice/array2d.h"
 #include <complex>
 namespace MG {
-namespace FGMRES {
+namespace FGMRESGeneric {
 
   class Givens {
   public:

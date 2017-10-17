@@ -5,12 +5,13 @@
  *      Author: bjoo
  */
 
+#include <lattice/fine_qdpxx/invmr_qdpxx.h>
+
 #include "qdp.h"
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
 #include "lattice/mr_params.h"
-#include "lattice/fine_qdpxx/invmr.h"
 using namespace QDP;
 
 namespace MG  {
@@ -251,13 +252,13 @@ namespace MG  {
   }
 
 
-	 MRSolver::MRSolver(const LinearOperator<QDP::LatticeFermion,
+	 MRSolverQDPXX::MRSolverQDPXX(const LinearOperator<QDP::LatticeFermion,
 			                        QDP::multi1d<QDP::LatticeColorMatrix> >& M,
 									const MG::LinearSolverParamsBase& params) : _M(M),
 	  _params(static_cast<const MRSolverParams&>(params)){}
 
 	  LinearSolverResults
-	  MRSolver::operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in, ResiduumType resid_type) const {
+	  MRSolverQDPXX::operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in, ResiduumType resid_type) const {
 		  return  InvMR_a(_M, in, out, Real(_params.Omega), Real(_params.RsdTarget),
 				  _params.MaxIter, LINOP_OP, resid_type, _params.VerboseP , true);
 
@@ -265,11 +266,11 @@ namespace MG  {
 
 
 
-	  MRSmoother::MRSmoother(const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > & M, const MG::LinearSolverParamsBase& params) : _M(M),
+	  MRSmootherQDPXX::MRSmootherQDPXX(const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > & M, const MG::LinearSolverParamsBase& params) : _M(M),
 	  _params(static_cast<const MRSolverParams&>(params)){}
 
 	  void
-	  MRSmoother::operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in) const {
+	  MRSmootherQDPXX::operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in) const {
 		  InvMR_a(_M, in, out, Real(_params.Omega), Real(_params.RsdTarget),
 				  _params.MaxIter, LINOP_OP,  ABSOLUTE, _params.VerboseP , false );
 

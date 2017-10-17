@@ -6,6 +6,8 @@
  */
 
 #include <gtest/gtest.h>
+#include <lattice/fine_qdpxx/invfgmres_qdpxx.h>
+
 #include "../test_env.h"
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/qphix/qphix_qdp_utils.h"
@@ -19,7 +21,9 @@
 #include "lattice/fine_qdpxx/clover_term_qdp_w.h"
 #include "lattice/fine_qdpxx/dslashm_w.h"
 #include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"
+
 #include "lattice/qphix/qphix_clover_linear_operator.h"
+#include "lattice/qphix/invfgmres_qphix.h"
 
 using namespace QDP;
 using namespace MG;
@@ -323,6 +327,145 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStabAbsolute)
   ASSERT_LT( r_norm, 1.0e-6);
 }
 
+TEST(TestQDPXX, QPhiXUnprecFGMRES)
+{
+  IndexArray latdims={{8,8,8,8}};
+  initQDPXXLattice(latdims);
+
+  float m_q = 0.1;
+  float c_sw = 1.25;
+
+  int t_bc=-1; // Antiperiodic t BCs
+
+  LatticeFermion in,out;
+  gaussian(in);
+  out=zero;
+
+  multi1d<LatticeColorMatrix> u(Nd);
+  for(int mu=0; mu < Nd; ++mu) {
+    gaussian(u[mu]);
+    reunit(u[mu]);
+  }
+
+  LatticeInfo info(latdims);
+
+  // Create linear operator
+  QPhiXWilsonCloverLinearOperator M(info,m_q, c_sw, t_bc, u);
+
+  FGMRESParams params;
+  params.MaxIter = 500;
+  params.RsdTarget = 1.0e-5;
+  params.VerboseP = true;
+  params.NKrylov = 10;
+
+  FGMRESSolverQPhiX FGMRES(M, params,nullptr);
+  QPhiXSpinor q_b(info);
+  QPhiXSpinor q_x(info);
+
+  QDPSpinorToQPhiXSpinor(in,q_b);
+  Gaussian(q_x);
+
+  QDPIO::cout << "|| b ||=  " << sqrt(Norm2Vec(q_b)) << std::endl;
+  QDPIO::cout << "|| x || = " << sqrt(Norm2Vec(q_x)) << std::endl;
+
+  LinearSolverResults res = FGMRES(q_x,q_b);
+
+  QDPIO::cout << "FGMRES Solver Took: " << res.n_count << " iterations"
+      << std::endl;
+
+  ASSERT_EQ(res.resid_type, RELATIVE);
+  ASSERT_LT(res.resid, 9e-6);
+  QDPWilsonCloverLinearOperator M_qdp(m_q, c_sw, t_bc, u);
+  QPhiXSpinorToQDPSpinor(q_x,out);
+  LatticeFermion Ax;
+  M_qdp(Ax,out, LINOP_OP);
+
+  DiffSpinorRelative(in,Ax,1.0e-5);
+}
+
+TEST(TestQDPXX, QPhiXUnprecFGMRES2)
+{
+  IndexArray latdims={{8,8,8,8}};
+  initQDPXXLattice(latdims);
+
+  float m_q = 0.1;
+  float c_sw = 1.25;
+
+  int t_bc=-1; // Antiperiodic t BCs
+
+  LatticeFermion in,out;
+  gaussian(in);
+  out=zero;
+
+  multi1d<LatticeColorMatrix> u(Nd);
+  for(int mu=0; mu < Nd; ++mu) {
+    gaussian(u[mu]);
+    reunit(u[mu]);
+  }
+
+  LatticeInfo info(latdims);
+
+  // Create linear operator
+  QPhiXWilsonCloverLinearOperator M(info,m_q, c_sw, t_bc, u);
+  QDPWilsonCloverLinearOperator M_qdp(m_q, c_sw, t_bc, u);
+
+  FGMRESParams params;
+  params.MaxIter = 500;
+  params.RsdTarget = 1.0e-5;
+  params.VerboseP = true;
+  params.NKrylov = 10;
+
+  FGMRESSolverQPhiX FGMRES(M, params,nullptr);
+  FGMRESSolverQDPXX FGMRESQDP(M_qdp,params,nullptr);
+
+  QPhiXSpinor q_b(info);
+  QPhiXSpinor q_x(info);
+
+  QDPSpinorToQPhiXSpinor(in,q_b);
+  ZeroVec(q_x);
+
+  QDPIO::cout << "|| b ||=  " << sqrt(Norm2Vec(q_b)) << std::endl;
+  QDPIO::cout << "|| x || = " << sqrt(Norm2Vec(q_x)) << std::endl;
+
+  StopWatch swatch;
+  swatch.reset(); swatch.start();
+  LinearSolverResults res = FGMRES(q_x,q_b);
+  swatch.stop();
+
+  // Check Answer
+  QDPIO::cout << "FGMRES Solver Took: " << res.n_count << " iterations"
+      << std::endl;
+  ASSERT_EQ(res.resid_type, RELATIVE);
+  ASSERT_LT(res.resid, 9e-6);
+  QPhiXSpinorToQDPSpinor(q_x,out);
+  LatticeFermion Ax;
+  M_qdp(Ax,out, LINOP_OP);
+  DiffSpinorRelative(in,Ax,1.0e-5);
+
+  out = zero;
+  StopWatch swatch_qdp;
+  swatch_qdp.reset(); swatch_qdp.start();
+  res = FGMRESQDP(out,in);
+  swatch_qdp.stop();
+  QDPIO::cout << "QDP FGMRES Solver Took: " << res.n_count << " iterations"
+       << std::endl;
+
+  // Check Answers
+  ASSERT_EQ(res.resid_type, RELATIVE);
+  ASSERT_LT(res.resid, 9e-6);
+  M_qdp(Ax,out, LINOP_OP);
+  DiffSpinorRelative(in,Ax,1.0e-5);
+
+  // Check Out against q_x
+  DiffSpinor(out,q_x, 1.0e-5);
+
+  // Compare times
+  double qdp_time = swatch_qdp.getTimeInSeconds();
+  double qphix_time = swatch.getTimeInSeconds();
+  QDPIO::cout << "QPhiX Based FGMRES took " << qphix_time << " sec" << std::endl;
+  QDPIO::cout << "QDP++ Based FGMRES took " << qdp_time << " sec" << std::endl;
+  QDPIO::cout << "Speedup = " << qdp_time / qphix_time << " x " << std::endl;
+}
 
 int main(int argc, char *argv[])
 {

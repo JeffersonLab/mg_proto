@@ -5,7 +5,7 @@
  *      Author: bjoo
  */
 
-#include "lattice/fine_qdpxx/invbicgstab.h"
+#include <lattice/fine_qdpxx/invbicgstab_qdpxx.h>
 
 namespace MG {
 
@@ -237,7 +237,7 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
 }
 
 LinearSolverResults
-BiCGStabSolver::operator()(Spinor& out, const Spinor& in, ResiduumType resid_type  ) const {
+BiCGStabSolverQDPXX::operator()(Spinor& out, const Spinor& in, ResiduumType resid_type  ) const {
 		  return  InvBiCGStab_a(_M, in, out, _params.RsdTarget, _params.MaxIter, LINOP_OP, resid_type, _params.VerboseP ) ;
 
 	  }

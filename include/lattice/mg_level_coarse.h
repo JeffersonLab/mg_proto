@@ -8,12 +8,12 @@
 #ifndef INCLUDE_LATTICE_MG_LEVEL_COARSE_H_
 #define INCLUDE_LATTICE_MG_LEVEL_COARSE_H_
 
+#include <lattice/coarse/invbicgstab_coarse.h>
 #include <memory>
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/block.h"
 #include "lattice/solver.h"
 
-#include "lattice/invbicgstab_coarse.h"
 #include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
 
 namespace MG {

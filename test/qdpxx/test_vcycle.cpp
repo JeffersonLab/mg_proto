@@ -1,3 +1,8 @@
+#include <lattice/coarse/invbicgstab_coarse.h>
+#include <lattice/coarse/invfgmres_coarse.h>
+#include <lattice/coarse/invmr_coarse.h>
+#include <lattice/fine_qdpxx/invbicgstab_qdpxx.h>
+#include <lattice/fine_qdpxx/invfgmres_qdpxx.h>
 #include "gtest/gtest.h"
 #include "../test_env.h"
 #include "../mock_nodeinfo.h"
@@ -14,12 +19,7 @@
 #include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
 #include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"
 #include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
-#include "lattice/fine_qdpxx/invbicgstab.h"
-#include "lattice/fine_qdpxx/invfgmres.h"
-#include "lattice/invfgmres_coarse.h"
 #include "lattice/fine_qdpxx/vcycle_qdpxx_coarse.h"
-#include "lattice/invbicgstab_coarse.h"
-#include "lattice/invmr_coarse.h"
 #include "lattice/coarse/vcycle_coarse.h"
 
 
@@ -64,7 +64,7 @@ TEST(TestVCycle, TestVCycleApply)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver  BiCGStab(M, params);
+	BiCGStabSolverQDPXX  BiCGStab(M, params);
 
 	// Zero RHS
 	LatticeFermion b=zero;
@@ -125,7 +125,7 @@ TEST(TestVCycle, TestVCycleApply)
 	presmooth.VerboseP = true;
 
 	// MR Smoother holds only references
-	MRSmoother the_smoother(M,presmooth);
+	MRSmootherQDPXX the_smoother(M,presmooth);
 
 
 	// Set up the CoarseSolver
@@ -192,7 +192,7 @@ TEST(TestVCycle, TestVCycleSolve)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver   BiCGStab(M, params);
+	BiCGStabSolverQDPXX   BiCGStab(M, params);
 	LatticeFermion b=zero;
 
 	QDPIO::cout << "Generating 6 Null Vectors" << std::endl;
@@ -240,7 +240,7 @@ TEST(TestVCycle, TestVCycleSolve)
 	presmooth.Omega = 1.1;
 	presmooth.VerboseP = true;
 
-	MRSmoother the_smoother(M,presmooth);
+	MRSmootherQDPXX the_smoother(M,presmooth);
 
 	FGMRESParams coarse_solve_params;
 	coarse_solve_params.MaxIter=200;
@@ -312,7 +312,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver BiCGStab(M, params);
+	BiCGStabSolverQDPXX BiCGStab(M, params);
 	LatticeFermion b=zero;
 
 	QDPIO::cout << "Generating 6 Null Vectors" << std::endl;
@@ -363,7 +363,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	presmooth.Omega = 1.1;
 	presmooth.VerboseP = true;
 
-	MRSmoother pre_smoother(M,presmooth);
+	MRSmootherQDPXX pre_smoother(M,presmooth);
 
 	MRSolverParams postsmooth;
 	postsmooth.MaxIter = 4;
@@ -371,7 +371,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	postsmooth.Omega = 1.1;
 	postsmooth.VerboseP = true;
 
-	MRSmoother post_smoother(M,postsmooth);
+	MRSmootherQDPXX post_smoother(M,postsmooth);
 
 	FGMRESParams coarse_solve_params;
 	coarse_solve_params.MaxIter=200;
@@ -393,7 +393,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	fine_solve_params.RsdTarget=1.0e-5;
 	fine_solve_params.VerboseP = true;
 	fine_solve_params.NKrylov = 2;
-	FGMRESSolver FGMRESOuter(M,fine_solve_params, &vcycle);
+	FGMRESSolverQDPXX FGMRESOuter(M,fine_solve_params, &vcycle);
 
 	// Now need to do the coarse test
 	LatticeFermion psi_in, chi_out;
@@ -447,7 +447,7 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver BiCGStab(M, params);
+	BiCGStabSolverQDPXX BiCGStab(M, params);
 	LatticeFermion b=zero;
 
 	QDPIO::cout << "Generating 6 Null Vectors" << std::endl;
@@ -497,7 +497,7 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	presmooth.Omega = 1.1;
 	presmooth.VerboseP = true;
 
-	MRSmoother pre_smoother(M,presmooth);
+	MRSmootherQDPXX pre_smoother(M,presmooth);
 
 	MRSolverParams postsmooth;
 	postsmooth.MaxIter = 4;
@@ -505,7 +505,7 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	postsmooth.Omega = 1.1;
 	postsmooth.VerboseP = true;
 
-	MRSmoother post_smoother(M,postsmooth);
+	MRSmootherQDPXX post_smoother(M,postsmooth);
 
 	FGMRESParams coarse_solve_params;
 	coarse_solve_params.MaxIter=200;
@@ -527,7 +527,7 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	fine_solve_params.RsdTarget=1.0e-5;
 	fine_solve_params.VerboseP = true;
 	fine_solve_params.NKrylov = 5;
-	FGMRESSolver FGMRESOuter(M,fine_solve_params, &vcycle);
+	FGMRESSolverQDPXX FGMRESOuter(M,fine_solve_params, &vcycle);
 
 	// Now need to do the coarse test
 	LatticeFermion psi_in, chi_out;
@@ -583,7 +583,7 @@ TEST(TestVCycle, TestVCycle2Level)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver BiCGStab(M, params);
+	BiCGStabSolverQDPXX BiCGStab(M, params);
 	LatticeFermion b=zero;
 
 	QDPIO::cout << "Generating 6 Null Vectors" << std::endl;
@@ -699,7 +699,7 @@ TEST(TestVCycle, TestVCycle2Level)
 	presmooth_01_params.RsdTarget = 0.1;
 	presmooth_01_params.Omega = 1.1;
 	presmooth_01_params.VerboseP = true;
-	MRSmoother pre_smoother_01(M, presmooth_01_params);
+	MRSmootherQDPXX pre_smoother_01(M, presmooth_01_params);
 
 	QDPIO::cout << "  ... creating L1 FGMRES Solver -- preconditioned with L1->L2 Vcycle" << std::endl;
 	FGMRESParams l1_solve_params;
@@ -715,7 +715,7 @@ TEST(TestVCycle, TestVCycle2Level)
 	postsmooth_01_params.RsdTarget = 0.1;
 	postsmooth_01_params.Omega = 1.1;
 	postsmooth_01_params.VerboseP = true;
-	MRSmoother post_smoother_01(M, postsmooth_01_params);
+	MRSmootherQDPXX post_smoother_01(M, postsmooth_01_params);
 
 	QDPIO::cout << " ... creating L0 -> L1 Vcycle Preconitioner " << std::endl;
 	LinearSolverParamsBase vcycle_01_params;
@@ -733,7 +733,7 @@ TEST(TestVCycle, TestVCycle2Level)
 	fine_solve_params.RsdTarget=1.0e-5;
 	fine_solve_params.VerboseP = true;
 	fine_solve_params.NKrylov = 5;
-	FGMRESSolver FGMRESOuter(M,fine_solve_params, &vcycle_01);
+	FGMRESSolverQDPXX FGMRESOuter(M,fine_solve_params, &vcycle_01);
 
 	QDPIO::cout << "*** Recursive VCycle Structure + Solver Created" << std::endl;
 

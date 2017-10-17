@@ -2,8 +2,8 @@
  *  \brief Conjugate-Gradient algorithm for a generic Linear Operator
  */
 
-#ifndef INCLUDE_LATTICE_INVBICGSTAB_COARSE_H_
-#define INCLUDE_LATTICE_INVBICGSTAB_COARSE_H_
+#ifndef INCLUDE_LATTICE_COARSE_INVBICGSTAB_COARSE_H_
+#define INCLUDE_LATTICE_COARSE_INVBICGSTAB_COARSE_H_
 
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"

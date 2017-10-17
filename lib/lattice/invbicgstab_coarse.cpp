@@ -6,7 +6,7 @@
  */
 
 
-#include "lattice/invbicgstab_coarse.h"
+#include <lattice/coarse/invbicgstab_coarse.h>
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 #include "utils/print_utils.h"

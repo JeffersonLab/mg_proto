@@ -50,7 +50,7 @@ namespace MGQPhiX {
 
 class QPhiXSpinor {
 public:
-    QPhiXSpinor(const LatticeInfo& info)
+    QPhiXSpinor(const LatticeInfo& info) : _info(info)
     {
       if( ! MGQPhiX::IsGeomInitialized() ) {
         MGQPhiX::InitializeGeom(info);
@@ -82,13 +82,19 @@ public:
     const Geom& getGeom() const {
       return MGQPhiX::GetGeom();
     }
+
+    const LatticeInfo& GetInfo() const {
+      return _info;
+    }
 private:
+    const LatticeInfo& _info;
+
     std::unique_ptr<QPhiXFullSpinor> _data;
 };
 
 class QPhiXGauge {
 public:
-    QPhiXGauge(const LatticeInfo& info)
+    QPhiXGauge(const LatticeInfo& info) : _info(info)
     {
       if( ! MGQPhiX::IsGeomInitialized() ) {
         MGQPhiX::InitializeGeom(info);
@@ -116,13 +122,18 @@ public:
          return MGQPhiX::GetGeom();
        }
 
+     const LatticeInfo& GetInfo() const {
+       return _info;
+     }
+
 private:
-   std::unique_ptr<QPhiXCBGauge> _data[2];
+     const LatticeInfo& _info;
+     std::unique_ptr<QPhiXCBGauge> _data[2];
 };
 
 class QPhiXClover {
 public:
-    QPhiXClover(const LatticeInfo& info)
+    QPhiXClover(const LatticeInfo& info) : _info(info)
     {
       if( ! MGQPhiX::IsGeomInitialized() ) {
         MGQPhiX::InitializeGeom(info);
@@ -160,7 +171,12 @@ public:
      const Geom& getGeom() const {
          return MGQPhiX::GetGeom();
        }
+
+     const LatticeInfo& GetInfo() const {
+       return _info;
+     }
 private:
+   const LatticeInfo& _info;
    std::unique_ptr<QPhiXCBClover> _data[2];
    std::unique_ptr<QPhiXCBClover> _inv;
 };

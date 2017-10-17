@@ -1,3 +1,4 @@
+#include <lattice/fine_qdpxx/invfgmres_qdpxx.h>
 #include "gtest/gtest.h"
 #include "../test_env.h"
 #include "../mock_nodeinfo.h"
@@ -10,7 +11,6 @@
 #include "lattice/fine_qdpxx/mg_params_qdpxx.h"
 #include "lattice/fine_qdpxx/mg_level_qdpxx.h"
 #include "lattice/fine_qdpxx/vcycle_recursive_qdpxx.h"
-#include "lattice/fine_qdpxx/invfgmres.h"
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
@@ -129,7 +129,7 @@ TEST(TestRecursiveVCycle, TestLevelSetup2Level)
 	fine_solve_params.RsdTarget=1.0e-5;
 	fine_solve_params.VerboseP = true;
 	fine_solve_params.NKrylov = 5;
-	FGMRESSolver FGMRESOuter(*M,fine_solve_params, &v_cycle);
+	FGMRESSolverQDPXX FGMRESOuter(*M,fine_solve_params, &v_cycle);
 
 	QDPIO::cout << "*** Recursive VCycle Structure + Solver Created" << std::endl;
 

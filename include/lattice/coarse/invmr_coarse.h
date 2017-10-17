@@ -1,8 +1,8 @@
 /*! \file
  *  \brief Minimal-Residual (MR) for a generic fermion Linear Operator
  */
-#ifndef INCLUDE_LATTICE_INVMR_COARSE_H_
-#define INCLUDE_LATTICE_INVMR_COARSE_H_
+#ifndef INCLUDE_LATTICE_COARSE_INVMR_COARSE_H_
+#define INCLUDE_LATTICE_COARSE_INVMR_COARSE_H_
 
 
 #include "lattice/constants.h"

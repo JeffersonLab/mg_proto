@@ -72,7 +72,7 @@ namespace MG {
 
 
 
- class FGMRESSolver : public LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix> >
+ class FGMRESSolverQDPXX : public LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix> >
   {
   public:
 
@@ -81,7 +81,7 @@ namespace MG {
      * \param A_        Linear operator ( Read )
      * \param invParam  inverter parameters ( Read )
      */
-    FGMRESSolver(const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix> >& A,
+    FGMRESSolverQDPXX(const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix> >& A,
     			 const MG::LinearSolverParamsBase& params,
     			 const LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix>>* M_prec=nullptr);
 

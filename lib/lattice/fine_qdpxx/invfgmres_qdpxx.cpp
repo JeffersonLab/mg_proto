@@ -5,7 +5,7 @@
  *      Author: bjoo
  */
 
-#include "lattice/fine_qdpxx/invfgmres.h"
+#include <lattice/fine_qdpxx/invfgmres_qdpxx.h>
 
 namespace MG {
 namespace QDPFGMRES {
@@ -209,7 +209,7 @@ namespace QDPFGMRES {
  	 }
 }; //namespace fgmres
 
-FGMRESSolver::FGMRESSolver(const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix> >& A,
+FGMRESSolverQDPXX::FGMRESSolverQDPXX(const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix> >& A,
 			 const MG::LinearSolverParamsBase& params,
 			 const LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix>>* M_prec) : _A(A), _params(static_cast<const FGMRESParams&>(params)), _M_prec(M_prec)
   {
@@ -220,7 +220,7 @@ FGMRESSolver::FGMRESSolver(const LinearOperator<LatticeFermion,multi1d<LatticeCo
 
 //! Initialize the internal matrices
 void
-FGMRESSolver::InitMatrices()
+FGMRESSolverQDPXX::InitMatrices()
 {
 
 
@@ -255,7 +255,7 @@ FGMRESSolver::InitMatrices()
 }
 
 LinearSolverResults
-FGMRESSolver::operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type) const
+FGMRESSolverQDPXX::operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type) const
 {
 	LinearSolverResults res; // Value to return
 	res.resid_type = resid_type;
@@ -427,7 +427,7 @@ FGMRESSolver::operator()(LatticeFermion& out, const LatticeFermion& in, Residuum
 
 
 void
-FGMRESSolver::FlexibleArnoldi(int n_krylov,
+FGMRESSolverQDPXX::FlexibleArnoldi(int n_krylov,
 		 const Real& rsd_target,
 		 multi1d<LatticeFermion>& V,
 		 multi1d<LatticeFermion>& Z,
@@ -448,7 +448,7 @@ FGMRESSolver::FlexibleArnoldi(int n_krylov,
 
 
 void
-FGMRESSolver::LeastSquaresSolve(const multi2d<DComplex>& H,
+FGMRESSolverQDPXX::LeastSquaresSolve(const multi2d<DComplex>& H,
 		const multi1d<DComplex>& rhs,
 		multi1d<DComplex>& eta,
 		int n_cols) const

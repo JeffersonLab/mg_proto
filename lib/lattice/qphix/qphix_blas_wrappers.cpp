@@ -60,6 +60,16 @@ void CopyVec(QPhiXSpinor& x, const QPhiXSpinor& y)
   copySpinor(x.get(),y.get(),geom,n_blas_simt);
 }
 
+
+void AxpyVec(const double& alpha, const QPhiXSpinor& x, QPhiXSpinor& y)
+{
+  const Geom& geom = y.getGeom();
+  int n_blas_simt = geom.getNSIMT();
+
+  double a[2] = { std::real(alpha), std::imag(alpha) };
+  caxpySpinor(a, x.get(), y.get(), geom,n_blas_simt);
+}
+
 void AxpyVec(const std::complex<float>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y)
 {
     const Geom& geom = y.getGeom();

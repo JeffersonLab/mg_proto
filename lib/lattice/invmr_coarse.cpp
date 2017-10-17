@@ -5,7 +5,7 @@
  *      Author: bjoo
  */
 
-#include "lattice/invmr_coarse.h"
+#include <lattice/coarse/invmr_coarse.h>
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"

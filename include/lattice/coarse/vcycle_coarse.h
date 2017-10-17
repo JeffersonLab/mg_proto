@@ -8,12 +8,12 @@
 #ifndef INCLUDE_LATTICE_COARSE_VCYCLE_COARSE_H_
 #define INCLUDE_LATTICE_COARSE_VCYCLE_COARSE_H_
 
+#include <lattice/coarse/invfgmres_coarse.h>
+#include <lattice/coarse/invmr_coarse.h>
 #include "lattice/constants.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
-#include "lattice/invmr_coarse.h"
-#include "lattice/invfgmres_coarse.h"
 #include "lattice/fgmres_common.h"
 #include "lattice/coarse/aggregate_block_coarse.h"
 #include "utils/print_utils.h"

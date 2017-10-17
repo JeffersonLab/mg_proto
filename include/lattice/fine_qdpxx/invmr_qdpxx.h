@@ -2,8 +2,8 @@
  *  \brief Minimal-Residual (MR) for a generic fermion Linear Operator
  */
 
-#ifndef INCLUDE_LATTICE_FINE_QDPXX_INVMR_H_
-#define INCLUDE_LATTICE_FINE_QDPXX_INVMR_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_INVMR_QDPXX_H_
+#define INCLUDE_LATTICE_FINE_QDPXX_INVMR_QDPXX_H_
 
 #include "qdp.h"
 #include "lattice/constants.h"
@@ -15,9 +15,9 @@ using namespace QDP;
 
 namespace MG  {
 
-  class MRSolver : public LinearSolver< QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > {
+  class MRSolverQDPXX : public LinearSolver< QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > {
   public:
-	  MRSolver(const LinearOperator<QDP::LatticeFermion,
+	  MRSolverQDPXX(const LinearOperator<QDP::LatticeFermion,
 			                        QDP::multi1d<QDP::LatticeColorMatrix> >& M,
 									const MG::LinearSolverParamsBase& params);
 
@@ -30,9 +30,9 @@ namespace MG  {
   };
 
 
-  class MRSmoother : public Smoother<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > {
+  class MRSmootherQDPXX : public Smoother<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > {
   public:
-	  MRSmoother(const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > & M, const MG::LinearSolverParamsBase& params);
+	  MRSmootherQDPXX(const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > & M, const MG::LinearSolverParamsBase& params);
 	  void operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in) const;
 
   private:

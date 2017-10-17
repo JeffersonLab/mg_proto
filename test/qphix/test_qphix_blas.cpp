@@ -163,6 +163,35 @@ TEST(TESTQPhiXBLAS, TestZAxpyVec)
 
 }
 
+
+TEST(TESTQPhiXBLAS, TestAxpyVec)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+     Real a=Real(1.5);
+
+     LatticeFermion x; gaussian(x);
+     LatticeFermion y; gaussian(y);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinor q_x(info);
+     QPhiXSpinor q_y(info);
+     QDPSpinorToQPhiXSpinor(x,q_x);
+     QDPSpinorToQPhiXSpinor(y,q_y);
+     double alpha = toDouble(a);
+
+
+     // AXPY
+     y += a*x;
+
+     // QPHix
+     AxpyVec(alpha, q_x, q_y);
+
+     DiffSpinor(x,q_x,5.0e-6);
+     DiffSpinor(y,q_y,5.0e-6);
+
+}
 TEST(TESTQPhiXBLAS, TestCAxpyVec)
 {
   // Init the lattice

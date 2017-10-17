@@ -4,7 +4,6 @@ LIST(APPEND library_source_list lattice/aggregate_block_coarse.cpp
 			   lattice/coarse_l1_blas.cpp
 			   lattice/coarse_op.cpp
 			   lattice/givens.cpp
-			   lattice/invfgmres_coarse.cpp
 			   lattice/invbicgstab_coarse.cpp
 			   lattice/invmr_coarse.cpp
 			   lattice/lattice_info.cpp
@@ -29,9 +28,9 @@ if( MG_USE_QDPXX )
 	LIST(APPEND library_source_list lattice/fine_qdpxx/aggregate_block_qdpxx.cpp
 		lattice/fine_qdpxx/aggregate_qdpxx.cpp
 		lattice/fine_qdpxx/dslashm_w.cpp
-		lattice/fine_qdpxx/invbicgstab.cpp
-		lattice/fine_qdpxx/invfgmres.cpp
-		lattice/fine_qdpxx/invmr.cpp
+		lattice/fine_qdpxx/invbicgstab_qdpxx.cpp
+		lattice/fine_qdpxx/invfgmres_qdpxx.cpp
+		lattice/fine_qdpxx/invmr_qdpxx.cpp
 		lattice/fine_qdpxx/mesfield.cpp
 		lattice/fine_qdpxx/mg_setup_qdpxx.cpp
 		lattice/fine_qdpxx/qdpxx_helpers.cpp 

@@ -7,13 +7,13 @@
 
 #ifndef INCLUDE_LATTICE_FINE_QDPXX_VCYCLE_QDPXX_COARSE_H_
 #define INCLUDE_LATTICE_FINE_QDPXX_VCYCLE_QDPXX_COARSE_H_
+#include <lattice/coarse/invfgmres_coarse.h>
+#include <lattice/fine_qdpxx/invmr_qdpxx.h>
 #include "qdp.h"
 #include "lattice/constants.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
-#include "lattice/fine_qdpxx/invmr.h"
-#include "lattice/invfgmres_coarse.h"
 #include "lattice/fgmres_common.h"
 #include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
 #include "utils/print_utils.h"

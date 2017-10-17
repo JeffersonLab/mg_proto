@@ -5,12 +5,13 @@
  *      Author: bjoo
  */
 
+#include <lattice/coarse/invbicgstab_coarse.h>
+#include <lattice/fine_qdpxx/invbicgstab_qdpxx.h>
+
 #include "qdp.h"
 #include "lattice/fine_qdpxx/mg_level_qdpxx.h"
 #include "lattice/fine_qdpxx/mg_params_qdpxx.h"
-#include "lattice/fine_qdpxx/invbicgstab.h"
 #include "lattice/coarse/coarse_l1_blas.h"
-#include "lattice/invbicgstab_coarse.h"
 #include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
 #include "utils/print_utils.h"
 
@@ -40,7 +41,7 @@ void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<const QDPWilsonClo
 	params.RsdTarget = p.null_solver_rsd_target[0];
 	params.VerboseP = p.null_solver_verboseP[0];
 
-	fine_level.null_solver = std::make_shared<BiCGStabSolver>(*M_fine, params);
+	fine_level.null_solver = std::make_shared<BiCGStabSolverQDPXX>(*M_fine, params);
 	fine_level.M = M_fine;
 	// Zero RHS
 	LatticeFermion b=QDP::zero;

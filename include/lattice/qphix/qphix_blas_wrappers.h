@@ -22,6 +22,7 @@ void ZeroVec(QPhiXSpinor& x);
 void CopyVec(QPhiXSpinor& x, const QPhiXSpinor& y);
 void AxpyVec(const std::complex<float>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y);
 void AxpyVec(const std::complex<double>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y);
+void AxpyVec(const double& alpha, const QPhiXSpinor& x, QPhiXSpinor& y);
 void Gaussian(QPhiXSpinor& v);
 
 }

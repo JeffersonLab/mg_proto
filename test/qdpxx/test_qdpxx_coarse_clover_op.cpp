@@ -1,3 +1,8 @@
+#include <lattice/coarse/invbicgstab_coarse.h>
+#include <lattice/coarse/invfgmres_coarse.h>
+#include <lattice/coarse/invmr_coarse.h>
+#include <lattice/fine_qdpxx/invbicgstab_qdpxx.h>
+#include <lattice/fine_qdpxx/invmr_qdpxx.h>
 #include "gtest/gtest.h"
 #include "../test_env.h"
 #include "../mock_nodeinfo.h"
@@ -15,11 +20,6 @@
 #include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
 #include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"
 
-#include "lattice/fine_qdpxx/invbicgstab.h"
-#include "lattice/invfgmres_coarse.h"
-#include "lattice/fine_qdpxx/invmr.h"
-#include "lattice/invmr_coarse.h"
-#include "lattice/invbicgstab_coarse.h"
 
 using namespace MG;
 using namespace MGTesting;
@@ -313,7 +313,7 @@ TEST(TestLattice, CoarseLinOpMRSmoother)
 
 	// Create an FGMRES Solver for the coarse Op
 
-	MRSmoother FineMRSmoother( M, p);
+	MRSmootherQDPXX FineMRSmoother( M, p);
 	MRSmootherCoarse CoarseMRSmoother( M_coarse, p );
 
 	smooth_out = zero; // Zero fine solution

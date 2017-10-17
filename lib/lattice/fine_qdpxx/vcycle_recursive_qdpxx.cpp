@@ -1,11 +1,11 @@
+#include <lattice/coarse/invfgmres_coarse.h>
+#include <lattice/coarse/invmr_coarse.h>
+#include <lattice/fine_qdpxx/invfgmres_qdpxx.h>
+#include <lattice/fine_qdpxx/invmr_qdpxx.h>
 #include "lattice/fine_qdpxx/mg_params_qdpxx.h"
 #include "lattice/fine_qdpxx/mg_level_qdpxx.h"
 #include "lattice/fine_qdpxx/vcycle_recursive_qdpxx.h"
 #include "lattice/solver.h"
-#include "lattice/fine_qdpxx/invmr.h"
-#include "lattice/fine_qdpxx/invfgmres.h"
-#include "lattice/invmr_coarse.h"
-#include "lattice/invfgmres_coarse.h"
 #include "lattice/fine_qdpxx/vcycle_qdpxx_coarse.h"
 #include "lattice/coarse/vcycle_coarse.h"
 
@@ -85,8 +85,8 @@ namespace MG
 		}
 
 		MasterLog(INFO,"Creating Toplevel Smoothers");
-		_pre_smoother = std::make_shared< const MRSmoother >(*(_mg_levels.fine_level.M), _vcycle_params[0].pre_smoother_params);
-		_post_smoother = std::make_shared< const MRSmoother >(*(_mg_levels.fine_level.M), _vcycle_params[0].post_smoother_params);
+		_pre_smoother = std::make_shared< const MRSmootherQDPXX >(*(_mg_levels.fine_level.M), _vcycle_params[0].pre_smoother_params);
+		_post_smoother = std::make_shared< const MRSmootherQDPXX >(*(_mg_levels.fine_level.M), _vcycle_params[0].post_smoother_params);
 		MasterLog(INFO,"Creating Toplevel VCycle");
 		_toplevel_vcycle = std::make_shared< const VCycleQDPCoarse2 >((*(_mg_levels.coarse_levels[0].info)),  // Coarse info for first coarse level
 																(_mg_levels.fine_level.blocklist),   // Block List

@@ -1,3 +1,6 @@
+#include <lattice/fine_qdpxx/invbicgstab_qdpxx.h>
+#include <lattice/fine_qdpxx/invfgmres_qdpxx.h>
+#include <lattice/fine_qdpxx/invmr_qdpxx.h>
 #include "gtest/gtest.h"
 #include "../test_env.h"
 #include "../mock_nodeinfo.h"
@@ -6,9 +9,6 @@
 #include "lattice/lattice_info.h"
 #include "lattice/fine_qdpxx/qdpxx_helpers.h"
 #include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"
-#include "lattice/fine_qdpxx/invmr.h"
-#include "lattice/fine_qdpxx/invbicgstab.h"
-#include "lattice/fine_qdpxx/invfgmres.h"
 
 using namespace MG;
 using namespace MGTesting;
@@ -43,7 +43,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvMR)
 	params.RsdTarget = 0.02;
 	params.Omega = 1.1;
 	params.VerboseP = true;
-	MRSolver MR(M, params);
+	MRSolverQDPXX MR(M, params);
 	Spinor b;
 	gaussian(b);
 	Spinor x=zero;
@@ -58,7 +58,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvMR)
 	ASSERT_EQ( res.resid_type, RELATIVE);
 
 	params.MaxIter = 6;
-	MRSmoother MRS(M,params);
+	MRSmootherQDPXX MRS(M,params);
 	x=zero;
 	MRS(x,b);
 	// Compute residuum:
@@ -100,7 +100,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvBiCGStab)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver  BiCGStab(M, params);
+	BiCGStabSolverQDPXX  BiCGStab(M, params);
 	Spinor b;
 	gaussian(b);
 	Spinor x=zero;
@@ -144,7 +144,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvBiCGStabZeroRHS)
 	params.MaxIter = 500;
 	params.RsdTarget = 1.0e-5;
 	params.VerboseP = true;
-	BiCGStabSolver  BiCGStab(M, params);
+	BiCGStabSolverQDPXX  BiCGStab(M, params);
 
 	// Special Test to solver for Zero RHS for nullspace
 	Spinor b=zero;
@@ -197,7 +197,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvUnprecFGMRES)
 	params.VerboseP = true;
 	params.NKrylov = 10;
 
-	FGMRESSolver FGMRES(M, params,nullptr);
+	FGMRESSolverQDPXX FGMRES(M, params,nullptr);
 	Spinor b;
 	gaussian(b);
 	Spinor x=zero;
@@ -244,7 +244,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvRightPrecFGMRES)
 	mr_params.MaxIter = 20;
 	mr_params.VerboseP = true;
 
-	MRSolver MR(M, mr_params);
+	MRSolverQDPXX MR(M, mr_params);
 
 	FGMRESParams params;
 	params.MaxIter = 500;
@@ -252,7 +252,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvRightPrecFGMRES)
 	params.VerboseP = true;
 	params.NKrylov = 10;
 
-	FGMRESSolver  FGMRES(M, params,&MR);
+	FGMRESSolverQDPXX  FGMRES(M, params,&MR);
 	Spinor b;
 	gaussian(b);
 	Spinor x=zero;

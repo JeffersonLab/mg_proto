@@ -10,7 +10,7 @@
 #include <complex>
 namespace MG {
 
-namespace FGMRES {
+namespace FGMRESGeneric {
 
 
    // Givens rotation.
