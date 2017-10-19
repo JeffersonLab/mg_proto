@@ -14,8 +14,9 @@
 #include <qphix/qphix_config.h>
 #include <qphix/full_spinor.h>
 #include <qphix/abs_solver.h>
-#include <qphix/abs_solver.h>
+
 #include <qphix/invbicgstab.h>
+#include <qphix/invmr.h>
 #include <qphix/clover.h>
 #include <qphix/invbicgstab.h>
 #include <qphix/qdp_packer.h>
@@ -25,32 +26,84 @@
 
 namespace MG {
 
-using Geom = QPhiX::Geometry<double, VECLEN_DP, QPHIX_SOALEN, false>;
+template<typename FT>
+using QPhiXGeomT = typename QPhiX::Geometry<FT,get_veclen<FT>(), QPHIX_SOALEN, false>;
+using Geom = QPhiXGeomT<double>;
+using GeomF = QPhiXGeomT<float>;
+
+template<typename FT>
+using QPhiXCBSpinorT = typename QPhiX::FourSpinorHandle<FT,get_veclen<FT>(),QPHIX_SOALEN,false>;
+
+template<typename FT>
+using QPhiXCBGaugeT = typename QPhiX::GaugeHandle<FT,get_veclen<FT>(),QPHIX_SOALEN, false>;
+
+template<typename FT>
+using QPhiXCBCloverT = typename QPhiX::CloverHandle<FT, get_veclen<FT>(),QPHIX_SOALEN, false>;
 
 
-using QPhiXCBSpinor = QPhiX::FourSpinorHandle<double,VECLEN_DP,QPHIX_SOALEN,false>;
-using QPhiXCBGauge = QPhiX::GaugeHandle<double,VECLEN_DP,QPHIX_SOALEN, false>;
-using QPhiXCBClover = QPhiX::CloverHandle<double, VECLEN_DP,QPHIX_SOALEN, false>;
+template<typename FT>
+using QPhiXFullSpinorT = typename QPhiX::FullSpinor<FT,get_veclen<FT>(),QPHIX_SOALEN,false>;
+
+template<typename FT>
+using QPhiXClovOpT = typename QPhiX::EvenOddCloverOperator<FT,get_veclen<FT>(), QPHIX_SOALEN, false>;
+
+template<typename FT>
+using QPhiXBiCGStabT = typename QPhiX::InvBiCGStab<FT, get_veclen<FT>(),QPHIX_SOALEN,false>;
+
+template<typename FT>
+using QPhiXMRSolverT = typename QPhiX::InvMR<FT,get_veclen<FT>(),QPHIX_SOALEN,false>;
+
+template<typename FT>
+using QPhiXMRSmootherT = typename QPhiX::InvMRSmoother<FT,get_veclen<FT>(),QPHIX_SOALEN,false>;
+
+template<typename FT>
+using QPhiXEOPrecOpT = typename QPhiX::EvenOddLinearOperator<FT,get_veclen<FT>(),QPHIX_SOALEN,false>;
+
+template<typename FT>
+using QPhiXUnprecSolverT = typename QPhiX::UnprecSolverWrapper<FT, get_veclen<FT>(), QPHIX_SOALEN,false, QPhiXEOPrecOpT<FT>>;
 
 
+using QPhiXCBSpinor = QPhiXCBSpinorT<double>;
+using QPhiXCBGauge = QPhiXCBGaugeT<double>;
+using QPhiXCBClover = QPhiXCBCloverT<double>;
+using QPhiXFullSpinor = QPhiXFullSpinorT<double>;
+using ClovOp = QPhiXClovOpT<double>;
+using BiCGStab = QPhiXBiCGStabT<double>;
+using QPhiXMRSmoother = QPhiXMRSmootherT<double>;
+using EOPrecOp = QPhiXEOPrecOpT<double>;
+using QPhiXUnprecSolver = QPhiXUnprecSolverT<double>;
 
-using QPhiXFullSpinor = QPhiX::FullSpinor<double,VECLEN_DP,QPHIX_SOALEN,false>;
+using QPhiXCPSpinorF = QPhiXCBSpinorT<float>;
+using QPhiXCBGaugeF = QPhiXCBGaugeT<float>;
+using QPhiXCBCloverF = QPhiXCBCloverT<float>;
+using QPhiXFullSpinorF = QPhiXFullSpinorT<float>;
+using ClovOpF = QPhiXClovOpT<float>;
+using BiCGStabF = QPhiXBiCGStabT<float>;
+using QPhiXMRSmootherF = QPhiXMRSmootherT<float>;
+using EOPrecOpF = QPhiXEOPrecOpT<float>;
+using QPhiXUnprecSolverF = QPhiXUnprecSolverT<float>;
 
-using ClovOp = QPhiX::EvenOddCloverOperator<double, VECLEN_DP, QPHIX_SOALEN, false>;
-using BiCGStab = QPhiX::InvBiCGStab<double,VECLEN_DP,QPHIX_SOALEN,false>;
-using EOPrecOp = QPhiX::EvenOddLinearOperator<double,VECLEN_DP,QPHIX_SOALEN,false>;
-using QPhiXUnprecSolver = QPhiX::UnprecSolverWrapper<double,VECLEN_DP,
-                                                    QPHIX_SOALEN,false,EOPrecOp>;
 // Basic Geometry Utilizies
 namespace MGQPhiX {
   bool IsGeomInitialized();
   void InitializeGeom(const LatticeInfo& info);
-  Geom& GetGeom();
+  template<typename FT>
+  QPhiXGeomT<FT>& GetGeom();
+
+  template<>
+  Geom& GetGeom<double>();
+
+  template<>
+  GeomF& GetGeom<float>();
 }
 
-class QPhiXSpinor {
+template<typename FT>
+class QPhiXSpinorT {
 public:
-    QPhiXSpinor(const LatticeInfo& info) : _info(info)
+
+    using GeomT = QPhiXGeomT<FT>;
+
+    QPhiXSpinorT(const LatticeInfo& info) : _info(info)
     {
       if( ! MGQPhiX::IsGeomInitialized() ) {
         MGQPhiX::InitializeGeom(info);
@@ -58,30 +111,35 @@ public:
       else {
         // check the info?
       }
-      _data.reset(new QPhiXFullSpinor(MGQPhiX::GetGeom()));
+      _data.reset(new QPhiXFullSpinorT<FT>(MGQPhiX::GetGeom<FT>()));
     }
 
-    ~QPhiXSpinor() {}
+    ~QPhiXSpinorT() {}
 
-    QPhiXFullSpinor& get() {
+    QPhiXFullSpinorT<FT>& get() {
        return *_data;
     }
 
-    const QPhiXFullSpinor& get() const {
+    const QPhiXFullSpinorT<FT>& get() const {
       return *_data;
     }
 
-    QPhiXCBSpinor& getCB(int cb) {
+    QPhiXCBSpinorT<FT>& getCB(int cb) {
       return _data->getCB(cb);
     }
 
-    const QPhiXCBSpinor& getCB(int cb) const {
+    const QPhiXCBSpinorT<FT>& getCB(int cb) const {
       return _data->getCB(cb);
     }
 
-    const Geom& getGeom() const {
-      return MGQPhiX::GetGeom();
+    const GeomT& getGeom() const {
+      return static_cast<const QPhiXGeomT<FT>&>(MGQPhiX::GetGeom<FT>());
     }
+#if 0
+    GeomT& getGeom()  {
+         return MGQPhiX::GetGeom<FT>();
+    }
+#endif
 
     const LatticeInfo& GetInfo() const {
       return _info;
@@ -89,12 +147,19 @@ public:
 private:
     const LatticeInfo& _info;
 
-    std::unique_ptr<QPhiXFullSpinor> _data;
+    std::unique_ptr<QPhiXFullSpinorT<FT>> _data;
 };
 
-class QPhiXGauge {
+using QPhiXSpinor = QPhiXSpinorT<double>;
+using QPhiXSpinorF = QPhiXSpinorT<float>;
+
+template<typename FT>
+class QPhiXGaugeT {
 public:
-    QPhiXGauge(const LatticeInfo& info) : _info(info)
+
+    using GeomT = QPhiXGeomT<FT>;
+
+    QPhiXGaugeT(const LatticeInfo& info) : _info(info)
     {
       if( ! MGQPhiX::IsGeomInitialized() ) {
         MGQPhiX::InitializeGeom(info);
@@ -104,36 +169,46 @@ public:
       }
 
       for(int cb=0; cb < 2; ++cb) {
-        _data[cb].reset(new QPhiXCBGauge(MGQPhiX::GetGeom()));
+        _data[cb].reset(new QPhiXCBGaugeT<FT>(MGQPhiX::GetGeom<FT>()));
       }
     }
 
-    ~QPhiXGauge() {}
+    ~QPhiXGaugeT() {}
 
-     QPhiXCBGauge& getCB(int cb) {
+     QPhiXCBGaugeT<FT>& getCB(int cb) {
        return *(_data[cb]);
      }
 
-     const QPhiXCBGauge& getCB(int cb) const {
+     const QPhiXCBGaugeT<FT>& getCB(int cb) const {
        return *(_data[cb]);
      }
 
-     const Geom& getGeom() const {
-         return MGQPhiX::GetGeom();
+     const GeomT& getGeom() const {
+         return MGQPhiX::GetGeom<FT>();
        }
-
+#if 0
+     GeomT& getGeom()  {
+       return MGQPhiX::GetGeom<FT>();
+     }
+#endif
      const LatticeInfo& GetInfo() const {
        return _info;
      }
 
 private:
      const LatticeInfo& _info;
-     std::unique_ptr<QPhiXCBGauge> _data[2];
+     std::unique_ptr<QPhiXCBGaugeT<FT>> _data[2];
 };
 
-class QPhiXClover {
+using QPhiXGauge = QPhiXGaugeT<double>;
+using QPhiXGaugeF = QPhiXGaugeT<float>;
+
+template<typename FT>
+class QPhiXCloverT {
 public:
-    QPhiXClover(const LatticeInfo& info) : _info(info)
+
+    using GeomT = QPhiXGeomT<FT>;
+    QPhiXCloverT(const LatticeInfo& info) : _info(info)
     {
       if( ! MGQPhiX::IsGeomInitialized() ) {
         MGQPhiX::InitializeGeom(info);
@@ -143,44 +218,53 @@ public:
       }
 
       for(int cb=0; cb < 2; ++cb) {
-        _data[cb].reset(new QPhiXCBClover(MGQPhiX::GetGeom()));
+        _data[cb].reset(new QPhiXCBCloverT<FT>(MGQPhiX::GetGeom<FT>()));
       }
 
       // Store the inverse
-      _inv.reset(new QPhiXCBClover(MGQPhiX::GetGeom()));
+      _inv.reset(new QPhiXCBCloverT<FT>(MGQPhiX::GetGeom<FT>()));
     }
 
-    ~QPhiXClover() {}
+    ~QPhiXCloverT() {}
 
-     QPhiXCBClover& getCB(int cb) {
+     QPhiXCBCloverT<FT>& getCB(int cb) {
        return *(_data[cb]);
      }
 
-     const QPhiXCBClover& getCB(int cb) const {
+     const QPhiXCBCloverT<FT>& getCB(int cb) const {
        return *(_data[cb]);
      }
 
-     QPhiXCBClover& getInv() {
+     QPhiXCBCloverT<FT>& getInv() {
        return *_inv;
      }
 
-     const QPhiXCBClover& getInv() const {
+     const QPhiXCBCloverT<FT>& getInv() const {
        return *_inv;
      }
 
-     const Geom& getGeom() const {
-         return MGQPhiX::GetGeom();
+     const GeomT& getGeom() const {
+         return MGQPhiX::GetGeom<FT>();
        }
+
+#if 0
+     GeomT& getGeom()  {
+       return MGQPhiX::GetGeom<FT>();
+     }
+#endif
 
      const LatticeInfo& GetInfo() const {
        return _info;
      }
 private:
    const LatticeInfo& _info;
-   std::unique_ptr<QPhiXCBClover> _data[2];
-   std::unique_ptr<QPhiXCBClover> _inv;
+   std::unique_ptr<QPhiXCBCloverT<FT>> _data[2];
+   std::unique_ptr<QPhiXCBCloverT<FT>> _inv;
 };
 
+
+using QPhiXClover = QPhiXCloverT<double>;
+using QPhiXCloverF = QPhiXCloverT<float>;
 }
 
 

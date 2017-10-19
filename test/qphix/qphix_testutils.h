@@ -13,8 +13,22 @@
 
 namespace MGTesting
 {
-void DiffCBSpinor(const QDP::LatticeFermion& s1, const MG::QPhiXSpinor& qphix_spinor, int cb, double tol);
-void DiffSpinor(const QDP::LatticeFermion& s1, const MG::QPhiXSpinor& qphix_spinor, double tol);
+void DiffCBSpinor(const QDP::LatticeFermion& s1, const MG::QPhiXSpinor& qphix_spinor, int cb, double tol,
+    bool persite_tol=false);
+void DiffSpinor(const QDP::LatticeFermion& s1, const MG::QPhiXSpinor& qphix_spinor, double tol,
+    bool persite_tol=false);
+void DiffCBSpinor(const QDP::LatticeFermion& s1, const MG::QPhiXSpinorF& qphix_spinor, int cb, double tol,
+    bool persite_tol=false);
+void DiffSpinor(const QDP::LatticeFermion& s1, const MG::QPhiXSpinorF& qphix_spinor, double tol,
+    bool persite_tol=false);
+
+
+void DiffCBSpinorPerSite(const QDP::LatticeFermion& s1, const MG::QPhiXSpinor& qphix_spinor, int cb, double tol);
+void DiffCBSpinorPerSite(const QDP::LatticeFermion& s1, const MG::QPhiXSpinorF& qphix_spinor, int cb, double tol);
+
+void DiffSpinorPerSite(const QDP::LatticeFermion& s1, const MG::QPhiXSpinor& qphix_spinor, double tol);
+void DiffSpinorPerSite(const QDP::LatticeFermion& s1, const MG::QPhiXSpinorF& qphix_spinor, double tol);
+
 void DiffSpinor(const QDP::LatticeFermion& s1, const QDP::LatticeFermion& s2, double tol);
 void DiffSpinorRelative(const QDP::LatticeFermion& b, const QDP::LatticeFermion& Ax, double tol);
 }

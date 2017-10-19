@@ -41,6 +41,7 @@
 #endif
 
 #include <qphix/geometry.h>
+
 template <typename FT>
 constexpr int get_veclen()
 {
@@ -125,5 +126,6 @@ constexpr int get_veclen<double>()
 }
 
 #endif
+
 
 #endif

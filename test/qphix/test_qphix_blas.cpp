@@ -164,7 +164,7 @@ TEST(TESTQPhiXBLAS, TestZAxpyVec)
 }
 
 
-TEST(TESTQPhiXBLAS, TestAxpyVec)
+TEST(TESTQPhiXBLAS, TestSAxpyVec)
 {
   // Init the lattice
      IndexArray latdims={{8,8,8,8}};
@@ -240,6 +240,249 @@ TEST(TESTQPhiXBLAS, TestGaussianVec)
      DiffSpinor(x,q_x,1.0e-14);
 }
 
+
+/*** SP Tests ***/
+TEST(TESTQPhiXBLAS, TestXmYNorm2VecF)
+{
+  // Init the lattice
+  IndexArray latdims={{8,8,8,8}};
+  initQDPXXLattice(latdims);
+
+  LatticeFermion x; gaussian(x);
+  LatticeFermion y; gaussian(y);
+
+  LatticeInfo info(latdims);
+  QPhiXSpinorF q_x(info);
+  QPhiXSpinorF q_y(info);
+
+  QDPSpinorToQPhiXSpinor(x,q_x);
+  QDPSpinorToQPhiXSpinor(y,q_y);
+
+  x -= y;
+  Double n = norm2(x);
+
+  double q_norm2 = XmyNorm2Vec(q_x,q_y);
+  DiffSpinor(x,q_x,5.0e-5);
+  DiffSpinor(y,q_y,5.0e-5);
+  double absdiff = std::abs(q_norm2 - toDouble(n));
+  ASSERT_LT( absdiff, 6.0e-5);
+
+
+}
+
+
+
+TEST(TESTQPhiXBLAS, TestNorm2VecF)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+
+     LatticeFermion x; gaussian(x);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinorF qphix_x(info);
+
+     QDPSpinorToQPhiXSpinor(x,qphix_x);
+
+     Double n = norm2(x);
+     double qphix_norm = Norm2Vec(qphix_x);
+     double absdiff = std::abs(qphix_norm - toDouble(n));
+     ASSERT_LT( absdiff, 5.0e-5);
+
+
+}
+
+
+TEST(TESTQPhiXBLAS, TestInnerProductVecF)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+     LatticeFermion x; gaussian(x);
+     LatticeFermion y; gaussian(y);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinorF q_x(info);
+     QPhiXSpinorF q_y(info);
+
+     QDPSpinorToQPhiXSpinor(x,q_x);
+     QDPSpinorToQPhiXSpinor(y,q_y);
+
+     DComplex iprod = QDP::innerProduct(x,y);
+
+     std::complex<double> q_iprod = InnerProductVec(q_x,q_y);
+
+     double realnorm = std::abs ( std::real(q_iprod) - toDouble(real(iprod)) );
+     double imnorm = std::abs ( std::imag(q_iprod) - toDouble(imag(iprod)) );
+
+     ASSERT_LT( realnorm, 5.0e-5);
+     ASSERT_LT( imnorm, 5.0e-5);
+
+}
+
+
+TEST(TESTQPhiXBLAS, TestZeroVecF)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+     LatticeFermion z = zero;
+
+     LatticeInfo info(latdims);
+     QPhiXSpinorF q_z(latdims);
+     ZeroVec(q_z);
+     DiffSpinor(z,q_z,1.0e-14);
+
+}
+
+
+TEST(TESTQPhiXBLAS, TestCopyVecF)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+
+     LatticeFermion in; gaussian(in);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinorF q_in(info);
+     QPhiXSpinorF q_copy(info);
+     QDPSpinorToQPhiXSpinor(in, q_in);
+
+     CopyVec(q_copy,q_in);
+     DiffSpinor(in,q_copy, 5.0e-5);
+
+}
+
+
+TEST(TESTQPhiXBLAS, TestZAxpyVecF)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+     Complex a=Real(1.5);
+     a += timesI(Real(-0.261));
+
+     LatticeFermion x; gaussian(x);
+     LatticeFermion y; gaussian(y);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinorF q_x(info);
+     QPhiXSpinorF q_y(info);
+     QDPSpinorToQPhiXSpinor(x,q_x);
+     QDPSpinorToQPhiXSpinor(y,q_y);
+     std::complex<double> alpha( toDouble(real(a)), toDouble(imag(a)));
+
+     // AXPY
+     y += a*x;
+
+     // QPHix
+     AxpyVec(alpha, q_x, q_y);
+
+     DiffSpinor(x,q_x,5.0e-5);
+     DiffSpinor(y,q_y,5.0e-5);
+
+
+
+}
+
+
+TEST(TESTQPhiXBLAS, TestSAxpyVecF)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+     Real a=Real(1.5);
+
+     LatticeFermion x; gaussian(x);
+     LatticeFermion y; gaussian(y);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinorF q_x(info);
+     QPhiXSpinorF q_y(info);
+     QDPSpinorToQPhiXSpinor(x,q_x);
+     QDPSpinorToQPhiXSpinor(y,q_y);
+     double alpha = toDouble(a);
+
+
+     // AXPY
+     y += a*x;
+
+     // QPHix
+     AxpyVec(alpha, q_x, q_y);
+
+     DiffSpinor(x,q_x,5.0e-5);
+     DiffSpinor(y,q_y,5.0e-5);
+
+}
+TEST(TESTQPhiXBLAS, TestCAxpyVecF)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+     Complex a=Real(1.5);
+     a += timesI(Real(-0.261));
+
+     LatticeFermion x; gaussian(x);
+     LatticeFermion y; gaussian(y);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinorF q_x(info);
+     QPhiXSpinorF q_y(info);
+     QDPSpinorToQPhiXSpinor(x,q_x);
+     QDPSpinorToQPhiXSpinor(y,q_y);
+     std::complex<float> alpha( toDouble(real(a)), toDouble(imag(a)));
+
+     // AXPY
+     y += a*x;
+
+     // QPHix
+     AxpyVec(alpha, q_x, q_y);
+
+     DiffSpinor(x,q_x,5.0e-5);
+     DiffSpinor(y,q_y,5.0e-5);
+
+}
+
+TEST(TESTQPhiXBLAS, TestGaussianVecF)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+
+     QDP::Seed seed;
+     QDP::RNG::savern(seed);
+     LatticeFermion x; gaussian(x);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinorF q_x(info);
+     QDP::RNG::setrn(seed);
+
+     Gaussian(q_x);
+
+     DiffSpinor(x,q_x,5.0e-5);
+}
+
+TEST(TESTQPhiXBLAS, TestConvertRoutines)
+{
+  // Init the lattice
+  IndexArray latdims={{8,8,8,8}};
+  initQDPXXLattice(latdims);
+  LatticeInfo info(latdims);
+
+  LatticeFermion x; gaussian(x);
+  QPhiXSpinor spinor_d(info);
+  QDPSpinorToQPhiXSpinor(x,spinor_d);
+
+  QPhiXSpinorF spinor_f(info);
+  ConvertSpinor(spinor_d,spinor_f);
+  DiffSpinor(x,spinor_f,5.0e-5);
+
+  QPhiXSpinor spinor_back(info);
+  ConvertSpinor(spinor_f,spinor_back);
+  DiffSpinor(x,spinor_back,5.0e-5);
+}
 
 int main(int argc, char *argv[])
 {

@@ -25,6 +25,23 @@ namespace MG {
                               const MG::QDPCloverTermT<QDP::LatticeFermion,
                                     QDP::LatticeColorMatrix>& invclov,
                               QPhiXClover& qphix_out);
+
+  void
+  QDPSpinorToQPhiXSpinor( const QDP::LatticeFermion& qdp_in, QPhiXSpinorF& qphix_out);
+
+  void
+  QPhiXSpinorToQDPSpinor( const QPhiXSpinorF& qphix_in, QDP::LatticeFermion& qdp_out);
+
+  void
+  QDPGaugeFieldToQPhiXGauge( const QDP::multi1d<QDP::LatticeColorMatrix>& qdp_u, QPhiXGaugeF& qphix_out);
+
+
+  void
+  QDPCloverTermToQPhiXClover( const MG::QDPCloverTermT<QDP::LatticeFermion,
+                                    QDP::LatticeColorMatrix>& clov,
+                              const MG::QDPCloverTermT<QDP::LatticeFermion,
+                                    QDP::LatticeColorMatrix>& invclov,
+                              QPhiXCloverF& qphix_out);
 }
 
 #endif

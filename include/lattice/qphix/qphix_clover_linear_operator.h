@@ -24,13 +24,13 @@
 
 namespace MG {
 
-
-class QPhiXWilsonCloverLinearOperator : public LinearOperator<QPhiXSpinor,QPhiXGauge > {
+template<typename FT>
+class QPhiXWilsonCloverLinearOperatorT : public LinearOperator<QPhiXSpinorT<FT>,QPhiXGaugeT<FT> > {
 public:
   using QDPGauge = QDP::multi1d<QDP::LatticeColorMatrix>;
-  using Spinor = QPhiXSpinor;
+  using Spinor = QPhiXSpinorT<FT>;
 
-  QPhiXWilsonCloverLinearOperator( const LatticeInfo& info, double m_q, double c_sw, int t_bc, const QDPGauge& gauge_in ) :
+  QPhiXWilsonCloverLinearOperatorT( const LatticeInfo& info, double m_q, double c_sw, int t_bc, const QDPGauge& gauge_in ) :
     _info(info), _t_bc(t_bc),_u(info), _clov(info)
   {
     // The QPhiX Operator takes unmodified fields.
@@ -69,14 +69,14 @@ public:
     qphix_clover[0] = _clov.getCB(0).get();
     qphix_clover[1] = _clov.getCB(1).get();
 
-    QPhiXEOClov.reset(new ClovOp(qphix_gauge,
-                          qphix_clover,
-                          _clov.getInv().get(),
-                           &(MGQPhiX::GetGeom()),
+    QPhiXEOClov.reset(new QPhiXClovOpT<FT>(qphix_gauge,
+                            qphix_clover,
+                            _clov.getInv().get(),
+                            &(MGQPhiX::GetGeom<FT>()),
                            t_bcf,1.0,1.0));
   }
 
-  QPhiXWilsonCloverLinearOperator(const LatticeInfo& info, double m_q, double u0, double xi0, double nu, double c_sw_r, double c_sw_t,
+  QPhiXWilsonCloverLinearOperatorT(const LatticeInfo& info, double m_q, double u0, double xi0, double nu, double c_sw_r, double c_sw_t,
       int t_bc, const QDPGauge& gauge_in ) : _info(info),_t_bc(t_bc),_u(info), _clov(info)
   {
 
@@ -132,14 +132,14 @@ public:
     qphix_gauge[1]=_u.getCB(1).get();
     qphix_clover[0] = _clov.getCB(0).get();
     qphix_clover[1] = _clov.getCB(1).get();
-    QPhiXEOClov.reset(new ClovOp(qphix_gauge,
+    QPhiXEOClov.reset(new QPhiXClovOpT<FT>(qphix_gauge,
                             qphix_clover,
                            _clov.getInv().get(),
-                            &(MGQPhiX::GetGeom()),
+                            &(MGQPhiX::GetGeom<FT>()),
                             t_bcf,anisoFacS,anisoFacT));
   }
 
-  ~QPhiXWilsonCloverLinearOperator() {
+  ~QPhiXWilsonCloverLinearOperatorT() {
 
     // The QPhiX op will delete when the smart pointer calls its destructor
   }
@@ -183,7 +183,7 @@ public:
     return _info;
   }
 
-  ClovOp& getQPhiXOp()
+  QPhiXClovOpT<FT>& getQPhiXOp()
   {
     return *QPhiXEOClov;
   }
@@ -244,18 +244,20 @@ public:
 private:
 
   const int _t_bc;
-  QPhiXGauge _u;
-  QPhiXClover _clov;
+  QPhiXGaugeT<FT> _u;
+  QPhiXCloverT<FT> _clov;
   // This will be hidden
-  Geom::SU3MatrixBlock *qphix_gauge[2] ;
-  Geom::CloverBlock *qphix_clover[2];
+  typename QPhiXGeomT<FT>::SU3MatrixBlock *qphix_gauge[2] ;
+  typename QPhiXGeomT<FT>::CloverBlock *qphix_clover[2];
   const LatticeInfo& _info;
 
-  std::unique_ptr<ClovOp> QPhiXEOClov;
+  std::unique_ptr<QPhiXClovOpT<FT>> QPhiXEOClov;
 
 
 };
 
+using QPhiXWilsonCloverLinearOperator = QPhiXWilsonCloverLinearOperatorT<double>;
+using QPhiXWilsonCloverLinearOperatorF = QPhiXWilsonCloverLinearOperatorT<float>;
 
 }
 

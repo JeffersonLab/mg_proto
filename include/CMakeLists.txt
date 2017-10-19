@@ -58,5 +58,7 @@ install (FILES lattice/qphix/qphix_types.h
 						   lattice/qphix/qphix_clover_linear_operator.h
 						   lattice/qphix/qphix_blas_wrappers.h
 						   lattice/qphix/invfgmres_qphix.h
+						   lattice/qphix/invbicgstab_qphix.h
+						   lattice/qphix/invmr_qphix.h
 				 DESTINATION include/lattice/qphix)
 				 
