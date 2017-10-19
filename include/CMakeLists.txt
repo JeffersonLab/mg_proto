@@ -60,5 +60,7 @@ install (FILES lattice/qphix/qphix_types.h
 						   lattice/qphix/invfgmres_qphix.h
 						   lattice/qphix/invbicgstab_qphix.h
 						   lattice/qphix/invmr_qphix.h
+						   lattice/qphix/mg_level_qphix.h
+						   lattice/qphix/qphix_aggregate.h
 				 DESTINATION include/lattice/qphix)
 				 
