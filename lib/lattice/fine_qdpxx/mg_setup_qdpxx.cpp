@@ -24,68 +24,115 @@ namespace MG
 void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<const QDPWilsonCloverLinearOperator> M_fine,
 						MGLevelQDPXX& fine_level, MGLevelCoarse& coarse_level)
 {
-	// For sake of form
-	IndexArray latdims = {{ QDP::Layout::subgridLattSize()[0],
-							QDP::Layout::subgridLattSize()[1],
-							QDP::Layout::subgridLattSize()[2],
-							QDP::Layout::subgridLattSize()[3] }};
+	SetupQDPXXToCoarseGenerateVecs(p, M_fine, fine_level, coarse_level);
+	SetupQDPXXToCoarseVecsIn(p, M_fine, fine_level, coarse_level);
+}
+
+void SetupQDPXXToCoarseGenerateVecs(const SetupParams& p, std::shared_ptr<const QDPWilsonCloverLinearOperator> M_fine,
+    MGLevelQDPXX& fine_level, MGLevelCoarse& coarse_level)
+{
+    if( ! M_fine ) {
+      MasterLog(ERROR, "%s: M_fine is null", __FUNCTION__);
+    }
+  // Null solver is BiCGStab. Let us make a parameter struct for it.
+    fine_level.M = M_fine;
+    LinearSolverParamsBase params;
+    params.MaxIter = p.null_solver_max_iter[0];
+    params.RsdTarget = p.null_solver_rsd_target[0];
+    params.VerboseP = p.null_solver_verboseP[0];
+
+    fine_level.null_solver = std::make_shared<BiCGStabSolverQDPXX>(*M_fine, params);
+
+    // Zero RHS
+    LatticeFermion b=QDP::zero;
+
+    // Generate the vectors
+    int num_vecs = p.n_vecs[0];
+
+    fine_level.null_vecs.resize(num_vecs);
+    for(int k=0; k < num_vecs; ++k) {
+      gaussian(fine_level.null_vecs[k]);
+    }
+
+    for(int k=0; k < num_vecs; ++k) {
+       LinearSolverResults res = (*(fine_level.null_solver))(fine_level.null_vecs[k],b, ABSOLUTE);
+       QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
+          << std::endl;
+    }
+}
+
+void SetupQDPXXToCoarseVecsIn(const SetupParams& p, std::shared_ptr<const QDPWilsonCloverLinearOperator> M_fine,
+            MGLevelQDPXX& fine_level, MGLevelCoarse& coarse_level)
+{
+  // For sake of form
+  IndexArray latdims = {{ QDP::Layout::subgridLattSize()[0],
+              QDP::Layout::subgridLattSize()[1],
+              QDP::Layout::subgridLattSize()[2],
+              QDP::Layout::subgridLattSize()[3] }};
+
+
+  if ( ! M_fine ) {
+    MasterLog(ERROR, "%s M_fine is null", __FUNCTION__);
+  }
+
+  if ( ! fine_level.info ) {
+    fine_level.info = std::make_shared<LatticeInfo>(latdims,4,3,NodeInfo());
+  }
+
+  if(! fine_level.M ) {
+    fine_level.M = M_fine;
+  }
+
+  if( ! fine_level.null_solver ) {
+    LinearSolverParamsBase params;
+    params.MaxIter = p.null_solver_max_iter[0];
+    params.RsdTarget = p.null_solver_rsd_target[0];
+    params.VerboseP = p.null_solver_verboseP[0];
+
+    fine_level.null_solver = std::make_shared<BiCGStabSolverQDPXX>(*M_fine, params);
+  }
+
+
+  int num_vecs = fine_level.null_vecs.size();
+  if (num_vecs != p.n_vecs[0] ) {
+       MasterLog(ERROR, "QDPXX Setup is called without initing vectors, but initial vectors are not initialized");
+  }
+
+  IndexArray blocked_lattice_dims;
+  IndexArray blocked_lattice_orig;
+  CreateBlockList(fine_level.blocklist,
+      blocked_lattice_dims,
+      blocked_lattice_orig,
+      latdims,
+      p.block_sizes[0],
+      fine_level.info->GetLatticeOrigin());
+
+
+  // Orthonormalize the vectors -- I heard once that for GS stability is improved
+  // if you do it twice.
+
+  orthonormalizeBlockAggregatesQDPXX(fine_level.null_vecs,
+                    fine_level.blocklist);
+
+  orthonormalizeBlockAggregatesQDPXX(fine_level.null_vecs,
+                    fine_level.blocklist);
 
 
 
-	fine_level.info = std::make_shared<LatticeInfo>(latdims,4,3,NodeInfo());
+
+  // Create the blocked Clover and Gauge Fields
+  // This service needs the blocks, the vectors and is a convenience
+    // Function of the M
+  coarse_level.info = std::make_shared<const LatticeInfo>(blocked_lattice_orig,
+                            blocked_lattice_dims,
+                            2, num_vecs, NodeInfo());
+
+  coarse_level.gauge = std::make_shared<CoarseGauge>(*(coarse_level.info));
 
 
-	// Null solver is BiCGStab. Let us make a parameter struct for it.
-	LinearSolverParamsBase params;
-	params.MaxIter = p.null_solver_max_iter[0];
-	params.RsdTarget = p.null_solver_rsd_target[0];
-	params.VerboseP = p.null_solver_verboseP[0];
+  M_fine->generateCoarse(fine_level.blocklist, fine_level.null_vecs, *(coarse_level.gauge));
 
-	fine_level.null_solver = std::make_shared<BiCGStabSolverQDPXX>(*M_fine, params);
-	fine_level.M = M_fine;
-	// Zero RHS
-	LatticeFermion b=QDP::zero;
-
-	// Generate the vectors
-	int num_vecs = p.n_vecs[0];
-	fine_level.null_vecs.resize(num_vecs);
-	for(int k=0; k < num_vecs; ++k) {
-		gaussian(fine_level.null_vecs[k]);
-		LinearSolverResults res = (*(fine_level.null_solver))(fine_level.null_vecs[k],b, ABSOLUTE);
-		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
-				<< std::endl;
-	}
-
-	IndexArray blocked_lattice_dims;
-	IndexArray blocked_lattice_orig;
-	CreateBlockList(fine_level.blocklist,
-			blocked_lattice_dims,
-			blocked_lattice_orig,
-			latdims,
-			p.block_sizes[0],
-			fine_level.info->GetLatticeOrigin());
-
-	// Orthonormalize the vectors -- I heard once that for GS stability is improved
-	// if you do it twice.
-	orthonormalizeBlockAggregatesQDPXX(fine_level.null_vecs,
-										fine_level.blocklist);
-
-	orthonormalizeBlockAggregatesQDPXX(fine_level.null_vecs,
-										fine_level.blocklist);
-
-
-	// Create the blocked Clover and Gauge Fields
-	// This service needs the blocks, the vectors and is a convenience
-		// Function of the M
-	coarse_level.info = std::make_shared<const LatticeInfo>(blocked_lattice_orig,
-													  blocked_lattice_dims,
-													  2, num_vecs, NodeInfo());
-
-	coarse_level.gauge = std::make_shared<CoarseGauge>(*(coarse_level.info));
-
-	M_fine->generateCoarse(fine_level.blocklist, fine_level.null_vecs, *(coarse_level.gauge));
-
-	coarse_level.M = std::make_shared< const CoarseWilsonCloverLinearOperator>(coarse_level.gauge,1);
+  coarse_level.M = std::make_shared< const CoarseWilsonCloverLinearOperator>(coarse_level.gauge,1);
 
 }
 

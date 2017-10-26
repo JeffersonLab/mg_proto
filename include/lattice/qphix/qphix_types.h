@@ -144,6 +144,22 @@ public:
     const LatticeInfo& GetInfo() const {
       return _info;
     }
+
+    FT& operator()(int cb, int site, int spin, int color, int cmpx)
+    {
+      int osite = site / QPHIX_SOALEN;
+      int isite = site % QPHIX_SOALEN;
+
+      return (_data.get()->getCBData(cb))[osite][color][spin][cmpx][isite];
+    }
+
+    const FT& operator()(int cb, int site, int spin, int color, int cmpx) const
+     {
+       int osite = site / QPHIX_SOALEN;
+       int isite = site % QPHIX_SOALEN;
+
+       return (_data.get()->getCBData(cb))[osite][color][spin][cmpx][isite];
+     }
 private:
     const LatticeInfo& _info;
 

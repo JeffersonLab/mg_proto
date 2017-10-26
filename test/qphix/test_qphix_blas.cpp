@@ -445,6 +445,41 @@ TEST(TESTQPhiXBLAS, TestCAxpyVecF)
 
 }
 
+TEST(TESTQPhiXBLAS, TestAxVec)
+{
+  // Init the lattice
+      IndexArray latdims={{8,8,8,8}};
+      initQDPXXLattice(latdims);
+      LatticeFermion x; gaussian(x);
+      LatticeInfo info(latdims);
+      QPhiXSpinor q_x(info);
+      QDPSpinorToQPhiXSpinor(x,q_x);
+
+      double alpha = 3.2;
+      AxVec( alpha, q_x);
+      x *= Real(alpha);
+      DiffSpinorPerSite(x,q_x,5.0e-14);
+
+
+}
+
+TEST(TESTQPhiXBLAS, TestAxVecF)
+{
+  // Init the lattice
+      IndexArray latdims={{8,8,8,8}};
+      initQDPXXLattice(latdims);
+      LatticeFermion x; gaussian(x);
+      LatticeInfo info(latdims);
+      QPhiXSpinorF q_x(info);
+      QDPSpinorToQPhiXSpinor(x,q_x);
+
+      double alpha = 3.2;
+      AxVec( alpha, q_x);
+      x *= Real(alpha);
+      DiffSpinorPerSite(x,q_x,1.0e-6);
+
+
+}
 TEST(TESTQPhiXBLAS, TestGaussianVecF)
 {
   // Init the lattice

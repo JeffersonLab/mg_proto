@@ -98,7 +98,7 @@ void DiffSpinor(const LatticeFermion& s1, const QPhiXSpinorF& qphix_spinor, doub
 
 
 void DiffSpinor(const LatticeFermion& s1, const LatticeFermion& s2, double tol,
-    bool persite_tol = false)
+    bool persite_tol)
 {
   LatticeFermion diff=s1-s2;
   double vol=static_cast<double>(Layout::vol());

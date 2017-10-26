@@ -53,6 +53,10 @@ void QPhiXSpinorToQDPSpinor( const QPhiXSpinorF& qphix_in,  QDP::LatticeFermion&
   QPhiXSpinorToQDPSpinorT( qphix_in, qdp_out );
 }
 
+void QPhiXSpinorToQDPSpinor( const QPhiXSpinorF& qphix_in,  QDP::LatticeFermionF& qdp_out) {
+  QPhiXSpinorToQDPSpinorT( qphix_in, qdp_out );
+}
+
 template<typename QDPT, typename QPhiXT>
  void
  QDPGaugeFieldToQPhiXGaugeT( const QDPT& qdp_u, QPhiXT& qphix_out)

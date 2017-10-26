@@ -111,6 +111,20 @@ void CopyVecT(ST& x, const ST& y)
 void CopyVec(QPhiXSpinor& x, const QPhiXSpinor& y) { CopyVecT(x,y); }
 void CopyVec(QPhiXSpinorF& x, const QPhiXSpinorF& y) { CopyVecT(x,y); }
 
+
+template<typename ST>
+inline
+void AxVecT(const double alpha, ST& x)
+{
+  const typename ST::GeomT& geom = x.getGeom();
+  int n_blas_simt = geom.getNSIMT();
+  axSpinor<>(alpha, x.get(),geom,n_blas_simt);
+}
+
+void AxVec(const double alpha, QPhiXSpinor& x) { AxVecT(alpha,x); }
+void AxVec(const double alpha, QPhiXSpinorF& x) { AxVecT(alpha,x); }
+
+
 template<typename ST>
 inline
 void AxpyVecT(const double& alpha, const ST& x, ST& y)

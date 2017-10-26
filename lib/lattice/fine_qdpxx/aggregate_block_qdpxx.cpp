@@ -134,6 +134,7 @@ void orthonormalizeBlockAggregatesQDPXX(multi1d<LatticeFermion>& vecs, const std
 
 					// curr_vec <- curr_vec - <curr_vec|prev_vec>*prev_vec = -iprod*prev_vec + curr_vec
 					caxpyBlockAggrQDPXX( minus_iprod, vecs[prev_vec], vecs[curr_vec], block, aggr);
+
 				}
 
 				// Normalize current vector

@@ -35,6 +35,13 @@ namespace MG {
 
       // Get QPhiX Command Line args
        QPhiX::QPhiXCLIArgs& CLI = MG::getQPhiXCLIArgs();
+       if ( CLI.getPxy() != 0 ) {
+         MasterLog(INFO, "WARNING: Non-zero padding for Pxy(=%d) is ignored.", CLI.getPxy());
+       }
+
+       if ( CLI.getPxyz() != 0 ) {
+          MasterLog(INFO, "WARNING: Non-zero padding for Pxyz(=%d) is ignored.", CLI.getPxyz());
+       }
 
       _theGeom.reset(new Geom(lattSize,
           CLI.getBy(),
@@ -42,8 +49,8 @@ namespace MG {
           CLI.getNCores(),
           CLI.getSy(),
           CLI.getSz(),
-          CLI.getPxy(),
-          CLI.getPxyz(),
+          0, // enforce no padding
+          0, // enforce no padding
           CLI.getMinCt(),
           true));
 
@@ -53,8 +60,8 @@ namespace MG {
                 CLI.getNCores(),
                 CLI.getSy(),
                 CLI.getSz(),
-                CLI.getPxy(),
-                CLI.getPxyz(),
+                0, // enforce no padding
+                0, // enforce no padding
                 CLI.getMinCt(),
                 true));
 

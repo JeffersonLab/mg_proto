@@ -15,7 +15,6 @@
 #include "lattice/fine_qdpxx/mg_params_qdpxx.h"
 #include "lattice/mg_level_coarse.h"
 #include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"
-#include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
 #include "utils/print_utils.h"
 #include <memory>
 
@@ -44,13 +43,15 @@ struct MultigridLevels {
 
 
 
+void SetupQDPXXToCoarseGenerateVecs(const SetupParams& p, std::shared_ptr<const QDPWilsonCloverLinearOperator> M_fine,
+    MGLevelQDPXX& fine_level, MGLevelCoarse& coarse_level);
 
+void SetupQDPXXToCoarseVecsIn(const SetupParams& p, std::shared_ptr<const QDPWilsonCloverLinearOperator> M_fine,
+            MGLevelQDPXX& fine_level, MGLevelCoarse& coarse_level);
 
 void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<const QDPWilsonCloverLinearOperator> M_fine,
 						MGLevelQDPXX& fine_level, MGLevelCoarse& coarse_level);
 
-void SetupCoarseToCoarse(const SetupParams& p, std::shared_ptr< const CoarseWilsonCloverLinearOperator > M_fine, int fine_level_id,
-						MGLevelCoarse& fine_level, MGLevelCoarse& coarse_level);
 
 void SetupMGLevels(const SetupParams& p, MultigridLevels& mg_levels,
 			std::shared_ptr<const QDPWilsonCloverLinearOperator> M_fine);

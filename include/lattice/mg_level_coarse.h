@@ -13,7 +13,7 @@
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/block.h"
 #include "lattice/solver.h"
-
+#include "lattice/fine_qdpxx/mg_params_qdpxx.h"
 #include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
 
 namespace MG {
@@ -26,7 +26,10 @@ namespace MG {
 	std::shared_ptr< const CoarseWilsonCloverLinearOperator > M;
 
 	~MGLevelCoarse() {}
-};
+	};
+
+  void SetupCoarseToCoarse(const SetupParams& p, std::shared_ptr< const CoarseWilsonCloverLinearOperator > M_fine, int fine_level_id,
+              MGLevelCoarse& fine_level, MGLevelCoarse& coarse_level);
 
 }
 

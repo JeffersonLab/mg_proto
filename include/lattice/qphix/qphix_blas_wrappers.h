@@ -20,6 +20,7 @@ std::complex<double> InnerProductVec(const QPhiXSpinor& x, const QPhiXSpinor& y)
 
 void ZeroVec(QPhiXSpinor& x);
 void CopyVec(QPhiXSpinor& x, const QPhiXSpinor& y);
+void AxVec(const double alpha, QPhiXSpinor& x);
 void AxpyVec(const std::complex<float>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y);
 void AxpyVec(const std::complex<double>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y);
 void AxpyVec(const double& alpha, const QPhiXSpinor& x, QPhiXSpinor& y);
@@ -32,7 +33,9 @@ double Norm2Vec(const QPhiXSpinorF& x);
 std::complex<double> InnerProductVec(const QPhiXSpinorF& x, const QPhiXSpinorF& y);
 
 void ZeroVec(QPhiXSpinorF& x);
+
 void CopyVec(QPhiXSpinorF& x, const QPhiXSpinorF& y);
+void AxVec(const double alpha, QPhiXSpinorF& x);
 void AxpyVec(const std::complex<float>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y);
 void AxpyVec(const std::complex<double>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y);
 void AxpyVec(const double& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y);

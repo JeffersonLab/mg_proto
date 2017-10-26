@@ -20,6 +20,9 @@
 
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/qphix/qphix_qdp_utils.h"
+#include "lattice/coarse/block.h"
+#include "lattice/coarse/coarse_types.h"
+#include "lattice/coarse/coarse_l1_blas.h"
 #include <qphix/clover.h>
 
 namespace MG {
@@ -183,22 +186,33 @@ public:
     return _info;
   }
 
+  // Apply a single direction of Dslash -- used for coarsening
+  void DslashDir(Spinor& spinor_out,
+        const Spinor& spinor_in,
+        const IndexType dir) const {
+
+    QPhiXEOClov->DslashDir(spinor_out.get(),spinor_in.get(),dir);
+  }
+
   QPhiXClovOpT<FT>& getQPhiXOp()
   {
     return *QPhiXEOClov;
   }
-#if 0
-  void generateCoarse(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse) const
+
+
+  void generateCoarse(const std::vector<Block>& blocklist,
+      const std::vector<std::shared_ptr<Spinor>>& in_vecs,
+      CoarseGauge& u_coarse) const
   {
-#if 0
+
     const LatticeInfo& info = u_coarse.GetInfo();
     int num_colorspin = info.GetNumColorSpins();
 
     // Generate the triple products directly into the u_coarse
     ZeroGauge(u_coarse);
     for(int mu=0; mu < 8; ++mu) {
-      QDPIO::cout << "QDPWilsonCloverLinearOperator: Dslash Triple Product in direction: " << mu << std::endl;
-      dslashTripleProductDirQDPXX(blocklist, mu, _u, in_vecs, u_coarse);
+      QDPIO::cout << "QPhiXWilsonCloverLinearOperator: Dslash Triple Product in direction: " << mu << std::endl;
+      dslashTripleProductDir(*this, blocklist, mu, in_vecs, u_coarse);
     }
 
     for(int cb=0; cb < n_checkerboard; ++cb) {
@@ -212,34 +226,12 @@ public:
       }
     }
 
-    QDPIO::cout << "QDPWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
-    clovTripleProductQDPXX(blocklist, _clov, in_vecs, u_coarse);
-#endif
-  }
-
-
-  // Caller must zero appropriately
-  void generateCoarseGauge(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& u_coarse) const
-  {
-#if 0
-    for(int mu=0; mu < 8; ++mu) {
-      QDPIO::cout << "QDPWilsonCloverLinearOperator: Dslash Triple Product in direction: " << mu << std::endl;
-      dslashTripleProductDirQDPXX(blocklist, mu, _u, in_vecs, u_coarse);
-    }
-#endif
-  }
-
-  // Caller must zero appropriately
-  void generateCoarseClover(const std::vector<Block>& blocklist, const multi1d<LatticeFermion>& in_vecs, CoarseGauge& coarse_clov) const
-  {
-#if 0
-    QDPIO::cout << "QDPWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
-    clovTripleProductQDPXX(blocklist, _clov, in_vecs, coarse_clov);
-#endif
+    QDPIO::cout << "QPhiXWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
+    clovTripleProduct(*this,blocklist,  in_vecs, u_coarse);
 
   }
 
-#endif
+
 
 private:
 

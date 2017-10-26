@@ -848,6 +848,59 @@ TEST(QPhiXIntegration, TestQPhiXMRRelativeF)
   DiffSpinorRelative(source,Ax_qdp,1.0e-6);
 }
 
+TEST(QPhiXIntegration, QPhiXIndexing)
+{
+  // Init the lattice
+   IndexArray latdims={{8,8,8,8}};
+   initQDPXXLattice(latdims);
+   LatticeInfo info(latdims);
+
+   // Create a Gaussian vector
+   LatticeFermion f; gaussian(f);
+
+   // Will convert back to this.
+   LatticeFermion f_q_qdp = zero;
+
+   QPhiXSpinor f_q(info);
+
+   for(int cb=0; cb < 2; ++cb) {
+     int num_cbsites = info.GetNumCBSites();
+
+#pragma omp parallel for
+     for(int site = 0; site < num_cbsites; ++site) {
+       for(int spin=0; spin < 4; ++spin) {
+         for(int color = 0; color < 3; ++color ) {
+
+           f_q(cb,site,spin,color,RE) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).real();
+           f_q(cb,site,spin,color,IM) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).imag();
+         }// color
+       } // spin
+     } // cbsite
+
+
+   DiffCBSpinorPerSite(f,f_q,cb,1.0e-14);
+   }
+
+   QPhiXSpinorF f_qf(info);
+
+   for(int cb=0; cb < 2; ++cb) {
+     int num_cbsites = info.GetNumCBSites();
+
+#pragma omp parallel for
+     for(int site = 0; site < num_cbsites; ++site) {
+       for(int spin=0; spin < 4; ++spin) {
+         for(int color = 0; color < 3; ++color ) {
+
+           f_qf(cb,site,spin,color,RE) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).real();
+           f_qf(cb,site,spin,color,IM) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).imag();
+         }// color
+       } // spin
+     } // cbsite
+
+
+   DiffCBSpinorPerSite(f,f_qf,cb,5.0e-7);
+   }
+}
 int main(int argc, char *argv[])
 {
   return ::MGTesting::TestMain(&argc, argv);

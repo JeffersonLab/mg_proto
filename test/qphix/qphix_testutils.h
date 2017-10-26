@@ -29,7 +29,7 @@ void DiffCBSpinorPerSite(const QDP::LatticeFermion& s1, const MG::QPhiXSpinorF& 
 void DiffSpinorPerSite(const QDP::LatticeFermion& s1, const MG::QPhiXSpinor& qphix_spinor, double tol);
 void DiffSpinorPerSite(const QDP::LatticeFermion& s1, const MG::QPhiXSpinorF& qphix_spinor, double tol);
 
-void DiffSpinor(const QDP::LatticeFermion& s1, const QDP::LatticeFermion& s2, double tol);
+void DiffSpinor(const QDP::LatticeFermion& s1, const QDP::LatticeFermion& s2, double tol, bool persite_tol=false);
 void DiffSpinorRelative(const QDP::LatticeFermion& b, const QDP::LatticeFermion& Ax, double tol);
 }
 #endif
