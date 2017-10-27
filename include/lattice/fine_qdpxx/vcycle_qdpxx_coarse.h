@@ -61,8 +61,16 @@ public:
 		}
 
 		if( _param.VerboseP ) {
-			MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d Initial || r ||=%16.8e  Target=%16.8e", level, toDouble(norm_r), toDouble(target));
+		  if( resid_type == RELATIVE ) {
+			MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d Initial || r ||/|| b ||=%16.8e  Target=%16.8e",
+			      level, toDouble(norm_r/norm_in), _param.RsdTarget);
+		  }
+		  else {
+		    MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d Initial || r ||=%16.8e  Target=%16.8e",
+		                level, toDouble(norm_r), _param.RsdTarget);
+		  }
 		}
+
 		// At this point we have to do at least one iteration
 		int iter = 0;
 
@@ -85,8 +93,19 @@ public:
 			r -= tmp;
 
 			if ( _param.VerboseP ) {
-				Double norm_pre_presmooth=sqrt(norm2(r));
-				MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d After Presmoothing || r ||=%16.8e", level, iter, toDouble(norm_pre_presmooth));
+
+        Double norm_pre_presmooth=sqrt(norm2(r));
+        if ( resid_type == RELATIVE ) {
+			    MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d "
+			        "After Pre-Smoothing || r ||/ || b ||=%16.8e Target=%16.8e",
+			        level, iter, toDouble(norm_pre_presmooth/norm_in), _param.RsdTarget);
+
+			  }
+			  else {
+			    MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d "
+			        "After Pre-Smoothing || r ||=%16.8e Target=%16.8e",
+			        level, iter, toDouble(norm_pre_presmooth), _param.RsdTarget);
+			  }
 			}
 
 			CoarseSpinor coarse_in(_coarse_info);
@@ -110,7 +129,17 @@ public:
 
 			if( _param.VerboseP ) {
 				Double norm_pre_postsmooth = sqrt(norm2(r));
-				MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d Before Post-smoothing || r ||=%16.8e", level, iter, toDouble(norm_pre_postsmooth));
+				if( resid_type == RELATIVE ) {
+				  MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d "
+				     "After Coarse Solve || r ||/|| b ||=%16.8e Target=%16.8e",
+				     level, iter, toDouble(norm_pre_postsmooth/norm_in), _param.RsdTarget);
+				}
+				else {
+          MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d "
+             "After Coarse Solve || r ||=%16.8e Target=%16.8e",
+             level, iter, toDouble(norm_pre_postsmooth), _param.RsdTarget);
+
+				}
 			}
 
 			delta = zero;
@@ -123,7 +152,17 @@ public:
 			norm_r = sqrt(norm2(r));
 
 			if( _param.VerboseP ) {
-				MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d || r ||=%16.8e target=%16.8e", level, iter, toDouble(norm_r), toDouble(target));
+			  if( resid_type == RELATIVE ) {
+			    MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d "
+			        "After Post-Smoothing || r ||/|| b ||=%16.8e Target=%16.8e",
+			        level, iter, toDouble(norm_r/norm_in), _param.RsdTarget);
+
+			  }
+			  else {
+			    MasterLog(INFO, "VCYCLE (QDP->COARSE): level=%d iter=%d "
+			        "After Post-Smoothing || r ||=%16.8e Target=%16.8e",
+			        level, iter, toDouble(norm_r), _param.RsdTarget);
+			  }
 			}
 
 			// Check convergence

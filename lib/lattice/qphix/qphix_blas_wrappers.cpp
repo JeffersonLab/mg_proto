@@ -127,7 +127,7 @@ void AxVec(const double alpha, QPhiXSpinorF& x) { AxVecT(alpha,x); }
 
 template<typename ST>
 inline
-void AxpyVecT(const double& alpha, const ST& x, ST& y)
+void AxpyVecT(const double alpha, const ST& x, ST& y)
 {
   const typename ST::GeomT& geom = y.getGeom();
   int n_blas_simt = geom.getNSIMT();
@@ -136,13 +136,13 @@ void AxpyVecT(const double& alpha, const ST& x, ST& y)
   caxpySpinor(a, x.get(), y.get(), geom,n_blas_simt);
 }
 
-void AxpyVec(const double& alpha, const QPhiXSpinor& x, QPhiXSpinor& y)
+void AxpyVec(const double alpha, const QPhiXSpinor& x, QPhiXSpinor& y)
 {
    AxpyVecT(alpha,x,y);
 
 }
 
-void AxpyVec(const double& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y)
+void AxpyVec(const double alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y)
 {
   AxpyVecT(alpha,x,y);
 }

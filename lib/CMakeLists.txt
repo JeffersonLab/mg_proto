@@ -35,7 +35,6 @@ if( MG_USE_QDPXX )
 		lattice/fine_qdpxx/mg_setup_qdpxx.cpp
 		lattice/fine_qdpxx/qdpxx_helpers.cpp 
 		lattice/fine_qdpxx/transf.cpp
-	
 		lattice/fine_qdpxx/vcycle_recursive_qdpxx.cpp)
 endif( MG_USE_QDPXX )
 
@@ -45,6 +44,7 @@ if ( QPhiX_FOUND )
 		lattice/qphix/qphix_aggregate.cpp
 		lattice/qphix/qphix_blas_wrappers.cpp
 		lattice/qphix/qphix_qdp_utils.cpp
+		lattice/qphix/vcycle_recursive_qphix.cpp
 		)
 endif()
 
