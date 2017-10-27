@@ -25,7 +25,8 @@ void AxpyVec(const std::complex<float>& alpha, const QPhiXSpinor& x, QPhiXSpinor
 void AxpyVec(const std::complex<double>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y);
 void AxpyVec(const double alpha, const QPhiXSpinor& x, QPhiXSpinor& y);
 void Gaussian(QPhiXSpinor& v);
-
+void YpeqXVec(const QPhiXSpinor& x, QPhiXSpinor& y);
+void YmeqXVec(const QPhiXSpinor& x, QPhiXSpinor& y);
 
  // do we need these just now?
 double XmyNorm2Vec(QPhiXSpinorF& x, const QPhiXSpinorF& y);
@@ -40,6 +41,8 @@ void AxpyVec(const std::complex<float>& alpha, const QPhiXSpinorF& x, QPhiXSpino
 void AxpyVec(const std::complex<double>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y);
 void AxpyVec(const double alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y);
 void Gaussian(QPhiXSpinorF& v);
+void YpeqXVec(const QPhiXSpinorF& x, QPhiXSpinorF& y);
+void YmeqXVec(const QPhiXSpinorF& x, QPhiXSpinorF& y);
 
 // Use overloading
 void ConvertSpinor(const QPhiXSpinor& in, QPhiXSpinorF& out);

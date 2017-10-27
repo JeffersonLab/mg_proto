@@ -232,4 +232,45 @@ void ConvertSpinor(const QPhiXSpinorF& in, QPhiXSpinor& out)
   ConvertSpinorT(in,out);
 }
 
+
+template<typename ST>
+inline
+void  YpeqXVecT(const ST& x, ST& y)
+{
+  const typename ST::GeomT& geom = y.getGeom();
+  int n_blas_simt = geom.getNSIMT();
+  ypeqxSpinor(x.get(), y.get(), geom,n_blas_simt);
+}
+
+void YpeqXVec(const QPhiXSpinor& x, QPhiXSpinor& y)
+{
+  YpeqXVecT(x,y);
+}
+
+void YpeqXVec(const QPhiXSpinorF& x, QPhiXSpinorF& y)
+{
+  YpeqXVecT(x,y);
+}
+
+template<typename ST>
+inline
+void  YmeqXVecT(const ST& x, ST& y)
+{
+  const typename ST::GeomT& geom = y.getGeom();
+  int n_blas_simt = geom.getNSIMT();
+  ymeqxSpinor(x.get(), y.get(), geom,n_blas_simt);
+}
+
+void YmeqXVec(const QPhiXSpinor& x, QPhiXSpinor& y)
+{
+  YmeqXVecT(x,y);
+}
+
+void YmeqXVec(const QPhiXSpinorF& x, QPhiXSpinorF& y)
+{
+  YmeqXVecT(x,y);
+}
+
+
+
 } // namespace

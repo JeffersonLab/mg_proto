@@ -240,6 +240,47 @@ TEST(TESTQPhiXBLAS, TestGaussianVec)
      DiffSpinor(x,q_x,1.0e-14);
 }
 
+TEST(TESTQPhiXBLAS, TestYPeqX)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+
+     LatticeFermion x; gaussian(x);
+     LatticeFermion y; gaussian(y);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinor q_x(info);
+     QPhiXSpinor q_y(info);
+     QDPSpinorToQPhiXSpinor(x,q_x);
+     QDPSpinorToQPhiXSpinor(y,q_y);
+
+     YpeqXVec(q_x,q_y);
+     y += x;
+     DiffSpinorPerSite(x,q_x,1.0e-14);
+     DiffSpinorPerSite(y,q_y,1.0e-14);
+}
+
+TEST(TESTQPhiXBLAS, TestYMeqX)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+
+     LatticeFermion x; gaussian(x);
+     LatticeFermion y; gaussian(y);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinor q_x(info);
+     QPhiXSpinor q_y(info);
+     QDPSpinorToQPhiXSpinor(x,q_x);
+     QDPSpinorToQPhiXSpinor(y,q_y);
+
+     YmeqXVec(q_x,q_y);
+     y -= x;
+     DiffSpinorPerSite(x,q_x,1.0e-14);
+     DiffSpinorPerSite(y,q_y,1.0e-14);
+}
 
 /*** SP Tests ***/
 TEST(TESTQPhiXBLAS, TestXmYNorm2VecF)
@@ -498,6 +539,49 @@ TEST(TESTQPhiXBLAS, TestGaussianVecF)
 
      DiffSpinor(x,q_x,5.0e-5);
 }
+
+TEST(TESTQPhiXBLAS, TestYPeqXF)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+
+     LatticeFermion x; gaussian(x);
+     LatticeFermion y; gaussian(y);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinorF q_x(info);
+     QPhiXSpinorF q_y(info);
+     QDPSpinorToQPhiXSpinor(x,q_x);
+     QDPSpinorToQPhiXSpinor(y,q_y);
+
+     YpeqXVec(q_x,q_y);
+     y += x;
+     DiffSpinorPerSite(x,q_x,1.0e-6);
+     DiffSpinorPerSite(y,q_y,1.0e-6);
+}
+
+TEST(TESTQPhiXBLAS, TestYMeqXF)
+{
+  // Init the lattice
+     IndexArray latdims={{8,8,8,8}};
+     initQDPXXLattice(latdims);
+
+     LatticeFermion x; gaussian(x);
+     LatticeFermion y; gaussian(y);
+
+     LatticeInfo info(latdims);
+     QPhiXSpinorF q_x(info);
+     QPhiXSpinorF q_y(info);
+     QDPSpinorToQPhiXSpinor(x,q_x);
+     QDPSpinorToQPhiXSpinor(y,q_y);
+
+     YmeqXVec(q_x,q_y);
+     y -= x;
+     DiffSpinorPerSite(x,q_x,1.0e-6);
+     DiffSpinorPerSite(y,q_y,1.0e-6);
+}
+
 
 TEST(TESTQPhiXBLAS, TestConvertRoutines)
 {

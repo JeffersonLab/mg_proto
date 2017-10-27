@@ -89,12 +89,11 @@ public:
       _pre_smoother(delta,r);
 
       // Update solution
-      AxpyVec(done,delta,out_f);
 
+      YpeqXVec(delta,out_f);
       // Update residuum
       _M_fine(tmp,delta, LINOP_OP);
-      AxpyVec(mone,tmp,r);
-
+      YmeqXVec(tmp,r);
 
       if ( _param.VerboseP ) {
         double norm_pre_presmooth=sqrt(Norm2Vec(r));
@@ -121,11 +120,11 @@ public:
       prolongateSpinor(_my_blocks, _vecs, coarse_delta, delta);
 
       // Update solution
-      AxpyVec(done,delta,out_f);
+      YpeqXVec(delta,out_f);
 
       // Update residuum
       _M_fine(tmp, delta, LINOP_OP);
-      AxpyVec(mone,tmp,r);
+      YmeqXVec(tmp,r);
 
 
       if( _param.VerboseP ) {
@@ -147,7 +146,7 @@ public:
       _post_smoother(delta,r);
 
       // Update full solution
-      AxpyVec(done,delta,out_f);
+      YpeqXVec(delta,out_f);
 
       _M_fine(tmp,delta,LINOP_OP);
       norm_r = sqrt(XmyNorm2Vec(r,tmp));
