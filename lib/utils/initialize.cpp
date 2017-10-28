@@ -41,6 +41,11 @@ namespace MG
 #endif
 	}
 
+	void InitCLIArgs(int *argc, char ***argv)
+	{
+	  theCLIArgs.init(*argc,*argv);
+	}
+
 	void initialize(int *argc, char ***argv)
 	{
 		if ( ! isInitializedP ) {
@@ -104,7 +109,8 @@ namespace MG
 
 #ifdef MG_USE_QPHIX
 			MasterLog(INFO, "Initializing QPhiX CLI Args");
-			theCLIArgs.init(*argc,*argv);
+			InitCLIArgs(argc,argv);
+//			theCLIArgs.init(*argc,*argv);
 #endif
 
 			isInitializedP = true;

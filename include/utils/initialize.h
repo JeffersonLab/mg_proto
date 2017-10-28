@@ -21,6 +21,7 @@ namespace MG {
 
 #ifdef MG_USE_QPHIX
 	QPhiX::QPhiXCLIArgs& getQPhiXCLIArgs(void);
+	void InitCLIArgs(int *argc, char ***argv);
 #endif
 
 };
