@@ -88,6 +88,12 @@ else( QMP_DIR )
   set( MG_QMP_INIT FALSE)
 endif( QMP_DIR )
 
+if( VTUNE_DIR )
+  SET( MG_USE_VTUNE)
+  include_directories(${VTUNE_DIR}/include)
+  LIST(APPEND EXT_LIBS "-L${VTUNE_DIR}/lib64 -littnotify")
+endif()
+
 if( FAKE_COMMS )
    message(STATUS "Setting FAKE_COMMS")
    set( MG_FAKE_COMMS TRUE)
