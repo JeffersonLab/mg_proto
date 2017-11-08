@@ -22,7 +22,8 @@ using namespace QDP;
 
 TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 {
-	IndexArray latdims={{8,8,8,8}};
+//	IndexArray latdims={{16,16,16,16}};
+  IndexArray latdims={{8,8,8,8}};
 
 
 	initQDPXXLattice(latdims);
@@ -58,7 +59,7 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 
 	SetupParams level_setup_params = {
 		3,       // Number of levels
-		{6,8},   // Null vecs on L0, L1
+		{24,24},   // Null vecs on L0, L1
 		{
 				{2,2,2,2},  // Block Size from L0->L1
 				{2,2,2,2}   // Block Size from L1->L2
@@ -118,12 +119,12 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 		v_params[level].pre_smoother_params.MaxIter=4;
 		v_params[level].pre_smoother_params.RsdTarget = 0.1;
 		v_params[level].pre_smoother_params.VerboseP = true;
-		v_params[level].pre_smoother_params.Omega = 1.0;
+		v_params[level].pre_smoother_params.Omega = 1.1;
 
 		v_params[level].post_smoother_params.MaxIter=3;
 		v_params[level].post_smoother_params.RsdTarget = 0.1;
 		v_params[level].post_smoother_params.VerboseP = true;
-		v_params[level].post_smoother_params.Omega = 1.0;
+		v_params[level].post_smoother_params.Omega = 1.1;
 
 		v_params[level].bottom_solver_params.MaxIter=25;
 		v_params[level].bottom_solver_params.NKrylov = 6;

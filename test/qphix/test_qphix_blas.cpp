@@ -156,8 +156,8 @@ TEST(TESTQPhiXBLAS, TestZAxpyVec)
      // QPHix
      AxpyVec(alpha, q_x, q_y);
 
-     DiffSpinor(x,q_x,1.0e-14);
-     DiffSpinor(y,q_y,1.0e-14);
+     DiffSpinor(x,q_x,1.0e-13);
+     DiffSpinor(y,q_y,1.0e-13);
 
 
 

@@ -256,6 +256,7 @@ void dslashTripleProductSiteDirQDPXX(int dir, const multi1d<LatticeColorMatrix>&
 			float *coarse_link = u_coarse.GetSiteDirDataPtr(cb,cbsite,dir);
 			int site=rb[cb].siteTable()[cbsite];
 
+			// FIXME Switch row and column
 			for(int aggr_row=0; aggr_row < Naggr_c; ++aggr_row) {
 				for(int aggr_col=0; aggr_col < Naggr_c; ++aggr_col ) {
 
@@ -268,7 +269,8 @@ void dslashTripleProductSiteDirQDPXX(int dir, const multi1d<LatticeColorMatrix>&
 							int col = aggr_col*Ncolor_c + matmul_col;
 
 							//Index in coarse link
-							int coarse_link_index = n_complex*(col+ Ncolorspin_c*row);
+							// FIXME: Switch Row and column
+							int coarse_link_index = n_complex*(row + Ncolorspin_c*col);
 
 							// Init inner product
 							coarse_link[ RE + coarse_link_index ] = 0;
@@ -409,13 +411,15 @@ void clovTripleProductSiteQDPXX(const QDPCloverTerm& clov,const multi1d<LatticeF
 				int site=rb[cb].siteTable()[cbsite];
 
 				// This is an Ncolor_c x Ncolor_c matmul
+				// FIXME: Switch row and column
 				for(int matmul_row=0; matmul_row < Ncolor_c; ++matmul_row) {
 					for(int matmul_col=0; matmul_col < Ncolor_c; ++matmul_col) {
 
 						int c_offset = (chiral == 0) ? 0 : Ncolor_c;
 
 						//Index in coarse link
-						int coarse_clov_index = n_complex*(matmul_col+c_offset + Ncolorspin_c*(matmul_row+c_offset) );
+						// FIXME: store matrix in row major order: Have rows run faster
+						int coarse_clov_index = n_complex*(matmul_row+c_offset + Ncolorspin_c*(matmul_col+c_offset) );
 
 						// Init inner product
 						coarse_clov[ RE + coarse_clov_index ] = 0;

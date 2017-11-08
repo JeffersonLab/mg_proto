@@ -858,37 +858,40 @@ TEST(TestCoarseQDPXXBlock, TestTripleProductT1)
 
 			// chiral row = 0; chiral col = 0;
 			float* u_coarse_data = u_coarse.GetSiteDirDataPtr(cb,cbsite,6);
+			for(int col=0; col < num_color; ++col) {
+			  for(int row=0; row < num_color; ++row) {
 
-			for(int row=0; row < num_color; ++row) {
-				for(int col=0; col < num_color; ++col) {
-					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(col+ num_colorspin*row) ], (float)(compareA) );
-					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(col+ num_colorspin*row) ],  (float)(0));
+			    // A Block (
+					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(row+ num_colorspin*col) ], (float)(compareA) );
+					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(row+ num_colorspin*col) ],  (float)(0));
 				}
 			}
 
+	    for(int col=0; col < num_color; ++col) {
 
-			for(int row=0; row < num_color; ++row) {
-				for(int col=0; col < num_color; ++col) {
+	      for(int row=0; row < num_color; ++row) {
 
-					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(col+ num_colorspin*(row + num_color)) ], (float)(compareC) );
-					ASSERT_FLOAT_EQ( u_coarse_data[  IM + n_complex*(col+ num_colorspin*(row + num_color)) ],  (float)(0));
+					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(row + num_colorspin*(col + num_color)) ], (float)(compareB) );
+					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(row + num_colorspin*(col + num_color)) ],  (float)(0));
 
 				}
 			}
 
-			for(int row=0; row < num_color; ++row) {
-				for(int col=0; col < num_color; ++col) {
+	    for(int col=0; col < num_color; ++col) {
 
-					ASSERT_FLOAT_EQ( u_coarse_data[RE + n_complex*(col+num_color + num_colorspin*row)  ], (float)(compareB) );
-					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(col+num_color + num_colorspin*row) ],  (float)(0));
+	      for(int row=0; row < num_color; ++row) {
+
+					ASSERT_FLOAT_EQ( u_coarse_data[RE + n_complex*(row+num_color + num_colorspin*col)  ], (float)(compareC) );
+					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(row+num_color + num_colorspin*col) ],  (float)(0));
 				}
 			}
 
-			for(int row=0; row < num_color; ++row) {
-				for(int col=0; col < num_color; ++col) {
+	    for(int col=0; col < num_color; ++col) {
 
-					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(col+num_color+ num_colorspin*(row + num_color)) ], (float)(compareD) );
-					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(col+num_color + num_colorspin*(row + num_color)) ],  (float)(0));
+	      for(int row=0; row < num_color; ++row) {
+
+					ASSERT_FLOAT_EQ( u_coarse_data[ RE + n_complex*(row+num_color+ num_colorspin*(col+ num_color)) ], (float)(compareD) );
+					ASSERT_FLOAT_EQ( u_coarse_data[ IM + n_complex*(row+num_color + num_colorspin*(col + num_color)) ],  (float)(0));
 				}
 			}
 

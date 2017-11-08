@@ -27,12 +27,12 @@ void CMatMultNaiveT(std::complex<float>*y,
     	y[row] = std::complex<float>(0,0);
     }
 
-    for(IndexType row=0; row < N; ++row) {
-    	for(IndexType col=0; col < N; ++col) {
+    for(IndexType col=0; col < N; ++col) {
+      for(IndexType row=0; row < N; ++row) {
 
-    		// NB: These are complex multiplies
-    		y[row] += A[ N*row + col ] * x[ col ];
-    	}
+        // NB: These are complex multiplies
+        y[row] += A[ row +  N*col ] * x[ col ];
+      }
     }
 }
 
@@ -84,26 +84,11 @@ void CMatMultNaiveAddT(std::complex<float>*y,
 				   const std::complex<float>* x)
 {
 
-    for(IndexType row=0; row < N; ++row) {
     	for(IndexType col=0; col < N; ++col) {
+        for(IndexType row=0; row < N; ++row) {
 
     		// NB: These are complex multiplies
-    		y[row] += A[ N*row + col ] * x[ col ];
-    		if( std::isnan( y[row].real() ) || std::isnan( y[row].imag() ) ) {
-    			std::cout << "y[" << row << "] is Nan-d" << std::endl;
-    			std::cout << "   A = [";
-    			for(int i=0; i < N*N; ++i) {
-    				std::cout << " " << A[ i ];
-    			}
-    			std::cout << std::endl;
-    			std::cout << "   x = [";
-    			    			for(int i=0; i < N; ++i) {
-    			    				std::cout << " " << x[ i ];
-    			    			}
-    			    			std::cout << std::endl;
-    			    			abort();
-
-    		}
+    		y[row] += A[ row  +  N*col  ] * x[ col ];
     	}
     }
 }

@@ -40,8 +40,8 @@ TEST(QPhiXIntegration, DeathUninitializedGeom)
    initQDPXXLattice(latdims);
 
    ASSERT_EQ( MGQPhiX::IsGeomInitialized(), false);
-   ASSERT_DEATH( MGQPhiX::GetGeom<float>(), "Aborted" );
-   ASSERT_DEATH( MGQPhiX::GetGeom<double>(), "Aborted" );
+   ASSERT_DEATH( MGQPhiX::GetGeom<float>(), "" );
+   ASSERT_DEATH( MGQPhiX::GetGeom<double>(), "" );
 }
 
 using namespace MGQPhiX;

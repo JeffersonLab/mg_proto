@@ -404,9 +404,10 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 				std::vector<double> tmp_link(n_complex*num_coarse_colorspin*num_coarse_colorspin);
 
 				// Zero the link
-				for(int row=0; row < num_coarse_colorspin; ++row) {
-					for(int col=0; col < num_coarse_colorspin; ++col) {
-						int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+        for(int col=0; col < num_coarse_colorspin; ++col) {
+
+          for(int row=0; row < num_coarse_colorspin; ++row) {
+            int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
 						tmp_link[RE + coarse_link_index] = 0;
 						tmp_link[IM + coarse_link_index] = 0;
 
@@ -425,20 +426,21 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 							<< std::endl;
 #endif
 
+					for(int aggr_col=0; aggr_col <n_chiral; ++aggr_col ) {
+					  for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
 
-					for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
-						for(int aggr_col=0; aggr_col <n_chiral; ++aggr_col ) {
 
 							// This is an num_coarse_colors x num_coarse_colors matmul
-							for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
-								for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+              for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+
+                for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
 
 									// Offset by the aggr_row and aggr_column
 									int row = aggr_row*num_coarse_colors + matmul_row;
 									int col = aggr_col*num_coarse_colors + matmul_col;
 
 									//Index in coarse link
-									int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
+									int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
 
 									// Inner product loop
 									for(int k=0; k < num_spincolor_per_chiral; ++k) {
@@ -488,10 +490,10 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 
 
 				} // fine_site_idx
+        for(int col=0; col < num_coarse_colorspin; ++col) {
 
-				for(int row=0; row < num_coarse_colorspin; ++row) {
-					for(int col=0; col < num_coarse_colorspin; ++col) {
-						int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+          for(int row=0; row < num_coarse_colorspin; ++row) {
+						int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
 						coarse_link[RE + coarse_link_index ] += (float)( tmp_link[RE + coarse_link_index] );
 						coarse_link[IM + coarse_link_index ] += (float)( tmp_link[IM + coarse_link_index ] );
 
@@ -515,9 +517,10 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 				std::vector<double> tmp_link(n_complex*num_coarse_colorspin*num_coarse_colorspin);
 
 				// Zero the link
-				for(int row=0; row < num_coarse_colorspin; ++row) {
-					for(int col=0; col < num_coarse_colorspin; ++col) {
-						int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+        for(int col=0; col < num_coarse_colorspin; ++col) {
+
+          for(int row=0; row < num_coarse_colorspin; ++row) {
+						int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
 						tmp_link[RE + coarse_link_index] = 0;
 						tmp_link[IM + coarse_link_index] = 0;
 
@@ -536,20 +539,21 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 							<< std::endl;
 #endif
 
+					for(int aggr_col=0; aggr_col <n_chiral; ++aggr_col ) {
 
-					for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
-						for(int aggr_col=0; aggr_col <n_chiral; ++aggr_col ) {
+					  for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
 
 							// This is an num_coarse_colors x num_coarse_colors matmul
-							for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
-								for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+              for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+
+                for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
 
 									// Offset by the aggr_row and aggr_column
 									int row = aggr_row*num_coarse_colors + matmul_row;
 									int col = aggr_col*num_coarse_colors + matmul_col;
 
 									//Index in coarse link
-									int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
+									int coarse_link_index = n_complex*(row+ num_coarse_colorspin*col);
 
 									// Inner product loop
 									for(int k=0; k < num_spincolor_per_chiral; ++k) {
@@ -592,17 +596,18 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 										tmp_link[IM + coarse_link_index ] += (left_r*right_i - right_r*left_i);
 									} // k
 
-								} // matmul_col
-							} // matmul_row
-						} // aggr_col
-					} // aggr_row
+								} // matmul_row
+							} // matmul_col
+						} // aggr_row
+					} // aggr_col
 
 
 				} // fine_site_idx
 
-				for(int row=0; row < num_coarse_colorspin; ++row) {
-					for(int col=0; col < num_coarse_colorspin; ++col) {
-						int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+				for(int col=0; col < num_coarse_colorspin; ++col) {
+				  for(int row=0; row < num_coarse_colorspin; ++row) {
+
+						int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
 						coarse_link[RE + coarse_link_index ] += (float)( tmp_link[RE + coarse_link_index] );
 						coarse_link[IM + coarse_link_index ] += (float)( tmp_link[IM + coarse_link_index ] );
 
@@ -695,12 +700,13 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 
 
 					// This is an num_coarse_colors x num_coarse_colors matmul
-					for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
-						for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+          for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+
+            for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
 
 
 							//Index in coarse link
-							int coarse_clov_index = n_complex*( (matmul_col+ num_coarse_colors*matmul_row)
+							int coarse_clov_index = n_complex*( (matmul_row+ num_coarse_colors*matmul_col)
 		                                                        + chiral*num_coarse_colors*num_coarse_colors );
 
 
@@ -756,14 +762,18 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 			for(int chiral=0; chiral < num_chiral_components; ++chiral) {
 				int row_col_min = (chiral == 0) ? 0 : num_coarse_colors;
 
-				for(int row=0 ; row < num_coarse_colors; ++row) {
-					for(int col=0; col < num_coarse_colors; ++col) {
+				for(int col=0; col < num_coarse_colors; ++col) {
+				  for(int row=0 ; row < num_coarse_colors; ++row) {
+
 						int outrow = row + row_col_min;
 						int outcol = col + row_col_min;
-						coarse_clov[ RE + n_complex*(outcol + num_coarse_colorspin*outrow) ] += tmp_link[ RE + n_complex*(col + num_coarse_colors*row)
-																										  	 + chiral*n_complex*num_coarse_colors*num_coarse_colors];
-						coarse_clov[ IM + n_complex*(outcol + num_coarse_colorspin*outrow) ] += tmp_link[ IM + n_complex*(col + num_coarse_colors*row)
-																										  + chiral*n_complex*num_coarse_colors*num_coarse_colors];
+						coarse_clov[ RE + n_complex*(outrow + num_coarse_colorspin*outcol) ] +=
+						    tmp_link[ RE + n_complex*(row + num_coarse_colors*col)
+						              + chiral*n_complex*num_coarse_colors*num_coarse_colors];
+
+						coarse_clov[ IM + n_complex*(outrow + num_coarse_colorspin*outcol) ] +=
+						      tmp_link[ IM + n_complex*(row + num_coarse_colors*col)
+						                + chiral*n_complex*num_coarse_colors*num_coarse_colors];
 
 					} // col
 				} // row

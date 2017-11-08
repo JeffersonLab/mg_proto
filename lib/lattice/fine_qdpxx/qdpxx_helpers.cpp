@@ -203,9 +203,9 @@ QDPPropToCoarseGaugeLink(const LatticePropagator& qdpxx_in,
 
 
 					int qdpxx_site = (rb[cb].siteTable())[cbsite];
-					prop_data[RE+n_complex*(colorspin_col + num_colorspin*colorspin_row)]
+					prop_data[RE+n_complex*(colorspin_row + num_colorspin*colorspin_col)]
 							  = qdpxx_in.elem(qdpxx_site).elem(spin_row,spin_col).elem(color_row,color_col).real();
-					prop_data[IM+n_complex*(colorspin_col + num_colorspin*colorspin_row)]
+					prop_data[IM+n_complex*(colorspin_row + num_colorspin*colorspin_col)]
 							  = qdpxx_in.elem(qdpxx_site).elem(spin_row,spin_col).elem(color_row,color_col).imag();
 				}
 			}
@@ -255,14 +255,14 @@ CoarseGaugeLinkToQDPProp(const CoarseGauge& coarse_in,
 					qdpxx_out.elem(qdpxx_site).elem(spin_row, spin_col).elem(
 							color_row, color_col).real() = prop_data[RE
 																	 + n_complex
-																	 * (colorspin_col
-																			 + num_colorspin * colorspin_row)];
+																	 * (colorspin_row
+																			 + num_colorspin * colorspin_col)];
 					qdpxx_out.elem(qdpxx_site).elem(spin_row, spin_col).elem(
 							color_row, color_col).imag() =
 									prop_data[IM
 											  + n_complex
-											  * (colorspin_col
-													  + num_colorspin * colorspin_row)];
+											  * (colorspin_row
+													  + num_colorspin * colorspin_col)];
 
 				}
 			}

@@ -72,7 +72,9 @@ TEST(CMatMult, TestCorrectness)
 	{
 		int tid=omp_get_thread_num();
 		int nthreads=omp_get_num_threads();
-		CMatMult(y2,A_T,x,N, tid, nthreads);
+
+		// SWitched to row major.
+		CMatMult(y2,A,x,N, tid, nthreads);
 	}
 	MG::MasterLog(MG::DEBUG2, "Comparing");
 	for(int i=0; i < 2*N; ++i) {

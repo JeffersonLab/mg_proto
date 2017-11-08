@@ -623,7 +623,7 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
         // Zero the link
         for(int row=0; row < num_coarse_colorspin; ++row) {
           for(int col=0; col < num_coarse_colorspin; ++col) {
-            int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+            int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
             tmp_link[RE + coarse_link_index] = 0;
             tmp_link[IM + coarse_link_index] = 0;
 
@@ -655,7 +655,7 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
                   int col = aggr_col*num_coarse_colors + matmul_col;
 
                   //Index in coarse link
-                  int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
+                  int coarse_link_index = n_complex*(row+ num_coarse_colorspin*col);
 
                   // Inner product loop
                   for(int k=0; k < num_spincolor_per_chiral; ++k) {
@@ -708,7 +708,7 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
 
         for(int row=0; row < num_coarse_colorspin; ++row) {
           for(int col=0; col < num_coarse_colorspin; ++col) {
-            int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+            int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
             coarse_link[RE + coarse_link_index ] += (float)( tmp_link[RE + coarse_link_index] );
             coarse_link[IM + coarse_link_index ] += (float)( tmp_link[IM + coarse_link_index ] );
 
@@ -734,7 +734,7 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
         // Zero the link
         for(int row=0; row < num_coarse_colorspin; ++row) {
           for(int col=0; col < num_coarse_colorspin; ++col) {
-            int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+            int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
             tmp_link[RE + coarse_link_index] = 0;
             tmp_link[IM + coarse_link_index] = 0;
 
@@ -766,7 +766,7 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
                   int col = aggr_col*num_coarse_colors + matmul_col;
 
                   //Index in coarse link
-                  int coarse_link_index = n_complex*(col+ num_coarse_colorspin*row);
+                  int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
 
                   // Inner product loop
                   for(int k=0; k < num_spincolor_per_chiral; ++k) {
@@ -818,7 +818,7 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
 
         for(int row=0; row < num_coarse_colorspin; ++row) {
           for(int col=0; col < num_coarse_colorspin; ++col) {
-            int coarse_link_index = n_complex*(col + num_coarse_colorspin*row);
+            int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
             coarse_link[RE + coarse_link_index ] += (float)( tmp_link[RE + coarse_link_index] );
             coarse_link[IM + coarse_link_index ] += (float)( tmp_link[IM + coarse_link_index ] );
 
@@ -937,7 +937,7 @@ void clovTripleProductT(const DiracOpType& D_op,
 
 
               //Index in coarse link
-              int coarse_clov_index = n_complex*( (matmul_col+ num_coarse_colors*matmul_row)
+              int coarse_clov_index = n_complex*( (matmul_row+ num_coarse_colors*matmul_col)
                                                             + chiral*num_coarse_colors*num_coarse_colors );
 
 
