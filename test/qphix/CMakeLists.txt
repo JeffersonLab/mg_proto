@@ -25,11 +25,19 @@ target_link_libraries(test_qphix_vcycle qphix_testutils qdpxx_utils  mg_test mg 
 add_executable(test_qphix_recursive_vcycle test_qphix_recursive_vcycle.cpp)
 target_link_libraries(test_qphix_recursive_vcycle qphix_testutils qdpxx_utils  mg_test mg ${QPhiX_LIBRARIES} ${EXT_LIBS} gtest_all)
 
+add_executable(recursive_vcycle_profile recursive_vcycle_profile.cpp)
+target_link_libraries(recursive_vcycle_profile qphix_testutils qdpxx_utils  mg_test mg ${QPhiX_LIBRARIES} ${EXT_LIBS} gtest_all)
+
 add_test( NAME QPhixCLI COMMAND ./test_qphix_cli -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME QPhixInterfaceTests COMMAND ./test_qphix_interface -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME QPhixBLASTests COMMAND ./test_qphix_blas -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME QPhiXBLASTestsParallel COMMAND mpirun -n 2 ./test_qphix_blas -geom 1 1 1 2 ${DEFAULT_QPHIX_TEST_ARGS})
 
 add_test( NAME QPhiXSetupTests COMMAND ./test_qphix_setup -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
+add_test( NAME QPhiXSetupTestsThreaded COMMAND env OMP_NUM_THREADS=4 ./test_qphix_setup -geom 1 1 1 1 ${THREADED_QPHIX_TEST_ARGS})
+
 add_test( NAME QPhiXVCycleTests COMMAND ./test_qphix_vcycle -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
+add_test( NAME QPhiXVCycleTestsThreaded COMMAND env OMP_NUM_THREADS=4 ./test_qphix_vcycle -geom 1 1 1 1 ${THREADED_QPHIX_TEST_ARGS})
+
 add_test( NAME QPhiXRecursiveVCycleTests COMMAND ./test_qphix_recursive_vcycle -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
+add_test( NAME QPhiXRecursiveVCycleTestsThreaded COMMAND env OMP_NUM_THREADS=4 ./test_qphix_recursive_vcycle -geom 1 1 1 1 ${THREADED_QPHIX_TEST_ARGS})

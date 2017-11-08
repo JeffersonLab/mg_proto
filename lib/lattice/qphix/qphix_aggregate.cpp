@@ -594,14 +594,6 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
 
       int block_idx = coarse_cbsite + coarse_cb*num_coarse_cbsites;
 
-#if 0
-      QDPIO::cout << "TPD: coarse_cb=" << coarse_cb << " coarse_cbsite=" << coarse_cbsite;
-      IndexArray coarse_coords; CBIndexToCoords(coarse_cbsite, coarse_cb, coarse_dims,coarse_coords);
-      QDPIO::cout <<  " coarse_coords=(" << coarse_coords[0]
-            << ", " << coarse_coords[1]
-            << ", " << coarse_coords[2]
-            << ", " << coarse_coords[3] << ") " << std::endl;
-#endif
 
       // Get a Block Index
 
@@ -609,7 +601,7 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
 
 
       //  --------------------------------------------
-      //  Now do the faces
+      //  Now do the faces of the Block
       //  ---------------------------------------------
       {
         auto face_sitelist = block.getFaceList(dir);
@@ -630,35 +622,35 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
           }
         }
 
-        for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites); ++fine_site_idx) {
-
-          CBSite& fine_cbsite = face_sitelist[ fine_site_idx ];
-          int qdp_site = rb[ fine_cbsite.cb ].siteTable()[ fine_cbsite.site ] ;
-          multi1d<int> qdp_coords = Layout::siteCoords(Layout::nodeNumber(), qdp_site);
-
-#if 0
-          QDPIO::cout << "   aggregating fine_cb=" << fine_cbsite.cb << " fine_cbsite=" << fine_cbsite.site
-              << " coords=(" << qdp_coords[0] << ", " << qdp_coords[1] << ", " << qdp_coords[2] << ", " << qdp_coords[3] << " )"
-              << std::endl;
-#endif
 
 
-          for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
-            for(int aggr_col=0; aggr_col <n_chiral; ++aggr_col ) {
+        for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
+          for(int aggr_col=0; aggr_col <n_chiral; ++aggr_col ) {
 
-              // This is an num_coarse_colors x num_coarse_colors matmul
-              for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
-                for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
+            // This is an num_coarse_colors x num_coarse_colors matmul
+            for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
+              for(int matmul_col=0; matmul_col < num_coarse_colors; ++matmul_col) {
 
-                  // Offset by the aggr_row and aggr_column
-                  int row = aggr_row*num_coarse_colors + matmul_row;
-                  int col = aggr_col*num_coarse_colors + matmul_col;
+                // Offset by the aggr_row and aggr_column
+                int row = aggr_row*num_coarse_colors + matmul_row;
+                int col = aggr_col*num_coarse_colors + matmul_col;
 
-                  //Index in coarse link
-                  int coarse_link_index = n_complex*(row+ num_coarse_colorspin*col);
+                //Index in coarse link
+                int coarse_link_index = n_complex*(row+ num_coarse_colorspin*col);
+
+                double tmp_sum_re = 0;
+                double tmp_sum_im = 0;
+
+#pragma omp parallel for collapse(2) reduction(+:tmp_sum_re,tmp_sum_im)
+                for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites); ++fine_site_idx) {
 
                   // Inner product loop
                   for(int k=0; k < num_spincolor_per_chiral; ++k) {
+
+                  CBSite& fine_cbsite = face_sitelist[ fine_site_idx ];
+                  int qdp_site = rb[ fine_cbsite.cb ].siteTable()[ fine_cbsite.site ] ;
+                  multi1d<int> qdp_coords = Layout::siteCoords(Layout::nodeNumber(), qdp_site);
+
 
                     // [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
                     // [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
@@ -694,17 +686,18 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
                     float left_i = (*(in_vecs[matmul_row]))(fine_cbsite.cb,fine_cbsite.site,spin,color,IM);
 
                     // Accumulate inner product V^H_row A_column
-                    tmp_link[RE + coarse_link_index ] += (left_r*right_r + left_i*right_i);
-                    tmp_link[IM + coarse_link_index ] += (left_r*right_i - right_r*left_i);
+                    tmp_sum_re += (left_r*right_r + left_i*right_i);
+                    tmp_sum_im += (left_r*right_i - right_r*left_i);
                   } // k
+                } // fine_site_idx
+                tmp_link[RE + coarse_link_index ] += tmp_sum_re;
+                tmp_link[IM + coarse_link_index ] += tmp_sum_im;
+              } // matmul_col
+            } // matmul_row
+          } // aggr_col
+        } // aggr_row
 
-                } // matmul_col
-              } // matmul_row
-            } // aggr_col
-          } // aggr_row
 
-
-        } // fine_site_idx
 
         for(int row=0; row < num_coarse_colorspin; ++row) {
           for(int col=0; col < num_coarse_colorspin; ++col) {
@@ -741,17 +734,8 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
           }
         }
 
-        for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites); ++fine_site_idx) {
 
-          CBSite& fine_cbsite = not_face_sitelist[ fine_site_idx ];
-          int qdp_site = rb[ fine_cbsite.cb ].siteTable()[ fine_cbsite.site ] ;
-          multi1d<int> qdp_coords = Layout::siteCoords(Layout::nodeNumber(), qdp_site);
 
-#if 0
-          QDPIO::cout << "   aggregating fine_cb=" << fine_cbsite.cb << " fine_cbsite=" << fine_cbsite.site
-              << " coords=(" << qdp_coords[0] << ", " << qdp_coords[1] << ", " << qdp_coords[2] << ", " << qdp_coords[3] << " )"
-              << std::endl;
-#endif
 
 
           for(int aggr_row=0; aggr_row < n_chiral; ++aggr_row) {
@@ -767,9 +751,16 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
 
                   //Index in coarse link
                   int coarse_link_index = n_complex*(row + num_coarse_colorspin*col);
-
+                  double tmp_sum_re =0;
+                  double tmp_sum_im =0;
+#pragma omp parallel for collapse(2) reduction(+:tmp_sum_re,tmp_sum_im)
+                  for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites); ++fine_site_idx) {
                   // Inner product loop
                   for(int k=0; k < num_spincolor_per_chiral; ++k) {
+
+                    CBSite& fine_cbsite = not_face_sitelist[ fine_site_idx ];
+                    int qdp_site = rb[ fine_cbsite.cb ].siteTable()[ fine_cbsite.site ] ;
+                    multi1d<int> qdp_coords = Layout::siteCoords(Layout::nodeNumber(), qdp_site);
 
                     // [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
                     // [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
@@ -804,9 +795,14 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
                     float left_i = (*(in_vecs[matmul_row]))(fine_cbsite.cb,fine_cbsite.site,spin,color,IM);
 
                     // Accumulate inner product V^H_row A_column
-                    tmp_link[RE + coarse_link_index ] += (left_r*right_r + left_i*right_i);
-                    tmp_link[IM + coarse_link_index ] += (left_r*right_i - right_r*left_i);
+                    tmp_sum_re += (left_r*right_r + left_i*right_i);
+                    tmp_sum_im += (left_r*right_i - right_r*left_i);
                   } // k
+                  } // fine_site_idx
+
+                  // Accumulate inner product V^H_row A_column
+                  tmp_link[RE + coarse_link_index ] += tmp_sum_re;
+                  tmp_link[IM + coarse_link_index ] += tmp_sum_im;
 
                 } // matmul_col
               } // matmul_row
@@ -814,7 +810,7 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
           } // aggr_row
 
 
-        } // fine_site_idx
+
 
         for(int row=0; row < num_coarse_colorspin; ++row) {
           for(int col=0; col < num_coarse_colorspin; ++col) {
@@ -923,10 +919,6 @@ void clovTripleProductT(const DiracOpType& D_op,
         tmp_link[j] = 0;
       }
 
-      for(IndexType fine_site_idx=0; fine_site_idx < static_cast<IndexType>(num_block_sites); ++fine_site_idx) {
-
-        const CBSite& fine_cbsite = block_sitelist[ fine_site_idx ];
-        int site = rb[ fine_cbsite.cb ].siteTable()[ fine_cbsite.site ];
 
         for(int chiral =0; chiral < num_chiral_components; ++chiral) {
 
@@ -940,9 +932,15 @@ void clovTripleProductT(const DiracOpType& D_op,
               int coarse_clov_index = n_complex*( (matmul_row+ num_coarse_colors*matmul_col)
                                                             + chiral*num_coarse_colors*num_coarse_colors );
 
+                double tmp_sum_re =0;
+                double tmp_sum_im =0;
 
+#pragma omp parallel for collapse(2) reduction(+:tmp_sum_re,tmp_sum_im)
+              for(IndexType fine_site_idx=0; fine_site_idx < static_cast<IndexType>(num_block_sites); ++fine_site_idx) {
               // Inner product loop
-              for(int k=0; k < num_spincolor_per_chiral; ++k) {
+                for(int k=0; k < num_spincolor_per_chiral; ++k) {
+                const CBSite& fine_cbsite = block_sitelist[ fine_site_idx ];
+                int site = rb[ fine_cbsite.cb ].siteTable()[ fine_cbsite.site ];
 
                 // [ V^H_upper   0      ] [  A_upper    B_upper ] = [ V^H_upper A_upper   V^H_upper B_upper  ]
                 // [  0       V^H_lower ] [  A_lower    B_lower ]   [ V^H_lower A_lower   V^H_lower B_lower  ]
@@ -978,16 +976,18 @@ void clovTripleProductT(const DiracOpType& D_op,
                 float left_i = (*(in_vecs[matmul_row ]))(fine_cbsite.cb, fine_cbsite.site, spin, color, IM);
 
                 // Accumulate inner product V^H_row A_column
-                tmp_link[RE + coarse_clov_index ] += (double)(left_r*right_r + left_i*right_i);
-                tmp_link[IM + coarse_clov_index ] += (double)(left_r*right_i - right_r*left_i);
+                tmp_sum_re += (double)(left_r*right_r + left_i*right_i);
+                tmp_sum_im += (double)(left_r*right_i - right_r*left_i);
               } // k
+              } // fine_site_idx
 
+              tmp_link[RE + coarse_clov_index ] += tmp_sum_re;
+              tmp_link[IM + coarse_clov_index ] += tmp_sum_im;
             } // matmul col
           } // matmul row
 
         } // chiral
 
-      }// fine_site_idx
 
       // accumulate it
       for(int chiral=0; chiral < num_chiral_components; ++chiral) {

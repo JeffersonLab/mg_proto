@@ -142,6 +142,8 @@ if( QPHIX_DIR )
   set(MG_USE_QPHIX TRUE)
   
   set(DEFAULT_QPHIX_TEST_ARGS  -by 4 -bz 4 -pxy 0 -pxyz 0 -c 1 -sy 1 -sz 1 -minct 1)
+  set(THREADED_QPHIX_TEST_ARGS -by 4 -bz 4 -pxy 0 -pxyz 0 -c 2 -sy 1 -sz 2 -minct 1)
+  
 endif()
 
 if(THREADS_HAVE_PTHREAD_ARG)
