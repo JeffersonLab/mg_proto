@@ -23,11 +23,14 @@ void CMatMultNaiveT(std::complex<float>*y,
 				   const std::complex<float>* x)
 {
 
+#pragma omp simd safelen(4)
     for(IndexType row=0; row < N; ++row) {
     	y[row] = std::complex<float>(0,0);
     }
 
     for(IndexType col=0; col < N; ++col) {
+
+#pragma omp simd safelen(4)
       for(IndexType row=0; row < N; ++row) {
 
         // NB: These are complex multiplies
@@ -36,7 +39,34 @@ void CMatMultNaiveT(std::complex<float>*y,
     }
 }
 
+template<const int N, const int Br, const int Bc>
+void CMatMultNaiveBlockedT(std::complex<float>*y,
+           const std::complex<float>* A,
+           const std::complex<float>* x)
+{
 
+#pragma omp simd safelen(Br)
+    for(IndexType row=0; row < N; ++row) {
+      y[row] = std::complex<float>(0,0);
+    }
+
+    for(IndexType ocol=0; ocol < N; ocol += Bc) {
+      for(IndexType orow=0; orow < N; orow += Br) {
+
+        for(IndexType icol=0; icol < Bc; ++icol) {
+          int col = ocol+icol;
+
+#pragma omp simd safelen(Br) aligned(y,A,x : 8*Br)
+          for(IndexType irow=0; irow < Br; ++irow) {
+            int row = orow + irow;
+
+            // NB: These are complex multiplies
+            y[row] += A[ row +  N*col ] * x[ col ];
+          }
+        }
+      }
+    }
+}
 
 void CMatMultNaive(float* y,
 				   const float* A,
@@ -52,26 +82,26 @@ void CMatMultNaive(float* y,
 		CMatMultNaiveT<6>(yc, Ac, xc);
 	}
 	else if( N == 8 ) {
-		CMatMultNaiveT<8>(yc, Ac, xc);
+		CMatMultNaiveBlockedT<8,8,8>(yc, Ac, xc);
 	}
 	else if ( N == 12 ) {
 
 		CMatMultNaiveT<12>(yc, Ac, xc);
 	}
 	else if ( N == 16 ) {
-		CMatMultNaiveT<16>(yc, Ac,xc);
+		CMatMultNaiveBlockedT<16,8,8>(yc, Ac,xc);
 	}
 	else if (N == 24 ) {
-		CMatMultNaiveT<24>(yc, Ac,xc);
+		CMatMultNaiveBlockedT<24,8,8>(yc, Ac,xc);
 	}
 	else if (N == 32 ) {
-		CMatMultNaiveT<32>(yc, Ac,xc);
+		CMatMultNaiveBlockedT<32,8,8>(yc, Ac,xc);
 	}
 	else if (N == 48 ) {
-		CMatMultNaiveT<48>(yc, Ac, xc);
+		CMatMultNaiveBlockedT<48,8,8>(yc, Ac, xc);
 	}
 	else if (N == 64 ) {
-		CMatMultNaiveT<64>(yc, Ac, xc);
+		CMatMultNaiveBlockedT<64,8,8>(yc, Ac, xc);
 	}
 	else {
 		MasterLog(ERROR, "Matrix size %d not supported in CMatMultNaive", N );
@@ -85,6 +115,8 @@ void CMatMultNaiveAddT(std::complex<float>*y,
 {
 
     	for(IndexType col=0; col < N; ++col) {
+
+#pragma omp simd safelen(4)
         for(IndexType row=0; row < N; ++row) {
 
     		// NB: These are complex multiplies
@@ -93,6 +125,29 @@ void CMatMultNaiveAddT(std::complex<float>*y,
     }
 }
 
+template<const int N, const int Br, const int Bc>
+void CMatMultNaiveAddBlockedT(std::complex<float>*y,
+           const std::complex<float>* A,
+           const std::complex<float>* x)
+{
+
+  for(IndexType ocol=0; ocol < N; ocol += Bc) {
+    for(IndexType orow=0; orow < N; orow += Br) {
+
+      for(IndexType icol=0; icol < Bc; ++icol) {
+        IndexType col=ocol + icol;
+
+#pragma omp simd safelen(Br) aligned(y,A,x: 8*Br)
+        for(IndexType irow=0; irow < Br; ++irow) {
+          IndexType row = orow + irow;
+
+          // NB: These are complex multiplies
+          y[row] += A[ row  +  N*col  ] * x[ col ];
+        }
+      }
+    }
+  }
+}
 
 void CMatMultNaiveAdd(float* y,
 				   const float* A,
@@ -108,25 +163,25 @@ void CMatMultNaiveAdd(float* y,
 		CMatMultNaiveAddT<6>(yc, Ac, xc);
 	}
 	else if( N == 8 ) {
-		CMatMultNaiveAddT<8>(yc, Ac, xc);
+		CMatMultNaiveAddBlockedT<8,8,8>(yc, Ac, xc);
 	}
 	else if( N == 12 ) {
 		CMatMultNaiveAddT<12>(yc, Ac, xc);
 	}
 	else if ( N == 16 ) {
-		CMatMultNaiveAddT<16>(yc,Ac,xc);
+		CMatMultNaiveAddBlockedT<16,8,8>(yc,Ac,xc);
 	}
 	else if (N == 24 ) {
-		CMatMultNaiveAddT<24>(yc,Ac,xc);
+		CMatMultNaiveAddBlockedT<24,8,8>(yc,Ac,xc);
 	}
 	else if (N == 32 ) {
-		CMatMultNaiveAddT<32>(yc,Ac,xc);
+		CMatMultNaiveAddBlockedT<32,8,8>(yc,Ac,xc);
 	}
 	else if (N == 48 ) {
-		CMatMultNaiveAddT<48>(yc, Ac, xc);
+		CMatMultNaiveAddBlockedT<48,8,8>(yc, Ac, xc);
 	}
 	else if (N == 64 ) {
-		CMatMultNaiveAddT<64>(yc, Ac, xc);
+		CMatMultNaiveAddBlockedT<64,8,8>(yc, Ac, xc);
 	}
 	else {
 		MasterLog(ERROR, "Matrix size %d not supported in CMatMultNaiveAdd" , N );

@@ -116,22 +116,27 @@ public:
 
     ~QPhiXSpinorT() {}
 
+    inline
     QPhiXFullSpinorT<FT>& get() {
        return *_data;
     }
 
+    inline
     const QPhiXFullSpinorT<FT>& get() const {
       return *_data;
     }
 
+    inline
     QPhiXCBSpinorT<FT>& getCB(int cb) {
       return _data->getCB(cb);
     }
 
+    inline
     const QPhiXCBSpinorT<FT>& getCB(int cb) const {
       return _data->getCB(cb);
     }
 
+    inline
     const GeomT& getGeom() const {
       return static_cast<const QPhiXGeomT<FT>&>(MGQPhiX::GetGeom<FT>());
     }
@@ -141,10 +146,12 @@ public:
     }
 #endif
 
+    inline
     const LatticeInfo& GetInfo() const {
       return _info;
     }
 
+    inline
     FT& operator()(int cb, int site, int spin, int color, int cmpx)
     {
       int osite = site / QPHIX_SOALEN;
@@ -153,6 +160,7 @@ public:
       return (_data.get()->getCBData(cb))[osite][color][spin][cmpx][isite];
     }
 
+    inline
     const FT& operator()(int cb, int site, int spin, int color, int cmpx) const
      {
        int osite = site / QPHIX_SOALEN;

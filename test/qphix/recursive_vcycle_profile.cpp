@@ -72,7 +72,7 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
     },
     {500,500},          // Max Nullspace Iters
     {5e-6,5e-6},        // Nullspace Target Resid
-    {true,false}
+    {false,false}
   };
 
 
@@ -124,22 +124,22 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 
     v_params[level].pre_smoother_params.MaxIter=4;
     v_params[level].pre_smoother_params.RsdTarget = 0.1;
-    v_params[level].pre_smoother_params.VerboseP = true;
+    v_params[level].pre_smoother_params.VerboseP = false;
     v_params[level].pre_smoother_params.Omega = 1.1;
 
     v_params[level].post_smoother_params.MaxIter=3;
     v_params[level].post_smoother_params.RsdTarget = 0.1;
-    v_params[level].post_smoother_params.VerboseP = true;
+    v_params[level].post_smoother_params.VerboseP = false;
     v_params[level].post_smoother_params.Omega = 1.1;
 
     v_params[level].bottom_solver_params.MaxIter=25;
     v_params[level].bottom_solver_params.NKrylov = 6;
     v_params[level].bottom_solver_params.RsdTarget= 0.1;
-    v_params[level].bottom_solver_params.VerboseP = true;
+    v_params[level].bottom_solver_params.VerboseP = false;
 
     v_params[level].cycle_params.MaxIter=1;
     v_params[level].cycle_params.RsdTarget=0.1;
-    v_params[level].cycle_params.VerboseP = true;
+    v_params[level].cycle_params.VerboseP = false;
   }
 
 
@@ -164,9 +164,15 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
   double psi_norm = sqrt(Norm2Vec(psi_in));
   MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
 
+  QDP::StopWatch swatch;
+  swatch.reset();
   __itt_resume();
+  swatch.start();
   LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
+  swatch.stop();
   __itt_pause();
+
+  MasterLog(INFO, "Solve time is %16.8e sec.", swatch.getTimeInSeconds());
 
   // Compute true residuum
   QPhiXSpinor Ax(fine_info);

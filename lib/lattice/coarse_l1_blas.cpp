@@ -86,16 +86,18 @@ double XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y)
 			const float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+			double cspin_sum=0;
+#pragma omp simd reduction(+:cspin_sum)
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 				double diff_re = x_site_data[ RE + n_complex*cspin ] - y_site_data[ RE + n_complex*cspin ];
 				double diff_im = x_site_data[ IM + n_complex*cspin ] - y_site_data[ IM + n_complex*cspin ];
 				x_site_data[RE + n_complex * cspin] = diff_re;
 				x_site_data[IM + n_complex * cspin] = diff_im;
 
-				norm_diff += diff_re*diff_re + diff_im*diff_im;
+				cspin_sum += diff_re*diff_re + diff_im*diff_im;
 
 			}
-
+			norm_diff += cspin_sum;
 		}
 	} // End of Parallel for reduction
 
@@ -130,14 +132,16 @@ double Norm2Vec(const CoarseSpinor& x)
 			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+			double cspin_sum = 0;
+#pragma omp simd reduction(+:cspin_sum)
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 				double x_re = x_site_data[ RE + n_complex*cspin ];
 				double x_im = x_site_data[ IM + n_complex*cspin ];
 
-				norm_sq += x_re*x_re + x_im*x_im;
+				cspin_sum += x_re*x_re + x_im*x_im;
 
 			}
-
+			norm_sq += cspin_sum;
 		}
 	} // End of Parallel for reduction
 
@@ -177,17 +181,22 @@ std::complex<double> InnerProductVec(const CoarseSpinor& x, const CoarseSpinor& 
 			const float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+
+			double cspin_iprod_re=0;
+			double cspin_iprod_im=0;
+#pragma omp simd reduction(+:cspin_iprod_re,cspin_iprod_im)
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
-				iprod_re += x_site_data[ RE + n_complex*cspin ]*y_site_data[ RE + n_complex*cspin ]
+				cspin_iprod_re += x_site_data[ RE + n_complex*cspin ]*y_site_data[ RE + n_complex*cspin ]
 							+ x_site_data[ IM + n_complex*cspin ]*y_site_data[ IM + n_complex*cspin ];
 
-				iprod_im += x_site_data[ RE + n_complex*cspin ]*y_site_data[ IM + n_complex*cspin ]
+				cspin_iprod_im += x_site_data[ RE + n_complex*cspin ]*y_site_data[ IM + n_complex*cspin ]
 							- x_site_data[ IM + n_complex*cspin ]*y_site_data[ RE + n_complex*cspin ];
 
 
 			}
-
+			iprod_re += cspin_iprod_re;
+			iprod_im += cspin_iprod_im;
 		}
 	} // End of Parallel for reduction
 
@@ -216,6 +225,7 @@ void ZeroVec(CoarseSpinor& x)
 			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 				x_site_data[RE + n_complex*cspin] = 0;
@@ -249,6 +259,7 @@ void CopyVec(CoarseSpinor& x, const CoarseSpinor& y)
 			const float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 				x_site_data[RE + n_complex*cspin] = y_site_data[RE + n_complex*cspin];
@@ -278,6 +289,7 @@ void ScaleVec(const float alpha, CoarseSpinor& x)
 			// Identify the site
 			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
 
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 				x_site_data[RE + n_complex*cspin] *= alpha;
@@ -305,6 +317,7 @@ void ScaleVec(const std::complex<float>& alpha, CoarseSpinor& x)
 			// Identify the site
 			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
 
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 				std::complex<float> t( x_site_data[RE + n_complex*cspin],
 									   x_site_data[IM + n_complex*cspin]);
@@ -340,6 +353,7 @@ void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpin
 			float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
@@ -382,6 +396,7 @@ void YpeqxVec(const CoarseSpinor& x, CoarseSpinor& y)
 			float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
@@ -416,6 +431,7 @@ void YmeqxVec(const CoarseSpinor& x, CoarseSpinor& y)
 			float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
@@ -457,6 +473,7 @@ void BiCGStabPUpdate(const std::complex<float>& beta,
 			float* p_site_data = p.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
@@ -510,6 +527,7 @@ void BiCGStabXUpdate(const std::complex<float>& omega,
 			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
@@ -555,6 +573,7 @@ void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y) {
 			float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
@@ -592,6 +611,7 @@ void XmyzVec(const CoarseSpinor&x, const CoarseSpinor& y,
 			float* z_site_data = z.GetSiteDataPtr(cb,cbsite);
 
 			// Sum difference over the colorspins
+#pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
@@ -631,6 +651,7 @@ void Gaussian(CoarseSpinor& x)
 			for(int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
 
 				float *x_site_data = x.GetSiteDataPtr(cb,cbsite);
+
 				for(int cspin=0; cspin < num_colorspin; ++cspin)  {
 
 					// Using the Twister Engine, draw from the normal distribution
@@ -657,6 +678,7 @@ void ZeroGauge(CoarseGauge& gauge)
 			// 8 + central piece
 			for(int dir=0; dir < 9; ++dir ) {
 				float* gauge_data=gauge.GetSiteDirDataPtr(cb,cbsite,dir);
+#pragma omp simd
 				for(int cs=0; cs < num_colorspins*num_colorspins; ++cs) {
 					gauge_data[RE + n_complex*cs ] = 0;
 					gauge_data[IM + n_complex*cs ] = 0;
