@@ -13,6 +13,7 @@
 #include <lattice/qphix/qphix_blas_wrappers.h>
 #include <lattice/coarse/coarse_types.h>
 #include <lattice/qphix/qphix_aggregate.h>
+#include <lattice/qphix/qphix_transfer.h>
 namespace MG
 {
 
@@ -111,13 +112,13 @@ public:
 
 
       // Coarsen r
-      restrictSpinor(_my_blocks, _vecs, r,coarse_in);
+      _Transfer.R(r,coarse_in);
 
       ZeroVec(coarse_delta);
       LinearSolverResults coarse_res =_bottom_solver(coarse_delta,coarse_in);
 
       // Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
-      prolongateSpinor(_my_blocks, _vecs, coarse_delta, delta);
+      _Transfer.P(coarse_delta, delta);
 
       // Update solution
       YpeqXVec(delta,out_f);
@@ -197,7 +198,8 @@ public:
     _pre_smoother(pre_smoother),
     _post_smoother(post_smoother),
     _bottom_solver(bottom_solver),
-    _param(param) {}
+    _param(param),
+	_Transfer(my_blocks,vecs) {}
 
 
 private:
@@ -210,7 +212,7 @@ private:
   const Smoother<QPhiXSpinorF,QPhiXGaugeF>& _post_smoother;
   const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
   const LinearSolverParamsBase& _param;
-
+  const QPhiXTransfer<QPhiXSpinorF> _Transfer;
 
 };
 

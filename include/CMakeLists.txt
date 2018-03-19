@@ -21,6 +21,7 @@ install (FILES lattice/coarse/aggregate_block_coarse.h
                lattice/coarse/coarse_l1_blas.h
                lattice/coarse/coarse_op.h
                lattice/coarse/coarse_types.h 
+               lattice/coarse/coarse_transfer.h
                lattice/coarse/coarse_wilson_clover_linear_operator.h
                lattice/coarse/invbicgstab_coarse.h
                lattice/coarse/invfgmres_coarse.h
@@ -62,6 +63,7 @@ install (FILES lattice/qphix/qphix_types.h
 						   lattice/qphix/invmr_qphix.h
 						   lattice/qphix/mg_level_qphix.h
 						   lattice/qphix/qphix_aggregate.h
+						   lattice/qphix/qphix_transfer.h
 						   lattice/qphix/vcycle_qphix_coarse.h
 						   lattice/qphix/vcycle_recursive_qphix.h
 				 DESTINATION include/lattice/qphix)

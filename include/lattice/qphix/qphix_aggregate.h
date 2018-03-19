@@ -52,7 +52,13 @@ void orthonormalizeBlockAggregates(std::vector<std::shared_ptr<QPhiXSpinor>>& ve
 
 void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std::shared_ptr<QPhiXSpinor> >& fine_vecs,
     const QPhiXSpinor& fine_in, CoarseSpinor& coarse_out);
+
 void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std::shared_ptr<QPhiXSpinorF> >& fine_vecs,
+    const QPhiXSpinorF& fine_in, CoarseSpinor& coarse_out);
+
+void restrictSpinor2( const std::vector<Block>& blocklist, const std::vector< std::shared_ptr<QPhiXSpinor> >& fine_vecs,
+    const QPhiXSpinor& fine_in, CoarseSpinor& coarse_out);
+void restrictSpinor2( const std::vector<Block>& blocklist, const std::vector< std::shared_ptr<QPhiXSpinorF> >& fine_vecs,
     const QPhiXSpinorF& fine_in, CoarseSpinor& coarse_out);
 
 void prolongateSpinor(const std::vector<Block>& blocklist,

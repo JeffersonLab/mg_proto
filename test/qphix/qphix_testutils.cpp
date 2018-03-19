@@ -86,6 +86,9 @@ void DiffSpinorT(const LatticeFermion& s1, const QPhiXT& qphix_spinor, double to
   }
 }
 
+
+
+
 void DiffSpinor(const LatticeFermion& s1, const QPhiXSpinor& qphix_spinor, double tol, bool persite_tol)
 {
   DiffSpinorT(s1,qphix_spinor,tol,persite_tol);
@@ -154,6 +157,7 @@ void DiffCBSpinorPerSiteT(const QDPT& s1, const QPT& qphix_spinor, int cb, doubl
   }
 
 }
+
 
 void DiffCBSpinorPerSite(const QDP::LatticeFermion& s1, const MG::QPhiXSpinor& qphix_spinor, int cb, double tol)
 {

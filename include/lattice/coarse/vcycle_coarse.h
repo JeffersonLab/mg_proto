@@ -16,6 +16,7 @@
 #include "lattice/solver.h"
 #include "lattice/fgmres_common.h"
 #include "lattice/coarse/aggregate_block_coarse.h"
+#include "lattice/coarse/coarse_transfer.h"
 #include "utils/print_utils.h"
 
 namespace MG {
@@ -122,14 +123,14 @@ public:
 			CoarseSpinor coarse_in(_coarse_info);
 
 			// Coarsen r
-			restrictSpinor(_my_blocks, _vecs, r,coarse_in);
+			_Transfer.R(r,coarse_in);
 
 			CoarseSpinor coarse_delta(_coarse_info);
 			ZeroVec(coarse_delta);
 			LinearSolverResults coarse_res =_bottom_solver(coarse_delta,coarse_in);
 
 			// Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
-			prolongateSpinor(_my_blocks, _vecs, coarse_delta, delta);
+			_Transfer.P(coarse_delta, delta);
 
 			// Update solution
 			//			out += delta;
@@ -206,7 +207,8 @@ public:
 															_pre_smoother(pre_smoother),
 															_post_smoother(post_smoother),
 															_bottom_solver(bottom_solver),
-															_param(param) {}
+															_param(param),
+															_Transfer(my_blocks,vecs){}
 
 
 private:
@@ -218,6 +220,7 @@ private:
 	const Smoother<CoarseSpinor,CoarseGauge>& _post_smoother;
 	const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
 	const LinearSolverParamsBase& _param;
+	const CoarseTransfer _Transfer;
 };
 
 

@@ -22,8 +22,8 @@ using namespace QDP;
 
 TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 {
-//	IndexArray latdims={{16,16,16,16}};
-  IndexArray latdims={{8,8,8,8}};
+	//IndexArray latdims={{16,16,16,16}};
+   IndexArray latdims={{8,8,8,8}};
 
 
 	initQDPXXLattice(latdims);
@@ -59,9 +59,9 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 
 	SetupParams level_setup_params = {
 		3,       // Number of levels
-		{24,24},   // Null vecs on L0, L1
+		{24,32},   // Null vecs on L0, L1
 		{
-				{2,2,2,2},  // Block Size from L0->L1
+				{4,4,4,4},  // Block Size from L0->L1
 				{2,2,2,2}   // Block Size from L1->L2
 		},
 		{500,500},          // Max Nullspace Iters

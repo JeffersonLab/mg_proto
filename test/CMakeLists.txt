@@ -27,6 +27,13 @@ target_link_libraries(test_cmat_mult mg gtest_all mg_test ${EXT_LIBS})
 add_executable(test_coarse test_coarse.cpp)
 target_link_libraries(test_coarse mg gtest_all mg_test ${EXT_LIBS})
 
+add_executable(coarse_restrictor_profile coarse_restrictor_profile.cpp)
+target_link_libraries(coarse_restrictor_profile mg gtest_all mg_test ${EXT_LIBS})
+
+add_executable(coarse_prolongator_profile coarse_prolongator_profile.cpp)
+target_link_libraries(coarse_prolongator_profile mg gtest_all mg_test ${EXT_LIBS})
+
+
 if( MG_USE_QDPXX ) 
   add_subdirectory(qdpxx)
 endif (MG_USE_QDPXX ) 

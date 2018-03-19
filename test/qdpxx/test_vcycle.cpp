@@ -587,7 +587,7 @@ TEST(TestVCycle, TestVCycle2Level)
 	LatticeFermion b=zero;
 
 	QDPIO::cout << "Generating 6 Null Vectors" << std::endl;
-	const int NumVecs=6;
+	const int NumVecs=8;
 	multi1d<LatticeFermion> vecs(NumVecs);
 	for(int k=0; k < NumVecs; ++k) {
 		gaussian(vecs[k]);
@@ -626,7 +626,7 @@ TEST(TestVCycle, TestVCycle2Level)
 	//---------------------------------------------------
 	// Now make a second level
 	//---------------------------------------------------
-	const int NumVecs2 = 8;
+	const int NumVecs2 =8;
 	std::vector<std::shared_ptr<CoarseSpinor> >  vecs_l2(NumVecs2);
 	CoarseSpinor zero_l2(info);
 	ZeroVec(zero_l2);

@@ -422,9 +422,13 @@ TEST(QPhiXIntegration, TestSetupQDPXXVecs)
 
   // Check Prolongation
   CoarseSpinor in( qphix_coarse_info );
+  CoarseSpinor in2( qphix_coarse_info) ;
   CoarseSpinor out( qphix_coarse_info );
+  CoarseSpinor out2( qphix_coarse_info );
   Gaussian(in);
+  CopyVec(in2,in);
   ZeroVec(out);
+  ZeroVec(out2);
   double norm_in = Norm2Vec(in);
 
   const LatticeInfo& fine_info = *(qphix_level.info);
@@ -434,14 +438,21 @@ TEST(QPhiXIntegration, TestSetupQDPXXVecs)
 
    prolongateSpinor(qphix_level.blocklist, qphix_level.null_vecs, in, qphix_out);
    restrictSpinor(qphix_level.blocklist, qphix_level.null_vecs, qphix_out, out);
-
+   restrictSpinor2(qphix_level.blocklist, qphix_level.null_vecs, qphix_out,out2);
    double diff = XmyNorm2Vec(in,out);
+   double diff2 = XmyNorm2Vec(in2,out2);
+
 
    MasterLog(INFO, "QPHIX: || (1 - RP) psi || = %16.8e || (1 - RP) psi || / || psi || = %16.8e",
          sqrt(diff), sqrt(diff/norm_in));
 
    ASSERT_LT( sqrt(diff/norm_in), 5.0e-7);
 
+   MasterLog(INFO, "QPHIX: || (1 - R2P) psi || = %16.8e || (1 - R2P) psi || / || psi || = %16.8e",
+         sqrt(diff2), sqrt(diff2/norm_in));
+
+   ASSERT_LT( sqrt(diff/norm_in), 5.0e-7);
+   ASSERT_LT( sqrt(diff2/norm_in), 5.0e-7);
    Gaussian(in);
    norm_in = Norm2Vec(in);
 

@@ -51,7 +51,7 @@ TEST(TestRecursiveVCycle, TestLevelSetup2Level)
 
 	SetupParams level_setup_params = {
 		3,       // Number of levels
-		{6,8},   // Null vecs on L0, L1
+		{8,24},   // Null vecs on L0, L1
 		{
 				{2,2,2,2},  // Block Size from L0->L1
 				{2,2,2,2}   // Block Size from L1->L2

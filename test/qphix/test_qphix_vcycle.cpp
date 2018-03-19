@@ -73,7 +73,7 @@ TEST(TestQPhiXVCycle, TestVCycleApply)
 
   SetupParams level_setup_params = {
       2,       // Number of levels
-      {6},   // Null vecs on L0, L1
+      {8},   // Null vecs on L0, L1
       {
           {2,2,2,2},  // Block Size from L0->L1
       },
@@ -191,7 +191,7 @@ TEST(TestQPhiXVCycle, TestVCycleSolve)
 
   SetupParams level_setup_params = {
       2,       // Number of levels
-      {6},   // Null vecs on L0, L1
+      {8},   // Null vecs on L0, L1
       {
           {2,2,2,2},  // Block Size from L0->L1
       },
@@ -305,7 +305,7 @@ TEST(TestQPhiXVCycle, TestVCyclePrec)
 
 	  SetupParams level_setup_params = {
 	      2,       // Number of levels
-	      {6},   // Null vecs on L0, L1
+	      {8},   // Null vecs on L0, L1
 	      {
 	          {2,2,2,2},  // Block Size from L0->L1
 	      },
@@ -425,7 +425,7 @@ TEST(TestQPhiXVCycle, TestVCycle2Level)
 
    SetupParams level_setup_params = {
        3,       // Number of levels
-       {6,8},   // Null vecs on L0, L1
+       {8,8},   // Null vecs on L0, L1
        {
            {2,2,2,2},
            {2,2,2,2}// Block Size from L0->L1
