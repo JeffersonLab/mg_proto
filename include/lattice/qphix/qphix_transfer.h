@@ -11,7 +11,7 @@
 
 
 #include <MG_config.h>
-#include <zmmintrin.h>
+
 #include <immintrin.h>
 
 #include "MG_config.h"
@@ -20,7 +20,7 @@
 #include "lattice/qphix/qphix_types.h"
 #include <lattice/coarse/block.h>
 #include <utils/print_utils.h>
-
+#include <omp.h>
 namespace MG {
 
 #define MAX_VECS 64
@@ -30,8 +30,10 @@ class QPhiXTransfer {
 public:
 
 	QPhiXTransfer(const std::vector<Block>& blocklist,
-			 const std::vector<std::shared_ptr<QSpinor> >& vectors)
-	  : _n_blocks(blocklist.size()),  _n_vecs(vectors.size()), _blocklist(blocklist), _vecs(vectors) {
+			 const std::vector<std::shared_ptr<QSpinor> >& vectors, int r_threads_per_block=1)
+	  : _n_blocks(blocklist.size()),  _n_vecs(vectors.size()), _blocklist(blocklist), _vecs(vectors),
+		_r_threads_per_block(r_threads_per_block)
+	{
 		if ( blocklist.size() > 0 ) {
 			_sites_per_block = blocklist[0].getNumSites();
 		}
@@ -123,7 +125,15 @@ public:
 				}
 			}
 		}
-
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			int n_threads = omp_get_num_threads();
+			if ( tid == 0 ) {
+				_n_threads = n_threads;
+			}
+#pragma omp barrier
+		}
 
 	}
 
@@ -255,44 +265,66 @@ public:
 	  assert( _n_vecs == num_coarse_color );
 	  assert( num_coarse_cbsites == _n_blocks/2);
 
+	  constexpr int n_floats = 4*num_coarse_color;
+
 	  // This will be a loop over blocks
-#pragma omp parallel for collapse(2)
-	  for(int block_cb = 0; block_cb < n_checkerboard; ++block_cb ) {
-	    for(int block_cbsite = 0 ; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
+	  int n_cb_blocks = out.GetInfo().GetNumCBSites();
+	  int n_blocks = 2*n_cb_blocks;
 
-	      // Identify the current block.
-	      int block_idx = block_cbsite + block_cb*num_coarse_cbsites;
-	      const Block& block = _blocklist[block_idx];
+	  float site_accum[ n_floats*_n_threads] __attribute__((aligned(64)));
 
-	      // Get the list of fine sites in the blocks
-	      auto block_sitelist = block.getCBSiteList();
-	      auto num_sites_in_block = block_sitelist.size();
+#pragma omp parallel shared(site_accum)
+	  {
+		  int tid = omp_get_thread_num();
+		  int n_threads = omp_get_num_threads();
+		  int r_block_threads = n_threads/ _r_threads_per_block;
 
-	      // The coarse site spinor is where we will write the result
-	      float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
+		  int block_tid = tid / _r_threads_per_block;
 
-	      // The accumulation goes here
-	      float site_accum[ 4*num_coarse_color ] __attribute__((aligned(64)));
+		  int site_tid =  tid % _r_threads_per_block;
 
+		  if( block_tid  < n_blocks ) {
 
-	      // Zero the accumulated coarse site
+		  for(int  block_idx = block_tid; block_idx < n_blocks; block_idx += r_block_threads) {
+
+			  int block_cb = block_idx / n_cb_blocks;
+			  int block_cbsite = block_idx % n_cb_blocks;
+
+			  const Block& block = _blocklist[block_idx];
+
+			  // Get the list of fine sites in the blocks
+			  auto block_sitelist = block.getCBSiteList();
+			  auto num_sites_in_block = block_sitelist.size();
+
+			  // The coarse site spinor is where we will write the result
+			  // NB: There are _r_threads_per_block threads working
+			  // on this coarse_site spinor
+			  float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
+
+			  if( site_tid  == 0 ) {
+	#pragma omp simd safelen(16) simdlen(16) aligned(coarse_site_spinor:64)
+				  for(int i=0; i < n_floats; ++i) {
+					  coarse_site_spinor[i] = 0;
+				  }
+			  } // no need to barrier here as only site_tid == 0 will write this again
+
+			  int sa_offset = n_floats*(site_tid  +_r_threads_per_block*block_tid);
 
 #pragma omp simd safelen(16) simdlen(16) aligned(site_accum:64)
-	      for(int i=0; i < 4*num_coarse_color; ++i) {
-	    	 site_accum[i] = 0;
-	      }
+			  for(int i=0; i < n_floats; ++i) {
+				  site_accum[i+sa_offset] = 0;
+			  }
+
+			  for( IndexType fine_site_idx = site_tid; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx+=_r_threads_per_block ) {
 
 
-	      // Loop through the fine sites in the block
-	      for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
+				  // Find the fine site
+				  const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
+				  const int fine_site = (rb[ fine_cbsite.cb ].siteTable())[fine_cbsite.site ];
 
-	    	  // Find the fine site
-	    	  const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
-	    	  const int fine_site = (rb[ fine_cbsite.cb ].siteTable())[fine_cbsite.site ];
-
-	    	  // for each site we will loop over Ns/2 * Ncolor
-	    	  for(int spin=0; spin < 2; ++spin) {
-	    		  for(int color=0; color < 3; ++color) {
+				  // for each site we will loop over Ns/2 * Ncolor
+				  for(int spin=0; spin < 2; ++spin) {
+					  for(int color=0; color < 3; ++color) {
 
 
 	    			  __m512 psi_upper_re = _mm512_set1_ps(  fine_in(fine_cbsite.cb, fine_cbsite.site, spin, color,RE)  );
@@ -302,40 +334,59 @@ public:
 					  __m512 psi_lower_im = _mm512_set1_ps( fine_in(fine_cbsite.cb, fine_cbsite.site, spin+2, color, IM)  );
 
 	    			  const float* v = ((*this).indexPtr(block_idx, fine_site_idx,spin,color));
-
-
 	    			  for(int i=0; i < 2*num_coarse_color; i +=16) {
 	    				  __m512 v_vec = _mm512_load_ps( &v[i] );
-	    				  __m512 accum_vec = _mm512_load_ps( &site_accum[i]);
+	    				  __m512 accum_vec = _mm512_load_ps( &site_accum[i+sa_offset]);
 
 	    				  __m512 v_perm= _mm512_shuffle_ps(v_vec,v_vec, 0xb1);
 	    				  __m512 t = _mm512_fmaddsub_ps(  v_perm, psi_upper_im, accum_vec);
 	    				    accum_vec = _mm512_fmaddsub_ps( v_vec, psi_upper_re, t );
-	                       _mm512_store_ps( &site_accum[i], accum_vec);
+	                       _mm512_store_ps( &site_accum[i+sa_offset], accum_vec);
 	    			  }
 
 
 	    			  int offset = 2*num_coarse_color;
+	    			  int soffset = offset + sa_offset;
+
 	    			  for(int i=0; i <2*num_coarse_color; i+=16) {
 	    				  __m512 v_vec = _mm512_load_ps( &v[i+offset] );
-	    				  __m512 accum_vec = _mm512_load_ps( &site_accum[i+offset]);
+	    				  __m512 accum_vec = _mm512_load_ps( &site_accum[i + soffset]);
 
 	    				  __m512 v_perm= _mm512_shuffle_ps(v_vec,v_vec, 0xb1);
 	    				  __m512 t = _mm512_fmaddsub_ps(  v_perm, psi_lower_im, accum_vec);
 	    				    accum_vec = _mm512_fmaddsub_ps( v_vec, psi_lower_re, t );
-	                       _mm512_store_ps( &site_accum[i+offset], accum_vec);
+	                       _mm512_store_ps( &site_accum[i+soffset], accum_vec);
 	    			  }
 
 	    		  } // color
 	    	  } // spin
-	      } // fine sites in block
+		} // fine sites_in block
+
+
+	 // need barrier here to ensure all threasd have written their part -- but actually it needs to be
+// only a local barrier for the threads in this block. Oh, how I hate OpenMP
+#pragma omp barrier
+
+
+		if ( site_tid == 0 ) {
+#pragma unroll
+			for(int s=0; s < _r_threads_per_block; ++s) {
+				int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
 
 #pragma omp simd safelen(16) simdlen(16) aligned(site_accum, coarse_site_spinor: 64)
-	      for(int i=0; i < 4* num_coarse_color; ++i)  {
-	    	  coarse_site_spinor[i] = site_accum[i];
-	      }
-	    }// block CBSITE
-	  } // block CB
+				for(int i=0; i < n_floats; ++i)  {
+					coarse_site_spinor[i] += site_accum[i+soffset];
+				}
+			}
+		}
+
+
+	    }// block_idx
+		  }
+		  else {
+#pragma omp barrier
+		  }
+	  } // parallel
 	}
 #endif
 
@@ -615,6 +666,9 @@ private:
   std::vector<int> reverse_transfer_row[2];
   float* _data;
   const std::vector<std::shared_ptr<QSpinor> >& _vecs;
+  int _n_threads;
+  int _r_threads_per_block;
+
 };
 
 } // namespace

@@ -62,9 +62,10 @@ namespace MG {
 	 *
 	 * 	Current definition is that only the master thread on each nodes logs
 	 */
-	void LocalLog(LogLevel level, const char*  format, ...)
+	void LocalLog(LogLevel level, const char*  format,...)
 	{
-
+		va_list args;
+		va_start(args,format);
 #pragma omp master
 		{
 			if( level <= current_log_level ) {
@@ -76,19 +77,17 @@ namespace MG {
 				int rank = 0;
 #endif
 				printf("%s: Rank %d of %d: ", log_string_array[level].c_str(), rank, size);
-				va_list args;
-				va_start(args,format);
+
 				vprintf(format, args);
-				va_end(args);
+
 				printf("\n");
 			}	/* end If */
-
+		 	va_end(args);
 			/* If the level is error than we should abort */
 			if( level == ERROR ) {
 				MG::abort();
 			} /* if level == ERROR */
-
-		} /* End of OMP_MASTER_REGION */
+		}
 	}
 
 
@@ -102,7 +101,8 @@ namespace MG {
 	 */
     void MasterLog(LogLevel level, const char *format, ...)
     {
-
+			va_list args;
+			va_start(args,format);
 #pragma omp master
     	{
 
@@ -112,10 +112,9 @@ namespace MG {
     			if( level <= current_log_level ) {
 
     				printf("%s: ", log_string_array[level].c_str());
-    				va_list args;
-    				va_start(args,format);
+
     				vprintf(format, args);
-    				va_end(args);
+
     				printf("\n");
     			}	/* en	d If */
 
@@ -128,7 +127,7 @@ namespace MG {
     		} /* if ( QMP_is_primary_node())  */
 #endif
     	} /* End OMP MASTER REGION */
-
+    	va_end(args);
     }
 
 

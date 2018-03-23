@@ -20,7 +20,7 @@
 #include "lattice/qphix/mg_level_qphix.h"
 #include "lattice/qphix/vcycle_recursive_qphix.h"
 
-#include <ittnotify.h>
+// f#include <ittnotify.h>
 
 using namespace MG;
 using namespace MGTesting;
@@ -222,11 +222,11 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 
 	QDP::StopWatch swatch;
 	swatch.reset();
-	__itt_resume();
+	// __itt_resume();
 	swatch.start();
 	LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
 	swatch.stop();
-	__itt_pause();
+	// __itt_pause();
 
 	MasterLog(INFO, "Solve time is %16.8e sec.", swatch.getTimeInSeconds());
 

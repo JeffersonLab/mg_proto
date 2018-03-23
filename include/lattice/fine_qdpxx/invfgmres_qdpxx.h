@@ -5,7 +5,7 @@
  *      Author: bjoo
  */
 
-#ifndef INCLUDE_LATITCE_FINE_QDPXX_INVFGMRES_H_
+#ifndef INCLUDE_LATTICE_FINE_QDPXX_INVFGMRES_H_
 #define INCLUDE_LATTICE_FINE_QDPXX_INVFGMRES_H_
 
 #include "qdp.h"

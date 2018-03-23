@@ -99,7 +99,7 @@ TEST(Timing,RestrictorProfile)
 				  blocked_lattice_dims,
 				  2, num_vecs, NodeInfo());
 
-	  CoarseTransfer Transf(blocklist,null_vecs);
+	  CoarseTransfer Transf(blocklist,null_vecs,8);
 
 	  {
 		  MasterLog(INFO, "Testing Restrictor");
@@ -137,7 +137,7 @@ TEST(Timing,RestrictorProfile)
 
 #if 1
 	  {
-	    int N_iters=5000;
+	    int N_iters=50000;
 	    MasterLog(INFO, "Timing Restrictor with %d iterations", N_iters);
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < N_iters; ++i ) {
@@ -159,7 +159,7 @@ TEST(Timing,RestrictorProfile)
 #endif
 
 	  {
-	    int N_iters=5000;
+	    int N_iters=50000;
 	    MasterLog(INFO, "Timing Opt. Restrictor with %d iterations",N_iters);
 
 	    double start_time = omp_get_wtime();

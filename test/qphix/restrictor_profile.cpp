@@ -91,7 +91,7 @@ TEST(Timing, RestrictorProfile)
 	 			  	  	  	  	  	  	  	     blocked_lattice_dims,
 	 											 2, num_vecs, NodeInfo());
 
-	  QPhiXTransfer<QPhiXSpinorF> Transf(blocklist,null_vecs);
+	  QPhiXTransfer<QPhiXSpinorF> Transf(blocklist,null_vecs,1);
 
 	  {
 		  MasterLog(INFO, "Testing RestrictorArray");
