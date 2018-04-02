@@ -20,7 +20,7 @@
 #include "lattice/qphix/mg_level_qphix.h"
 #include "lattice/qphix/vcycle_recursive_qphix.h"
 
-#include <ittnotify.h>
+//#include <ittnotify.h>
 
 using namespace MG;
 using namespace MGTesting;

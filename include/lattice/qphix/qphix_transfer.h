@@ -152,7 +152,7 @@ public:
 
 #ifndef MG_USE_AVX512
   template<int num_coarse_color>
-	void R_op(const QSpinor& fine_in, CoarseSpinor& out)
+	void R_op(const QSpinor& fine_in, CoarseSpinor& out, const int& num_outer_threads=-1, const int& num_inner_threads=1)
 	{
 	  assert(num_coarse_color == out.GetNumColor());
 
@@ -169,7 +169,7 @@ public:
 	  assert( num_coarse_cbsites == _n_blocks/2);
 
 	  // This will be a loop over blocks
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2) num_threads(num_outer_threads)
 	  for(int block_cb = 0; block_cb < n_checkerboard; ++block_cb ) {
 	    for(int block_cbsite = 0 ; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
 
@@ -194,7 +194,7 @@ public:
 	    	  site_accum[i] = 0;
 	      }
 
-#pragma omp parallel for
+#pragma omp parallel for num_threads(num_inner_threads)
 	      // Loop through the fine sites in the block
 	      for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
 
@@ -239,7 +239,7 @@ public:
 	}
 #else
   template<int num_coarse_color>
-	void R_op(const QSpinor& fine_in, CoarseSpinor& out) const
+	void R_op(const QSpinor& fine_in, CoarseSpinor& out, const int& num_outer_threads=-1, const int& num_inner_threads=1) const
 	{
 	  assert(num_coarse_color == out.GetNumColor());
 
@@ -256,7 +256,7 @@ public:
 	  assert( num_coarse_cbsites == _n_blocks/2);
 
 	  // This will be a loop over blocks
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2) num_threads(num_outer_threads)
 	  for(int block_cb = 0; block_cb < n_checkerboard; ++block_cb ) {
 	    for(int block_cbsite = 0 ; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
 
@@ -284,6 +284,7 @@ public:
 
 
 	      // Loop through the fine sites in the block
+#pragma omp parallel for num_threads(num_inner_threads)
 	      for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
 
 	    	  // Find the fine site
@@ -339,32 +340,32 @@ public:
 	}
 #endif
 
-  void R(const QSpinor& fine_in, CoarseSpinor& out) const
+  void R(const QSpinor& fine_in, CoarseSpinor& out, const int& num_outer_threads=-1, const int& num_inner_threads=1) const
   {
     int num_color = out.GetNumColor();
     if( num_color == 8 ) {
       R_op<8>(fine_in,out);
     }
     else if ( num_color == 16 ) {
-      R_op<16>(fine_in,out);
+      R_op<16>(fine_in,out,num_outer_threads,num_inner_threads);
     }
     else if ( num_color == 24 ) {
-      R_op<24>(fine_in,out);
+      R_op<24>(fine_in,out,num_outer_threads,num_inner_threads);
     }
     else if ( num_color == 32 ) {
-      R_op<32>(fine_in,out);
+      R_op<32>(fine_in,out,num_outer_threads,num_inner_threads);
     }
     else if ( num_color == 40 ) {
-       R_op<40>(fine_in,out);
+       R_op<40>(fine_in,out,num_outer_threads,num_inner_threads);
      }
     else if ( num_color == 48 ) {
-       R_op<48>(fine_in,out);
+       R_op<48>(fine_in,out,num_outer_threads,num_inner_threads);
      }
     else if ( num_color == 56 ) {
-       R_op<56>(fine_in,out);
+       R_op<56>(fine_in,out,num_outer_threads,num_inner_threads);
      }
     else if ( num_color == 64 ) {
-       R_op<64>(fine_in,out);
+       R_op<64>(fine_in,out,num_outer_threads,num_inner_threads);
      }
     else {
       MasterLog(ERROR, "Unhandled dispatch size %d. Num coarse color must be divisible by 8 and <=64", num_color);

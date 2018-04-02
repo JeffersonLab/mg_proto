@@ -150,13 +150,21 @@ TEST(Timing, RestrictorProfile)
 	  }
 
 
-	  {
-			  int N_iters=500;
-			  MasterLog(INFO, "Timing Restrictor with %d iterations",N_iters);
+    for(int nouter=1; nouter<=256; nouter*=2) for(int ninner=1; ninner<=256/nouter; ninner*=2){
+      //warmup
+      {
+        int N_iters=50;
+			  for(int i=0; i < N_iters; ++i ) {
+				  Transf.R(fine ,coarse,nouter,ninner);
+			  }
+      }
+      {
+        int N_iters=500;
+			  MasterLog(INFO, "Timing Restrictor with %d iterations (%d,%d)",N_iters,nouter,ninner);
 
 			  double start_time = omp_get_wtime();
 			  for(int i=0; i < N_iters; ++i ) {
-				  Transf.R(fine ,coarse);
+				  Transf.R(fine ,coarse,nouter,ninner);
 			  }
 			  double end_time = omp_get_wtime();
 			  double total_time=end_time - start_time;
@@ -169,8 +177,8 @@ TEST(Timing, RestrictorProfile)
 			  double Gflops_per_sec = Gflops/total_time;
 			  MasterLog(INFO, "Restrictor New time = %lf", total_time);
 			  MasterLog(INFO, "GFLOPS = %lf", Gflops_per_sec);
-		  }
-
+      }
+		}
 }
 
 
