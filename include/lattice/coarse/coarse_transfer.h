@@ -297,13 +297,15 @@ public:
     int mutex[_n_threads];
     int counts[_n_blocks];
 
-#pragma omp parallel shared(site_accum,mutex,counts)
+#pragma omp parallel shared(site_accum, mutex, counts)
     {
       int tid = omp_get_thread_num();
       int r_block_threads = _n_threads/ _r_threads_per_block;
       int block_tid = tid / _r_threads_per_block;
       int site_tid =  tid % _r_threads_per_block;
-
+      
+      printf("Thread %i [%i]: site_tid = %i [%i], block_tid = %i [%i]\n",tid,_n_threads,site_tid,_r_threads_per_block,block_tid,_n_blocks);
+      
       //set lock
       if( (site_tid < _r_threads_per_block) & (block_tid < _n_blocks) ){
         mutex[site_tid +  _r_threads_per_block*block_tid] = 0;
@@ -395,23 +397,23 @@ public:
               }
             }// color
           } // fine sites in block
-          if( site_tid < _r_threads_per_block ) mutex[site_tid +  _r_threads_per_block*block_tid] = 1;
+          //if( site_tid < _r_threads_per_block ) mutex[site_tid +  _r_threads_per_block*block_tid] = 1;
 
 #pragma omp barrier
           if( site_tid ==0 ) {
-            while(counts[block_tid]>0){
-              for(int s=0; s < _r_threads_per_block; ++s) {
-                if(mutex[s +  _r_threads_per_block*block_tid] == 1){
-                  mutex[s +  _r_threads_per_block*block_tid] = 0;
-                  counts[block_tid]--;
-                  int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
+            //            while(counts[block_tid]>0){
+            for(int s=0; s < _r_threads_per_block; ++s) {
+              //                if(mutex[s +  _r_threads_per_block*block_tid] == 1){
+              //                  mutex[s +  _r_threads_per_block*block_tid] = 0;
+              //                  counts[block_tid]--;
+              int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
 #pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
-                  for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
-                    coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
-                  }
-                }
+              for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
+                coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
               }
+              //                }
             }
+            //            }
           }
           //						  int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
           //
@@ -422,9 +424,9 @@ public:
 
         } // block idx
       }
-//      else {
-//#pragma omp barrier
-//      }
+      else {
+#pragma omp barrier
+      }
     } // parallel
   }
 #endif
