@@ -274,44 +274,48 @@ public:
   void R_op(const CoarseSpinor& fine_in, CoarseSpinor& out) const
   {
 
-	  assert(num_coarse_color == out.GetNumColor());
+    assert(num_coarse_color == out.GetNumColor());
 
-	  const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
+    const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
 
-	  constexpr  int num_coarse_colorspin = 2*num_coarse_color;
-	  constexpr  int n_floats = 4*num_coarse_color;
+    constexpr  int num_coarse_colorspin = 2*num_coarse_color;
+    constexpr  int n_floats = 4*num_coarse_color;
 
-	  // Sanity check. The number of sites in the coarse spinor
-	  // Has to equal the number of blocks
-	  //  assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
+    // Sanity check. The number of sites in the coarse spinor
+    // Has to equal the number of blocks
+    //  assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
 
-	  // The number of vectors has to eaqual the number of coarse colors
-	  assert( _n_vecs == num_coarse_color );
-	  assert( num_coarse_cbsites == _n_blocks/2);
+    // The number of vectors has to eaqual the number of coarse colors
+    assert( _n_vecs == num_coarse_color );
+    assert( num_coarse_cbsites == _n_blocks/2);
 
 
-	  // Threasd can accumulate in here
-	  float site_accum[ n_floats*_n_threads] __attribute__((aligned(64)));
+    // Threasd can accumulate in here
+    float site_accum[ n_floats*_n_threads] __attribute__((aligned(64)));
 
     //block lock
     int mutex[_n_threads];
+    int counts[_n_blocks];
 
-#pragma omp parallel shared(site_accum,mutex)
-	  {
-		  int tid = omp_get_thread_num();
-		  int r_block_threads = _n_threads/ _r_threads_per_block;
-		  int block_tid = tid / _r_threads_per_block;
-		  int site_tid =  tid % _r_threads_per_block;
+#pragma omp parallel shared(site_accum,mutex,counts)
+    {
+      int tid = omp_get_thread_num();
+      int r_block_threads = _n_threads/ _r_threads_per_block;
+      int block_tid = tid / _r_threads_per_block;
+      int site_tid =  tid % _r_threads_per_block;
 
       //set lock
-      mutex[site_tid +  _r_threads_per_block*block_tid] = 0;
+      if( (site_tid < _r_threads_per_block) & (block_tid < _n_blocks) ){
+        mutex[site_tid +  _r_threads_per_block*block_tid] = 0;
+        if(site_tid == 0) counts[block_tid] = _r_threads_per_block;
+      }
       
-		  // Zero this buffer - so that if there are too many threads
-		  // in the block, their contribtion will give zero
+      // Zero this buffer - so that if there are too many threads
+      // in the block, their contribtion will give zero
 #pragma omp simd simdlen(16) safelen(16) aligned(site_accum:64)
-		  for(int i=0; i < n_floats; ++i) {
-			  site_accum[i+n_floats*(site_tid + _r_threads_per_block*block_tid)]= 0;
-		  }
+      for(int i=0; i < n_floats; ++i) {
+        site_accum[i+n_floats*(site_tid + _r_threads_per_block*block_tid)] = 0;
+      }
 
       if ( block_tid < _n_blocks ) {
 
@@ -391,17 +395,15 @@ public:
               }
             }// color
           } // fine sites in block
-          mutex[site_tid +  _r_threads_per_block*block_tid] = 1;
+          if( site_tid < _r_threads_per_block ) mutex[site_tid +  _r_threads_per_block*block_tid] = 1;
 
-          //#pragma omp barrier
+#pragma omp barrier
           if( site_tid ==0 ) {
-            int count = _r_threads_per_block;
-            while(count>0){
-              std::cout << site_tid << "," << block_tid << " " << count << std::endl;
+            while(counts[block_tid]>0){
               for(int s=0; s < _r_threads_per_block; ++s) {
                 if(mutex[s +  _r_threads_per_block*block_tid] == 1){
                   mutex[s +  _r_threads_per_block*block_tid] = 0;
-                  count--;
+                  counts[block_tid]--;
                   int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
 #pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
                   for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
@@ -420,11 +422,10 @@ public:
 
         } // block idx
       }
-      //		  else {
-      //#pragma omp barrier
-      //		  }
+//      else {
+//#pragma omp barrier
+//      }
     } // parallel
-
   }
 #endif
 
@@ -538,7 +539,7 @@ public:
       const int coffset = 2*num_coarse_color;
       const int foffset = 2*num_fine_color;
 
-  #pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
       for(int cb =0; cb < n_checkerboard; ++cb) {
       	for(int fsite=0; fsite < num_fine_cbsites; ++fsite) {
 
@@ -578,7 +579,6 @@ public:
 
       			sum_r_vec = _mm512_setzero_ps();
       			sum_i_vec = _mm512_setzero_ps();
-
 
 
       			for(int i=0; i < 2*num_coarse_color; i+=16) {
