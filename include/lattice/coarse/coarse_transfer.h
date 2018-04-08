@@ -398,19 +398,54 @@ public:
           } // fine sites in block
           mutex[site_tid +  _r_threads_per_block*block_tid] = 1;
 
-          if( site_tid ==0 ) {
-            while(counts[block_tid]>0){
-              for(int s=0; s < _r_threads_per_block; ++s) {
-                if(mutex[s +  _r_threads_per_block*block_tid] == 1){
-                  mutex[s +  _r_threads_per_block*block_tid] = 0;
-                  counts[block_tid]--;
-                  int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
-#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
-                  for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
-                    coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
-                  }
+//          //single threaded serial reduction
+//          if( site_tid ==0 ) {
+//            while(counts[block_tid]>0){
+//              for(int s=0; s < _r_threads_per_block; ++s) {
+//                if(mutex[s +  _r_threads_per_block*block_tid] == 1){
+//                  mutex[s +  _r_threads_per_block*block_tid] = 0;
+//                  counts[block_tid]--;
+//                  int soffset = n_floats*(s  + _r_threads_per_block*block_tid);
+//#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+//                  for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
+//                    coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
+//                  }
+//                }
+//              }
+//            }
+//          }
+          
+          
+          //multi-threaded binary reduction
+          int site_tid_max = _r_threads_per_block/2;
+          int itercount = 1;
+          while(site_tid_max>1){
+            printf("STID %i [%i] iterc %i\n",site_tid,site_tid_max,itercount);
+            if( site_tid < site_tid_max ){
+                //ping lock of guy to reduce with:
+                while( mutex[(site_tid+site_tid_max) + _r_threads_per_block*block_tid] != itercount ){}
+                //do pairwise reduction:
+                int soffset1 = n_floats*(site_tid + _r_threads_per_block*block_tid);
+                int soffset2 = n_floats*(site_tid+site_tid_max + _r_threads_per_block*block_tid);
+#pragma simd safelen(16) simdlen(16) aligned(site_accum:64)
+                for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
+                  site_accum[colorspin+soffset1] += site_accum[colorspin+soffset2];
                 }
-              }
+                //unlock window by increasing itercount
+                itercount++;
+                mutex[site_tid + _r_threads_per_block*block_tid] = itercount;
+            }
+            site_tid_max/=2;
+          }
+          if(site_tid==0){
+            //ping lock of guy to reduce with:
+            while( mutex[(site_tid+1) + _r_threads_per_block*block_tid] != itercount ){}
+            //pairwise reduction
+            int soffset1 = n_floats*(site_tid + _r_threads_per_block*block_tid);
+            int soffset2 = n_floats*(site_tid+1 + _r_threads_per_block*block_tid);
+#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+            for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
+              coarse_site_spinor[colorspin] += site_accum[colorspin+soffset1] + site_accum[colorspin+soffset2];
             }
           }
           //						  int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
@@ -689,7 +724,6 @@ public:
 	}
 
 private:
-
 
   int _n_blocks;
   int _sites_per_block;
