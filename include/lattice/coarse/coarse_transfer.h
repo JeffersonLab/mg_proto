@@ -56,7 +56,8 @@ public:
       int n_threads = omp_get_num_threads();
       if(tid==0){
         _n_threads = n_threads;
-        _r_threads_per_block = _n_threads / _n_blocks;
+        int _rmax_threads_per_block = _n_threads / _n_blocks;
+        _r_threads_per_block = _r_threads_per_block > _rmax_threads_per_block ? _rmax_threads_per_block : _r_threads_per_block;
       }
     }
 
