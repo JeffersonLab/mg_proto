@@ -274,147 +274,180 @@ public:
   void R_op(const CoarseSpinor& fine_in, CoarseSpinor& out) const
   {
 
-	  assert(num_coarse_color == out.GetNumColor());
+    assert(num_coarse_color == out.GetNumColor());
+    
+    const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
 
-	  const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
+    constexpr  int num_coarse_colorspin = 2*num_coarse_color;
+    constexpr  int n_floats = 4*num_coarse_color;
 
-	  constexpr  int num_coarse_colorspin = 2*num_coarse_color;
-	  constexpr  int n_floats = 4*num_coarse_color;
+    // Sanity check. The number of sites in the coarse spinor
+    // Has to equal the number of blocks
+    //  assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
+    
+    // The number of vectors has to eaqual the number of coarse colors
+    assert( _n_vecs == num_coarse_color );
+    assert( num_coarse_cbsites == _n_blocks/2);
+    
+    
+    // Threasd can accumulate in here
+    float site_accum[ n_floats*_n_threads] __attribute__((aligned(64)));
 
-	  // Sanity check. The number of sites in the coarse spinor
-	  // Has to equal the number of blocks
-	  //  assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
+    int r_block_threads = _n_threads / _r_threads_per_block;
+    int n_steps = _n_blocks / r_block_threads;
+    if ( _n_blocks % r_block_threads != 0  ) n_steps++; // Round steps to ceiling 
 
-	  // The number of vectors has to eaqual the number of coarse colors
-	  assert( _n_vecs == num_coarse_color );
-	  assert( num_coarse_cbsites == _n_blocks/2);
+    for(int step = 0; step < n_steps; ++step) {
 
+#pragma omp parallel shared(site_accum, r_block_threads)
+      {
+	int tid = omp_get_thread_num();
 
-	  // Threasd can accumulate in here
-	  float site_accum[ n_floats*_n_threads] __attribute__((aligned(64)));
-
-
-#pragma omp parallel shared(site_accum)
-	  {
-		  int tid = omp_get_thread_num();
-		  int r_block_threads = _n_threads/ _r_threads_per_block;
-		  int block_tid = tid / _r_threads_per_block;
-		  int site_tid =  tid % _r_threads_per_block;
-
-		  // Zero this buffer - so that if there are too many threads
-		  // in the block, their contribtion will give zero
+	int block_tid = tid / _r_threads_per_block;
+	int site_tid =  tid % _r_threads_per_block;
+      
+	// Each thread zeroes site_accum_buffer
 #pragma omp simd simdlen(16) safelen(16) aligned(site_accum:64)
-		  for(int i=0; i < n_floats; ++i) {
-			  site_accum[i+n_floats*(site_tid + _r_threads_per_block*block_tid)]= 0;
-		  }
+	for(int i=0; i < n_floats; ++i) {
+	  site_accum[i+n_floats*(site_tid + _r_threads_per_block*block_tid)]= 0;
+	}
+      
+	// Each thread's block idx for this step
+	// if block_tid range is less than n_blocks then on the 
+	// last step the block_idx may be more than n_blocks
+	// if block_tid range is more than n_blocks, then in the first step
+	// block_idx may be more than n_blocks
+	int block_idx = step*r_block_threads + block_tid;
 
+	// Only enter the site loop if block_idx is sensible
+	if( block_idx < _n_blocks ) { 
+	  
+	  // Convert block_idx to cb & site and work out sa_offset
+	  int block_cb = block_idx /num_coarse_cbsites;
+	  int block_cbsite = block_idx % num_coarse_cbsites;
+	  const Block& block = _blocklist[block_idx];
+	  
+	  // Get the list of fine sites in the blocks
+	  auto block_sitelist = block.getCBSiteList();
+	  auto num_sites_in_block = block_sitelist.size();
+	  
+	  int sa_offset = n_floats*(site_tid  +_r_threads_per_block*block_tid);
+	  
+	  const int coffset = 2*num_coarse_color;
+	  const int foffset = 2*num_fine_color;
+	  
+	  
+	  for( IndexType fine_site_idx = site_tid;
+	       fine_site_idx < static_cast<IndexType>(num_sites_in_block);
+	       fine_site_idx += _r_threads_per_block ) {
+	    
+	    const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
+	    const float *fine_data  = fine_in.GetSiteDataPtr(fine_cbsite.cb, fine_cbsite.site);
+	    
+	    for(int color=0; color < num_fine_color; ++color) {
+	      
+	      
+	      __m512 psi_upper_re = _mm512_set1_ps(  fine_data[ RE+ 2*color]  );
+	      __m512 psi_upper_im = _mm512_set1_ps(  fine_data[ IM + 2*color]  );
+	      
+	      __m512 psi_lower_re = _mm512_set1_ps( fine_data[RE + 2*color +foffset ] );
+	      __m512 psi_lower_im = _mm512_set1_ps( fine_data[IM + 2*color +foffset ] );
+	      
+	      const float* v = ((*this).indexPtr(block_idx, fine_site_idx,color));
+	      
+	      
+	      for(int i=0; i < 2*num_coarse_color; i +=16) {
+		__m512 v_vec = _mm512_load_ps( &v[i] );
+		__m512 accum_vec = _mm512_load_ps( &site_accum[i+sa_offset]);
+		
+		__m512 v_perm= _mm512_shuffle_ps(v_vec,v_vec, 0xb1);
+		__m512 t = _mm512_fmaddsub_ps(  v_perm, psi_upper_im, accum_vec);
+		accum_vec = _mm512_fmaddsub_ps( v_vec, psi_upper_re, t );
+		_mm512_store_ps( &site_accum[i+sa_offset], accum_vec);
+	      }
+	      
+	      int soffset = coffset + sa_offset;
+	      
+	      for(int i=0; i <2*num_coarse_color; i+=16) {
+		__m512 v_vec = _mm512_load_ps( &v[i+coffset] );
+		__m512 accum_vec = _mm512_load_ps( &site_accum[i+soffset]);
+		
+		__m512 v_perm= _mm512_shuffle_ps(v_vec,v_vec, 0xb1);
+		__m512 t = _mm512_fmaddsub_ps(  v_perm, psi_lower_im, accum_vec);
+		accum_vec = _mm512_fmaddsub_ps( v_vec, psi_lower_re, t );
+		_mm512_store_ps( &site_accum[i+soffset], accum_vec);
+	      }
+	      
+	    } // color
+	  } // fine_site_idx
+	} // block < nblocks
+      } // Parallel region -- implied barrier
 
-		  if ( block_tid < _n_blocks ) {
+#define MG_RESTRICT_PARALLEL_SUM
+#ifdef MG_RESTRICT_PARALLEL_SUM
+#pragma omp parallel shared(site_accum,r_block_threads)
+      {
+	int tid = omp_get_thread_num();
+	int block_tid = tid / _r_threads_per_block;
+	int site_tid =  tid % _r_threads_per_block;
 
-			  for(int  block_idx = block_tid; block_idx < _n_blocks; block_idx += r_block_threads) {
+	int block_idx = step*r_block_threads + block_tid;
 
-				  int block_cb = block_idx /num_coarse_cbsites;
-				  int block_cbsite = block_idx % num_coarse_cbsites;
-				  const Block& block = _blocklist[block_idx];
+	if( block_idx < _n_blocks ) { 
+	
+	  int block_cb = block_idx /num_coarse_cbsites;
+	  int block_cbsite = block_idx % num_coarse_cbsites;
+	  float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
 
-				  // Get the list of fine sites in the blocks
-				  auto block_sitelist = block.getCBSiteList();
-				  auto num_sites_in_block = block_sitelist.size();
+	  if( site_tid == 0 ) { 
+#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor:64)  
+	    for(int colorspin=0; colorspin < n_floats; ++colorspin) { 
+	      coarse_site_spinor[colorspin]=0;
+	    }
 
-				  // The coarse site spinor is where we will write the result
-				  float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
-
-				  // Zero the result
-				  if( site_tid  == 0 ) {
-#pragma omp simd safelen(16) simdlen(16) aligned(coarse_site_spinor:64)
-					  for(int i=0; i < n_floats; ++i) {
-						  coarse_site_spinor[i] = 0;
-					  }
-				  } // no need to barrier here as only site_tid == 0 will write this again
-
-				  int sa_offset = n_floats*(site_tid  +_r_threads_per_block*block_tid);
-
-				  // A thread may reuse this -- so re-zero it
-#pragma omp simd safelen(16) simdlen(16) aligned(site_accum:64)
-				  for(int i=0; i < n_floats; ++i) {
-					  site_accum[i+sa_offset] = 0;
-				  }
-
-
-				  const int coffset = 2*num_coarse_color;
-				  const int foffset = 2*num_fine_color;
-
-
-				  for( IndexType fine_site_idx = site_tid;
-						  fine_site_idx < static_cast<IndexType>(num_sites_in_block);
-						  fine_site_idx += _r_threads_per_block ) {
-
-					  const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
-					  const float *fine_data  = fine_in.GetSiteDataPtr(fine_cbsite.cb, fine_cbsite.site);
-
-					  for(int color=0; color < num_fine_color; ++color) {
-
-
-						  __m512 psi_upper_re = _mm512_set1_ps(  fine_data[ RE+ 2*color]  );
-						  __m512 psi_upper_im = _mm512_set1_ps(  fine_data[ IM + 2*color]  );
-
-						  __m512 psi_lower_re = _mm512_set1_ps( fine_data[RE + 2*color +foffset ] );
-						  __m512 psi_lower_im = _mm512_set1_ps( fine_data[IM + 2*color +foffset ] );
-
-						  const float* v = ((*this).indexPtr(block_idx, fine_site_idx,color));
-
-
-						  for(int i=0; i < 2*num_coarse_color; i +=16) {
-							  __m512 v_vec = _mm512_load_ps( &v[i] );
-							  __m512 accum_vec = _mm512_load_ps( &site_accum[i+sa_offset]);
-
-							  __m512 v_perm= _mm512_shuffle_ps(v_vec,v_vec, 0xb1);
-							  __m512 t = _mm512_fmaddsub_ps(  v_perm, psi_upper_im, accum_vec);
-							  accum_vec = _mm512_fmaddsub_ps( v_vec, psi_upper_re, t );
-							  _mm512_store_ps( &site_accum[i+sa_offset], accum_vec);
-						  }
-
-						  int soffset = coffset + sa_offset;
-
-						  for(int i=0; i <2*num_coarse_color; i+=16) {
-							  __m512 v_vec = _mm512_load_ps( &v[i+coffset] );
-							  __m512 accum_vec = _mm512_load_ps( &site_accum[i+soffset]);
-
-							  __m512 v_perm= _mm512_shuffle_ps(v_vec,v_vec, 0xb1);
-							  __m512 t = _mm512_fmaddsub_ps(  v_perm, psi_lower_im, accum_vec);
-							  accum_vec = _mm512_fmaddsub_ps( v_vec, psi_lower_re, t );
-							  _mm512_store_ps( &site_accum[i+soffset], accum_vec);
-						  }
-
-					  }// color
-				  } // fine sites in block
-
-#pragma omp barrier
-
-				  if( site_tid ==0 ) {
-
-
-					  for(int s=0; s < _r_threads_per_block; ++s) {
-
-						  int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
-
+	    for(int s=0; s < _r_threads_per_block; ++s) {
+	
+	      int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
+	
 #pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
-						  for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
-							  coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
-						  }
-					  } //s
-				  } // site_tid
-
-
-			  } // block idx
-		  }
-		  else {
-#pragma omp barrier
-		  }
-	  } // parallel
-
-  }
+	      for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
+		coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
+	      } //colorspin
+	    } // s
+	  } //site_tid == 0
+	} // block_idx < n_blocks
+      } // parallel region implied barrier
+#else 
+      // Serial version 
+      for(int block_tid = 0; block_tid < r_block_threads; block_tid++) { 
+	int block_idx = step*r_block_threads + block_tid;
+	if( block_idx < _n_blocks ) { 
+	  int block_cb = block_idx /num_coarse_cbsites;
+	  int block_cbsite = block_idx % num_coarse_cbsites;
+	  
+	  float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
+	  
+#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor:64)  
+	  for(int colorspin=0; colorspin < n_floats; ++colorspin) { 
+	    coarse_site_spinor[colorspin]=0;
+	  }
+	  
+	  for(int s=0; s < _r_threads_per_block; ++s) {
+	    
+	    int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
+	    
+#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+	    for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
+	      coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
+	    } //colorspin
+	  } // s
+	} // if block_idx < _n_blocks
+      } // block tid loop
 #endif
+    } // steps
+  } // functions
+#endif
+
 
   void R(const CoarseSpinor& fine_in, CoarseSpinor& out) const
   {

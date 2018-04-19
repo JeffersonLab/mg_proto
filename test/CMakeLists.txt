@@ -3,7 +3,7 @@
 # and specifies linking to the 'libmg.a' library
 add_compile_options(${EXT_CXXFLAGS})
 
-set(TEST_ENV_FILES test_env.h)
+set(TEST_ENV_FILES test_env.h vol_and_block_args.h)
 
 add_library(mg_test test_env.h test_env.cpp)
 target_compile_options(mg_test PUBLIC ${EXT_CXXFLAGS})

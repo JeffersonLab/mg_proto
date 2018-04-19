@@ -38,24 +38,30 @@
 #include <vector>
 #include <cmath>
 
+
 #include <lattice/coarse/block.h>
 
 #include <lattice/coarse/coarse_l1_blas.h>
 #include <lattice/coarse/aggregate_block_coarse.h>
 #include <lattice/coarse/coarse_transfer.h>
 
+
+#include "vol_and_block_args.h"
+
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
 
 
+VolAndBlockArgs args({{4,4,4,4}},{{2,2,2,2}},24,1,10000);
 
 TEST(Timing,RestrictorProfile)
 {
-	IndexArray latdims={{4,4,4,4}};
+  args.Dump();
+	IndexArray latdims=args.ldims;
 
-	const int n_fine = 24;
-	const int num_vecs = 24;
+	const int n_fine = args.nvec;
+	const int num_vecs = args.nvec;
 
 	MasterLog(INFO, "Testing Restrictors with n_fine_colors=%d n_coarse_colors=%d",n_fine,num_vecs);
 
@@ -72,7 +78,7 @@ TEST(Timing,RestrictorProfile)
 
 	IndexArray blocked_lattice_dims;
 	IndexArray blocked_lattice_orig;
-	IndexArray block_size={2,2,2,2};
+	IndexArray block_size=args.bdims;
 	std::vector<Block> blocklist;
 
 	CreateBlockList(blocklist,
@@ -99,7 +105,7 @@ TEST(Timing,RestrictorProfile)
 				  blocked_lattice_dims,
 				  2, num_vecs, NodeInfo());
 
-	  CoarseTransfer Transf(blocklist,null_vecs,8);
+	  CoarseTransfer Transf(blocklist,null_vecs,args.bthreads);
 
 	  {
 		  MasterLog(INFO, "Testing Restrictor");
@@ -135,9 +141,9 @@ TEST(Timing,RestrictorProfile)
 	  Gaussian(fine);
 
 
-#if 1
+#if 0
 	  {
-	    int N_iters=50000;
+	    int N_iters=args.iter;
 	    MasterLog(INFO, "Timing Restrictor with %d iterations", N_iters);
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < N_iters; ++i ) {
@@ -159,7 +165,7 @@ TEST(Timing,RestrictorProfile)
 #endif
 
 	  {
-	    int N_iters=50000;
+	    int N_iters=args.iter;
 	    MasterLog(INFO, "Timing Opt. Restrictor with %d iterations",N_iters);
 
 	    double start_time = omp_get_wtime();
@@ -183,7 +189,8 @@ TEST(Timing,RestrictorProfile)
 
 int main(int argc, char *argv[])
 {
-	return MGTesting::TestMain(&argc, argv);
+  args.ProcessArgs(argc,argv);
+  return MGTesting::TestMain(&argc, argv);
 }
 
 
