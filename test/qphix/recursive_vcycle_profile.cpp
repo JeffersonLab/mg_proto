@@ -28,7 +28,7 @@ using namespace QDP;
 
 TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 {
-	IndexArray latdims={{16,16,16,16}};
+	IndexArray latdims={{32,32,32,32}};
 
 
 
@@ -65,7 +65,7 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 
 	SetupParams level_setup_params = {
 			3,       // Number of levels
-			{24,24},   // Null vecs on L0, L1
+			{24,32},   // Null vecs on L0, L1
 			{
 					{4,4,4,4},  // Block Size from L0->L1
 					{2,2,2,2}   // Block Size from L1->L2
@@ -81,10 +81,10 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 	SetupQPhiXMGLevels(level_setup_params, mg_levels, M_f);
 }
 
-#if 0
-TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
+#if 1
+TEST(QPhiXTestRecursiveVCycle, TestVCycle2Level)
 {
-	IndexArray latdims={{16,16,16,16}};
+	IndexArray latdims={{32,32,32,32}};
 
 
 
@@ -121,7 +121,7 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 
 	SetupParams level_setup_params = {
 			3,       // Number of levels
-			{24,24},   // Null vecs on L0, L1
+			{24,32},   // Null vecs on L0, L1
 			{
 					{4,4,4,4},  // Block Size from L0->L1
 					{2,2,2,2}   // Block Size from L1->L2
@@ -142,7 +142,7 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 	{
 		const LatticeInfo& fine_info = (*mg_levels.fine_level.info);
 		const LatticeInfo& M_info = (*mg_levels.fine_level.M).GetInfo();
-		const IndexArray fine_va = fine_info.GetLatticeDimensions();
+		const IndexArray fine_v = fine_info.GetLatticeDimensions();
 		const IndexArray M_v= M_info.GetLatticeDimensions();
 		const int fine_nc = fine_info.GetNumColors();
 		const int fine_ns= fine_info.GetNumSpins();

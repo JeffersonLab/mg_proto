@@ -383,8 +383,7 @@ public:
 	} // block < nblocks
       } // Parallel region -- implied barrier
 
-#define MG_RESTRICT_PARALLEL_SUM
-#ifdef MG_RESTRICT_PARALLEL_SUM
+#if 0
 #pragma omp parallel shared(site_accum,r_block_threads)
       {
 	int tid = omp_get_thread_num();

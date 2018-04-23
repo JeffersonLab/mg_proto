@@ -11,11 +11,12 @@ namespace MGTesting {
 class VolAndBlockArgs { 
 public:
  VolAndBlockArgs(const IndexArray& _ldims, 
-		 const IndexArray& _bdims, 
+		 const IndexArray& _bdims,
 		 int _nvec, 
+		 int _fine_colors,
 		 int _bthreads,
 		 int _iter) 
-   : ldims(_ldims), bdims(_bdims), nvec(_nvec), bthreads(_bthreads), iter(_iter) {}
+   : ldims(_ldims), bdims(_bdims), nvec(_nvec), fine_colors(_fine_colors), bthreads(_bthreads), iter(_iter) {}
   void ProcessArgs(int argc, char *argv[]) 
   {
     int i=0; 
@@ -42,6 +43,10 @@ public:
 	bthreads=std::atoi(argv[i+1]);
 	i+=2;
       }
+      else if ( std::strcmp( argv[i], "-fine_colors") == 0 ) {
+    	  fine_colors=std::atoi(argv[i+1]);
+    	  i+=2;
+      }
       else if ( std::strcmp( argv[i], "-iter") == 0 ) { 
 	iter = std::atoi(argv[i+1]);
 	i+=2;
@@ -65,6 +70,7 @@ public:
     MasterLog(INFO, "Coarse Latt.  Size = %d %d %d %d", coarse_dims[0], coarse_dims[1],coarse_dims[2],coarse_dims[3]);
     MasterLog(INFO, "Num Blocks         = %d", coarse_sites);
     MasterLog(INFO, "Num. Vectors       = %d", nvec);
+    MasterLog(INFO, "Fine Colors           =%d", fine_colors);
     MasterLog(INFO, "Threads per block  = %d", bthreads);
     MasterLog(INFO, "Iterations         = %d", iter);
   }
@@ -72,8 +78,10 @@ public:
   IndexArray ldims;
   IndexArray bdims;
   int nvec;
+  int fine_colors;
   int bthreads;
   int iter;
+
 };
 } // Namespace
 #endif

@@ -53,14 +53,14 @@ using namespace MGTesting;
 using namespace QDP;
 
 
-VolAndBlockArgs args({{4,4,4,4}},{{2,2,2,2}},24,1,10000);
+VolAndBlockArgs args({{4,4,4,4}},{{2,2,2,2}},24,24,1,10000);
 
 TEST(Timing,RestrictorProfile)
 {
-  args.Dump();
+	args.Dump();
 	IndexArray latdims=args.ldims;
 
-	const int n_fine = args.nvec;
+	const int n_fine = args.fine_colors;
 	const int num_vecs = args.nvec;
 
 	MasterLog(INFO, "Testing Restrictors with n_fine_colors=%d n_coarse_colors=%d",n_fine,num_vecs);

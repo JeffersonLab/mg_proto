@@ -94,11 +94,11 @@ CoarseDiracOp::CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt)
 		_thread_limits[tid].min_site = min_site;
 		_thread_limits[tid].max_site = max_site;
 
-#pragma omp critical
-		{
-			std::printf("Thread=%d smtid=%d n_sites_cb=%d n_vrows=%d min_vrow=%d max_vrow=%d min_site=%d max_site=%d\n",
-					tid,smt_id,n_sites_cb, _n_vrows, _thread_limits[tid].min_vrow, _thread_limits[tid].max_vrow, min_site, max_site);
-		}
+//#pragma omp critical
+	//	{
+	//		std::printf("Thread=%d smtid=%d n_sites_cb=%d n_vrows=%d min_vrow=%d max_vrow=%d min_site=%d max_site=%d\n",
+	//				tid,smt_id,n_sites_cb, _n_vrows, _thread_limits[tid].min_vrow, _thread_limits[tid].max_vrow, min_site, max_site);
+	//	}
 	} // omp parallel
 
 }

@@ -220,8 +220,8 @@ void orthonormalizeBlockAggregates(std::vector<std::shared_ptr<CoarseSpinor>>& v
 {
 	int num_blocks = block_list.size();
 
+#pragma omp parallel for collapse(2)
 	for(int aggr=0; aggr < 2; ++aggr) {
-
 		for(int block_id=0; block_id < num_blocks; block_id++) {
 
 			const Block& block = block_list[block_id];

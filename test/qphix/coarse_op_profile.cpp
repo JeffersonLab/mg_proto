@@ -19,24 +19,23 @@
 #include "lattice/coarse/coarse_op.h"
 
 using namespace MG;
-using namespace MG;
+using namespace MGTesting;
+
+#include "../vol_and_block_args.h"
+
+VolAndBlockArgs args({{8,8,8,8}},{{2,2,2,2}},24,24,1,1000);
 
 TEST(CoarseDslash, TestSpeed)
 {
-	const int Nxh = 2;
-	const int Ny = 4;
-	const int Nz = 4;
-	const int Nt = 4;
-	const int Nx = 2*Nxh;
-	IndexArray latdims={Nx,Ny,Nz,Nt};
+	IndexArray latdims=args.ldims;
 	NodeInfo node;
-	LatticeInfo linfo(latdims, 2, 24, node);
+	LatticeInfo linfo(latdims, 2, args.fine_colors, node);
 
 	CoarseSpinor x_spinor(linfo);
 	CoarseSpinor y_spinor(linfo);
 	CoarseGauge gauge(linfo);
 
-	const int N_iter =50000;
+	const int N_iter =args.iter;
 	const int n_smt= 1 ;
 
 	double total_time[288][8]; // Timing info for 72 cores x 4 threads
