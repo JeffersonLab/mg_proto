@@ -47,9 +47,16 @@ namespace MG
 				MasterLog(INFO, "Creating FGRMRES SOlver on Level %d", coarse_idx);
 
 				// Bottom level There is only a bottom solver.
+#if 0
 				_bottom_solver[coarse_idx] = std::make_shared< const FGMRESSolverCoarse >(
 						*(_mg_levels.coarse_levels[coarse_idx].M),
 											_vcycle_params[coarse_idx].bottom_solver_params,nullptr);
+#else
+				_bottom_solver[coarse_idx] = std::make_shared< const BiCGStabSolverCoarse >(
+						*(_mg_levels.coarse_levels[coarse_idx].M),
+											_vcycle_params[coarse_idx].bottom_solver_params);
+
+#endif
 
 			}
 			else{

@@ -13,6 +13,8 @@ set (MG_DEFAULT_LOGLEVEL DEBUG CACHE STRING "Default Loglevel")
 set (MG_USE_AVX512 CACHE BOOL FALSE)
 set (MG_KOKKOS_DISPATCH CACHE STRING "FALSE")
 set (MG_KOKKOS_USE_NEIGHBOR_TABLE CACHE BOOL TRUE)
+set (MG_QPHIX_SOALEN 4 CACHE STRING "Default SOA Length")
+set (MG_QPHIX_COMPRESS12 FALSE CACHE BOOL "Default Compression Enabling")
 
 if(MG_DEFAULT_ALIGNMENT)
   message(STATUS "User specified default alignment: ${MG_DEFAULT_ALIGNMENT}")
@@ -143,7 +145,15 @@ if( QPHIX_DIR )
   
   set(DEFAULT_QPHIX_TEST_ARGS  -by 4 -bz 4 -pxy 0 -pxyz 0 -c 1 -sy 1 -sz 1 -minct 1)
   set(THREADED_QPHIX_TEST_ARGS -by 4 -bz 4 -pxy 0 -pxyz 0 -c 4 -sy 1 -sz 2 -minct 1)
-  
+
+  message(STATUS "Setting QPHIX Soalen to ${MG_QPHIX_SOALEN}")
+
+  if( MG_QPHIX_COMPRESS12 ) 
+    message(STATUS "Setting QPHIX Compress12 on")
+  else() 
+    message(STATUS "Setting QPHIX Compress12 off")
+  endif()
+
 endif()
 
 if(THREADS_HAVE_PTHREAD_ARG)

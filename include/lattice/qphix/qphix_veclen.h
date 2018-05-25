@@ -2,11 +2,15 @@
 #ifndef MG_QPHIX_VECLEN_H
 #define MG_QPHIX_VECLEN_H
 #include <qphix/qphix_config.h>
+#include <MG_config.h>
 
-
-#ifndef QPHIX_SOALEN
-#define QPHIX_SOALEN 4
+#define QPHIX_SOALEN MG_QPHIX_SOALEN
+#ifdef MG_QPHIX_COMPRESS12
+#define QPHIX_COMPRESS12 true
+#else
+#define QPHIX_COMPRESS12 false
 #endif
+
 
 #if defined(QPHIX_MIC_SOURCE) || defined(QPHIX_AVX512_SOURCE)
 

@@ -27,40 +27,40 @@
 namespace MG {
 
 template<typename FT>
-using QPhiXGeomT = typename QPhiX::Geometry<FT,get_veclen<FT>(), QPHIX_SOALEN, false>;
+using QPhiXGeomT = typename QPhiX::Geometry<FT,get_veclen<FT>(), QPHIX_SOALEN, QPHIX_COMPRESS12>;
 using Geom = QPhiXGeomT<double>;
 using GeomF = QPhiXGeomT<float>;
 
 template<typename FT>
-using QPhiXCBSpinorT = typename QPhiX::FourSpinorHandle<FT,get_veclen<FT>(),QPHIX_SOALEN,false>;
+using QPhiXCBSpinorT = typename QPhiX::FourSpinorHandle<FT,get_veclen<FT>(),QPHIX_SOALEN,QPHIX_COMPRESS12>;
 
 template<typename FT>
-using QPhiXCBGaugeT = typename QPhiX::GaugeHandle<FT,get_veclen<FT>(),QPHIX_SOALEN, false>;
+using QPhiXCBGaugeT = typename QPhiX::GaugeHandle<FT,get_veclen<FT>(),QPHIX_SOALEN, QPHIX_COMPRESS12>;
 
 template<typename FT>
-using QPhiXCBCloverT = typename QPhiX::CloverHandle<FT, get_veclen<FT>(),QPHIX_SOALEN, false>;
+using QPhiXCBCloverT = typename QPhiX::CloverHandle<FT, get_veclen<FT>(),QPHIX_SOALEN, QPHIX_COMPRESS12>;
 
 
 template<typename FT>
-using QPhiXFullSpinorT = typename QPhiX::FullSpinor<FT,get_veclen<FT>(),QPHIX_SOALEN,false>;
+using QPhiXFullSpinorT = typename QPhiX::FullSpinor<FT,get_veclen<FT>(),QPHIX_SOALEN,QPHIX_COMPRESS12>;
 
 template<typename FT>
-using QPhiXClovOpT = typename QPhiX::EvenOddCloverOperator<FT,get_veclen<FT>(), QPHIX_SOALEN, false>;
+using QPhiXClovOpT = typename QPhiX::EvenOddCloverOperator<FT,get_veclen<FT>(), QPHIX_SOALEN, QPHIX_COMPRESS12>;
 
 template<typename FT>
-using QPhiXBiCGStabT = typename QPhiX::InvBiCGStab<FT, get_veclen<FT>(),QPHIX_SOALEN,false>;
+using QPhiXBiCGStabT = typename QPhiX::InvBiCGStab<FT, get_veclen<FT>(),QPHIX_SOALEN,QPHIX_COMPRESS12>;
 
 template<typename FT>
-using QPhiXMRSolverT = typename QPhiX::InvMR<FT,get_veclen<FT>(),QPHIX_SOALEN,false>;
+using QPhiXMRSolverT = typename QPhiX::InvMR<FT,get_veclen<FT>(),QPHIX_SOALEN,QPHIX_COMPRESS12>;
 
 template<typename FT>
-using QPhiXMRSmootherT = typename QPhiX::InvMRSmoother<FT,get_veclen<FT>(),QPHIX_SOALEN,false>;
+using QPhiXMRSmootherT = typename QPhiX::InvMRSmoother<FT,get_veclen<FT>(),QPHIX_SOALEN,QPHIX_COMPRESS12>;
 
 template<typename FT>
-using QPhiXEOPrecOpT = typename QPhiX::EvenOddLinearOperator<FT,get_veclen<FT>(),QPHIX_SOALEN,false>;
+using QPhiXEOPrecOpT = typename QPhiX::EvenOddLinearOperator<FT,get_veclen<FT>(),QPHIX_SOALEN,QPHIX_COMPRESS12>;
 
 template<typename FT>
-using QPhiXUnprecSolverT = typename QPhiX::UnprecSolverWrapper<FT, get_veclen<FT>(), QPHIX_SOALEN,false, QPhiXEOPrecOpT<FT>>;
+using QPhiXUnprecSolverT = typename QPhiX::UnprecSolverWrapper<FT, get_veclen<FT>(), QPHIX_SOALEN,QPHIX_COMPRESS12, QPhiXEOPrecOpT<FT>>;
 
 
 using QPhiXCBSpinor = QPhiXCBSpinorT<double>;
