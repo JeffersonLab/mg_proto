@@ -162,7 +162,7 @@ public:
 
 #ifndef MG_USE_AVX512
   template<int num_coarse_color>
-	void R_op(const QSpinor& fine_in, CoarseSpinor& out)
+	void R_op(const QSpinor& fine_in, CoarseSpinor& out) const
 	{
 	  assert(num_coarse_color == out.GetNumColor());
 
@@ -199,7 +199,7 @@ public:
 
 
 	      // Zero the accumulated coarse site
-#pragma omp simd safelen(16) simdlen(16) aligned(site_accum: 64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum: 64)
 	      for(int i=0; i < 2*num_coarse_color; ++i) {
 	    	  site_accum[i] = 0;
 	      }
@@ -224,13 +224,13 @@ public:
 	    			  const std::complex<float>* v = reinterpret_cast<const std::complex<float>*>((*this).indexPtr(block_idx, fine_site_idx,spin,color));
 
 
-#pragma simd safelen(8) simdlen(16) aligned(site_accum, v:64)
+#pragma simd  simdlen(VECLEN_SP) aligned(site_accum, v:64)
 	    			  for(int colorspin=0; colorspin < num_coarse_color; colorspin++) {
 	    				  site_accum[colorspin] += v[colorspin]*psi_upper;
 	    			  }
 
 	    			  const int offset = num_coarse_color;
-#pragma simd safelen(8) simdlen(16) aligned(site_accum, v:64)
+#pragma simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
 	    			  for(int colorspin=0; colorspin < num_coarse_color; colorspin++) {
 	    				  site_accum[colorspin+offset] += v[colorspin+offset]*psi_lower;
 	    			  }
@@ -239,7 +239,7 @@ public:
 	    	  } // spin
 	      } // fine sites in block
 
-#pragma simd safelen(8) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+#pragma simd simdlen(VECLEN_SP) aligned(coarse_site_spinor, site_accum:64)
 	      for(int colorspin=0; colorspin <  2*num_coarse_color; ++colorspin) {
 	    	  coarse_site_spinor[colorspin] = site_accum[colorspin];
 	      }
@@ -516,7 +516,7 @@ public:
     					float vec_im[ 2*num_coarse_color ] __attribute__((aligned(64)));
 
 
-#pragma omp simd safelen(16) simdlen(16) aligned(v,coarse_site_spinor,vec_re:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor,vec_re:64)
     					for(int i=0; i < 2*num_coarse_color; ++i) {
     						vec_re[i] = v[i] * coarse_site_spinor[i];
     					}
@@ -524,47 +524,47 @@ public:
     					// This is meant to be a shuffle
     					// But we fold the minus sign in so at the end
     					// we can do a straight sum
-#pragma omp simd  safelen(8) simdlen(16) aligned(v,coarse_site_spinor,vec_im:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor,vec_im:64)
     					for(int i=0; i < num_coarse_color; ++i) {
     					   vec_im[2*i] = v[2*i] *coarse_site_spinor[2*i+1];
     					   vec_im[2*i+1] = -v[2*i + 1] * coarse_site_spinor[2*i];
     					}
 
     					// Horizontal sum for real part
-#pragma omp simd safelen(16) simdlen(16) aligned(vec_re:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(vec_re:64)
     					for(int i=0; i < 2*num_coarse_color; ++i) {
     						reduce_upper_re += vec_re[i];
     					}
 
     					// Horizontal sum for imag part
-#pragma omp simd safelen(16) simdlen(16) aligned(vec_im:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(vec_im:64)
     					for(int i=0; i < 2*num_coarse_color; ++i) {
     						reduce_upper_im += vec_im[i];
     					}
 
 
     					//   Second Chirality
- #pragma omp simd safelen(16) simdlen(16) aligned(v,coarse_site_spinor,vec_re:64)
+ #pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor,vec_re:64)
     					for(int i=0; i < 2*num_coarse_color; ++i) {
     						vec_re[i] = v[i+offset] * coarse_site_spinor[i+offset];
     					}
 
     					// This is the shuffle for the imaginary part of the sum
     					// we fold i the -ve sign
-#pragma omp simd safelen(8) simdlen(16) aligned(v,coarse_site_spinor,vec_im:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor,vec_im:64)
     					for(int i=0; i < num_coarse_color; ++i) {
     					   vec_im[2*i] = v[2*i + offset] *coarse_site_spinor[2*i+1 +offset];
     					   vec_im[2*i+1] = -v[2*i + 1 +offset] * coarse_site_spinor[2*i+offset];
     					}
 
     					// Horizontal sum for the real part
-#pragma omp simd safelen(16) simdlen(16) aligned(vec_re:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(vec_re:64)
     					for(int i=0; i < 2*num_coarse_color; ++i) {
     						reduce_lower_re += vec_re[i];
     					}
 
     					// Horizontal sum for the imag part
-#pragma omp simd safelen(16) simdlen(16) aligned(vec_im:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(vec_im:64)
     					for(int i=0; i < 2*num_coarse_color; ++i) {
     						reduce_lower_im += vec_im[i];
     					}
@@ -632,7 +632,7 @@ public:
     			}
     		} //isite
 
-#pragma omp simd safelen(16) simdlen(16) aligned(oblock_result,cur_block:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(oblock_result,cur_block:64)
       		for(int i=0; i < 4*3*2*QPHIX_SOALEN; ++i) {
         			cur_block[i] = oblock_result[i];
       		}

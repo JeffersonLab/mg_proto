@@ -217,7 +217,7 @@ public:
 	      const int offset = num_coarse_color;
 	      // Zero the accumulated coarse site
 
-#pragma omp simd safelen(16) simdlen(16) aligned(site_accum: 64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum: 64)
 	      for(int i=0; i < 2*num_coarse_color; ++i) {
 	    	  site_accum[i] = 0;
 	      }
@@ -246,13 +246,13 @@ public:
 
 
 	    			  // Accumulate the upper chiral compponent
-#pragma simd safelen(8) simdlen(16) aligned(site_accum, v:64)
+#pragma simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
 	    			  for(int c_color=0; c_color < num_coarse_color; c_color++) {
 	    				  site_accum[c_color] += v[c_color]*psi_upper;
 	    			  }
 
 	    			  // Accumulate the lower chiral  componente
-#pragma simd safelen(8) simdlen(16) aligned(site_accum, v:64)
+#pragma simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
 	    			  for(int c_color=0; c_color < num_coarse_color; c_color++) {
 	    				  site_accum[c_color+offset] += v[c_color+offset]*psi_lower;
 	    			  }
@@ -262,7 +262,7 @@ public:
 	      } // fine sites in block
 
 	      // Stream out
-#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+#pragma simd simdlen(VECLEN_SP) aligned(coarse_site_spinor, site_accum:64)
 	      for(int colorspin=0; colorspin <  2*num_coarse_color; ++colorspin) {
 	    	  coarse_site_spinor[colorspin] = site_accum[colorspin];
 	      }
@@ -523,11 +523,11 @@ public:
     			std::complex<float> reduce_lower(0,0);
 
 
-#pragma omp simd safelen(8) simdlen(16) aligned(v,coarse_site_spinor:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor:64)
     			for(int i=0; i < num_coarse_color; ++i) {
     				reduce_upper +=conj( v[i]) * coarse_site_spinor[i];
     			}
-#pragma omp simd safelen(8) simdlen(16) aligned(v,coarse_site_spinor:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor:64)
     			for(int i=0; i < num_coarse_color; ++i) {
     				reduce_lower += conj(v[i+num_coarse_color]) * coarse_site_spinor[i+num_coarse_color];
     			}
