@@ -7,7 +7,6 @@
 #include <lattice/qphix/qphix_aggregate.h>
 #include <lattice/fine_qdpxx/aggregate_block_qdpxx.h>
 #include <lattice/qphix/qphix_blas_wrappers.h>
-
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/geometry_utils.h"
@@ -918,6 +917,22 @@ void dslashTripleProductDir(const QPhiXWilsonCloverLinearOperatorF& D_op,
 }
 
 
+//! Coarsen one direction of a 'dslash' link
+void dslashTripleProductDir(const QPhiXWilsonCloverEOLinearOperator& D_op,
+    const std::vector<Block>& blocklist, int dir,
+    const std::vector<std::shared_ptr<QPhiXSpinor> >& in_vecs,
+    CoarseGauge& u_coarse)
+{
+  dslashTripleProductDirT(D_op,blocklist,dir,in_vecs,u_coarse);
+}
+
+void dslashTripleProductDir(const QPhiXWilsonCloverEOLinearOperatorF& D_op,
+    const std::vector<Block>& blocklist, int dir,
+    const std::vector<std::shared_ptr<QPhiXSpinorF> >& in_vecs,
+    CoarseGauge& u_coarse)
+{
+  dslashTripleProductDirT(D_op,blocklist,dir,in_vecs,u_coarse);
+}
 
 //! Coarsen the clover term (1 block = 1 site )
 //! Coarsen the clover term (1 block = 1 site )
@@ -1071,6 +1086,22 @@ void clovTripleProduct(const QPhiXWilsonCloverLinearOperator& D_op,
 }
 
 void clovTripleProduct(const QPhiXWilsonCloverLinearOperatorF& D_op,
+    const std::vector<Block>& blocklist,
+    const std::vector<std::shared_ptr<QPhiXSpinorF> >& in_vecs,
+    CoarseGauge& gauge_clover)
+{
+  clovTripleProductT(D_op,blocklist, in_vecs, gauge_clover);
+}
+
+void clovTripleProduct(const QPhiXWilsonCloverEOLinearOperator& D_op,
+    const std::vector<Block>& blocklist,
+    const std::vector<std::shared_ptr<QPhiXSpinor> >& in_vecs,
+    CoarseGauge& gauge_clover)
+{
+  clovTripleProductT(D_op, blocklist, in_vecs, gauge_clover);
+}
+
+void clovTripleProduct(const QPhiXWilsonCloverEOLinearOperatorF& D_op,
     const std::vector<Block>& blocklist,
     const std::vector<std::shared_ptr<QPhiXSpinorF> >& in_vecs,
     CoarseGauge& gauge_clover)

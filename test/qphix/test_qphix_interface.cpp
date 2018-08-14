@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include <lattice/fine_qdpxx/invfgmres_qdpxx.h>
+#include <lattice/unprec_wrapper.h>
 
 #include "../test_env.h"
 #include "lattice/qphix/qphix_types.h"
@@ -23,12 +24,13 @@
 #include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"
 
 #include "lattice/qphix/qphix_clover_linear_operator.h"
+#include "lattice/qphix/qphix_eo_clover_linear_operator.h"
 #include "lattice/qphix/invfgmres_qphix.h"
 #include "lattice/qphix/invbicgstab_qphix.h"
 #include "lattice/qphix/invmr_qphix.h"
 #include "lattice/mr_params.h"
 #include "lattice/fine_qdpxx/invmr_qdpxx.h"
-
+#include <memory>
 using namespace QDP;
 using namespace MG;
 using namespace MGTesting;
@@ -480,7 +482,7 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStabRelativeF)
   DiffSpinorRelative(source,Ax_qdp,1.0e-6);
 }
 
-TEST(QPhiXIntegration, QPhiXUnprecFGMRES)
+TEST(QPhiXIntegration, QPhiXFGMRESUnprecOp)
 {
   IndexArray latdims={{8,8,8,8}};
   initQDPXXLattice(latdims);
@@ -619,6 +621,75 @@ TEST(QPhiXIntegration, QPhiXUnprecFGMRES2)
   QDPIO::cout << "QDP++ Based FGMRES took " << qdp_time << " sec" << std::endl;
   QDPIO::cout << "Speedup = " << qdp_time / qphix_time << " x " << std::endl;
 }
+
+TEST(QPhiXIntegration, QPhiXFGMRESPrecOp)
+{
+  IndexArray latdims={{8,8,8,8}};
+  initQDPXXLattice(latdims);
+
+  float m_q = 0.1;
+  float c_sw = 1.25;
+
+  int t_bc=-1; // Antiperiodic t BCs
+
+  LatticeFermion in,out;
+  gaussian(in);
+  out=zero;
+
+  multi1d<LatticeColorMatrix> u(Nd);
+  for(int mu=0; mu < Nd; ++mu) {
+    gaussian(u[mu]);
+    reunit(u[mu]);
+  }
+
+  LatticeInfo info(latdims);
+
+
+  FGMRESParams params;
+  params.MaxIter = 500;
+  params.RsdTarget = 1.0e-5;
+  params.VerboseP = true;
+  params.NKrylov = 10;
+
+  // Create linear operator: Even Odd
+  std::shared_ptr<const QPhiXWilsonCloverEOLinearOperator> M
+  	  = std::make_shared<const QPhiXWilsonCloverEOLinearOperator>(info,m_q, c_sw, t_bc, u);
+
+  // Create even odd preconditioned FGMRES
+  std::shared_ptr<const FGMRESSolverQPhiX> FGMRES=std::make_shared<const FGMRESSolverQPhiX>(*M, params,nullptr);
+
+  // Wrap in source prep and solution recreation
+  UnprecFGMRESSolverQPhiXWrapper FGMRESWrapper(FGMRES, M);
+
+  // Prepare sources and sinks.
+  QPhiXSpinor q_b(info);
+  QPhiXSpinor q_x(info);
+  QPhiXSpinor q_check(info);
+  QDPSpinorToQPhiXSpinor(in,q_b);
+
+  // Fill source with noide on both CBs
+  Gaussian(q_x);
+
+  // Run the solver: use EO solver internally, but do source and solution reconstructs
+  LinearSolverResults res = FGMRESWrapper(q_x,q_b);
+
+  QDPIO::cout << "FGMRES Solver Took: " << res.n_count << " iterations"
+      << std::endl;
+
+  // Check solution claims to match requested.
+  ASSERT_EQ(res.resid_type, RELATIVE);
+  ASSERT_LT(res.resid, 9e-6);
+
+  // Now check back with a QDP++ unpreconditioned operator
+  QDPWilsonCloverLinearOperator M_qdp(m_q, c_sw, t_bc, u);
+  QPhiXSpinorToQDPSpinor(q_x,out);
+
+  LatticeFermion Ax;
+  M_qdp(Ax,out, LINOP_OP);
+
+  DiffSpinorRelative(in,Ax,1.0e-5);
+}
+
 
 TEST(QPhiXIntegration, QPhiXUnprecFGMRES2F)
 {

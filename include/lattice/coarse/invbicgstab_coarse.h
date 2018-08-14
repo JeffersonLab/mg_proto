@@ -9,7 +9,7 @@
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
 #include "lattice/coarse/coarse_types.h"
-
+#include "lattice/unprec_wrapper.h"
 
 
 namespace MG {
@@ -28,6 +28,8 @@ public:
 	  const LinearSolverParamsBase& _params;
 
  };
+
+using UnprecBiCGStabSolverCoarseWrapper = UnprecWrapper<CoarseSpinor,CoarseGauge, BiCGStabSolverCoarse, UnprecLinearSolver>;
 
 }  // end namespace MGTEsting
 

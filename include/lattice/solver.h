@@ -20,9 +20,20 @@ namespace MG {
 	template<typename Spinor, typename Gauge>
 	class LinearSolver {
 	public:
-		virtual LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType = RELATIVE ) const=0;
+		virtual LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const=0;
 		virtual ~LinearSolver(){}
 	};
+
+	/** A solver that solves the unpreconditioned systems */
+	template<typename Spinor, typename Gauge>
+	class UnprecLinearSolver : public LinearSolver<Spinor,Gauge> {
+	public:
+		virtual void SourcePrepare(Spinor& new_source, const Spinor& original_source) const = 0;
+		virtual void ResultReconstruct(Spinor& new_result, const Spinor& original_result) const = 0;
+		virtual ~UnprecLinearSolver() {}
+
+	};
+
 
 	// Base Parameter Struct
 	class LinearSolverParamsBase {
@@ -57,6 +68,15 @@ namespace MG {
 				VerboseP=false;
 
 			}
+		};
+
+		/** A solver that solves the unpreconditioned systems */
+		template<typename Spinor, typename Gauge>
+		class UnprecSmoother : public Smoother<Spinor,Gauge> {
+		public:
+			virtual void SourcePrepare(Spinor& new_source, const Spinor& original_source) const = 0;
+			virtual void ResultReconstruct(Spinor& new_result, const Spinor& original_result) const = 0;
+			virtual ~UnprecSmoother() {}
 		};
 };
 

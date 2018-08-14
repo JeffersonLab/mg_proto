@@ -13,6 +13,7 @@
 #include "lattice/solver.h"
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/qphix/qphix_clover_linear_operator.h"
+#include "lattice/qphix/qphix_eo_clover_linear_operator.h"
 #include "lattice/mr_params.h"
 #include <qphix/invmr.h>
 #include <memory>
@@ -25,13 +26,20 @@ class MRSolverQPhiXT : public LinearSolver<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>> {
 public:
 
   MRSolverQPhiXT(QPhiXWilsonCloverLinearOperatorT<FT>& M,
-                       const MRSolverParams& params) : _M(M),_params(params),
+                       const MRSolverParams& params) : _params(params),
                            mr_solver( M.getQPhiXOp(),params.MaxIter,params.Omega),
                            solver_wrapper(mr_solver,M.getQPhiXOp())
 
 
   {}
 
+  MRSolverQPhiXT(QPhiXWilsonCloverEOLinearOperatorT<FT>& M,
+                         const MRSolverParams& params) : _params(params),
+                             mr_solver( M.getQPhiXOp(),params.MaxIter,params.Omega),
+                             solver_wrapper(mr_solver,M.getQPhiXOp())
+
+
+    {}
   LinearSolverResults operator()(QPhiXSpinorT<FT>& out,
                                 const QPhiXSpinorT<FT>& in,
                                 ResiduumType resid_type = RELATIVE ) const
@@ -63,7 +71,7 @@ public:
   }
 
  private:
-    QPhiXWilsonCloverLinearOperatorT<FT>& _M;
+
     const LinearSolverParamsBase& _params;
     QPhiXMRSolverT<FT> mr_solver;
     QPhiXUnprecSolverT<FT> solver_wrapper;
@@ -77,12 +85,15 @@ template<typename FT>
 class MRSmootherQPhiXT : public Smoother<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>> {
 public:
 
-  MRSmootherQPhiXT(QPhiXWilsonCloverLinearOperatorT<FT>& M, const MRSolverParams& params) : _M(M),_params(params),
+  MRSmootherQPhiXT(QPhiXWilsonCloverLinearOperatorT<FT>& M, const MRSolverParams& params) : _params(params),
                            mr_solver( M.getQPhiXOp(), params.MaxIter, params.Omega),
-                           solver_wrapper(mr_solver, M.getQPhiXOp())
+                           solver_wrapper(mr_solver, M.getQPhiXOp()) {}
 
 
-  {}
+  MRSmootherQPhiXT(QPhiXWilsonCloverEOLinearOperatorT<FT>& M, const MRSolverParams& params) : _params(params),
+                           mr_solver( M.getQPhiXOp(), params.MaxIter, params.Omega),
+                           solver_wrapper(mr_solver, M.getQPhiXOp()) {}
+
 
   void operator()(QPhiXSpinorT<FT>& out,
                                 const QPhiXSpinorT<FT>& in) const
@@ -107,7 +118,7 @@ public:
   }
 
  private:
-    QPhiXWilsonCloverLinearOperatorT<FT>& _M;
+
     const LinearSolverParamsBase& _params;
 
     QPhiXMRSmootherT<FT> mr_solver;

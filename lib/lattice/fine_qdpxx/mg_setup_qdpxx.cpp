@@ -201,6 +201,8 @@ void SetupCoarseToCoarse(const SetupParams& p,
 
 	M_fine->generateCoarse(fine_level.blocklist, fine_level.null_vecs, *(coarse_level.gauge));
 
+	//FIXME: Insert inversion of coarse level gauge links... here?
+
 	coarse_level.M = std::make_shared<const CoarseWilsonCloverLinearOperator>(coarse_level.gauge,fine_level_id+1);
 
 }

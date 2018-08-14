@@ -20,6 +20,7 @@
 #include "lattice/fine_qdpxx/qdpxx_helpers.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
+#include "lattice/unprec_wrapper.h"
 // Block Stuff
 #include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
 #include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"
@@ -31,9 +32,11 @@
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/qphix/qphix_qdp_utils.h"
 #include "lattice/qphix/qphix_clover_linear_operator.h"
+#include "lattice/qphix/qphix_eo_clover_linear_operator.h"
 #include "lattice/qphix/mg_level_qphix.h"
 #include "lattice/qphix/invmr_qphix.h"
 #include "lattice/qphix/vcycle_qphix_coarse.h"
+
 #include <memory>
 
 using namespace MG;
@@ -378,6 +381,130 @@ TEST(TestQPhiXVCycle, TestVCyclePrec)
   // Compute true residuum
   QPhiXSpinor Ax(fine_info);
   M(Ax,chi_out,LINOP_OP);
+  double diff = sqrt(XmyNorm2Vec(psi_in,Ax));
+  double diff_rel = diff/psi_norm;
+  MasterLog(INFO,"|| b - A x || = %16.8e", diff);
+  MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
+
+	ASSERT_EQ( res.resid_type, RELATIVE);
+	ASSERT_LT( res.resid, 1.0e-13);
+	ASSERT_LT( toDouble(diff_rel), 1.0e-13);
+
+}
+
+
+TEST(TestQPhiXVCycle, TestVCyclePrecEOPrec)
+{
+	IndexArray latdims={{8,8,8,8}};
+	IndexArray blockdims = {{2,2,2,2}};
+
+	initQDPXXLattice(latdims);
+	IndexArray node_orig=NodeInfo().NodeCoords();
+		for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+
+	float m_q = 0.1;
+	float c_sw = 1.25;
+
+	int t_bc=-1; // Antiperiodic t BCs
+
+
+	multi1d<LatticeColorMatrix> u(Nd);
+	for(int mu=0; mu < Nd; ++mu) {
+	  gaussian(u[mu]);
+	  reunit(u[mu]);
+		u[mu]=1.0;
+	}
+
+	 // Move to QPhiX space:
+	  LatticeInfo fine_info(node_orig,latdims,4,3,NodeInfo());
+
+	  // Create QPhiX Fine Linear Operators
+	  std::shared_ptr<const QPhiXWilsonCloverEOLinearOperator> M =
+			  std::make_shared<const QPhiXWilsonCloverEOLinearOperator>(fine_info, m_q, c_sw,t_bc, u);
+
+	  std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF> M_f =
+	     std::make_shared<QPhiXWilsonCloverEOLinearOperatorF>(fine_info, m_q, c_sw,t_bc, u);
+
+	  SetupParams level_setup_params = {
+	      2,       // Number of levels
+	      {8},   // Null vecs on L0, L1
+	      {
+	          {2,2,2,2},  // Block Size from L0->L1
+	      },
+	      {500},          // Max Nullspace Iters
+	      {5e-6},        // Nullspace Target Resid
+	      {false}
+	  };
+
+	  QPhiXMultigridLevelsEO mg_levels;
+	  SetupQPhiXMGLevels(level_setup_params, mg_levels, M_f);
+
+	MRSolverParams presmooth;
+	presmooth.MaxIter=4;
+	presmooth.RsdTarget = 0.1;
+	presmooth.Omega = 1.1;
+	presmooth.VerboseP = true;
+
+	MRSmootherQPhiXF pre_smoother(*M_f,presmooth);
+
+	MRSolverParams postsmooth;
+	postsmooth.MaxIter = 4;
+	postsmooth.RsdTarget = 0.1;
+	postsmooth.Omega = 1.1;
+	postsmooth.VerboseP = true;
+
+	MRSmootherQPhiXF post_smoother(*M_f,postsmooth);
+
+	FGMRESParams coarse_solve_params;
+	coarse_solve_params.MaxIter=200;
+	coarse_solve_params.RsdTarget=0.1;
+	coarse_solve_params.VerboseP = false;
+	coarse_solve_params.NKrylov = 10;
+	FGMRESSolverCoarse bottom_solver(*(mg_levels.coarse_levels[0].M),coarse_solve_params);
+
+	LinearSolverParamsBase vcycle_params;
+	vcycle_params.MaxIter=2;
+	vcycle_params.RsdTarget =0.1;
+	vcycle_params.VerboseP = true;
+
+  // info my_blocks, and vecs can probably be collected in a 'Transfer' class
+    VCycleQPhiXCoarseEO2 vcycle( *(mg_levels.fine_level.info),
+        *(mg_levels.coarse_levels[0].info),
+          mg_levels.fine_level.blocklist,
+          mg_levels.fine_level.null_vecs,
+          *(mg_levels.fine_level.M),
+          pre_smoother,
+          post_smoother,
+          bottom_solver,
+          vcycle_params);
+
+
+	FGMRESParams fine_solve_params;
+	fine_solve_params.MaxIter=200;
+	fine_solve_params.RsdTarget=1.0e-13;
+	fine_solve_params.VerboseP = true;
+	fine_solve_params.NKrylov = 4;
+
+	// Create even odd preconditioned FGMRES
+	std::shared_ptr<const FGMRESSolverQPhiX> FGMRES=std::make_shared<const FGMRESSolverQPhiX>(*M, fine_solve_params,&vcycle);
+
+	// Wrap in source prep and solution recreation
+	UnprecFGMRESSolverQPhiXWrapper FGMRESWrapper(FGMRES, M);
+
+	// Now need to do the coarse test
+  // Now need to do the coarse test
+  QPhiXSpinor psi_in(fine_info);
+  QPhiXSpinor chi_out(fine_info);
+  Gaussian(psi_in);
+  ZeroVec(chi_out);
+  double psi_norm = sqrt(Norm2Vec(psi_in));
+  MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+
+  LinearSolverResults res=FGMRESWrapper(chi_out, psi_in);
+
+  // Compute true residuum
+  QPhiXSpinor Ax(fine_info);
+  (*M).unprecOp(Ax,chi_out,LINOP_OP);
   double diff = sqrt(XmyNorm2Vec(psi_in,Ax));
   double diff_rel = diff/psi_norm;
   MasterLog(INFO,"|| b - A x || = %16.8e", diff);

@@ -5,7 +5,7 @@
  *      Author: bjoo
  */
 
-
+#include <complex>
 #include <lattice/coarse/invbicgstab_coarse.h>
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"
@@ -31,6 +31,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 	using FComplex = std::complex<float>;
 	const int level = A.GetLevel();
 	const LatticeInfo& info = A.GetInfo();
+	const CBSubset& subset = A.GetSubset();
 
 	{
 		const LatticeInfo& chi_info = chi.GetInfo();
@@ -54,7 +55,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 		MasterLog(INFO, "BiCGStab: level=%d Solver Staring: ", level);
 	}
 
-	double chi_sq =  Norm2Vec(chi);
+	double chi_sq =  Norm2Vec(chi,subset);
 	double rsd_sq = RsdTarget*RsdTarget;
 
 	if ( resid_type == RELATIVE ) {
@@ -69,17 +70,17 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 	// now work out r= chi - Apsi = chi - r0
 	//r[s] = chi - r0;
-	XmyzVec(chi,r0,r);
+	XmyzVec(chi,r0,r,subset);
 
 	// Also copy back to r0. We are no longer in need of the
 	// nth component
 	//r0[s] = r;
-	CopyVec(r0,r);
+	CopyVec(r0,r,subset);
 
 	// Now we have r = r0 = chi - Mpsi
 	// Check if solution is already good enough
 	// Double r_norm = norm2(r,s);
-	double r_norm = Norm2Vec(r);
+	double r_norm = Norm2Vec(r,subset);
 
 	if( VerboseP ) {
 		MasterLog(INFO,"BiCGStab: level=%d iter=0 || r ||^2=%16.8e Target || r ||^2=%16.8e",level,r_norm,rsd_sq);
@@ -88,7 +89,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 	if ( r_norm  <=  rsd_sq )
 	{
 		ret.n_count = 0;
-		ret.resid   = sqrt(r_norm);
+		ret.resid   = std::sqrt(r_norm);
 		if ( resid_type == ABSOLUTE ) {
 			if( VerboseP ) {
 				MasterLog(INFO,"BiCGStab: level=%d Final Absolute Residua: || r ||_accum = %16.8e  || r ||_actual = %16.8e",
@@ -108,8 +109,8 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 
 	// Now initialise v = p = 0
-	CoarseSpinor p(info);  ZeroVec(p);
-	CoarseSpinor v(info);	 ZeroVec(v);
+	CoarseSpinor p(info);  ZeroVec(p,subset);
+	CoarseSpinor v(info);	 ZeroVec(v,subset);
 
 	CoarseSpinor tmp(info);
 	CoarseSpinor t(info);
@@ -126,10 +127,10 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 	for(int k = 1; k <= MaxIter && !convP ; k++) {
 
 		// rho_{k+1} = < r_0 | r >
-		rho = InnerProductVec(r0,r);
+		rho = InnerProductVec(r0,r,subset);
 
 
-		if( real(rho) == 0  &&  imag(rho) == 0  ) {
+		if( std::real(rho) == 0  &&  std::imag(rho) == 0  ) {
 			MasterLog(ERROR, "BiCGStab: level=%d breakdown: rho = 0", level);
 		}
 
@@ -146,7 +147,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 		FComplex beta_r( (float)beta.real(), (float)beta.imag());
 		//  tmp[s] = p - omega_r*v;
 		//  p[s] = r + beta_r*tmp;
-		BiCGStabPUpdate(beta_r,r,omega_r, v, p);
+		BiCGStabPUpdate(beta_r,r,omega_r, v, p, subset);
 
 
 
@@ -156,7 +157,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 		// alpha = rho_{k+1} / < r_0 | v >
 		// put <r_0 | v > into tmp
-		DComplex ctmp = InnerProductVec(r0,v);
+		DComplex ctmp = InnerProductVec(r0,v,subset);
 
 
 		if( real(ctmp) == 0  &&  imag(ctmp) == 0  ) {
@@ -173,14 +174,14 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 		FComplex malpha_r(-(float)alpha.real(), -(float)alpha.imag());
 
 		//r[s]  -=  alpha_r*v;
-		AxpyVec(malpha_r,v,r);
+		AxpyVec(malpha_r,v,r,subset);
 
 		// t = As  = Ar
 		A(t,r,OpType);
 		// omega = < t | s > / < t | t > = < t | r > / norm2(t);
 
 		// This does the full 5D norm
-		double t_norm = Norm2Vec(t);
+		double t_norm = Norm2Vec(t,subset);
 
 
 		if( t_norm == 0 ) {
@@ -188,7 +189,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 		}
 
 		// accumulate <t | s > = <t | r> into omega
-		omega = InnerProductVec(t,r);
+		omega = InnerProductVec(t,r,subset);
 		omega /= t_norm;
 
 		// psi = psi + omega s + alpha p
@@ -202,14 +203,14 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 		//tmp[s] = psi + omega_r*r;
 		//psi[s] = tmp + alpha_r*p;
 		//psi[s] = psi + omega_r*r + alpha_r*p
-		BiCGStabXUpdate(omega_r, r, alpha_r, p, psi);
+		BiCGStabXUpdate(omega_r, r, alpha_r, p, psi,subset);
 
 		// r = s - omega t = r - omega t1G
 
 		FComplex momega_r(-(float)omega.real(), -(float)omega.imag());
-		AxpyVec( momega_r, t, r);
+		AxpyVec( momega_r, t, r,subset);
 
-		r_norm = Norm2Vec(r);
+		r_norm = Norm2Vec(r,subset);
 		if( VerboseP ) {
 			MasterLog(INFO,"BiCGStab: level=%d iter=%d || r ||^2=%16.8e  Target || r ||^2=%16.8e",level, k, r_norm, rsd_sq);
 
@@ -232,7 +233,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 	// Compute the actual residual
 	A(r, psi, OpType);
-	double actual_res = XmyNorm2Vec(r,chi);
+	double actual_res = XmyNorm2Vec(r,chi,subset);
 	ret.resid = sqrt(actual_res);
 	if ( resid_type == ABSOLUTE ) {
 		if( VerboseP ) {
@@ -253,7 +254,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 
 BiCGStabSolverCoarse::BiCGStabSolverCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M, const LinearSolverParamsBase& params) : _M(M),
-		_params(params){}
+		_params(params) {}
 
 LinearSolverResults
 BiCGStabSolverCoarse::operator()(CoarseSpinor& out, const CoarseSpinor& in, ResiduumType resid_type  ) const {

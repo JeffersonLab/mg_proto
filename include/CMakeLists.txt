@@ -5,11 +5,11 @@ install (FILES lattice/array2d.h
 			   lattice/fgmres_common.h 
 			   lattice/geometry_utils.h   
 			   lattice/invfgmres_generic.h
-         lattice/lattice_info.h 
+         	   lattice/lattice_info.h 
 			   lattice/linear_operator.h
 			   lattice/mg_level_coarse.h			   
-         lattice/mr_params.h
-         lattice/nodeinfo.h
+               lattice/mr_params.h
+               lattice/nodeinfo.h
 			   lattice/solver.h  
 			   lattice/spinor_halo_qmp.h
 			   lattice/spinor_halo_single.h
@@ -26,6 +26,7 @@ install (FILES lattice/coarse/aggregate_block_coarse.h
                lattice/coarse/invbicgstab_coarse.h
                lattice/coarse/invfgmres_coarse.h
                lattice/coarse/invmr_coarse.h
+               lattice/coarse/subset.h
                lattice/coarse/thread_limits.h
                lattice/coarse/vcycle_coarse.h
          DESTINATION include/lattice/coarse)

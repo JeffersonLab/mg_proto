@@ -11,9 +11,12 @@
 #include "lattice/coarse/coarse_l1_blas.h"
 #include "lattice/coarse/aggregate_block_coarse.h"
 #include <cassert>
+
 #include<omp.h>
 
-
+// Eigen Dense header
+#include <Eigen/Dense>
+using namespace Eigen;
 
 namespace MG {
 
@@ -884,6 +887,76 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 
 		} // coarse_site
 	} // coarse_cb
+}
+
+
+
+// MatrixXcf is the Eigen Matrix class
+// Invert the diagonal part of u, into eo_clov
+using ComplexMatrix = Matrix<std::complex<float>, Dynamic, Dynamic, ColMajor>;
+
+void invertCloverDiag(CoarseGauge& u)
+{
+	const LatticeInfo& info = u.GetInfo();
+	const int num_cbsites = info.GetNumCBSites();
+	const int num_colorspins = info.GetNumColorSpins();
+
+#pragma omp parallel for collapse(2)
+	for(int cb = 0; cb < n_checkerboard; ++cb) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+
+			// 0-7 are the off diags, 8 is the diag
+			float *diag_site_data = u.GetSiteDirDataPtr(cb,cbsite,8);
+			float *invdiag_site_data = u.GetSiteDirADDataPtr(cb,cbsite,8);
+
+			Map< ComplexMatrix > in_mat(reinterpret_cast<std::complex<float>*>(diag_site_data),
+					num_colorspins,
+					num_colorspins);
+			Map< ComplexMatrix > out_mat(reinterpret_cast<std::complex<float>*>(invdiag_site_data),
+					num_colorspins,
+					num_colorspins);
+
+			out_mat = in_mat.inverse();
+			//out_mat = in_mat;
+
+		} // sites
+	} // checkerboards
+}
+
+// Multiply the inverse part of the clover into eo_clov
+void multInvClovOffDiag(CoarseGauge& u)
+{
+	const LatticeInfo& info = u.GetInfo();
+	const int num_cbsites = info.GetNumCBSites();
+	const int num_colorspins = info.GetNumColorSpins();
+
+#pragma omp parallel for collapse(2)
+	for(int cb = 0; cb < n_checkerboard; ++cb) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+
+			// 0-7 are the off diags, 8 is the diag
+			float *invdiag_site_data = u.GetSiteDirADDataPtr(cb,cbsite,8);
+			for(int mu=0; mu < 8; ++mu) {
+				float *resptr = u.GetSiteDirADDataPtr(cb,cbsite,mu);
+				float *srcptr = u.GetSiteDirDataPtr(cb,cbsite,mu);
+
+
+			Map< ComplexMatrix > invdiag_mat(reinterpret_cast<std::complex<float>*>(invdiag_site_data),
+					num_colorspins,
+					num_colorspins);
+
+			Map< ComplexMatrix > srcmat(reinterpret_cast<std::complex<float>*>(srcptr),
+					num_colorspins,
+					num_colorspins);
+
+			Map< ComplexMatrix > resmat(reinterpret_cast<std::complex<float>*>(resptr),
+								num_colorspins,
+								num_colorspins);
+
+			resmat = invdiag_mat * srcmat;
+			}
+		} // sites
+	} // checkerboards
 }
 
 }; // Namespace

@@ -4,7 +4,7 @@
  *  Created on: Dec 12, 2016
  *      Author: bjoo
  */
-
+#include <complex>
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/coarse_l1_blas.h"
@@ -23,27 +23,27 @@ namespace MG
 namespace GlobalComm {
 
 #ifdef MG_QMP_COMMS
-	void GlobalSum( double& my_summand )
-	{
-		double result = my_summand;
-		QMP_sum_double(&result);
-		my_summand = result;
-		return; // Return Summand Unchanged -- MPI version should use an MPI_ALLREDUCE
+void GlobalSum( double& my_summand )
+{
+	double result = my_summand;
+	QMP_sum_double(&result);
+	my_summand = result;
+	return; // Return Summand Unchanged -- MPI version should use an MPI_ALLREDUCE
 
-	}
-	void GlobalSum( double* array, int array_length ) {
-		QMP_sum_double_array(array,array_length);
-		return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
-	}
+}
+void GlobalSum( double* array, int array_length ) {
+	QMP_sum_double_array(array,array_length);
+	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
+}
 #else
-	void GlobalSum( double& my_summand )
-	{
-		return; // Return Summand Unchanged -- MPI version should use an MPI_ALLREDUCE
+void GlobalSum( double& my_summand )
+{
+	return; // Return Summand Unchanged -- MPI version should use an MPI_ALLREDUCE
 
-	}
-	void GlobalSum( double* array, int array_length ) {
-		return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
-	}
+}
+void GlobalSum( double* array, int array_length ) {
+	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
+}
 
 #endif
 
@@ -61,7 +61,7 @@ namespace GlobalComm {
  * @return   double containing the square norm of the difference
  *
  */
-double XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y)
+double XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
 {
 	double norm_diff = (double)0;
 
@@ -77,7 +77,7 @@ double XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y)
 
 	// Loop over the sites and sum up the norm
 #pragma omp parallel for collapse(2) reduction(+:norm_diff)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -107,12 +107,15 @@ double XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y)
 	return norm_diff;
 }
 
+
+
+
 /** returns || x ||^2
  * @param x  - CoarseSpinor ref
  * @return   double containing the square norm of the difference
  *
  */
-double Norm2Vec(const CoarseSpinor& x)
+double Norm2Vec(const CoarseSpinor& x, const CBSubset& subset)
 {
 	double norm_sq = (double)0;
 
@@ -124,7 +127,7 @@ double Norm2Vec(const CoarseSpinor& x)
 
 	// Loop over the sites and sum up the norm
 #pragma omp parallel for collapse(2) reduction(+:norm_sq)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -157,12 +160,12 @@ double Norm2Vec(const CoarseSpinor& x)
  * @return   double containing the square norm of the difference
  *
  */
-std::complex<double> InnerProductVec(const CoarseSpinor& x, const CoarseSpinor& y)
-{
+std::complex<double> InnerProductVec(const CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
+		{
 
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
-		AssertCompatible(x_info, y_info);
+	AssertCompatible(x_info, y_info);
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
@@ -172,7 +175,7 @@ std::complex<double> InnerProductVec(const CoarseSpinor& x, const CoarseSpinor& 
 
 	// Loop over the sites and sum up the norm
 #pragma omp parallel for collapse(2) reduction(+:iprod_re) reduction(+:iprod_im)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -188,10 +191,10 @@ std::complex<double> InnerProductVec(const CoarseSpinor& x, const CoarseSpinor& 
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 				cspin_iprod_re += x_site_data[ RE + n_complex*cspin ]*y_site_data[ RE + n_complex*cspin ]
-							+ x_site_data[ IM + n_complex*cspin ]*y_site_data[ IM + n_complex*cspin ];
+																				   + x_site_data[ IM + n_complex*cspin ]*y_site_data[ IM + n_complex*cspin ];
 
 				cspin_iprod_im += x_site_data[ RE + n_complex*cspin ]*y_site_data[ IM + n_complex*cspin ]
-							- x_site_data[ IM + n_complex*cspin ]*y_site_data[ RE + n_complex*cspin ];
+																				   - x_site_data[ IM + n_complex*cspin ]*y_site_data[ RE + n_complex*cspin ];
 
 
 			}
@@ -207,9 +210,10 @@ std::complex<double> InnerProductVec(const CoarseSpinor& x, const CoarseSpinor& 
 	std::complex<double> ret_val(iprod_array[0],iprod_array[1]);
 
 	return ret_val;
-}
+		}
 
-void ZeroVec(CoarseSpinor& x)
+
+void ZeroVec(CoarseSpinor& x, const CBSubset& subset)
 {
 	const LatticeInfo& x_info = x.GetInfo();
 
@@ -217,7 +221,7 @@ void ZeroVec(CoarseSpinor& x)
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -238,7 +242,9 @@ void ZeroVec(CoarseSpinor& x)
 
 }
 
-void CopyVec(CoarseSpinor& x, const CoarseSpinor& y)
+
+
+void CopyVec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
 {
 
 
@@ -250,7 +256,7 @@ void CopyVec(CoarseSpinor& x, const CoarseSpinor& y)
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -272,7 +278,9 @@ void CopyVec(CoarseSpinor& x, const CoarseSpinor& y)
 
 }
 
-void ScaleVec(const float alpha, CoarseSpinor& x)
+
+
+void ScaleVec(const float alpha, CoarseSpinor& x, const CBSubset& subset)
 {
 
 
@@ -282,7 +290,7 @@ void ScaleVec(const float alpha, CoarseSpinor& x)
 	IndexType num_colorspin = x.GetNumColorSpin();
 
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -301,7 +309,8 @@ void ScaleVec(const float alpha, CoarseSpinor& x)
 
 }
 
-void ScaleVec(const std::complex<float>& alpha, CoarseSpinor& x)
+
+void ScaleVec(const std::complex<float>& alpha, CoarseSpinor& x, const CBSubset& subset)
 {
 
 
@@ -310,7 +319,7 @@ void ScaleVec(const std::complex<float>& alpha, CoarseSpinor& x)
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -320,10 +329,10 @@ void ScaleVec(const std::complex<float>& alpha, CoarseSpinor& x)
 #pragma omp simd
 			for(int cspin=0; cspin < num_colorspin; ++cspin) {
 				std::complex<float> t( x_site_data[RE + n_complex*cspin],
-									   x_site_data[IM + n_complex*cspin]);
+						x_site_data[IM + n_complex*cspin]);
 
 				t *= alpha;
-				x_site_data[RE + n_complex*cspin] = real(t);
+				x_site_data[RE + n_complex*cspin] = std::real(t);
 				x_site_data[IM + n_complex*cspin] = imag(t);
 			}
 
@@ -332,7 +341,8 @@ void ScaleVec(const std::complex<float>& alpha, CoarseSpinor& x)
 
 }
 
-void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpinor& y)
+
+void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
 {
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
@@ -343,7 +353,7 @@ void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpin
 	IndexType num_colorspin = x.GetNumColorSpin();
 
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -358,15 +368,15 @@ void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpin
 
 
 				std::complex<float> c_x( x_site_data[RE + n_complex*cspin],
-													   x_site_data[IM + n_complex*cspin]);
+						x_site_data[IM + n_complex*cspin]);
 
 				std::complex<float> c_y( y_site_data[RE + n_complex*cspin],
-													   y_site_data[IM + n_complex*cspin]);
+						y_site_data[IM + n_complex*cspin]);
 
 
 				c_y += alpha*c_x;
 
-				y_site_data[ RE + n_complex*cspin] = real(c_y);
+				y_site_data[ RE + n_complex*cspin] = std::real(c_y);
 				y_site_data[ IM + n_complex*cspin] = imag(c_y);
 
 			}
@@ -375,7 +385,8 @@ void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpin
 	} // End of Parallel for region
 }
 
-void YpeqxVec(const CoarseSpinor& x, CoarseSpinor& y)
+
+void YpeqxVec(const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
 {
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
@@ -386,7 +397,7 @@ void YpeqxVec(const CoarseSpinor& x, CoarseSpinor& y)
 	IndexType num_colorspin = x.GetNumColorSpin();
 
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -410,7 +421,7 @@ void YpeqxVec(const CoarseSpinor& x, CoarseSpinor& y)
 	} // End of Parallel for region
 }
 
-void YmeqxVec(const CoarseSpinor& x, CoarseSpinor& y)
+void YmeqxVec(const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
 {
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
@@ -421,7 +432,7 @@ void YmeqxVec(const CoarseSpinor& x, CoarseSpinor& y)
 	IndexType num_colorspin = x.GetNumColorSpin();
 
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -445,11 +456,13 @@ void YmeqxVec(const CoarseSpinor& x, CoarseSpinor& y)
 	} // End of Parallel for region
 }
 
+
 void BiCGStabPUpdate(const std::complex<float>& beta,
-					 const CoarseSpinor& r,
-					 const std::complex<float>& omega,
-					 const CoarseSpinor& v,
-					 CoarseSpinor& p)
+		const CoarseSpinor& r,
+		const std::complex<float>& omega,
+		const CoarseSpinor& v,
+		CoarseSpinor& p,
+		const CBSubset& subset)
 {
 	const LatticeInfo& r_info = r.GetInfo();
 	const LatticeInfo& p_info = p.GetInfo();
@@ -462,7 +475,7 @@ void BiCGStabPUpdate(const std::complex<float>& beta,
 	IndexType num_colorspin = p.GetNumColorSpin();
 
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -478,13 +491,13 @@ void BiCGStabPUpdate(const std::complex<float>& beta,
 
 
 				const std::complex<float> c_p( p_site_data[RE + n_complex*cspin],
-									           p_site_data[IM + n_complex*cspin]);
+						p_site_data[IM + n_complex*cspin]);
 
 				const std::complex<float> c_r( r_site_data[RE + n_complex*cspin],
-										       r_site_data[IM + n_complex*cspin]);
+						r_site_data[IM + n_complex*cspin]);
 
 				const std::complex<float> c_v( v_site_data[RE + n_complex*cspin],
-										       v_site_data[IM + n_complex*cspin]);
+						v_site_data[IM + n_complex*cspin]);
 
 
 				std::complex<float> res = c_r + beta*(c_p - omega*c_v);
@@ -499,11 +512,14 @@ void BiCGStabPUpdate(const std::complex<float>& beta,
 }
 
 
+
+
 void BiCGStabXUpdate(const std::complex<float>& omega,
-					 const CoarseSpinor& r,
-					 const std::complex<float>& alpha,
-					 const CoarseSpinor& p,
-					 CoarseSpinor& x)
+		const CoarseSpinor& r,
+		const std::complex<float>& alpha,
+		const CoarseSpinor& p,
+		CoarseSpinor& x,
+		const CBSubset& subset)
 {
 	const LatticeInfo& r_info = r.GetInfo();
 	const LatticeInfo& p_info = p.GetInfo();
@@ -516,7 +532,7 @@ void BiCGStabXUpdate(const std::complex<float>& omega,
 	IndexType num_colorspin = x.GetNumColorSpin();
 
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -532,10 +548,10 @@ void BiCGStabXUpdate(const std::complex<float>& omega,
 
 
 				const std::complex<float> c_p( p_site_data[RE + n_complex*cspin],
-									           p_site_data[IM + n_complex*cspin]);
+						p_site_data[IM + n_complex*cspin]);
 
 				const std::complex<float> c_r( r_site_data[RE + n_complex*cspin],
-										       r_site_data[IM + n_complex*cspin]);
+						r_site_data[IM + n_complex*cspin]);
 
 				const std::complex<float> res =  omega*c_r + alpha*c_p;
 
@@ -553,7 +569,8 @@ void BiCGStabXUpdate(const std::complex<float>& omega,
 
 
 
-void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y) {
+
+void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y, const CBSubset& subset) {
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
 	AssertCompatible(x_info, y_info);
@@ -563,7 +580,7 @@ void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y) {
 	IndexType num_colorspin = x.GetNumColorSpin();
 
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -586,8 +603,9 @@ void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y) {
 	} // End of Parallel for region
 }
 
+
 void XmyzVec(const CoarseSpinor&x, const CoarseSpinor& y,
-			CoarseSpinor& z) {
+		CoarseSpinor& z, const CBSubset& subset) {
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
 	const LatticeInfo& z_info = z.GetInfo();
@@ -600,7 +618,7 @@ void XmyzVec(const CoarseSpinor&x, const CoarseSpinor& y,
 	IndexType num_colorspin = x.GetNumColorSpin();
 
 #pragma omp parallel for collapse(2)
-	for(int cb=0; cb < 2; ++cb ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
 
@@ -624,8 +642,10 @@ void XmyzVec(const CoarseSpinor&x, const CoarseSpinor& y,
 	} // End of Parallel for region
 }
 
+
+
 /**** NOT 100% sure how to test this easily ******/
-void Gaussian(CoarseSpinor& x)
+void Gaussian(CoarseSpinor& x, const CBSubset& subset)
 {
 	const LatticeInfo& info = x.GetInfo();
 	const IndexType num_colorspin = info.GetNumColors()*info.GetNumSpins();
@@ -647,7 +667,7 @@ void Gaussian(CoarseSpinor& x)
 		std::normal_distribution<> normal_dist(0.0,1.0);
 
 #pragma omp for collapse(2)
-		for(int cb=0; cb < n_checkerboard; ++cb) {
+		for(int cb=subset.start; cb < subset.end; ++cb) {
 			for(int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
 
 				float *x_site_data = x.GetSiteDataPtr(cb,cbsite);
@@ -666,6 +686,8 @@ void Gaussian(CoarseSpinor& x)
 	}
 
 }
+
+
 
 void ZeroGauge(CoarseGauge& gauge)
 {
@@ -687,6 +709,7 @@ void ZeroGauge(CoarseGauge& gauge)
 		} //cbsite
 	} // cb
 }
+
 
 };
 

@@ -5,8 +5,8 @@
  *      Author: bjoo
  */
 
-#ifndef INCLUDE_LATTICE_QPHIX_QPHIX_CLOVER_LINEAR_OPERATOR_H_
-#define INCLUDE_LATTICE_QPHIX_QPHIX_CLOVER_LINEAR_OPERATOR_H_
+#ifndef INCLUDE_LATTICE_QPHIX_QPHIX_EO_CLOVER_LINEAR_OPERATOR_H_
+#define INCLUDE_LATTICE_QPHIX_QPHIX_EO_CLOVER_LINEAR_OPERATOR_H_
 
 
 /*!
@@ -20,25 +20,24 @@
 
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/qphix/qphix_qdp_utils.h"
-
+#include "lattice/qphix/qphix_blas_wrappers.h"
 #include "lattice/coarse/block.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 #include <qphix/clover.h>
+#include "lattice/coarse/subset.h"
 
 namespace MG {
 
-
 template<typename FT>
-
-class QPhiXWilsonCloverLinearOperatorT : public LinearOperator<QPhiXSpinorT<FT>,QPhiXGaugeT<FT> > {
+class QPhiXWilsonCloverEOLinearOperatorT : public EOLinearOperator<QPhiXSpinorT<FT>,QPhiXGaugeT<FT> > {
 public:
   using QDPGauge = QDP::multi1d<QDP::LatticeColorMatrix>;
   using Spinor = QPhiXSpinorT<FT>;
   using CBSpinor = QPhiXCBSpinorT<FT>;
 
-  QPhiXWilsonCloverLinearOperatorT( const LatticeInfo& info, double m_q, double c_sw, int t_bc, const QDPGauge& gauge_in ) :
-    _info(info), _t_bc(t_bc),_u(info), _clov(info)
+  QPhiXWilsonCloverEOLinearOperatorT( const LatticeInfo& info, double m_q, double c_sw, int t_bc, const QDPGauge& gauge_in ) :
+    _info(info), _t_bc(t_bc),_u(info), _clov(info), _tmp1(info)
   {
     // The QPhiX Operator takes unmodified fields.
      QDPGaugeFieldToQPhiXGauge(gauge_in, _u);
@@ -83,8 +82,8 @@ public:
                            t_bcf,1.0,1.0));
   }
 
-  QPhiXWilsonCloverLinearOperatorT(const LatticeInfo& info, double m_q, double u0, double xi0, double nu, double c_sw_r, double c_sw_t,
-      int t_bc, const QDPGauge& gauge_in ) : _info(info),_t_bc(t_bc),_u(info), _clov(info)
+  QPhiXWilsonCloverEOLinearOperatorT(const LatticeInfo& info, double m_q, double u0, double xi0, double nu, double c_sw_r, double c_sw_t,
+      int t_bc, const QDPGauge& gauge_in ) : _info(info),_t_bc(t_bc),_u(info), _clov(info),  _tmp1(info)
   {
 
     // The QPhiX Operator takes unmodified fields.
@@ -146,50 +145,119 @@ public:
                             t_bcf,anisoFacS,anisoFacT));
   }
 
-  ~QPhiXWilsonCloverLinearOperatorT() {
+  ~QPhiXWilsonCloverEOLinearOperatorT() {
 
     // The QPhiX op will delete when the smart pointer calls its destructor
   }
 
+  // The predoncidioned operator
   void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override{
     int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->M_unprec(out.get(),in.get(),isign);
+    QPhiXEOClov->operator()(out.getCB(ODD).get(),in.getCB(ODD).get(),isign,ODD);
+  }
+
+  // The unpreconditioned operator
+  void unprecOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override {
+	int isign = (type == LINOP_OP) ? 1 : -1;
+	QPhiXEOClov->M_unprec(out.get(),in.get(),isign);
   }
 
 
-  void M_ee(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const{
-    int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->M_diag(out.get(),in.get(),isign,0);
+  void leftOp(Spinor& out, const Spinor& in) const override{
+
+  	  // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
+  	  const int isign = 1;
+  	  QPhiXEOClov->M_diag_inv(_tmp1.getCB(EVEN).get(), in.getCB(EVEN).get(), isign);
+
+  	  // tmp2 = M_oe M tmp1 = M_oe M_ee^{-1} in
+  	  QPhiXEOClov->M_offdiag(_tmp1.getCB(ODD).get() ,_tmp1.getCB(EVEN).get(), isign, ODD);
+
+  	  CopyVec(out, in,  SUBSET_ALL);
+  	  AxpyVec(1.0,_tmp1, out,SUBSET_ODD);
+
+    }
+
+  void leftInvOp(Spinor& out, const Spinor& in) const override {
+	  // L^{-1}[ in_e ] = [ 1       0 ][ in_e ] = [ in_e                       ]
+	  //       [ in_o ]   [-DA^{-1} 1 ][ in_o ]   [ in_o - D_oe A^{-1}_ee in_e ]
+
+	  // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
+	  const int isign = 1;
+	  QPhiXEOClov->M_diag_inv(_tmp1.getCB(EVEN).get(), in.getCB(EVEN).get(), isign);
+
+	  // tmp2 = M_oe M tmp1 = M_oe M_ee^{-1} in
+	  QPhiXEOClov->M_offdiag(_tmp1.getCB(ODD).get(), _tmp1.getCB(EVEN).get(), isign, ODD);
+
+	  CopyVec(out, in, SUBSET_ALL);
+	  AxpyVec(-1.0,_tmp1,out,SUBSET_ODD);
+
   }
+
+#if 0
+  // Special case when in even is known to be zero.
+  void leftInvOpZero(Spinor& out,const Spinor& in) const override {
+	  // L^{-1}[ in_e ] = [ 1       0 ][ in_e ] = [ in_e                       ]
+	  //       [ in_o ]   [-DA^{-1} 1 ][ in_o ]   [ in_o - D_oe A^{-1}_ee in_e ]
+  	  // when in_e = 0 we have
+	  //
+	  // L^{-1} [ in_e ] = [ in_e     ] = [in_e]
+	  //        [ in_o ]   [ in_o - 0 ]   [in_o]
+
+  	  CopyVec(out,in,SUBSET_ALL);   // This automatically zeros out's even subset
+
+    }
+#endif
+
+  void rightOp(Spinor& out, const Spinor& in) const override {
+
+   	  const int isign = 1;
+
+   	  // use odd cb of tmp1 as a temporary storage
+   	  // it is not really the odd checkerboardl
+   	  QPhiXEOClov->M_offdiag(_tmp1.getCB(ODD).get(), in.getCB(ODD).get(), isign, EVEN);
+
+   	  // we will go from the odd into the final target.
+   	  QPhiXEOClov->M_diag_inv(_tmp1.getCB(EVEN).get(), _tmp1.getCB(ODD).get(), isign);
+
+   	  CopyVec(out, in, SUBSET_ALL);
+   	  AxpyVec(1.0,_tmp1,out, SUBSET_EVEN);
+
+     }
+
+  void rightInvOp(Spinor& out, const Spinor& in) const override  {
+
+ 	  // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
+ 	  const int isign = 1;
+
+
+ 	 QPhiXEOClov->M_offdiag(_tmp1.getCB(ODD).get(), in.getCB(ODD).get(), isign, EVEN);
+ 	 QPhiXEOClov->M_diag_inv(_tmp1.getCB(EVEN).get(), _tmp1.getCB(ODD).get(), isign);
+ 	 CopyVec(out, in, SUBSET_ALL);
+ 	 AxpyVec(-1.0,_tmp1,out, SUBSET_EVEN);
+
+
+   }
+
+  void M_ee_inv(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const override{
+      const int isign = (type == LINOP_OP) ? 1: -1;
+      QPhiXEOClov->M_diag_inv(out.getCB(EVEN).get(),in.getCB(EVEN).get(),isign);
+    }
 
   void M_oo(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const  {
-    int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->M_diag(out.get(),in.get(),isign,1);
-  }
+     int isign = (type == LINOP_OP) ? 1 : -1;
+     QPhiXEOClov->M_diag(out.get(),in.get(),isign,1);
+   }
 
-  void M_eo(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
-    int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->M_offdiag(out.getCB(0).get(),in.getCB(1).get(), isign,0);
-  }
-
-  void M_oe(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
-    int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->M_offdiag(out.getCB(1).get() ,in.getCB(0).get(), isign, 1);
-  }
-
-  void M_ee_inv(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
-    const int isign = (type == LINOP_OP) ? 1: -1;
-    QPhiXEOClov->M_diag_inv(out.getCB(0).get(),in.getCB(0).get(),isign);
-  }
-
-
-
+  void M_ee(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const{
+      int isign = (type == LINOP_OP) ? 1 : -1;
+      QPhiXEOClov->M_diag(out.get(),in.get(),isign,0);
+    }
   int GetLevel(void) const override {
     return 0;
   }
 
   const CBSubset& GetSubset() const override {
-	  return SUBSET_ALL;
+	  return SUBSET_ODD;
   }
 
   const LatticeInfo& GetInfo(void) const override {
@@ -197,6 +265,7 @@ public:
   }
 
   // Apply a single direction of Dslash -- used for coarsening
+  // Coarsening is done as per the unprec op.
   void DslashDir(Spinor& spinor_out,
         const Spinor& spinor_in,
         const IndexType dir) const {
@@ -209,7 +278,7 @@ public:
     return *QPhiXEOClov;
   }
 
-
+  // Generate Coarse is done as per the coarse op
   void generateCoarse(const std::vector<Block>& blocklist,
       const std::vector<std::shared_ptr<Spinor>>& in_vecs,
       CoarseGauge& u_coarse) const
@@ -254,13 +323,13 @@ private:
   const LatticeInfo& _info;
 
   std::unique_ptr<QPhiXClovOpT<FT>> QPhiXEOClov;
-
+  mutable Spinor _tmp1;
 
 
 };
 
-using QPhiXWilsonCloverLinearOperator = QPhiXWilsonCloverLinearOperatorT<double>;
-using QPhiXWilsonCloverLinearOperatorF = QPhiXWilsonCloverLinearOperatorT<float>;
+using QPhiXWilsonCloverEOLinearOperator = QPhiXWilsonCloverEOLinearOperatorT<double>;
+using QPhiXWilsonCloverEOLinearOperatorF = QPhiXWilsonCloverEOLinearOperatorT<float>;
 
 }
 

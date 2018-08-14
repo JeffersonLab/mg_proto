@@ -5,6 +5,7 @@ LIST(APPEND library_source_list lattice/aggregate_block_coarse.cpp
 			   lattice/coarse_op.cpp
 			   lattice/givens.cpp
 			   lattice/invbicgstab_coarse.cpp
+			   lattice/invclov_coarse.cpp
 			   lattice/invmr_coarse.cpp
 			   lattice/lattice_info.cpp
 			   lattice/nodeinfo.cpp

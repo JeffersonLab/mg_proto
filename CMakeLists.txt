@@ -90,6 +90,17 @@ else( QMP_DIR )
   set( MG_QMP_INIT FALSE)
 endif( QMP_DIR )
 
+# Look for eigen
+# If eigen was 'installed' this is what I would use
+#find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+#
+# Since Eigen is not installed I will do it like this
+if( Eigen3_DIR ) 
+  include_directories(${Eigen3_DIR})
+else()
+  message(FATAL_ERROR "Eigen3 directory not specified")
+endif()
+
 if( VTUNE_DIR )
   SET( MG_USE_VTUNE)
   include_directories(${VTUNE_DIR}/include)

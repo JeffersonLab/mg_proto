@@ -104,7 +104,8 @@ public:
 		delete _info;
 	}
 
-	void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const {
+
+	void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override {
 
 		// Cut this out of Chroma, modified for explicit checkerrboarding
 
@@ -143,11 +144,15 @@ public:
 	  _invclov.apply(out,in,isign,EVEN);	  
         }
 
-	int GetLevel(void) const {
+	int GetLevel(void) const override {
 		return 0;
 	}
 
-	const LatticeInfo& GetInfo(void) const {
+	const CBSubset& GetSubset() const override {
+		  return SUBSET_ALL;
+	  }
+
+	const LatticeInfo& GetInfo(void) const override {
 		return *_info;
 	}
 

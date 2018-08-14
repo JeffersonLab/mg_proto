@@ -10,7 +10,7 @@
 
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
-
+#include "lattice/coarse/subset.h"
 #include "utils/print_utils.h"
 namespace MG {
 
@@ -27,41 +27,35 @@ public:
 	void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const  = 0;
 
 
-	virtual
-	void M_eo(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) {
-		MasterLog(ERROR, "M_eo not yet implemented.");
-	}
-
-	virtual
-	void M_oe(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) {
-		MasterLog(ERROR, "M_oe not yet implemented.");
-	}
-
-        virtual
-        void M_ee(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) {
-                MasterLog(ERROR, "M_ee not yet implemented.");
-        }
-
-        virtual
-        void M_oo(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) {
-                MasterLog(ERROR, "M_oo not yet implemented.");
-        }
-
-
-	virtual
-	void M_ee_inv(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) {
-		MasterLog(ERROR, "M_ee not yet implemented.");
-	}
-
-
 	virtual ~LinearOperator() {}
 
 	virtual int GetLevel(void) const =  0;
 	virtual const LatticeInfo& GetInfo() const = 0;
+	virtual const CBSubset& GetSubset() const = 0;
 
 private:
 };
 
+template <typename Spinor_t, typename Gauge_t>
+class EOLinearOperator : public LinearOperator<Spinor_t,Gauge_t> {
+	public:
+		using Gauge = Gauge_t;
+		using Spinor = Spinor_t;
+
+		virtual void unprecOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const = 0;
+		virtual void leftOp(Spinor& out, const Spinor& in) const = 0;
+		virtual void leftInvOp(Spinor& out, const Spinor& in) const = 0;
+
+#if 0
+  // Special case when in even is known to be zero.
+  virtual void leftInvOpZero(Spinor& out,const Spinor& in) const = 0;
+#endif
+
+  	  virtual void rightOp(Spinor& out, const Spinor& in) const = 0;
+  	  virtual void rightInvOp(Spinor& out, const Spinor& in) const  = 0;
+
+  	 virtual void M_ee_inv(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const = 0;
+};
 
 } // Namespace
 

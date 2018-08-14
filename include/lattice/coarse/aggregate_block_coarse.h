@@ -64,6 +64,13 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 			const CoarseGauge& fine_clov,
 			const std::vector<std::shared_ptr<CoarseSpinor > >& in_fine_vecs,
 			CoarseGauge& coarse_clov);
+
+// Invert the diagonal part of u, into eo_clov
+void invertCloverDiag(CoarseGauge& u);
+
+// Multiply the inverse part of the clover into eo_clov
+void multInvClovOffDiag(CoarseGauge& u);
+
 };
 
 #endif /* TEST_QDPXX_AGGREGATE_QDPXX_H_ */

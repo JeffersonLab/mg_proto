@@ -11,6 +11,7 @@
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/coarse/block.h"
 #include "lattice/qphix/qphix_clover_linear_operator.h"
+#include "lattice/qphix/qphix_eo_clover_linear_operator.h"
 namespace MG
 {
 
@@ -79,12 +80,33 @@ void dslashTripleProductDir(const QPhiXWilsonCloverLinearOperatorF& D_op,
     const std::vector<std::shared_ptr<QPhiXSpinorF> >& in_vecs,
     CoarseGauge& u_coarse);
 
+void dslashTripleProductDir(const QPhiXWilsonCloverEOLinearOperator& D_op,
+    const std::vector<Block>& blocklist, int dir,
+    const std::vector<std::shared_ptr<QPhiXSpinor> >& in_vecs,
+    CoarseGauge& u_coarse);
+
+void dslashTripleProductDir(const QPhiXWilsonCloverEOLinearOperatorF& D_op,
+    const std::vector<Block>& blocklist, int dir,
+    const std::vector<std::shared_ptr<QPhiXSpinorF> >& in_vecs,
+    CoarseGauge& u_coarse);
+
+
 void clovTripleProduct(const QPhiXWilsonCloverLinearOperator& D_op,
     const std::vector<Block>& blocklist,
     const std::vector<std::shared_ptr<QPhiXSpinor> >& in_vecs,
     CoarseGauge& gauge_clover);
 
 void clovTripleProduct(const QPhiXWilsonCloverLinearOperatorF& D_op,
+    const std::vector<Block>& blocklist,
+    const std::vector<std::shared_ptr<QPhiXSpinorF> >& in_vecs,
+    CoarseGauge& gauge_clover);
+
+void clovTripleProduct(const QPhiXWilsonCloverEOLinearOperator& D_op,
+    const std::vector<Block>& blocklist,
+    const std::vector<std::shared_ptr<QPhiXSpinor> >& in_vecs,
+    CoarseGauge& gauge_clover);
+
+void clovTripleProduct(const QPhiXWilsonCloverEOLinearOperatorF& D_op,
     const std::vector<Block>& blocklist,
     const std::vector<std::shared_ptr<QPhiXSpinorF> >& in_vecs,
     CoarseGauge& gauge_clover);

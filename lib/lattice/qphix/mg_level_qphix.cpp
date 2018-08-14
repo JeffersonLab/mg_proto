@@ -9,6 +9,7 @@
 #include <lattice/qphix/qphix_blas_wrappers.h>
 #include <lattice/qphix/qphix_aggregate.h>
 #include <lattice/qphix/qphix_qdp_utils.h>
+
 namespace MG
 {
 template<typename SpinorT, typename SolverT, typename LinOpT>
@@ -133,69 +134,164 @@ void SetupQPhiXToCoarseVecsInT(const SetupParams& p,  std::shared_ptr<LinOpT> M_
 
 }
 
-void SetupQPhiXToCoarseGenerateVecs(const SetupParams& p, std::shared_ptr<QPhiXWilsonCloverLinearOperator> M_fine,
-             MGLevelQPhiX& fine_level, MGLevelCoarse& coarse_level)
+// NON EO VERSIONS
+void SetupQPhiXToCoarseGenerateVecs(const SetupParams& p,
+									const std::shared_ptr<QPhiXWilsonCloverLinearOperator>& M_fine,
+             MGLevelQPhiXLinOp<QPhiXWilsonCloverLinearOperator>& fine_level,
+			 MGLevelCoarse& coarse_level)
 {
   SetupQPhiXToCoarseGenerateVecsT<>(p,M_fine,fine_level,coarse_level);
 }
 
- void SetupQPhiXToCoarseGenerateVecs(const SetupParams& p, std::shared_ptr<QPhiXWilsonCloverLinearOperatorF> M_fine,
-               MGLevelQPhiXF& fine_level, MGLevelCoarse& coarse_level)
+ void SetupQPhiXToCoarseGenerateVecs(const SetupParams& p,
+		 	 const std::shared_ptr<QPhiXWilsonCloverLinearOperatorF>& M_fine,
+               MGLevelQPhiXLinOpF<QPhiXWilsonCloverLinearOperatorF>& fine_level,
+			   MGLevelCoarse& coarse_level)
  {
    SetupQPhiXToCoarseGenerateVecsT<>(p,M_fine,fine_level,coarse_level);
  }
 
- void SetupQPhiXToCoarseVecsIn(const SetupParams& p, std::shared_ptr<QPhiXWilsonCloverLinearOperator> M_fine,
-              MGLevelQPhiX& fine_level, MGLevelCoarse& coarse_level)
+ void SetupQPhiXToCoarseVecsIn(const SetupParams& p,
+		 	 const std::shared_ptr<QPhiXWilsonCloverLinearOperator>& M_fine,
+              MGLevelQPhiXLinOp<QPhiXWilsonCloverLinearOperator>& fine_level,
+			  MGLevelCoarse& coarse_level)
  {
    SetupQPhiXToCoarseVecsInT<>(p,M_fine,fine_level,coarse_level);
  }
 
-  void SetupQPhiXToCoarseVecsIn(const SetupParams& p, std::shared_ptr<QPhiXWilsonCloverLinearOperatorF> M_fine,
-                MGLevelQPhiXF& fine_level, MGLevelCoarse& coarse_level)
+  void SetupQPhiXToCoarseVecsIn(const SetupParams& p,
+		  	  	  const std::shared_ptr<QPhiXWilsonCloverLinearOperatorF>& M_fine,
+				  MGLevelQPhiXLinOpF<QPhiXWilsonCloverLinearOperatorF>& fine_level,
+				  MGLevelCoarse& coarse_level)
   {
     SetupQPhiXToCoarseVecsInT<>(p,M_fine,fine_level,coarse_level);
   }
 
-  void SetupQPhiXToCoarse(const SetupParams& p, std::shared_ptr<QPhiXWilsonCloverLinearOperator> M_fine,
-               MGLevelQPhiX& fine_level, MGLevelCoarse& coarse_level)
+  void SetupQPhiXToCoarse(const SetupParams& p,
+		  	  const std::shared_ptr<QPhiXWilsonCloverLinearOperator>& M_fine,
+               MGLevelQPhiXLinOp<QPhiXWilsonCloverLinearOperator>& fine_level,
+			   MGLevelCoarse& coarse_level)
   {
     SetupQPhiXToCoarseGenerateVecs(p, M_fine, fine_level, coarse_level);
     SetupQPhiXToCoarseVecsIn(p, M_fine, fine_level, coarse_level);
   }
 
-  void SetupQPhiXToCoarse(const SetupParams& p, std::shared_ptr<QPhiXWilsonCloverLinearOperatorF> M_fine,
-                MGLevelQPhiXF& fine_level, MGLevelCoarse& coarse_level)
+  void SetupQPhiXToCoarse(const SetupParams& p,
+		  	  const std::shared_ptr<QPhiXWilsonCloverLinearOperatorF>& M_fine,
+			  MGLevelQPhiXLinOpF<QPhiXWilsonCloverLinearOperatorF>& fine_level,
+			  MGLevelCoarse& coarse_level)
    {
      SetupQPhiXToCoarseGenerateVecs(p, M_fine, fine_level, coarse_level);
      SetupQPhiXToCoarseVecsIn(p, M_fine, fine_level, coarse_level);
    }
 
 
-  void SetupQPhiXMGLevels(const SetupParams& p, QPhiXMultigridLevels& mg_levels,
-        std::shared_ptr< QPhiXWilsonCloverLinearOperatorF> M_fine)
-  {
 
-    mg_levels.n_levels = p.n_levels;
-    if( mg_levels.n_levels < 2 ){
-      MasterLog(ERROR, "Number of Multigrid Levels < 2");
-    }
-
-    int n_coarse_levels = mg_levels.n_levels-1;
-    mg_levels.coarse_levels.resize(n_coarse_levels);
-
-    MasterLog(INFO, "QPhiXMG Setup Level 0 and 1");
-    SetupQPhiXToCoarse(p,M_fine, mg_levels.fine_level, mg_levels.coarse_levels[0]);
-
-    for(int coarse_level=1; coarse_level < n_coarse_levels; ++coarse_level ) {
-
-      MasterLog(INFO, "Setup Level %d and %d", coarse_level, coarse_level+1);
-      SetupCoarseToCoarse(p,mg_levels.coarse_levels[coarse_level-1].M,
-          coarse_level, mg_levels.coarse_levels[coarse_level-1],
-          mg_levels.coarse_levels[coarse_level]);
-
-    }
+  // EO VERSIONS
 
 
-  }
+
+	void SetupQPhiXToCoarseGenerateVecs(const SetupParams& p,
+				const std::shared_ptr<QPhiXWilsonCloverEOLinearOperator>& M_fine,
+ 	             MGLevelQPhiXLinOp<QPhiXWilsonCloverEOLinearOperator>& fine_level,
+				 MGLevelCoarse& coarse_level)
+ 	{
+ 	  SetupQPhiXToCoarseGenerateVecsT<>(p,M_fine,fine_level,coarse_level);
+ 	}
+
+ 	 void SetupQPhiXToCoarseGenerateVecs(const SetupParams& p,
+ 			 	 const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF>& M_fine,
+ 	               MGLevelQPhiXLinOpF<QPhiXWilsonCloverEOLinearOperatorF>& fine_level, MGLevelCoarse& coarse_level)
+ 	 {
+ 	   SetupQPhiXToCoarseGenerateVecsT<>(p,M_fine,fine_level,coarse_level);
+ 	 }
+
+ 	 void SetupQPhiXToCoarseVecsIn(const SetupParams& p,
+ 			 	 const std::shared_ptr<QPhiXWilsonCloverEOLinearOperator>& M_fine,
+ 	              MGLevelQPhiXLinOp<QPhiXWilsonCloverEOLinearOperator>& fine_level,
+				  MGLevelCoarse& coarse_level)
+ 	 {
+ 	   SetupQPhiXToCoarseVecsInT<>(p,M_fine,fine_level,coarse_level);
+ 	 }
+
+ 	  void SetupQPhiXToCoarseVecsIn(const SetupParams& p,
+ 			  	  const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF>& M_fine,
+ 	                MGLevelQPhiXLinOpF<QPhiXWilsonCloverEOLinearOperatorF>& fine_level, MGLevelCoarse& coarse_level)
+ 	  {
+ 	    SetupQPhiXToCoarseVecsInT<>(p,M_fine,fine_level,coarse_level);
+ 	  }
+
+ 	  void SetupQPhiXToCoarse(const SetupParams& p,
+ 			  	  const std::shared_ptr<QPhiXWilsonCloverEOLinearOperator>& M_fine,
+ 	               MGLevelQPhiXLinOp<QPhiXWilsonCloverEOLinearOperator>& fine_level, MGLevelCoarse& coarse_level)
+ 	  {
+ 	    SetupQPhiXToCoarseGenerateVecs(p, M_fine, fine_level, coarse_level);
+ 	    SetupQPhiXToCoarseVecsIn(p, M_fine, fine_level, coarse_level);
+ 	  }
+
+ 	  void SetupQPhiXToCoarse(const SetupParams& p,
+ 			  	  	  	  	  const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF>& M_fine,
+ 	                MGLevelQPhiXLinOpF<QPhiXWilsonCloverEOLinearOperatorF>& fine_level, MGLevelCoarse& coarse_level)
+ 	   {
+ 	     SetupQPhiXToCoarseGenerateVecs(p, M_fine, fine_level, coarse_level);
+ 	     SetupQPhiXToCoarseVecsIn(p, M_fine, fine_level, coarse_level);
+ 	   }
+
+
+
+ 	  void SetupQPhiXMGLevels(const SetupParams& p, QPhiXMultigridLevels& mg_levels,
+ 			  const std::shared_ptr< QPhiXWilsonCloverLinearOperatorF >& M_fine)
+ 	  {
+
+ 		  mg_levels.n_levels = p.n_levels;
+ 		  if( mg_levels.n_levels < 2 ){
+ 			  MasterLog(ERROR, "Number of Multigrid Levels < 2");
+ 		  }
+
+ 		  int n_coarse_levels = mg_levels.n_levels-1;
+ 		  mg_levels.coarse_levels.resize(n_coarse_levels);
+
+ 		  MasterLog(INFO, "QPhiXMG Setup Level 0 and 1");
+ 		  SetupQPhiXToCoarse(p,M_fine, mg_levels.fine_level, mg_levels.coarse_levels[0]);
+
+ 		  for(int coarse_level=1; coarse_level < n_coarse_levels; ++coarse_level ) {
+
+ 			  MasterLog(INFO, "Setup Level %d and %d", coarse_level, coarse_level+1);
+ 			  SetupCoarseToCoarse(p,mg_levels.coarse_levels[coarse_level-1].M,
+ 					  coarse_level, mg_levels.coarse_levels[coarse_level-1],
+					  mg_levels.coarse_levels[coarse_level]);
+
+ 		  }
+
+
+ 	  }
+
+ 	  void SetupQPhiXMGLevels(const SetupParams& p,
+ 			  	  QPhiXMultigridLevelsEO& mg_levels,
+				  const std::shared_ptr< QPhiXWilsonCloverEOLinearOperatorF >& M_fine)
+ 	  {
+
+ 		  mg_levels.n_levels = p.n_levels;
+ 		  if( mg_levels.n_levels < 2 ){
+ 			  MasterLog(ERROR, "Number of Multigrid Levels < 2");
+ 		  }
+
+ 		  int n_coarse_levels = mg_levels.n_levels-1;
+ 		  mg_levels.coarse_levels.resize(n_coarse_levels);
+
+ 		  MasterLog(INFO, "QPhiXMG Setup Level 0 and 1");
+ 		  SetupQPhiXToCoarse(p,M_fine, mg_levels.fine_level, mg_levels.coarse_levels[0]);
+
+ 		  for(int coarse_level=1; coarse_level < n_coarse_levels; ++coarse_level ) {
+
+ 			  MasterLog(INFO, "Setup Level %d and %d", coarse_level, coarse_level+1);
+ 			  SetupCoarseToCoarse(p,mg_levels.coarse_levels[coarse_level-1].M,
+ 					  coarse_level, mg_levels.coarse_levels[coarse_level-1],
+					  mg_levels.coarse_levels[coarse_level]);
+
+ 		  }
+
+
+ 	  }
 }
+

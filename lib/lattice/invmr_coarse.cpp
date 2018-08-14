@@ -86,6 +86,7 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 		bool TerminateOnResidua)
 {
 	const int level = M.GetLevel();
+	const CBSubset& subset = M.GetSubset();
 
 	const LatticeInfo& info = chi.GetInfo();
 	{
@@ -120,7 +121,7 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 
 
 	// chi_internal[s] = chi;
-	CopyVec(chi_internal, chi);
+	CopyVec(chi_internal, chi, subset);
 
 	/*  r[0]  :=  Chi - M . Psi[0] */
 	/*  r  :=  M . Psi  */
@@ -128,7 +129,7 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 
 	CoarseSpinor r(info);
 	// r[s]= chi_internal - Mr;
-	XmyzVec(chi_internal,Mr,r);
+	XmyzVec(chi_internal,Mr,r,subset);
 
 
 	double norm_chi_internal;
@@ -136,7 +137,7 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 	double cp;
 
 	if( TerminateOnResidua ) {
-		norm_chi_internal = Norm2Vec(chi_internal);
+		norm_chi_internal = Norm2Vec(chi_internal, subset);
 		rsd_sq = RsdTarget*RsdTarget;
 
 		if( resid_type == RELATIVE ) {
@@ -144,7 +145,7 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 		}
 
 		/*  Cp = |r[0]|^2 */
-		double cp = Norm2Vec(r);                 /* 2 Nc Ns  flops */
+		double cp = Norm2Vec(r,subset);                 /* 2 Nc Ns  flops */
 
 		if( VerboseP ) {
 
@@ -190,10 +191,10 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 		/*  Mr = M * r  */
 		M(Mr, r, OpType);
 		/*  c = < M.r, r > */
-		c = InnerProductVec(Mr, r);
+		c = InnerProductVec(Mr, r,subset);
 
 		/*  d = | M.r | ** 2  */
-		d = Norm2Vec(Mr);
+		d = Norm2Vec(Mr,subset);
 
 		/*  a = c / d */
 		a = c / d;
@@ -204,18 +205,18 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 		/*  Psi[k] += a[k-1] r[k-1] ; */
 		//psi[s] += r * a;
 		std::complex<float> af( (float)a.real(), (float)a.imag() );
-		AxpyVec(af,r,psi);
+		AxpyVec(af,r,psi,subset);
 
 		/*  r[k] -= a[k-1] M . r[k-1] ; */
 		// r[s] -= Mr * a;
 		std::complex<float> maf(-af.real(), -af.imag());
-		AxpyVec(maf,Mr,r);
+		AxpyVec(maf,Mr,r,subset);
 
 
 		if( TerminateOnResidua ) {
 
 			/*  cp  =  | r[k] |**2 */
-			cp = Norm2Vec(r);
+			cp = Norm2Vec(r,subset);
 			if( VerboseP ) {
 				MasterLog(INFO, "MR: level=%d iter=%d || r ||^2 = %16.8e  Target || r^2 || = %16.8e", level,
 						k, cp, rsd_sq );
@@ -239,7 +240,7 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 
 		M(Mr, psi, OpType);
 		//Double actual_res = norm2(chi_internal - Mr,s);
-		double actual_res = XmyNorm2Vec(chi_internal,Mr);
+		double actual_res = XmyNorm2Vec(chi_internal,Mr,subset);
 		res.resid = sqrt(actual_res);
 		if( resid_type == ABSOLUTE ) {
 			if( VerboseP ) {

@@ -128,6 +128,19 @@ void DiffSpinor(const LatticeFermion& s1, const LatticeFermion& s2, double tol,
 void DiffSpinorRelative(const LatticeFermion& b, const LatticeFermion& Ax, double tol)
 {
   LatticeFermion r=b-Ax;
+
+  double r_norm_cb0 = toDouble(sqrt(norm2(r,rb[0])));
+  double r_norm_cb1 = toDouble(sqrt(norm2(r,rb[1])));
+
+  double b_norm_cb0 = toDouble(sqrt(norm2(b,rb[0])));
+  double b_norm_cb1 = toDouble(sqrt(norm2(b,rb[1])));
+
+  double rel_norm_cb0 = r_norm_cb0 / b_norm_cb0;
+  double rel_norm_cb1 = r_norm_cb1 / b_norm_cb1;
+
+  MasterLog(INFO, "CB 0 : || r || = %16.8e  || r ||/site = %16.8e", r_norm_cb0, rel_norm_cb0);
+  MasterLog(INFO, "CB 1 : || r || = %16.8e  || r ||/site = %16.8e", r_norm_cb1, rel_norm_cb1);
+
   double norm_r = toDouble(sqrt(norm2(r)));
   double norm_b = toDouble(sqrt(norm2(b)));
   double rel_norm_r = norm_r / norm_b;

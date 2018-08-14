@@ -37,6 +37,9 @@ target_link_libraries(restrictor_profile qphix_testutils qdpxx_utils  mg_test mg
 add_executable(prolongator_profile prolongator_profile.cpp)
 target_link_libraries(prolongator_profile qphix_testutils qdpxx_utils  mg_test mg ${QPhiX_LIBRARIES} ${EXT_LIBS} gtest_all)
 
+add_executable(even_odd_pieces even_odd_pieces.cpp)
+target_link_libraries(even_odd_pieces qphix_testutils qdpxx_utils mg_test mg ${QPhiX_LIBRARIES} ${EXT_LIBS} gtest_all)
+
 add_test( NAME QPhixCLI COMMAND env OMP_NUM_THREADS=1 ./test_qphix_cli -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME QPhixInterfaceTests COMMAND env OMP_NUM_THREADS=1 ./test_qphix_interface -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME QPhixBLASTests COMMAND  env OMP_NUM_THREADS=1 ./test_qphix_blas -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})

@@ -14,6 +14,7 @@
 #include "lattice/solver.h"
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/qphix/qphix_clover_linear_operator.h"
+#include "lattice/qphix/qphix_eo_clover_linear_operator.h"
 #include "qphix/invbicgstab.h"
 #include <memory>
 
@@ -25,13 +26,20 @@ class BiCGStabSolverQPhiXT : public LinearSolver<QPhiXSpinorT<FT>,QPhiXGaugeT<FT
 public:
 
   BiCGStabSolverQPhiXT(QPhiXWilsonCloverLinearOperatorT<FT>& M,
-                       const LinearSolverParamsBase& params) : _M(M),_params(params),
+                       const LinearSolverParamsBase& params) : _params(params),
                            bicg_solver( M.getQPhiXOp(),params.MaxIter),
                            solver_wrapper(bicg_solver,M.getQPhiXOp())
 
 
   {}
 
+  BiCGStabSolverQPhiXT(QPhiXWilsonCloverEOLinearOperatorT<FT>& M,
+                        const LinearSolverParamsBase& params) : _params(params),
+                            bicg_solver( M.getQPhiXOp(),params.MaxIter),
+                            solver_wrapper(bicg_solver,M.getQPhiXOp())
+
+
+   {}
   LinearSolverResults operator()(QPhiXSpinorT<FT>& out,
                                 const QPhiXSpinorT<FT>& in,
                                 ResiduumType resid_type = RELATIVE ) const
@@ -63,7 +71,7 @@ public:
   }
 
  private:
-    QPhiXWilsonCloverLinearOperatorT<FT>& _M;
+
     const LinearSolverParamsBase& _params;
     QPhiXBiCGStabT<FT> bicg_solver;
     QPhiXUnprecSolverT<FT> solver_wrapper;

@@ -14,6 +14,7 @@
 #include <complex>
 #include "lattice/array2d.h"
 #include <vector>
+#include <cmath>
 
 
 
@@ -21,6 +22,7 @@
 
 #include "lattice/fgmres_common.h"
 #include "lattice/givens.h"
+#include "lattice/coarse/subset.h"
 
 namespace MG {
 
@@ -33,6 +35,7 @@ template<typename ST,typename GT>
      const LinearSolver<ST,GT>* M,  // Preconditioner
      std::vector<ST*>& V,                 // Nuisance: Need constructor free way to make these. Init functions?
      std::vector<ST*>& Z,
+	 ST& w,
      Array2d<std::complex<double>>& H,
      std::vector< Givens* >& givens_rots,
      std::vector<std::complex<double>>& c,
@@ -41,8 +44,10 @@ template<typename ST,typename GT>
      bool VerboseP )
 
  {
+
    ndim_cycle = 0;
    int level = A.GetLevel();
+   const CBSubset& subset = A.GetSubset();
 
    if( VerboseP ) {
      MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Flexible Arnoldi Cycle: ",level);
@@ -52,36 +57,46 @@ template<typename ST,typename GT>
    // Work by columns:
    for(int j=0; j < n_krylov; ++j) {
 
-     // Check convention... Z=solution, V=source
-     // Here we have an opportunity to not precondition...
-     // If M is a nullpointer.
-     if( M != nullptr) {
-       (*M)( *(Z[j]), *(V[j]), resid_type );  // z_j = M^{-1} v_j
-     }
-     else {
-       CopyVec(*(Z[j]), *(V[j]));      // Vector assignment " copy "
-     }
+	   // Check convention... Z=solution, V=source
+	   // Here we have an opportunity to not precondition...
+	   // If M is a nullpointer.
+	   if( M != nullptr) {
+
+		   // solve z_j = M^{-1} v_j
+		   //
+		   // solve into tmpsolve in case the solution process changes the
+		   // The Z_j are pre-zeroed
+		   // The V_js are only changed on the subset so off-subset should be zeroed
+		   // non-subset part.
+		   // But I will go through a tmpsolve temporary because
+		   // a proper unprec solver may overwrite the off checkerboard parts with a reconstruct etc.
+		   //
+
+		   (*M)( *Z[j], *(V[j]), resid_type );  // z_j = M^{-1} v_j
+	   }
+	   else {
+		   CopyVec(*(Z[j]), *(V[j]), subset);      // Vector assignment " copy "
+	   }
 
 #ifdef DEBUG_SOLVER
      {
-       MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%d norm of Z_j = %16.8e norm of V_j = %16.8e",level, Norm2Vec(*(Z[j])), Norm2Vec(*(V[j])));
+       MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%d norm of Z_j = %16.8e norm of V_j = %16.8e",level, Norm2Vec(*(Z[j]),subset), Norm2Vec(*(V[j]),subset));
      }
 #endif
-     ST w( Z[j]->GetInfo() );
 
      A( w, *(Z[j]), LINOP_OP);  // w  = A z_
 
      // Fill out column j
      for(int i=0; i <= j ;  ++i ) {
-       H(j,i) = InnerProductVec(*(V[i]), w);        //  Inner product
+       H(j,i) = InnerProductVec(*(V[i]), w,subset);        //  Inner product
 
        // w[s] -= H(j,i)* V[i];                     // y = y - alpha x = CAXPY
        std::complex<float> minus_Hji = std::complex<float>(-real(H(j,i)),-imag(H(j,i)));
-       AxpyVec(minus_Hji, *(V[i]), w);
+       AxpyVec(minus_Hji, *(V[i]), w, subset);
 
      }
 
-     double wnorm=sqrt(Norm2Vec(w));               //  NORM
+     double wnorm=sqrt(Norm2Vec(w,subset));               //  NORM
 #ifdef DEBUG_SOLVER
      MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%d j=%d wnorm=%16.8e\n", level, j, wnorm);
 #endif
@@ -90,7 +105,7 @@ template<typename ST,typename GT>
 
      // In principle I should check w_norm to be 0, and if it is I should
      // terminate: Code Smell -- get rid of 1.0e-14.
-     if (  fabs( wnorm ) < 1.0e-14 )  {
+     if (  std::fabs( wnorm ) < 1.0e-14 )  {
 
        // If wnorm = 0 exactly, then we have converged exactly
        // Replay Givens rots here, how to test?
@@ -103,8 +118,8 @@ template<typename ST,typename GT>
 
      double invwnorm = (double)1/wnorm;
      // V[j+1] = invwnorm*w;                           // SCAL
-     ZeroVec( *(V[j+1]));
-     AxpyVec( invwnorm, w, *(V[j+1]));
+     ZeroVec( *(V[j+1]),subset);
+     AxpyVec( invwnorm, w, *(V[j+1]),subset);
 
      // Apply Existing Givens Rotations to this column of H
      for(int i=0;i < j; ++i) {
@@ -155,6 +170,7 @@ template<typename ST, typename GT>
       _params(static_cast<const FGMRESParams&>(params)), _M_prec(M_prec)
   {
 
+	const CBSubset& subset = A.GetSubset();
 
     H_.resize(_params.NKrylov, _params.NKrylov+1); // This is odd. Shouldn't it be
 
@@ -165,6 +181,7 @@ template<typename ST, typename GT>
       V_[i] = new ST(_info);
       Z_[i] = new ST(_info);
     }
+
 
     givens_rots_.resize(_params.NKrylov+1);
     c_.resize(_params.NKrylov+1);
@@ -178,8 +195,8 @@ template<typename ST, typename GT>
     }
 
     for(int row = 0; row < _params.NKrylov+1; row++) {
-      ZeroVec(*(V_[row]));                  // BLAS ZERO
-      ZeroVec(*(Z_[row]));                  // BLAS ZERO
+      ZeroVec(*(V_[row]),SUBSET_ALL);                  // BLAS ZERO
+      ZeroVec(*(Z_[row]),SUBSET_ALL);                  // BLAS ZERO
       c_[row] = std::complex<double>(0,0);                  // COMPLEX ZERO
       givens_rots_[row] = nullptr;
     }
@@ -203,13 +220,15 @@ template<typename ST, typename GT>
       }
     }
 
-    LinearSolverResults operator()(ST& out, const ST& in, ResiduumType resid_type = RELATIVE) const
+    LinearSolverResults operator()(ST& out, const ST& in, ResiduumType resid_type = RELATIVE) const override
 
     {
       LinearSolverResults res; // Value to return
+      const CBSubset& subset = _A.GetSubset();
+
       res.resid_type = resid_type;
 
-      double norm_rhs = sqrt(Norm2Vec(in));   //  || b ||                      BLAS: NORM2
+      double norm_rhs = sqrt(Norm2Vec(in,subset));   //  || b ||                      BLAS: NORM2
       double target = _params.RsdTarget;
 
       if ( resid_type == RELATIVE) {
@@ -222,20 +241,23 @@ template<typename ST, typename GT>
       AssertCompatible( out_info, _A.GetInfo());
       int level = _A.GetLevel();
 
+      // Temporaries - passed into flexible Arnoldi
+      ST w( in_info );
+
       // Compute ||r||
-      ST r( in_info ); ZeroVec(r);                                                     // BLAS: ZERO
+      ST r( in_info ); ZeroVec(r,subset);                                                     // BLAS: ZERO
 #ifdef DEBUG_SOLVER
       {
-        double tmp_norm_r = sqrt(Norm2Vec(r));
+        double tmp_norm_r = sqrt(Norm2Vec(r,subset));
         MasterLog(MG::DEBUG, "FGMRES: level=%d norm_rhs=%16.8e r_norm=%16.8e", level, norm_rhs, tmp_norm_r);
       }
 #endif
-      ST tmp(in_info ); ZeroVec(tmp);                                                     // BLAS: COPY
-      CopyVec( r, in );
+      ST tmp(in_info ); ZeroVec(tmp,subset);                                                     // BLAS: COPY
+      CopyVec( r, in , subset);
 #ifdef DEBUG_SOLVER
       {
-        double tmp_norm_in = sqrt(Norm2Vec(in));
-        double tmp_norm_r = sqrt(Norm2Vec(r));
+        double tmp_norm_in = sqrt(Norm2Vec(in,subset));
+        double tmp_norm_r = sqrt(Norm2Vec(r,subset));
         MasterLog(MG::DEBUG, "FGMRES: level=%d After copy: in_norm=%16.8e r_norm=%16.8e", level, tmp_norm_in, tmp_norm_r);
       }
 #endif
@@ -245,7 +267,7 @@ template<typename ST, typename GT>
       // r[s] -=tmp;                                                            // BLAS: X=X-Y
       // The current residuum
       //      Double r_norm = sqrt(norm2(r,s));                                      // BLAS: NORM
-      double r_norm = sqrt(XmyNorm2Vec(r,tmp));
+      double r_norm = sqrt(XmyNorm2Vec(r,tmp,subset));
 
       // Initialize iterations
       int iters_total = 0;
@@ -305,8 +327,8 @@ template<typename ST, typename GT>
         //
         double beta_inv = (double)1/r_norm;
         //  V_[0] = beta_inv * r;                       // BLAS: VSCAL
-        ZeroVec(*(V_[0]));
-        AxpyVec(beta_inv,r,*(V_[0]));
+        ZeroVec(*(V_[0]),subset);
+        AxpyVec(beta_inv,r,*(V_[0]),subset);
 
 
 
@@ -322,7 +344,8 @@ template<typename ST, typename GT>
             target,
             V_,
             Z_,
-            H_,
+			w,
+			H_,
             givens_rots_,
             c_,
             dim,
@@ -336,13 +359,13 @@ template<typename ST, typename GT>
         for(int j=0; j < dim; ++j) {
 
           std::complex<float> alpha = std::complex<float>( real(eta_[j]), imag(eta_[j]));
-          AxpyVec(alpha,*(Z_[j]),out);                       // Y = Y + AX => BLAS AXPY
+          AxpyVec(alpha,*(Z_[j]),out,subset);                       // Y = Y + AX => BLAS AXPY
         }
 
         // Recompute r
-        CopyVec(r,in);                                        // BLAS: COPY
+        CopyVec(r,in,subset);                                        // BLAS: COPY
         (_A)(tmp, out, LINOP_OP);
-        r_norm = sqrt(XmyNorm2Vec(r,tmp));
+        r_norm = sqrt(XmyNorm2Vec(r,tmp,subset));
 
         // Update total iters
         iters_total += iters_this_cycle;
@@ -388,6 +411,7 @@ template<typename ST, typename GT>
 			 const double rsd_target,
 			 std::vector<ST*>& V,
 			 std::vector<ST*>& Z,
+			 ST& w,
 			 Array2d<std::complex<double>>& H,
 			 std::vector<Givens* >& givens_rots,
 			 std::vector<std::complex<double>>& c,
@@ -400,7 +424,7 @@ template<typename ST, typename GT>
             rsd_target,
             _A,
             _M_prec,
-            V,Z,H,givens_rots,c, ndim_cycle, resid_type, _params.VerboseP);
+            V,Z,w, H,givens_rots,c, ndim_cycle, resid_type, _params.VerboseP);
     }
 
 

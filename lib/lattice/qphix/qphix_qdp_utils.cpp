@@ -10,52 +10,51 @@
 #include "lattice/qphix/qphix_qdp_utils.h"
 
 #include <qphix/qdp_packer.h>
+#include <lattice/coarse/subset.h>
 
 namespace MG {
 template<typename QDPT,typename QPhiXT>
 void
- QDPSpinorToQPhiXSpinorT( const QDPT& qdp_in, QPhiXT& qphix_out)
+ QDPSpinorToQPhiXSpinorT( const QDPT& qdp_in, QPhiXT& qphix_out, const CBSubset& subset)
 {
-  for(int cb=0; cb < 2; ++cb) {
+  for(int cb=subset.start; cb < subset.end; ++cb) {
     // Loose const-ness on Geom due to QPhiX interface...
     QPhiX::qdp_pack_cb_spinor<>(qdp_in, qphix_out.getCB(cb).get(),qphix_out.getGeom(),cb);
   }
 }
 
 void
-QDPSpinorToQPhiXSpinor(const QDP::LatticeFermion& qdp_in, QPhiXSpinor& qphix_out)
+QDPSpinorToQPhiXSpinor(const QDP::LatticeFermion& qdp_in, QPhiXSpinor& qphix_out, const CBSubset& subset)
 {
-  QDPSpinorToQPhiXSpinorT(qdp_in,qphix_out);
+  QDPSpinorToQPhiXSpinorT(qdp_in,qphix_out,subset);
 }
 
 void
-QDPSpinorToQPhiXSpinor(const LatticeFermion& qdp_in, QPhiXSpinorF& qphix_out)
+QDPSpinorToQPhiXSpinor(const LatticeFermion& qdp_in, QPhiXSpinorF& qphix_out, const CBSubset& subset)
 {
-  QDPSpinorToQPhiXSpinorT(qdp_in,qphix_out);
+  QDPSpinorToQPhiXSpinorT(qdp_in,qphix_out, subset);
 }
 
 template<typename QDPT, typename QPhiXT>
  void
- QPhiXSpinorToQDPSpinorT( const QPhiXT& qphix_in, QDPT& qdp_out)
+ QPhiXSpinorToQDPSpinorT( const QPhiXT& qphix_in, QDPT& qdp_out, const CBSubset& subset)
  {
-   for(int cb=0; cb < 2; ++cb) {
+   for(int cb=subset.start; cb < subset.end; ++cb) {
      // Loose const-ness on Geom due to QPhiX interface...
      QPhiX::qdp_unpack_cb_spinor<>(qphix_in.getCB(cb).get(),qdp_out, qphix_in.getGeom(),cb);
    }
  }
 
 
-void QPhiXSpinorToQDPSpinor( const QPhiXSpinor& qphix_in,  QDP::LatticeFermion& qdp_out) {
-  QPhiXSpinorToQDPSpinorT( qphix_in, qdp_out );
+void QPhiXSpinorToQDPSpinor( const QPhiXSpinor& qphix_in,  QDP::LatticeFermion& qdp_out,const CBSubset& subset ) {
+  QPhiXSpinorToQDPSpinorT( qphix_in, qdp_out, subset);
 }
 
-void QPhiXSpinorToQDPSpinor( const QPhiXSpinorF& qphix_in,  QDP::LatticeFermion& qdp_out) {
-  QPhiXSpinorToQDPSpinorT( qphix_in, qdp_out );
+void QPhiXSpinorToQDPSpinor( const QPhiXSpinorF& qphix_in,  QDP::LatticeFermion& qdp_out, const CBSubset& subset) {
+  QPhiXSpinorToQDPSpinorT( qphix_in, qdp_out,subset);
 }
 
-void QPhiXSpinorToQDPSpinor( const QPhiXSpinorF& qphix_in,  QDP::LatticeFermionF& qdp_out) {
-  QPhiXSpinorToQDPSpinorT( qphix_in, qdp_out );
-}
+
 
 template<typename QDPT, typename QPhiXT>
  void

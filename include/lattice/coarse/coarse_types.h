@@ -18,6 +18,7 @@ using namespace MG;
 
 namespace MG {
 
+
 	/** Coarse Spinor
 	 *  \param LatticeInfo
 	 *
@@ -121,7 +122,10 @@ namespace MG {
 		const IndexType _n_colorspin;
 		const IndexType _n_site_offset;
 
+
 	};
+
+
 
 
 	class CoarseGauge {
@@ -143,9 +147,13 @@ namespace MG {
 			// Allocate Data
 			IndexType num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_site_offset;
 
-			/* Contiguout allocation */
+			/* Contiguous allocation */
 			data[0] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
 			data[1] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
+			AD_data[0] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
+			AD_data[1] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
+			DA_data[0] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
+			DA_data[1] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
 
 		}
 
@@ -157,6 +165,25 @@ namespace MG {
 		float* GetCBDataPtr(IndexType cb)
 		{
 			return data[cb];
+		}
+
+		/** Get EO CB Data
+		 *
+		 * returns a pointer to the eo_data for cb
+		 * shwadows GetCBDataPtr
+		 */
+		inline
+		float* GetCBADDataPtr(IndexType cb)
+		{
+			return AD_data[cb];
+
+		}
+
+		inline
+		float* GetCBDADataPtr(IndexType cb)
+		{
+			return DA_data[cb];
+
 		}
 
 		/** GetSiteData
@@ -171,49 +198,133 @@ namespace MG {
 			return &data[cb][site*_n_site_offset];
 		}
 
-		/** GetSiteData
-				 *
-				 *  Returns a pointer to the data for a site in a cb
-				 *  This is essentially a float array of size _n_site_offset
-				 *  or it can be reinterpreted as _n_colorspin complexes
-				 */
-				inline
-				const float* GetSiteDataPtr(IndexType cb, IndexType site) const
-				{
-					return &data[cb][site*_n_site_offset];
-				}
-				/** GetSiteDirData
-				 *
-				 *  Returns a pointer to the link in direction mu
-				 *  Conventions are:
-				 *  	mu=0 - X forward
-				 *  	mu=1 - X backward
-				 *  	mu=2 - Y forwad
-				 *  	mu=3 - Y backward
-				 *  	mu=4 - Z forward
-				 *  	mu=5 - Z backward
-				 *      mu=6 - T forward
-				 *      mu=7 - T backward
-				 *      mu=8 - Local Term.
-				 */
-				inline
-				float *GetSiteDirDataPtr(IndexType cb, IndexType site, IndexType mu)
-				{
-					return &data[cb][site*_n_site_offset + mu*_n_link_offset];
-				}
+		/** GetSiteEODataPtr
+		 *
+		 *  Returns a pointer to the eo_data for a site in a cb
+		 *  This is essentially a float array of size _n_site_offset
+		 *  or it can be reinterpreted as _n_colorspin complexes
+		 */
+		inline
+		float* GetSiteADDataPtr(IndexType cb, IndexType site)
+		{
+			return &AD_data[cb][site*_n_site_offset];
+		}
 
-				inline
-				const float *GetSiteDirDataPtr(IndexType cb, IndexType site, IndexType mu) const
-				{
-					return &data[cb][site*_n_site_offset + mu*_n_link_offset];
-				}
+		inline
+		float* GetSiteDADataPtr(IndexType cb, IndexType site)
+		{
+			return &DA_data[cb][site*_n_site_offset];
+		}
+
+		/** GetSiteData
+		 *
+		 *  Returns a const pointer to the data for a site in a cb
+		 *  This is essentially a float array of size _n_site_offset
+		 *  or it can be reinterpreted as _n_colorspin complexes
+		 */
+		inline
+		const float* GetSiteDataPtr(IndexType cb, IndexType site) const
+		{
+			return &data[cb][site*_n_site_offset];
+		}
+
+		/** GetSiteEOData
+		 *
+		 *  Returns a const pointer to the eo_data for a site in a cb
+		 *  This is essentially a float array of size _n_site_offset
+		 *  or it can be reinterpreted as _n_colorspin complexes
+		 */
+		inline
+		const float* GetSiteADDataPtr(IndexType cb, IndexType site) const
+		{
+			return &AD_data[cb][site*_n_site_offset];
+		}
+
+		inline
+		const float* GetSiteDADataPtr(IndexType cb, IndexType site) const
+		{
+			return &DA_data[cb][site*_n_site_offset];
+		}
+
+		/** GetSiteDirData
+		 *
+		 *  Returns a pointer to the link in direction mu
+		 *  Conventions are:
+		 *  	mu=0 - X forward
+		 *  	mu=1 - X backward
+		 *  	mu=2 - Y forwad
+		 *  	mu=3 - Y backward
+		 *  	mu=4 - Z forward
+		 *  	mu=5 - Z backward
+		 *      mu=6 - T forward
+		 *      mu=7 - T backward
+		 *      mu=8 - Local Term.
+		 */
+		inline
+		float *GetSiteDirDataPtr(IndexType cb, IndexType site, IndexType mu)
+		{
+			return &data[cb][site*_n_site_offset + mu*_n_link_offset];
+		}
+
+		inline
+		const float *GetSiteDirDataPtr(IndexType cb, IndexType site, IndexType mu) const
+		{
+			return &data[cb][site*_n_site_offset + mu*_n_link_offset];
+		}
+
+		/** GetSiteDirEOData
+		 *
+		 *  Returns a pointer to the link in direction mu
+		 *  Conventions are:
+		 *  	mu=0 - X forward
+		 *  	mu=1 - X backward
+		 *  	mu=2 - Y forwad
+		 *  	mu=3 - Y backward
+		 *  	mu=4 - Z forward
+		 *  	mu=5 - Z backward
+		 *      mu=6 - T forward
+		 *      mu=7 - T backward
+		 *      mu=8 - Local Term.
+		 */
+		inline
+		float *GetSiteDirADDataPtr(IndexType cb, IndexType site, IndexType mu)
+		{
+			return &AD_data[cb][site*_n_site_offset + mu*_n_link_offset];
+		}
+
+		inline
+		const float *GetSiteDirADDataPtr(IndexType cb, IndexType site, IndexType mu) const
+		{
+			return &AD_data[cb][site*_n_site_offset + mu*_n_link_offset];
+		}
+
+		inline
+		float *GetSiteDirDADataPtr(IndexType cb, IndexType site, IndexType mu)
+		{
+			return &DA_data[cb][site*_n_site_offset + mu*_n_link_offset];
+		}
+
+		inline
+		const float *GetSiteDirDADataPtr(IndexType cb, IndexType site, IndexType mu) const
+		{
+			return &DA_data[cb][site*_n_site_offset + mu*_n_link_offset];
+		}
 
 		~CoarseGauge()
 		{
 			MemoryFree(data[0]);
 			MemoryFree(data[1]);
+			MemoryFree(AD_data[0]);
+			MemoryFree(AD_data[1]);
+			MemoryFree(DA_data[0]);
+			MemoryFree(DA_data[1]);
+
 			data[0] = nullptr;
 			data[1] = nullptr;
+			AD_data[0] = nullptr;
+			AD_data[1] = nullptr;
+			DA_data[0] = nullptr;
+			DA_data[1] = nullptr;
 		}
 
 		inline
@@ -243,6 +354,9 @@ namespace MG {
 	private:
 		const LatticeInfo& _lattice_info;
 		float* data[2];  // Even and odd checkerboards
+		float* AD_data[2]; // holds A^{-1}_oo A^{-1}_ee A^{-1}_oo D_oe and A^{-1}_ee D_eo
+		float* DA_data[2]; // holds A^{-1}_oo A^{-1}_ee A^{-1}_oo D_oe and A^{-1}_ee D_eo
+
 
 		const IndexType _n_color;
 		const IndexType _n_spin;

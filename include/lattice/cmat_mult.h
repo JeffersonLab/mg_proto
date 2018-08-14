@@ -56,8 +56,6 @@ inline int MinInt(const int& a, const int& b)
  */
 
 
-void CMatMult(float *y, const float *A,  const float *x, const IndexType N, const int tid, const int nthreads);
-
 /* Same as CMatMult, but passing in the min and max vrows
  * -- caller computes, and possibly stores in a ThreadInfo structure
  */
@@ -65,217 +63,21 @@ void CMatMult(float *y, const float *A,  const float *x, const IndexType N, cons
 /* y = A x */
 void CMatMultNaive(float* y, const float* A, const float* x, IndexType N);
 
+/* y = A^\dagger x */
+void CMatAdjMultNaive(float *y, const float *A, const float* x, IndexType N);
+
+
 /* y += A x */
 void CMatMultNaiveAdd(float* y, const float* A, const float* x, IndexType N);
+
+/* y += A^\dagger x */
+void CMatAdjMultNaiveAdd(float *y, const float *A, const float *x, IndexType N);
 
 /* y += alpha A x,  alpha is real */
 void CMatMultNaiveCoeffAdd(float* y, const float alpha, const float* A, const float* x, IndexType N);
 
-void CMatMultVrow(float *y,
-			  const float* A,
-			  const float* x,
-			  const IndexType N,
-			  const int min_vrow,
-			  const int max_vrow);
-#if 0
-{
-
-	const IndexType TwoN=2*N;
-
-	for(int vrow=min_vrow*VECLEN; vrow < max_vrow*VECLEN; vrow++) {
-			y[ vrow ] = 0;
-	}
-
-	for(IndexType col = 0; col < N; col++) {
-		for(int vrow=min_vrow; vrow < max_vrow; vrow++) {
-			int row = vrow*VECLEN2;
-
-
-			float A_orig[VECLEN];
-			float A_perm[VECLEN];
-			for(int i=0; i < VECLEN; ++i) A_orig[i] = A[ TwoN*col + 2*row + i];
-			for(int i=0; i < VECLEN/2; ++i) {
-				A_perm[2*i] = -A_orig[2*i+1];
-				A_perm[2*i+1] = A_orig[2*i];
-			}
-
- 			for(int i=0; i < VECLEN; ++i) {
- 					y[2*row+i] += A_orig[i]*x[2*col] + A_perm[i]*x[2*col+1];
- 			}
-
-		}
-	}
-}
-
-inline
-void CMatMultVrowSMT(float *y,
-			  	  	 const float* A,
-					 const float* x,
-					 const IndexType N,
-					 const IndexType smt_id,
-					 const IndexType n_smt,
-					 const int N_vrows
-			  )
-{
-
-	const IndexType TwoN=2*N;
-
-	/* Initialize y */
-	for(IndexType vrow=smt_id; vrow < N_vrows; vrow+=n_smt) {
-		for(IndexType i=0; i < VECLEN; ++i) {
-			y[vrow*VECLEN+i] = 0;
-		}
-	}
-
-
-	for(IndexType col = 0; col < N; col++) {
-
-		// thread 0 does = 0,2,4,... Max
-		// thread 1 does = 1,3,....  Max
-		for(int vrow=smt_id; vrow < N_vrows; vrow+=n_smt) {
-			int row = vrow*VECLEN2;
-			float A_orig[VECLEN];
-			float A_perm[VECLEN];
-			for(int i=0; i < VECLEN; ++i) A_orig[i] = A[ TwoN*col + 2*row + i];
-			for(int i=0; i < VECLEN/2; ++i) {
-				A_perm[2*i] = -A_orig[2*i+1];
-				A_perm[2*i+1] = A_orig[2*i];
-			}
-
-			for(int i=0; i < VECLEN; ++i) {
-				y[2*row+i] += A_orig[i]*x[2*col] + A_perm[i]*x[2*col+1];
-	 		}
-
-		}
-	}
-
-}
-#endif
-
-void AllocSpace(const int N);
-void DestroySpace();
-
-#if 1
-inline
-void CMatMultVrowAdd(float *y,
-			  const float* A,
-			  const float* x,
-			  const IndexType N,
-			  const int min_vrow,
-			  const int max_vrow)
-{
-
-	const IndexType TwoN=2*N;
-
-
-	for(IndexType col = 0; col < N; col++) {
-
-		// thread 0 does = 0..9
-		// thread 1 does = 10-19
-		for(int vrow=min_vrow; vrow < max_vrow; vrow++) {
-			int row = vrow*VECLEN2;
-
-
-			float A_orig[VECLEN];
-			float A_perm[VECLEN];
-			for(int i=0; i < VECLEN; ++i) A_orig[i] = A[ TwoN*col + 2*row + i];
-			for(int i=0; i < VECLEN/2; ++i) {
-				A_perm[2*i] = -A_orig[2*i+1];
-				A_perm[2*i+1] = A_orig[2*i];
-			}
-
- 			for(int i=0; i < VECLEN; ++i) {
- 					y[2*row+i] += A_orig[i]*x[2*col] + A_perm[i]*x[2*col+1];
- 			}
-
-		}
-	}
-
-}
-
-inline
-void CMatMultVrowAddMulti(float *y_vec[],
-			  const float* A,
-			  const float* x_vec[],
-			  const IndexType N,
-			  const IndexType smt_id,
-			  const IndexType n_smt,
-			  const IndexType n_src,
-			  const IndexType min_vrow,
-			  const IndexType max_vrow)
-{
-
-	const IndexType TwoN=2*N;
-	for(IndexType col = 0; col < N; col++) {
-		for(int vrow=min_vrow; vrow < max_vrow; vrow++) {
-			int row = vrow*VECLEN2;
-
-
-			float A_orig[VECLEN];
-			float A_perm[VECLEN];
-			for(int i=0; i < VECLEN; ++i) A_orig[i] = A[ TwoN*col + 2*row + i];
-			for(int i=0; i < VECLEN/2; ++i) {
-				A_perm[2*i] = -A_orig[2*i+1];
-				A_perm[2*i+1] = A_orig[2*i];
-			}
-
-			// Each SMT thread does some number of sources.
-			// Each source itself ought to be cacheline aligned, so we don't stomp on each other
-			// With the SMTs
-			for(int src=smt_id; src < n_src; src+=n_smt) {
-				for(int i=0; i < VECLEN; ++i) {
- 					y_vec[src][2*row+i] += A_orig[i]*x_vec[src][2*col] + A_perm[i]*x_vec[src][2*col+1];
-				}
-			}
-
-		}
-	}
-}
-
-inline
-void CMatMultVrowAddSMT(float *y,
-			  const float* A,
-			  const float* x,
-			  const IndexType N,
-			  const IndexType smt_id,
-			  const IndexType n_smt,
-			  const IndexType N_vrows)
-{
-
-	const IndexType TwoN=2*N;
-
-
-	for(IndexType col = 0; col < N; col++) {
-
-		// thread 0 does = 0..9
-		// thread 1 does = 10-19
-		for(IndexType vrow=smt_id; vrow < N_vrows; vrow+=n_smt) {
-			IndexType row = vrow*VECLEN2;
-
-			float A_orig[VECLEN];
-			float A_perm[VECLEN];
-			for(int i=0; i < VECLEN; ++i) A_orig[i] = A[ TwoN*col + 2*row + i];
-			for(int i=0; i < VECLEN/2; ++i) {
-				A_perm[2*i] = -A_orig[2*i+1];
-				A_perm[2*i+1] = A_orig[2*i];
-			}
-
-			// Each SMT thread does some number of sources.
-			// Each source itself ought to be cacheline aligned, so we don't stomp on each other
-			// With the SMTs
-
-				for(int i=0; i < VECLEN; ++i) {
- 					y[2*row+i] += A_orig[i]*x[2*col] + A_perm[i]*x[2*col+1];
-				}
-
-
-
-		}
-	}
-
-}
-
-#endif
+/* y += alpha A^\dagger x, alpha is real */
+void CMatAdjMultNaiveCoeffAdd(float *y, const float alpha, const float *A, const float *x, IndexType N);
 
 }
 

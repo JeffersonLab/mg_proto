@@ -34,6 +34,9 @@ target_link_libraries(test_coarse_coarse_blocking  qdpxx_utils gtest_all mg_test
 add_executable(test_recursive_vcycle test_recursive_vcycle.cpp)
 target_link_libraries(test_recursive_vcycle qdpxx_utils gtest_all mg_test mg ${EXT_LIBS})
 
+add_executable(test_eo_bits test_eo_bits.cpp)
+target_link_libraries(test_eo_bits qdpxx_utils gtest_all mg_test mg ${EXT_LIBS})
+
 if( MG_QDPXX_PARALLEL ) 
   add_subdirectory( qdpxx_parallel ) 
 endif (MG_QDPXX_PARALLEL ) 

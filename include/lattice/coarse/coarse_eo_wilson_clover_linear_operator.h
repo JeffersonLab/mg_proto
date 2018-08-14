@@ -5,8 +5,8 @@
  *      Author: bjoo
  */
 
-#ifndef INCLUDE_LATTICE_COARSE_COARSE_WILSON_CLOVER_LINEAR_OPERATOR_H_
-#define INCLUDE_LATTICE_COARSE_COARSE_WILSON_CLOVER_LINEAR_OPERATOR_H_
+#ifndef INCLUDE_LATTICE_COARSE_COARSE_EO_WILSON_CLOVER_LINEAR_OPERATOR_H_
+#define INCLUDE_LATTICE_COARSE_COARSE_EO_WILSON_CLOVER_LINEAR_OPERATOR_H_
 
 #include <vector>
 #include <memory>
@@ -23,38 +23,54 @@
 
 namespace MG {
 
-class CoarseWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor,CoarseGauge > {
+class CoarseEOWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor,CoarseGauge > {
 public:
 	// Hardwire n_smt=1 for now.
-	CoarseWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : _u(gauge_in),
+	CoarseEOWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : _u(gauge_in),
 	 _the_op( gauge_in->GetInfo(), 1), _level(level)
 	{
 
 	}
 
-	~CoarseWilsonCloverLinearOperator(){}
+	~CoarseEOWilsonCloverLinearOperator(){}
 
 	const CBSubset& GetSubset() const override
 	{
-		return SUBSET_ALL;
+		return SUBSET_ODD;
 	}
 
 	void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override {
 
-#pragma omp parallel
-		{
-
-			int tid=omp_get_thread_num();
-
-			for(int cb=0; cb < n_checkerboard; ++cb) {
-				_the_op.unprecOp(out,      // Output Spinor
+			_the_op.EOPrecOp(out,      // Output Spinor
 								(*_u),    // Gauge Field
 								in,
-								cb,
-								type,
-								tid);
-			}
+								ODD,
+								type);
+
+	}
+
+	void unprecOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override {
+#pragma omp parallel
+		{
+			int tid=omp_get_thread_num();
+			_the_op.unprecOp(out,(*_u), in, EVEN, type,tid);
+			_the_op.unprecOp(out,(*_u), in, ODD, type, tid);
 		}
+	}
+
+	void leftOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) const override {
+			_the_op.L_matrix(out, (*_u),in, type);
+	}
+
+	void leftInvOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) const override {
+			_the_op.L_inv_matrix(out, (*_u),in, type);
+	}
+
+	void rightOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) const override {
+			_the_op.R_matrix(out, (*_u),in, type);
+	}
+	void rigthInvOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) const override {
+			_the_op.R_inv_matrix(out, (*_u),in, type);
 	}
 
 	void generateCoarse(const std::vector<Block>& blocklist, const std::vector< std::shared_ptr<CoarseSpinor> > in_vecs, CoarseGauge& u_coarse) const
