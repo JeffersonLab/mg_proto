@@ -14,26 +14,14 @@
 
 using namespace MG;
 
-namespace MGTesting {
+namespace MG {
 
-template <HaloType type>
-class HaloCB {
+
+template<typename T>
+class HaloContainer {
 public:
-	HaloCB(const LatticeInfo& info): _info(info){
-
-		switch( type ) {
-				case COARSE_SPINOR:
-					_datatype_size = sizeof(float)*_latt_info.GetNumColorSpins()*n_complex;
-					break;
-				case COARSE_GAUGE:
-					_datatype_size = sizeof(float)*_latt_info.GetNumColorSpins()*_latt_info.GetNumColorSpins()*n_complex;
-					break;
-				default:
-					MasterLog(ERROR, "Unknown Halo Type %d", (int)type);
-					break;
-				}
-	}
-	~HaloCB(){}
+	HaloContainer(const LatticeInfo& info): _info(info), _datatype_size(haloDatumSize<T>(info)){}
+	~HaloContainer(){}
 
 	bool
 	LocalDir(int mu ) const { return true; }
@@ -70,21 +58,17 @@ public:
 		return _info;
 	}
 
-	size_t GetDataTypeSize() {
+	inline
+	const size_t& GetDataTypeSize() const {
 		return _datatype_size;
 	}
 
-	HaloType GetHaloType() {
-		return type;
-	}
+
 private:
 	const LatticeInfo& _info;
 	size_t _datatype_size;
 
 }; // Halo class
-
-using SpinorHaloCB = HaloCB<COARSE_SPINOR>;
-using CoarseGaugeHaloCB = HaloCB<COARSE_GAUGE>;
 
 } // MG Testing Namespace
 

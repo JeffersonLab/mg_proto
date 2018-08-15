@@ -13,7 +13,7 @@
 #include "lattice/cmat_mult.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/thread_limits.h"
-#include "lattice/spinor_halo.h"
+#include "lattice/halo.h"
 #include "coarse_l1_blas.h"
 #include <omp.h>
 namespace MG {
@@ -303,40 +303,16 @@ public:
 
 
 	inline
-		MGTesting::SpinorHaloCB& GetSpinorHalo() {
+		SpinorHaloCB& GetSpinorHalo() {
 			return _halo;
 		}
 	inline
-		const MGTesting::SpinorHaloCB& GetSpinorHalo() const {
+		const SpinorHaloCB& GetSpinorHalo() const {
 			return _halo;
 		}
 
 
-	void packFace( const CoarseSpinor& spinor, IndexType cb, IndexType mu, IndexType fb) const;
 
-	const float*
-	GetNeighborXPlus(int x, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
-
-	const float*
-	GetNeighborXMinus(int x, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
-
-	const float*
-	GetNeighborYPlus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
-
-	const float*
-	GetNeighborYMinus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const ;
-
-	const float*
-	GetNeighborZPlus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
-
-	const float*
-	GetNeighborZMinus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
-
-	const float*
-	GetNeighborTPlus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const ;
-
-	const float*
-	GetNeighborTMinus(int xcb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const;
 
 private:
 	const LatticeInfo& _lattice_info;
@@ -358,7 +334,7 @@ private:
 	const IndexType _n_z;
 	const IndexType _n_t;
 
-	mutable  MGTesting::SpinorHaloCB _halo;
+	mutable  SpinorHaloCB _halo;
 	mutable CoarseSpinor _tmpvec;
 
 };

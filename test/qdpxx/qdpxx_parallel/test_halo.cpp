@@ -12,7 +12,7 @@
 #include <random>
 
 
-#include "lattice/spinor_halo.h"
+#include "lattice/halo.h"
 #include "lattice/coarse/coarse_op.h"
 using namespace MG; 
 using namespace MGTesting;
@@ -53,8 +53,8 @@ TEST(TestHalo, TestDiracOpFacePack)
 			// Face packers use OMP for internally
 			for(int mu=0; mu < n_dim; ++mu) {
 				if(! d_op.GetSpinorHalo().LocalDir( mu )) {
-					d_op.packFace(spinor,cb,mu,MG_BACKWARD);
-					d_op.packFace(spinor,cb,mu,MG_FORWARD);
+					packFace<CoarseSpinor,CoarseAccessor>(d_op.GetSpinorHalo(),spinor,cb,mu,MG_BACKWARD);
+					packFace<CoarseSpinor,CoarseAccessor>(d_op.GetSpinorHalo(),spinor,cb,mu,MG_FORWARD);
 				}
 			}
 
@@ -195,8 +195,8 @@ TEST(TestHalo, TestDiracOpFaceTransf)
 		{
 			for(int mu=0; mu < n_dim; ++mu) {
 				if(! halo.LocalDir( mu )) {
-					d_op.packFace(spinor,cb,mu,MG_BACKWARD);
-					d_op.packFace(spinor,cb,mu,MG_FORWARD);
+					packFace<CoarseSpinor,CoarseAccessor>(halo,spinor,cb,mu,MG_BACKWARD);
+					packFace<CoarseSpinor,CoarseAccessor>(halo,spinor,cb,mu,MG_FORWARD);
 				}
 			}
 		}

@@ -16,11 +16,8 @@ LIST(APPEND library_source_list lattice/aggregate_block_coarse.cpp
 
 if ( MG_QMP_COMMS OR MG_QDPXX_PARALLEL ) 
 	LIST(APPEND library_source_list lattice/nodeinfo_qmp.cpp)
-#	LIST(APPEND library_source_list lattice/spinor_halo_qmp.cpp)
-	add_definitions(-DMG_USE_QMP_SPINOR_HALO)
 else( MG_QMP_COMMS  OR MG_QDPXX_PARALLEL)
 	LIST(APPEND library_source_list lattice/nodeinfo_single.cpp)
-	add_definitions(-DMG_USE_SINGLE_PARALLEL_HALO)
 endif( MG_QMP_COMMS OR MG_QDPXX_PARALLEL) 
 
 LIST(APPEND library_source_list utils/memory_posix.cpp)

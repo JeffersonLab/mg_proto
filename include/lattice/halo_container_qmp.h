@@ -11,21 +11,21 @@
 #include "utils/memory.h"
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
+#include "lattice/coarse/coarse_types.h"
 #include "utils/print_utils.h"
 #include <qmp.h>
 #include <mpi.h>
 
 using namespace MG;
 
-namespace MGTesting {
+namespace MG {
 
 
-
-template<HaloType type>
-class HaloCB {
+template<typename T>
+class HaloContainer {
 public:
-	HaloCB(const LatticeInfo& info) : _latt_info(info),
-	_node_info(info.GetNodeInfo())
+	HaloContainer(const LatticeInfo& info) : _latt_info(info),
+	_node_info(info.GetNodeInfo()), _datatype_size(haloDatumSize<T>(info))
 	{
 		MasterLog(INFO, "Creating HaloCB");
 		const IndexArray& latt_size = _latt_info.GetLatticeDimensions();
@@ -57,23 +57,10 @@ public:
 		}
 
 
-		switch( type ) {
-		case COARSE_SPINOR:
-			_datatype_size = sizeof(float)*_latt_info.GetNumColorSpins()*n_complex;
-			break;
-		case COARSE_GAUGE:
-			_datatype_size = sizeof(float)*_latt_info.GetNumColorSpins()*_latt_info.GetNumColorSpins()*n_complex;
-			break;
-		default:
-			MasterLog(ERROR, "Unknown Halo Type %d", (int)type);
-			break;
-		}
-
-
 		// Count faces in the non-local-dims
 		for(int mu=0; mu < n_dim; ++mu) {
 			if( ! _local_dir[mu] ) {
-				_face_in_bytes[mu] = _n_face_dir[mu]*_datatype_size;
+				_face_in_bytes[mu] = _n_face_dir[mu]*_datatype_size*sizeof(float);
 			}
 			else {
 				_face_in_bytes[mu] = 0; // Local
@@ -178,7 +165,7 @@ public:
 
 	}// Function
 
-	~HaloCB()
+	~HaloContainer()
 	{
 
 		// Free the combined
@@ -338,21 +325,18 @@ public:
 		return _latt_info;
 	}
 
-	size_t GetDataTypeSize()
+	inline
+	const size_t& GetDataTypeSize() const
 	{
 		return _datatype_size;
 
 	}
 
-	HaloType GetHaloType()
-	{
-		return type;
-	}
 private:
 
 	const LatticeInfo& _latt_info;
 	const NodeInfo& _node_info;
-
+	const size_t _datatype_size;
 	int _n_face_dir[4];
 	bool _local_dir[4];
 	size_t _face_in_bytes[4];
@@ -379,13 +363,11 @@ private:
     bool _am_i_pt_min;
     bool _am_i_pt_max;
 
-    size_t _datatype_size;
+
 
 
 }; // Halo class
 
-using SpinorHaloCB = HaloCB<COARSE_SPINOR>;
-using CoarseGaugeHaloCB = HaloCB<COARSE_GAUGE>;
 
 
 

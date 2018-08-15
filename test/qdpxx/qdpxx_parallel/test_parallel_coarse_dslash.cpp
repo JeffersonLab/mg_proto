@@ -9,7 +9,7 @@
 #include "utils/print_utils.h"
 #include "lattice/geometry_utils.h"
 
-#include "lattice/spinor_halo.h"
+#include "lattice/halo.h"
 #include "lattice/coarse/coarse_op.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"

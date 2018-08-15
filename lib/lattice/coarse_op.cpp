@@ -34,31 +34,9 @@ void CoarseDiracOp::unprecOp(CoarseSpinor& spinor_out,
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
-// 	Synchronous for now -- maybe change to comms compute overlap later
+	// 	Synchronous for now -- maybe change to comms compute overlap later
 	// We are in an OMP region.
-
-	if( _halo.NumNonLocalDirs() > 0 ) {
-
-
-		for(int mu=0; mu < n_dim; ++mu) {
-			// Pack face usese omp for internally
-			if ( ! _halo.LocalDir(mu) ) {
-				packFace(spinor_in,1-target_cb,mu,MG_BACKWARD);
-				packFace(spinor_in,1-target_cb,mu,MG_FORWARD);
-			}
-		}
-
-		// Make sure faces are packed
-#pragma omp barrier
-#pragma omp master
-		{
-			_halo.StartAllRecvs();
-			_halo.StartAllSends();
-			_halo.FinishAllSends();
-			_halo.FinishAllRecvs();
-		}
-#pragma omp barrier
-	}
+	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
 
 	// Site is output site
@@ -116,14 +94,14 @@ void CoarseDiracOp::unprecOp(CoarseSpinor& spinor_out,
 		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
-				GetNeighborXPlus(x,y,z,t,source_cb,spinor_in),
-				GetNeighborXMinus(x,y,z,t,source_cb,spinor_in),
-				GetNeighborYPlus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborYMinus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborZPlus(xcb,y,z,t, source_cb,spinor_in),
-				GetNeighborZMinus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborTPlus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborTMinus(xcb,y,z,t,source_cb,spinor_in)
+				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
+				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
+				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb)
 		};
 
 
@@ -157,32 +135,8 @@ void CoarseDiracOp::L_inv_matrix(CoarseSpinor& spinor_out,
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
-// 	Synchronous for now -- maybe change to comms compute overlap later
-	// We are in an OMP region.
-
-	if( _halo.NumNonLocalDirs() > 0 ) {
-
-
-		for(int mu=0; mu < n_dim; ++mu) {
-			// Pack face usese omp for internally
-			if ( ! _halo.LocalDir(mu) ) {
-				packFace(spinor_in,1-target_cb,mu,MG_BACKWARD);
-				packFace(spinor_in,1-target_cb,mu,MG_FORWARD);
-			}
-		}
-
-		// Make sure faces are packed
-#pragma omp barrier
-#pragma omp master
-		{
-			_halo.StartAllRecvs();
-			_halo.StartAllSends();
-			_halo.FinishAllSends();
-			_halo.FinishAllRecvs();
-		}
-#pragma omp barrier
-	}
-
+	// 	Synchronous for now -- maybe change to comms compute overlap later
+	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
@@ -239,14 +193,14 @@ void CoarseDiracOp::L_inv_matrix(CoarseSpinor& spinor_out,
 		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
-				GetNeighborXPlus(x,y,z,t,source_cb,spinor_out),
-				GetNeighborXMinus(x,y,z,t,source_cb,spinor_out),
-				GetNeighborYPlus(xcb,y,z,t,source_cb,spinor_out),
-				GetNeighborYMinus(xcb,y,z,t,source_cb,spinor_out),
-				GetNeighborZPlus(xcb,y,z,t, source_cb,spinor_out),
-				GetNeighborZMinus(xcb,y,z,t,source_cb,spinor_out),
-				GetNeighborTPlus(xcb,y,z,t,source_cb,spinor_out),
-				GetNeighborTMinus(xcb,y,z,t,source_cb,spinor_out)
+				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_out,x,y,z,t,source_cb),
+				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_out,x,y,z,t,source_cb),
+				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_out,xcb,y,z,t,source_cb),
+				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_out,xcb,y,z,t,source_cb),
+				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_out,xcb,y,z,t,source_cb),
+				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_out,xcb,y,z,t,source_cb),
+				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_out,xcb,y,z,t,source_cb),
+				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_out,xcb,y,z,t,source_cb)
 		};
 
 
@@ -314,32 +268,8 @@ void CoarseDiracOp::M_offDiag_xpay(CoarseSpinor& spinor_out,
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
-// 	Synchronous for now -- maybe change to comms compute overlap later
-	// We are in an OMP region.
-
-	if( _halo.NumNonLocalDirs() > 0 ) {
-
-
-		for(int mu=0; mu < n_dim; ++mu) {
-			// Pack face usese omp for internally
-			if ( ! _halo.LocalDir(mu) ) {
-				packFace(spinor_in,1-target_cb,mu,MG_BACKWARD);
-				packFace(spinor_in,1-target_cb,mu,MG_FORWARD);
-			}
-		}
-
-		// Make sure faces are packed
-#pragma omp barrier
-#pragma omp master
-		{
-			_halo.StartAllRecvs();
-			_halo.StartAllSends();
-			_halo.FinishAllSends();
-			_halo.FinishAllRecvs();
-		}
-#pragma omp barrier
-	}
-
+	// 	Synchronous for now -- maybe change to comms compute overlap later
+	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
@@ -396,14 +326,14 @@ void CoarseDiracOp::M_offDiag_xpay(CoarseSpinor& spinor_out,
 		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
-				GetNeighborXPlus(x,y,z,t,source_cb,spinor_in),
-				GetNeighborXMinus(x,y,z,t,source_cb,spinor_in),
-				GetNeighborYPlus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborYMinus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborZPlus(xcb,y,z,t, source_cb,spinor_in),
-				GetNeighborZMinus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborTPlus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborTMinus(xcb,y,z,t,source_cb,spinor_in)
+				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
+				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
+				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb)
 		};
 
 
@@ -425,32 +355,8 @@ void CoarseDiracOp::M_invOffDiag_xpay(CoarseSpinor& spinor_out,
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
-// 	Synchronous for now -- maybe change to comms compute overlap later
-	// We are in an OMP region.
-
-	if( _halo.NumNonLocalDirs() > 0 ) {
-
-
-		for(int mu=0; mu < n_dim; ++mu) {
-			// Pack face usese omp for internally
-			if ( ! _halo.LocalDir(mu) ) {
-				packFace(spinor_in,1-target_cb,mu,MG_BACKWARD);
-				packFace(spinor_in,1-target_cb,mu,MG_FORWARD);
-			}
-		}
-
-		// Make sure faces are packed
-#pragma omp barrier
-#pragma omp master
-		{
-			_halo.StartAllRecvs();
-			_halo.StartAllSends();
-			_halo.FinishAllSends();
-			_halo.FinishAllRecvs();
-		}
-#pragma omp barrier
-	}
-
+	// 	Synchronous for now -- maybe change to comms compute overlap later
+	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
@@ -507,14 +413,14 @@ void CoarseDiracOp::M_invOffDiag_xpay(CoarseSpinor& spinor_out,
 		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
-				GetNeighborXPlus(x,y,z,t,source_cb,spinor_in),
-				GetNeighborXMinus(x,y,z,t,source_cb,spinor_in),
-				GetNeighborYPlus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborYMinus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborZPlus(xcb,y,z,t, source_cb,spinor_in),
-				GetNeighborZMinus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborTPlus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborTMinus(xcb,y,z,t,source_cb,spinor_in)
+				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
+				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
+				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb)
 		};
 
 
@@ -537,32 +443,8 @@ void CoarseDiracOp::M_invOffDiag_xpayz(CoarseSpinor& spinor_out,
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
-// 	Synchronous for now -- maybe change to comms compute overlap later
-	// We are in an OMP region.
-
-	if( _halo.NumNonLocalDirs() > 0 ) {
-
-
-		for(int mu=0; mu < n_dim; ++mu) {
-			// Pack face usese omp for internally
-			if ( ! _halo.LocalDir(mu) ) {
-				packFace(spinor_in,1-target_cb,mu,MG_BACKWARD);
-				packFace(spinor_in,1-target_cb,mu,MG_FORWARD);
-			}
-		}
-
-		// Make sure faces are packed
-#pragma omp barrier
-#pragma omp master
-		{
-			_halo.StartAllRecvs();
-			_halo.StartAllSends();
-			_halo.FinishAllSends();
-			_halo.FinishAllRecvs();
-		}
-#pragma omp barrier
-	}
-
+	// 	Synchronous for now -- maybe change to comms compute overlap later
+	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
@@ -619,14 +501,14 @@ void CoarseDiracOp::M_invOffDiag_xpayz(CoarseSpinor& spinor_out,
 		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
-				GetNeighborXPlus(x,y,z,t,source_cb,spinor_in),
-				GetNeighborXMinus(x,y,z,t,source_cb,spinor_in),
-				GetNeighborYPlus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborYMinus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborZPlus(xcb,y,z,t, source_cb,spinor_in),
-				GetNeighborZMinus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborTPlus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborTMinus(xcb,y,z,t,source_cb,spinor_in)
+				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
+				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
+				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb)
 		};
 
 
@@ -649,32 +531,8 @@ void CoarseDiracOp::M_invOffDiag(CoarseSpinor& spinor_out,
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
-// 	Synchronous for now -- maybe change to comms compute overlap later
-	// We are in an OMP region.
-
-	if( _halo.NumNonLocalDirs() > 0 ) {
-
-
-		for(int mu=0; mu < n_dim; ++mu) {
-			// Pack face usese omp for internally
-			if ( ! _halo.LocalDir(mu) ) {
-				packFace(spinor_in,1-target_cb,mu,MG_BACKWARD);
-				packFace(spinor_in,1-target_cb,mu,MG_FORWARD);
-			}
-		}
-
-		// Make sure faces are packed
-#pragma omp barrier
-#pragma omp master
-		{
-			_halo.StartAllRecvs();
-			_halo.StartAllSends();
-			_halo.FinishAllSends();
-			_halo.FinishAllRecvs();
-		}
-#pragma omp barrier
-	}
-
+	// 	Synchronous for now -- maybe change to comms compute overlap later
+	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
@@ -731,14 +589,14 @@ void CoarseDiracOp::M_invOffDiag(CoarseSpinor& spinor_out,
 		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
-				GetNeighborXPlus(x,y,z,t,source_cb,spinor_in),
-				GetNeighborXMinus(x,y,z,t,source_cb,spinor_in),
-				GetNeighborYPlus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborYMinus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborZPlus(xcb,y,z,t, source_cb,spinor_in),
-				GetNeighborZMinus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborTPlus(xcb,y,z,t,source_cb,spinor_in),
-				GetNeighborTMinus(xcb,y,z,t,source_cb,spinor_in)
+				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
+				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
+				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
+				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb)
 		};
 
 
@@ -1058,7 +916,7 @@ void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
 		}
 		// No need for barrier here
 		// Pack face forward
-		packFace(spinor_in,1-target_cb,dir_4,fb);
+		packFace<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,1-target_cb,dir_4,fb);
 
 		/// Need barrier to make sure all threads finished packing
 #pragma omp barrier
@@ -1111,44 +969,44 @@ void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
 		switch( dir ) {
 		case 0:
 		{
-			neigh_spinor = GetNeighborXPlus(x,y,z,t,source_cb,spinor_in);
+			neigh_spinor = GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb);
 		}
 		break;
 		case 1:
 		{
-			neigh_spinor = GetNeighborXMinus(x,y,z,t,source_cb,spinor_in);
+			neigh_spinor = GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb);
 			break;
 		case 2:
 		{
-			neigh_spinor = GetNeighborYPlus(xcb,y,z,t,source_cb,spinor_in);
+			neigh_spinor = GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
 		}
 			break;
 		case 3:
 		{
-			neigh_spinor = GetNeighborYMinus(xcb,y,z,t,source_cb,spinor_in);
+			neigh_spinor = GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
 		}
 		}
 			break;
 		case 4:
 		{
-			neigh_spinor = GetNeighborZPlus(xcb,y,z,t,source_cb,spinor_in);
+			neigh_spinor = GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
 		}
 
 			break;
 		case 5:
 		{
-			neigh_spinor = GetNeighborZMinus(xcb,y,z,t,source_cb,spinor_in);
+			neigh_spinor = GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
 		}
 			break;
 		case 6:
 		{
-			neigh_spinor = GetNeighborTPlus(xcb,y,z,t,source_cb,spinor_in);
+			neigh_spinor = GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
 		}
 
 			break;
 		case 7:
 		{
-			neigh_spinor = GetNeighborTMinus(xcb,y,z,t,source_cb,spinor_in);
+			neigh_spinor = GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
 		}
 			break;
 		default:
@@ -1243,246 +1101,13 @@ CoarseDiracOp::CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt)
 		_thread_limits[tid].min_site = min_site;
 		_thread_limits[tid].max_site = max_site;
 
-//#pragma omp critical
-	//	{
-	//		std::printf("Thread=%d smtid=%d n_sites_cb=%d n_vrows=%d min_vrow=%d max_vrow=%d min_site=%d max_site=%d\n",
-	//				tid,smt_id,n_sites_cb, _n_vrows, _thread_limits[tid].min_vrow, _thread_limits[tid].max_vrow, min_site, max_site);
-	//	}
+
 	} // omp parallel
 
 }
 
-inline
-const float*
-CoarseDiracOp::GetNeighborXPlus(int x, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
-{
-
-	if ( x < _n_x - 1 ) {
-
-		return spinor_in.GetSiteDataPtr(source_cb, ((x+1)/2)  + _n_xh*(y + _n_y*(z + _n_z*t)));
-	}
-	else {
-
-		if(_halo.LocalDir(X_DIR) )  {
-			return spinor_in.GetSiteDataPtr(source_cb, 0 + _n_xh*(y + _n_y*(z + _n_z*t)));
-		}
-		else {
-			int n_colorspin  = spinor_in.GetNumColorSpin();
-			int index = n_colorspin*n_complex*((y + _n_y*(z + _n_z*t))/2);
-			return  &( _halo.GetRecvFromDirBuf(2*X_DIR + MG_FORWARD)[index]);
-		}
-	}
-}
-
-inline
-const float*
-CoarseDiracOp::GetNeighborXMinus(int x, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
-{
-	if ( x > 0 ) {
-		return spinor_in.GetSiteDataPtr(source_cb, ((x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t)));
-	}
-	else {
-		if ( _halo.LocalDir(X_DIR) ) {
-			return spinor_in.GetSiteDataPtr(source_cb, ((_n_x-1)/2) + _n_xh*(y + _n_y*(z + _n_z*t)));
-		}
-		else {
-			// Get the buffer
-			int n_colorspin = spinor_in.GetNumColorSpin();
-			int index = n_complex*n_colorspin*((y + _n_y*(z + _n_z*t))/2);
-
-			return  &(_halo.GetRecvFromDirBuf(2*X_DIR + MG_BACKWARD)[index]);
-		}
-	}
-}
-
-inline
-const float*
-CoarseDiracOp::GetNeighborYPlus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
-{
-
-	if ( y < _n_y - 1 ) {
-
-		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*((y+1) + _n_y*(z + _n_z*t)));
-	}
-	else {
-
-		if(_halo.LocalDir(Y_DIR) )  {
-			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*(0 + _n_y*(z + _n_z*t)));
-		}
-		else {
-			int n_colorspin  = spinor_in.GetNumColorSpin();
-			int index = n_colorspin*n_complex*(x_cb + _n_xh*(z + _n_z*t));
-			return  &( _halo.GetRecvFromDirBuf(2*Y_DIR + MG_FORWARD)[index]);
-		}
-	}
-}
-
-inline
-const float*
-CoarseDiracOp::GetNeighborYMinus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
-{
-
-	if ( y > 0  ) {
-
-		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*((y-1) + _n_y*(z + _n_z*t)));
-	}
-	else {
-
-		if(_halo.LocalDir(Y_DIR) )  {
-			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*((_n_y-1) + _n_y*(z + _n_z*t)));
-		}
-		else {
-			int n_colorspin  = spinor_in.GetNumColorSpin();
-			int index = n_colorspin*n_complex*(x_cb + _n_xh*(z + _n_z*t));
-			return  &( _halo.GetRecvFromDirBuf(2*Y_DIR + MG_BACKWARD)[index]);
-		}
-	}
-}
-
-inline
-const float*
-CoarseDiracOp::GetNeighborZPlus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
-{
-
-	if ( z < _n_z - 1 ) {
-
-		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*(y + _n_y*((z+1) + _n_z*t)));
-	}
-	else {
-
-		if(_halo.LocalDir(Z_DIR) )  {
-			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*(y + _n_y*(0 + _n_z*t)));
-		}
-		else {
-			int n_colorspin  = spinor_in.GetNumColorSpin();
-			int index = n_colorspin*n_complex*(x_cb + _n_xh*(y + _n_y*t));
-			return  &( _halo.GetRecvFromDirBuf(2*Z_DIR + MG_FORWARD)[index]);
-		}
-	}
-}
-
-inline
-const float*
-CoarseDiracOp::GetNeighborZMinus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
-{
-
-	if ( z > 0  ) {
-
-		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*(y + _n_y*((z-1) + _n_z*t)));
-	}
-	else {
-
-		if(_halo.LocalDir(Z_DIR) )  {
-			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*(y + _n_y*((_n_z-1) + _n_z*t)));
-		}
-		else {
-			int n_colorspin  = spinor_in.GetNumColorSpin();
-			int index = n_colorspin*n_complex*(x_cb + _n_xh*(y + _n_y*t));
-			return  &( _halo.GetRecvFromDirBuf(2*Z_DIR + MG_BACKWARD)[index]);
-		}
-	}
-}
-inline
-const float*
-CoarseDiracOp::GetNeighborTPlus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
-{
-
-	if ( t < _n_t - 1 ) {
-
-		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*(y + _n_y*(z + _n_z*(t+1))));
-	}
-	else {
-
-		if(_halo.LocalDir(T_DIR) )  {
-			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*(y + _n_y*z));
-		}
-		else {
-			int n_colorspin  = spinor_in.GetNumColorSpin();
-			int index = n_colorspin*n_complex*(x_cb + _n_xh*(y + _n_y*z));
-			return  &( _halo.GetRecvFromDirBuf(2*T_DIR + MG_FORWARD)[index]);
-		}
-	}
-}
-
-inline
-const float*
-CoarseDiracOp::GetNeighborTMinus(int x_cb, int y, int z, int t, int source_cb, const CoarseSpinor& spinor_in) const
-{
-
-	if ( t > 0  ) {
-
-		return spinor_in.GetSiteDataPtr(source_cb, x_cb+ _n_xh*(y + _n_y*(z + _n_z*(t-1))));
-	}
-	else {
-
-		if(_halo.LocalDir(T_DIR) )  {
-			return spinor_in.GetSiteDataPtr(source_cb, x_cb + _n_xh*(y + _n_y*(z + _n_z*(_n_t-1))));
-		}
-		else {
-			int n_colorspin  = spinor_in.GetNumColorSpin();
-			int index = n_colorspin*n_complex*(x_cb + _n_xh*(y + _n_y*z));
-			return  &( _halo.GetRecvFromDirBuf(2*T_DIR + MG_BACKWARD)[index]);
-		}
-	}
-}
 
 
-void
-CoarseDiracOp::packFace(const CoarseSpinor& spinor,
-						IndexType cb, //CB to back
-						IndexType mu,
-						IndexType fb) const
-{
-	const IndexArray& latt_dims = _lattice_info.GetLatticeDimensions();
-	const IndexArray& latt_cb_dims = _lattice_info.GetCBLatticeDimensions();
-	IndexArray coords;
-
-
-
-	// Grab the buffer from the Halo
-	float* buffer = _halo.GetSendToDirBuf(2*mu + fb);
-
-	int num_color_spins = _lattice_info.GetNumColorSpins();
-	int buffer_site_offset = n_complex*num_color_spins;
-	int buffer_sites = _halo.NumSitesInFace(mu);
-
-	// Loop through the sites in the buffer
-#pragma omp for
-	for(int site =0; site < buffer_sites; ++site) {
-		int local_cb = (cb  + _lattice_info.GetCBOrigin())&1;
-
-		// I need to convert the face site index
-		// into a body site index in the required checkerboard.
-		coords[mu]= (fb == MG_BACKWARD ) ? 0 : latt_dims[mu]-1;
-		if( mu == 0 ) {
-			// X direction is special
-			IndexArray x_cb_dims(latt_cb_dims); x_cb_dims[Y_DIR]/=2;
-
-			IndexToCoords3(site,x_cb_dims,X_DIR,coords);
-			coords[Y_DIR] *= 2;
-			coords[Y_DIR] += ((local_cb + coords[X_DIR]+coords[Z_DIR] + coords[T_DIR])&1);
-			coords[X_DIR] /=2; // Convert back to checkerboarded X_coord
-		}
-		else {
-			// The Muth coordinate is eithe 0, or the last coordinate
-			IndexToCoords3(site,latt_cb_dims,mu,coords);
-		}
-		int body_site = CoordsToIndex(coords,latt_cb_dims);
-		float* buffersite = &buffer[site*buffer_site_offset];
-		// Grab the body site
-		const float* bodysite = spinor.GetSiteDataPtr(cb,body_site);
-
-		// Copy body site into buffer site
-		// This is likely to be done in a thread, so
-		// use SIMD if you can.
-#pragma omp simd
-		for(int cspin_idx=0; cspin_idx < n_complex*num_color_spins; ++cspin_idx) {
-			buffersite[cspin_idx] = bodysite[cspin_idx];
-		} // Finish copying
-
-	} // finish loop over sites.
-
-}
 
 } // Namespace
 

@@ -36,7 +36,12 @@ namespace MG {
 				_n_color(lattice_info.GetNumColors()),
 				_n_spin(lattice_info.GetNumSpins()),
 				_n_colorspin(lattice_info.GetNumColors()*lattice_info.GetNumSpins()),
-				_n_site_offset(n_complex*_n_colorspin)
+				_n_site_offset(n_complex*_n_colorspin),
+				_n_xh( lattice_info.GetCBLatticeDimensions()[0] ),
+				_n_x( lattice_info.GetLatticeDimensions()[0] ),
+				_n_y( lattice_info.GetLatticeDimensions()[1] ),
+				_n_z( lattice_info.GetLatticeDimensions()[2] ),
+				_n_t( lattice_info.GetLatticeDimensions()[3] )
 		{
 #if 1
 			// Check That we have 2 spins
@@ -112,6 +117,20 @@ namespace MG {
 			return _lattice_info;
 		}
 
+		inline
+		const IndexType& GetNxh() const { return _n_xh; }
+
+		inline
+		const IndexType& GetNx() const { return _n_x; }
+
+		inline
+		const IndexType& GetNy() const { return _n_y; }
+
+		inline
+		const IndexType& GetNz() const { return _n_z; }
+
+		inline
+		const IndexType& GetNt() const { return _n_t; }
 
 	private:
 		const LatticeInfo& _lattice_info;
@@ -121,6 +140,11 @@ namespace MG {
 		const IndexType _n_spin;
 		const IndexType _n_colorspin;
 		const IndexType _n_site_offset;
+		const IndexType _n_xh;
+		const IndexType _n_x;
+		const IndexType _n_y;
+		const IndexType _n_z;
+		const IndexType _n_t;
 
 
 	};
@@ -135,8 +159,12 @@ namespace MG {
 				_n_spin(lattice_info.GetNumSpins()),
 				_n_colorspin(lattice_info.GetNumColors()*lattice_info.GetNumSpins()),
 				_n_link_offset(n_complex*_n_colorspin*_n_colorspin),
-				_n_site_offset((2*n_dim+1)*_n_link_offset)
-
+				_n_site_offset((2*n_dim+1)*_n_link_offset),
+				_n_xh( lattice_info.GetCBLatticeDimensions()[0] ),
+				_n_x( lattice_info.GetLatticeDimensions()[0] ),
+				_n_y( lattice_info.GetLatticeDimensions()[1] ),
+				_n_z( lattice_info.GetLatticeDimensions()[2] ),
+				_n_t( lattice_info.GetLatticeDimensions()[3] )
 		{
 			// Check That we have 2 spins
 			if( lattice_info.GetNumSpins() != 2 ) {
@@ -351,6 +379,22 @@ namespace MG {
 		const LatticeInfo& GetInfo() const {
 			 return _lattice_info;
 		}
+
+		inline
+		const IndexType& GetNxh() const { return _n_xh; }
+
+		inline
+		const IndexType& GetNx() const { return _n_x; }
+
+		inline
+		const IndexType& GetNy() const { return _n_y; }
+
+		inline
+		const IndexType& GetNz() const { return _n_z; }
+
+		inline
+		const IndexType& GetNt() const { return _n_t; }
+
 	private:
 		const LatticeInfo& _lattice_info;
 		float* data[2];  // Even and odd checkerboards
@@ -363,9 +407,31 @@ namespace MG {
 		const IndexType _n_colorspin;
 		const IndexType _n_link_offset;
 		const IndexType _n_site_offset;
+		const IndexType _n_xh;
+		const IndexType _n_x;
+		const IndexType _n_y;
+		const IndexType _n_z;
+		const IndexType _n_t;
+
 	};
 
 
+	template<typename T>
+	static size_t haloDatumSize(const LatticeInfo& info);
+
+	template<>
+	inline
+	size_t haloDatumSize<CoarseSpinor>(const LatticeInfo& info)
+	{
+		return n_complex*info.GetNumColorSpins();
+	}
+
+	template<>
+	inline
+	size_t haloDatumSize<CoarseGauge>(const LatticeInfo& info)
+	{
+		return n_complex*info.GetNumColorSpins()*info.GetNumColorSpins();
+	}
 
 }
 

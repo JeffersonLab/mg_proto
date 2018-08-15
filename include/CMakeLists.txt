@@ -11,9 +11,9 @@ install (FILES lattice/array2d.h
                lattice/mr_params.h
                lattice/nodeinfo.h
 			   lattice/solver.h  
-			   lattice/spinor_halo_qmp.h
-			   lattice/spinor_halo_single.h
-			   lattice/spinor_halo.h             
+			   lattice/halo_container_qmp.h
+			   lattice/halo_container_single.h
+			   lattice/halo.h             
          DESTINATION include/lattice)
          
 install (FILES lattice/coarse/aggregate_block_coarse.h

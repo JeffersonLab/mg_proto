@@ -11,7 +11,7 @@
 #include <vector>
 #include <random>
 
-#include "lattice/spinor_halo.h"
+#include "lattice/halo.h"
 #include "lattice/coarse/coarse_op.h"
 using namespace MG; 
 using namespace MGTesting;
