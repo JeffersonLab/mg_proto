@@ -361,7 +361,7 @@ TEST(TestQPhiXVCycle, TestVCyclePrec)
 
 
 	FGMRESParams fine_solve_params;
-	fine_solve_params.MaxIter=200;
+	fine_solve_params.MaxIter=10000;
 	fine_solve_params.RsdTarget=1.0e-13;
 	fine_solve_params.VerboseP = true;
 	fine_solve_params.NKrylov = 4;
@@ -480,13 +480,14 @@ TEST(TestQPhiXVCycle, TestVCyclePrecEOPrec)
 
 
 	FGMRESParams fine_solve_params;
-	fine_solve_params.MaxIter=200;
+	fine_solve_params.MaxIter=10000;
 	fine_solve_params.RsdTarget=1.0e-13;
 	fine_solve_params.VerboseP = true;
 	fine_solve_params.NKrylov = 4;
 
 	// Create even odd preconditioned FGMRES
 	std::shared_ptr<const FGMRESSolverQPhiX> FGMRES=std::make_shared<const FGMRESSolverQPhiX>(*M, fine_solve_params,&vcycle);
+	//std::shared_ptr<const FGMRESSolverQPhiX> FGMRES=std::make_shared<const FGMRESSolverQPhiX>(*M, fine_solve_params,nullptr);
 
 	// Wrap in source prep and solution recreation
 	UnprecFGMRESSolverQPhiXWrapper FGMRESWrapper(FGMRES, M);

@@ -43,7 +43,7 @@ target_link_libraries(even_odd_pieces qphix_testutils qdpxx_utils mg_test mg ${Q
 add_test( NAME QPhixCLI COMMAND env OMP_NUM_THREADS=1 ./test_qphix_cli -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME QPhixInterfaceTests COMMAND env OMP_NUM_THREADS=1 ./test_qphix_interface -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME QPhixBLASTests COMMAND  env OMP_NUM_THREADS=1 ./test_qphix_blas -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
-add_test( NAME QPhiXBLASTestsParallel COMMAND env OMP_NUM_THREADS=1  mpirun -n 2 ./test_qphix_blas -geom 1 1 1 2 ${DEFAULT_QPHIX_TEST_ARGS})
+add_test( NAME QPhiXBLASTestsParallel COMMAND env OMP_NUM_THREADS=1  mpirun -n 2 -host localhost ./test_qphix_blas -geom 1 1 1 2 ${DEFAULT_QPHIX_TEST_ARGS})
 
 add_test( NAME QPhiXSetupTests COMMAND  env OMP_NUM_THREADS=1 ./test_qphix_setup -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME QPhiXSetupTestsThreaded COMMAND env OMP_NUM_THREADS=8 ./test_qphix_setup -geom 1 1 1 1 ${THREADED_QPHIX_TEST_ARGS})
