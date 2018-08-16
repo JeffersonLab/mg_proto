@@ -115,6 +115,9 @@ public:
 				const IndexType dagger,
 				const IndexType tid) const;
 
+
+
+
 	// [  M_ee      0   ] [ spinor_in_e ] = [ M_ee spinor_in_e                    ]
 	// [  M_oe     M_oo ] [ spinor_in_o ]   [ M_oo spinor_in_o + M_oe spinor_in_o ]
 		void L_matrix(CoarseSpinor& spinor_out,

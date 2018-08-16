@@ -44,8 +44,8 @@ inline
 const float*
 CoarseAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, int dir, int fb)
 {
-    int mu = 2*dir + fb;
-    return in.GetSiteDirDataPtr(cb,cbsite,mu);
+    int mu = 8;
+    return in.GetSiteDirADDataPtr(cb,cbsite,mu);
 }
 
 
@@ -361,7 +361,52 @@ GetNeighborTMinus(const HaloContainer<T>& halo, const T& in, int x_cb, int y, in
 	}
 }
 
+template<typename T, template <typename> class Accessor>
+inline const float*
+GetNeighborDir(const HaloContainer<T>& halo, const T& in, int dir, int target_cb, int cbsite )
+{
+	int source_cb = 1-target_cb;
+	int tmp_yzt = cbsite / in.GetNxh();
+	int xcb = cbsite - in.GetNxh() * tmp_yzt;
+	int tmp_zt = tmp_yzt / in.GetNy();
+	int y = tmp_yzt - in.GetNy() * tmp_zt;
+	int t = tmp_zt / in.GetNz();
+	int z = tmp_zt - in.GetNz() * t;
+	int x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
 
+
+	switch(dir) {
+	case 0:
+		return GetNeighborXPlus<T,Accessor>(halo,in,x,y,z,t,source_cb);
+		break;
+	case 1:
+		return GetNeighborXMinus<T,Accessor>(halo,in,x,y,z,t,source_cb);
+		break;
+	case 2:
+		return GetNeighborYPlus<T,Accessor>(halo,in,xcb,y,z,t,source_cb);
+		break;
+	case 3:
+		return GetNeighborYMinus<T,Accessor>(halo,in,xcb,y,z,t,source_cb);
+		break;
+	case 4:
+		return GetNeighborZPlus<T,Accessor>(halo,in,xcb,y,z,t,source_cb);
+		break;
+	case 5:
+		return GetNeighborZMinus<T,Accessor>(halo,in,xcb,y,z,t,source_cb);
+		break;
+	case 6:
+		return GetNeighborTPlus<T,Accessor>(halo,in,xcb,y,z,t,source_cb);
+		break;
+	case 7:
+		return GetNeighborTMinus<T,Accessor>(halo,in,xcb,y,z,t,source_cb);
+		break;
+	default:
+		MasterLog(ERROR, "Dir %d > 7 in GetNeighborDir. This ought to never happen", dir);
+		break;
+	}
+	// Wot no return...
+	return nullptr; // never get here...
+}
 
 
 } // namespace

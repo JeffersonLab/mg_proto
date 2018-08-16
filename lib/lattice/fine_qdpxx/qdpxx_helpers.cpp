@@ -190,8 +190,14 @@ QDPPropToCoarseGaugeLink(const LatticePropagator& qdpxx_in,
 #pragma omp parallel for collapse(2)
 	for(int cb=0; cb < 2; ++cb) {
 		for(int cbsite=0; cbsite < num_cb_sites; ++cbsite) {
-			float *prop_data=coarse_out.GetSiteDirDataPtr(cb,cbsite,dir);
+			float *prop_data = nullptr;
 
+			if ( dir != 8 ) {
+				prop_data=coarse_out.GetSiteDirDataPtr(cb,cbsite,dir);
+			}
+			else {
+				prop_data=coarse_out.GetSiteDiagDataPtr(cb,cbsite);
+			}
 
 			for(int colorspin_col=0; colorspin_col < num_colorspin; ++colorspin_col) {
 				int spin_col=colorspin_col/3;
@@ -237,7 +243,15 @@ CoarseGaugeLinkToQDPProp(const CoarseGauge& coarse_in,
 #pragma omp parallel for collapse(2)
 	for (int cb = 0; cb < 2; ++cb) {
 		for (int cbsite = 0; cbsite < num_cb_sites; ++cbsite) {
-			const float *prop_data = coarse_in.GetSiteDirDataPtr(cb,cbsite,dir);
+
+			const float *prop_data = nullptr;
+
+			if ( dir != 8 ) {
+				prop_data=coarse_in.GetSiteDirDataPtr(cb,cbsite,dir);
+			}
+			else {
+				prop_data=coarse_in.GetSiteDiagDataPtr(cb,cbsite);
+			}
 
 			for (int colorspin_col = 0; colorspin_col < num_colorspin;
 					++colorspin_col) {

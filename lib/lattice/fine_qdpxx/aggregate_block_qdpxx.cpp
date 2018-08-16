@@ -511,7 +511,7 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 
 				// Get teh coarse site for writing
 				// Thiis is fixed
-				float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb,coarse_cbsite, 8);
+				float *coarse_link = u_coarse.GetSiteDiagDataPtr(coarse_cb,coarse_cbsite);
 
 				// Do the accumulation in double
 				std::vector<double> tmp_link(n_complex*num_coarse_colorspin*num_coarse_colorspin);
@@ -683,7 +683,7 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 			auto num_block_sites = block.getNumSites();
 
 
-			float *coarse_clov = gauge_clover.GetSiteDirDataPtr(coarse_cb,coarse_cbsite,8);
+			float *coarse_clov = gauge_clover.GetSiteDiagDataPtr(coarse_cb,coarse_cbsite);
 
 			// Accumulate into this tmp_link and in double
 			std::vector<double> tmp_link(2*n_complex*num_coarse_colors*num_coarse_colors);

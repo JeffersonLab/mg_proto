@@ -628,7 +628,7 @@ void EOBitsTesting::SetUp()  {
 
 		CoarseGauge& coarse_links = getCoarseLinks();
 		invertCloverDiag(coarse_links);
-		multInvClovOffDiag(coarse_links);
+		multInvClovOffDiaLeft(coarse_links);
 
 		MasterLog(INFO, "mg_levels has %d levels", mg_levels.n_levels);
 		{

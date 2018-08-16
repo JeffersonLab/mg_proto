@@ -694,20 +694,72 @@ void ZeroGauge(CoarseGauge& gauge)
 	const LatticeInfo& info = gauge.GetInfo();
 	const int num_cbsites=info.GetNumCBSites();
 	const int num_colorspins = gauge.GetNumColorSpin();
+
+
+	// diag_data
+#pragma omp parallel for collapse(2)
 	for(int cb=0; cb < n_checkerboard; ++cb ) {
 		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+			float* data = gauge.GetSiteDiagDataPtr(cb,cbsite);
 
-			// 8 + central piece
-			for(int dir=0; dir < 9; ++dir ) {
-				float* gauge_data=gauge.GetSiteDirDataPtr(cb,cbsite,dir);
-#pragma omp simd
-				for(int cs=0; cs < num_colorspins*num_colorspins; ++cs) {
-					gauge_data[RE + n_complex*cs ] = 0;
-					gauge_data[IM + n_complex*cs ] = 0;
-				} //cs
-			} // dir
-		} //cbsite
-	} // cb
+#pragma omp simd aligned(data:64)
+			for(int j=0; j < gauge.GetLinkOffset(); ++j) {
+				data[j] = 0;
+			}
+		}
+	}
+
+
+	// offdiag_data
+#pragma omp parallel for collapse(2)
+	for(int cb=0; cb < n_checkerboard; ++cb ) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+			float* data = gauge.GetSiteDirDataPtr(cb,cbsite,0);
+#pragma omp simd aligned(data:64)
+			for(int j=0; j < gauge.GetSiteOffset(); ++j) {
+				data[j] = 0;
+			}
+		}
+	}
+
+	// inv diag_data
+#pragma omp parallel for collapse(2)
+	for(int cb=0; cb < n_checkerboard; ++cb ) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+			float* data = gauge.GetSiteInvDiagDataPtr(cb,cbsite);
+
+#pragma omp simd aligned(data:64)
+			for(int j=0; j < gauge.GetLinkOffset(); ++j) {
+				data[j] = 0;
+			}
+		}
+	}
+
+
+	// AD_data
+#pragma omp parallel for collapse(2)
+	for(int cb=0; cb < n_checkerboard; ++cb ) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+			float* data = gauge.GetSiteDirADDataPtr(cb,cbsite,0);
+#pragma omp simd aligned(data:64)
+			for(int j=0; j < gauge.GetSiteOffset(); ++j) {
+				data[j] = 0;
+			}
+		}
+	}
+
+	// DA_data
+#pragma omp parallel for collapse(2)
+	for(int cb=0; cb < n_checkerboard; ++cb ) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+			float* data = gauge.GetSiteDirDADataPtr(cb,cbsite,0);
+#pragma omp simd aligned(data:64)
+			for(int j=0; j < gauge.GetSiteOffset(); ++j) {
+				data[j] = 0;
+			}
+		}
+	}
+
 }
 
 

@@ -55,7 +55,8 @@ void CoarseDiracOp::unprecOp(CoarseSpinor& spinor_out,
 
 
 		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
-		const float* gauge_base = gauge_clov_in.GetSiteDataPtr(target_cb,site);
+		const float* gauge_base = gauge_clov_in.GetSiteDirDataPtr(target_cb,site,0);
+
 		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
@@ -67,7 +68,7 @@ void CoarseDiracOp::unprecOp(CoarseSpinor& spinor_out,
 							gauge_base+5*gdir_offset,      // Z backward
 							gauge_base+6*gdir_offset,      // T forward
 							gauge_base+7*gdir_offset,       // T backward
-							gauge_base+8*gdir_offset
+							gauge_clov_in.GetSiteDiagDataPtr(target_cb,site)
 		};
 
 		// Neighbouring spinors
@@ -154,7 +155,7 @@ void CoarseDiracOp::L_inv_matrix(CoarseSpinor& spinor_out,
 
 
 		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
-		const float* gauge_base = gauge_clov_in.GetSiteADDataPtr(target_cb,site);
+		const float* gauge_base = gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0);
 		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
@@ -166,7 +167,7 @@ void CoarseDiracOp::L_inv_matrix(CoarseSpinor& spinor_out,
 							gauge_base+5*gdir_offset,      // Z backward
 							gauge_base+6*gdir_offset,      // T forward
 							gauge_base+7*gdir_offset,       // T backward
-							gauge_base+8*gdir_offset
+							gauge_clov_in.GetSiteInvDiagDataPtr(target_cb,site)
 		};
 
 		// Neighbouring spinors
@@ -225,7 +226,7 @@ void CoarseDiracOp::M_diag(CoarseSpinor& spinor_out,
 	for(IndexType site=min_site; site < max_site;++site) {
 
 		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
-		const float* clover = gauge_clov_in.GetSiteDirDataPtr(target_cb,site,8);
+		const float* clover = gauge_clov_in.GetSiteDiagDataPtr(target_cb,site);
 		const float* input = spinor_in.GetSiteDataPtr(target_cb,site);
 
 		siteApplyClover(output, clover, input, dagger);
@@ -247,7 +248,7 @@ void CoarseDiracOp::M_diagInv(CoarseSpinor& spinor_out,
 	for(IndexType site=min_site; site < max_site;++site) {
 
 		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
-		const float* clover = gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,8);
+		const float* clover = gauge_clov_in.GetSiteInvDiagDataPtr(target_cb,site);
 		const float* input = spinor_in.GetSiteDataPtr(target_cb,site);
 
 		siteApplyClover(output, clover, input, dagger);
@@ -287,7 +288,7 @@ void CoarseDiracOp::M_offDiag_xpay(CoarseSpinor& spinor_out,
 
 
 		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
-		const float* gauge_base = gauge_clov_in.GetSiteDataPtr(target_cb,site);
+		const float* gauge_base = gauge_clov_in.GetSiteDirDataPtr(target_cb,site,0);
 		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
@@ -299,7 +300,7 @@ void CoarseDiracOp::M_offDiag_xpay(CoarseSpinor& spinor_out,
 							gauge_base+5*gdir_offset,      // Z backward
 							gauge_base+6*gdir_offset,      // T forward
 							gauge_base+7*gdir_offset,       // T backward
-							gauge_base+8*gdir_offset
+							gauge_clov_in.GetSiteDiagDataPtr(target_cb,site)
 		};
 
 		// Neighbouring spinors
@@ -374,7 +375,7 @@ void CoarseDiracOp::M_invOffDiag_xpay(CoarseSpinor& spinor_out,
 
 
 		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
-		const float* gauge_base = gauge_clov_in.GetSiteADDataPtr(target_cb,site);
+		const float* gauge_base = gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0);
 		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
@@ -386,7 +387,7 @@ void CoarseDiracOp::M_invOffDiag_xpay(CoarseSpinor& spinor_out,
 							gauge_base+5*gdir_offset,      // Z backward
 							gauge_base+6*gdir_offset,      // T forward
 							gauge_base+7*gdir_offset,       // T backward
-							gauge_base+8*gdir_offset
+							gauge_clov_in.GetSiteInvDiagDataPtr(target_cb,site)
 		};
 
 		// Neighbouring spinors
@@ -462,7 +463,7 @@ void CoarseDiracOp::M_invOffDiag_xpayz(CoarseSpinor& spinor_out,
 
 
 		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
-		const float* gauge_base = gauge_clov_in.GetSiteADDataPtr(target_cb,site);
+		const float* gauge_base = gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0);
 		const float* in_cb = spinor_cb.GetSiteDataPtr(target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
@@ -474,7 +475,7 @@ void CoarseDiracOp::M_invOffDiag_xpayz(CoarseSpinor& spinor_out,
 							gauge_base+5*gdir_offset,      // Z backward
 							gauge_base+6*gdir_offset,      // T forward
 							gauge_base+7*gdir_offset,       // T backward
-							gauge_base+8*gdir_offset
+							gauge_clov_in.GetSiteInvDiagDataPtr(target_cb,site)
 		};
 
 		// Neighbouring spinors
@@ -550,7 +551,7 @@ void CoarseDiracOp::M_invOffDiag(CoarseSpinor& spinor_out,
 
 
 		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
-		const float* gauge_base = gauge_clov_in.GetSiteADDataPtr(target_cb,site);
+		const float* gauge_base = gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0);
 		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
@@ -562,7 +563,7 @@ void CoarseDiracOp::M_invOffDiag(CoarseSpinor& spinor_out,
 							gauge_base+5*gdir_offset,      // Z backward
 							gauge_base+6*gdir_offset,      // T forward
 							gauge_base+7*gdir_offset,       // T backward
-							gauge_base+8*gdir_offset
+							gauge_clov_in.GetSiteInvDiagDataPtr(target_cb,site)
 		};
 
 		// Neighbouring spinors
@@ -938,81 +939,16 @@ void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
-		// Turn site into x,y,z,t coords assuming we run as
-		//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
-
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-		// x coordinate: mult by 2 and add on offset to turn into
-		// uncheckerboarded index
-		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
 
 		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
-		const float* gauge_base = gauge_in.GetSiteDataPtr(target_cb,site);
-		const IndexType gdir_offset = gauge_in.GetLinkOffset();
-
-		const float* gauge_link_dir = gauge_base + dir*gdir_offset;
+		const float* gauge_link_dir = gauge_in.GetSiteDirDataPtr(target_cb,site,dir);
 
 		/* The following case statement selects neighbors.
 		 *  It is culled from the full Dslash
 		 *  It of course would get complicated if some of the neighbors were in a halo
 		 */
 
-		const IndexType source_cb = 1 - target_cb;
-		const float *neigh_spinor = nullptr;
-
-		switch( dir ) {
-		case 0:
-		{
-			neigh_spinor = GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb);
-		}
-		break;
-		case 1:
-		{
-			neigh_spinor = GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb);
-			break;
-		case 2:
-		{
-			neigh_spinor = GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
-		}
-			break;
-		case 3:
-		{
-			neigh_spinor = GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
-		}
-		}
-			break;
-		case 4:
-		{
-			neigh_spinor = GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
-		}
-
-			break;
-		case 5:
-		{
-			neigh_spinor = GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
-		}
-			break;
-		case 6:
-		{
-			neigh_spinor = GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
-		}
-
-			break;
-		case 7:
-		{
-			neigh_spinor = GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb);
-		}
-			break;
-		default:
-			MasterLog(ERROR,"Invalid direction %d specified in DslashDir", dir);
-			break;
-		}
+		const float *neigh_spinor = GetNeighborDir<CoarseSpinor,CoarseAccessor>(_halo, spinor_in, dir, target_cb, site);
 
 		// Multiply the link with the neighbor. EasyPeasy?
 		CMatMultNaive(output, gauge_link_dir, neigh_spinor, N_colorspin);

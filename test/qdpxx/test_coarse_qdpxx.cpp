@@ -1557,26 +1557,14 @@ TEST(TestCoarseQDPXXBlock, TestCoarseDslashNeighbors)
 		QDPIO::cout << "Testing Dslash Dir=" << mu << std::endl;
 		// Zero Output Vector
 		ZeroVec(out);
-
+		ZeroGauge(u);
 		for(int cb=0; cb < n_checkerboard;++cb) {
 			for(int cbsites=0; cbsites < num_cbsites; ++cbsites) {
-				for(int dirs=0; dirs < 9; ++dirs ) {
-					float* u_data = u.GetSiteDirDataPtr(cb,cbsites,dirs);
-					for(int row=0; row < num_colorspin; ++row) {
-						for(int col=0; col < num_colorspin; ++col) {
-							u_data[ RE + n_complex*(col + row*num_colorspin)] = 0;
-							u_data[ IM + n_complex*(col + row*num_colorspin)] = 0;
+				float *u_data = u.GetSiteDirDataPtr(cb,cbsites,mu);
+				for(int diag=0; diag < num_colorspin; ++diag ) {
+					u_data[ RE + n_complex*(diag + diag*num_colorspin)] = 1;
+				}
 
-						} // col
-					} // row
-
-					// Unit matrix in the mu direction
-					if( dirs == mu ) {
-						for(int diag=0; diag < num_colorspin; ++diag ) {
-							u_data[ RE + n_complex*(diag + diag*num_colorspin)] = 1;
-						}
-					}
-				}// dirs
 			} //cbsites
 		} // cb
 

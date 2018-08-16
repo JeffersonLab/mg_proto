@@ -821,7 +821,7 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
 
 			// Get teh coarse site for writing
 			// Thiis is fixed
-			float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb,coarse_cbsite, 8);
+			float *coarse_link = u_coarse.GetSiteDiagDataPtr(coarse_cb,coarse_cbsite);
 
 			for(IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites); ++fine_site_idx) {
 
@@ -1002,7 +1002,7 @@ void clovTripleProductT(const DiracOpType& D_op,
     	 auto num_block_sites = block.getNumSites();
 
 
-    	 float *coarse_clov = gauge_clover.GetSiteDirDataPtr(coarse_cb,coarse_cbsite,8);
+    	 float *coarse_clov = gauge_clover.GetSiteDiagDataPtr(coarse_cb,coarse_cbsite);
     	 //for(int i=0; i < 2*num_coarse_colorspin*num_coarse_colorspin; i++) {
     		// coarse_clov[i] = 0;
     	// }

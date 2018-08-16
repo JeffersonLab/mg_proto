@@ -227,11 +227,15 @@ public:
 
     for(int cb=0; cb < n_checkerboard; ++cb) {
       for(int cbsite=0; cbsite < u_coarse.GetInfo().GetNumCBSites(); ++cbsite) {
-        for(int mu=0; mu < 9; ++mu) {
+        for(int mu=0; mu < 8; ++mu) {
           float* link=u_coarse.GetSiteDirDataPtr(cb,cbsite,mu);
           for(int j=0; j < n_complex*num_colorspin*num_colorspin; ++j) {
             link[j] *= -0.5;
           }
+        }
+        float* diag_link=u_coarse.GetSiteDiagDataPtr(cb,cbsite);
+        for(int j=0; j < n_complex*num_colorspin*num_colorspin; ++j) {
+        	diag_link[j] *= -0.5;
         }
       }
     }

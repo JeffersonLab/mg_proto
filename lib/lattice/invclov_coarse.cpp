@@ -49,7 +49,7 @@ void invertCloverDiag(CoarseGauge& u)
 }
 
 // Multiply the inverse part of the clover into eo_clov
-void multInvClovOffDiag(CoarseGauge& u)
+void multInvClovOffDiaLeft(CoarseGauge& u)
 {
 	const LatticeInfo& info = u.GetInfo();
 	const int num_cbsites = info.GetNumCBSites();

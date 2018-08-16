@@ -154,12 +154,13 @@ namespace MG {
 
 	class CoarseGauge {
 	public:
-		CoarseGauge(const LatticeInfo& lattice_info) : _lattice_info(lattice_info), data{nullptr,nullptr},
+		CoarseGauge(const LatticeInfo& lattice_info) : _lattice_info(lattice_info), data{nullptr,nullptr}, diag_data{nullptr,nullptr},
+		invdiag_data{nullptr,nullptr}, AD_data{nullptr,nullptr}, DA_data{nullptr,nullptr},
 				_n_color(lattice_info.GetNumColors()),
 				_n_spin(lattice_info.GetNumSpins()),
 				_n_colorspin(lattice_info.GetNumColors()*lattice_info.GetNumSpins()),
 				_n_link_offset(n_complex*_n_colorspin*_n_colorspin),
-				_n_site_offset((2*n_dim+1)*_n_link_offset),
+				_n_site_offset((2*n_dim)*_n_link_offset),
 				_n_xh( lattice_info.GetCBLatticeDimensions()[0] ),
 				_n_x( lattice_info.GetLatticeDimensions()[0] ),
 				_n_y( lattice_info.GetLatticeDimensions()[1] ),
@@ -172,48 +173,31 @@ namespace MG {
 			}
 
 
-			// Allocate Data
-			IndexType num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_site_offset;
+			// Allocate Data - data, AD data and DA data are the off-diagonal links - 8 links per site (use n_site_iffset)
+			IndexType offdiag_num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_site_offset;
+
+			// diag_data and invdiag data hold the clover terms. These are 1 link per site (use _n_link_offset)
+			IndexType diag_num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_link_offset;
 
 			/* Contiguous allocation */
-			data[0] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
-			data[1] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
-			AD_data[0] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
-			AD_data[1] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
-			DA_data[0] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
-			DA_data[1] = (float *)MG::MemoryAllocate(num_floats_per_cb*sizeof(float), MG::REGULAR);
+			data[0] = (float *)MG::MemoryAllocate(offdiag_num_floats_per_cb*sizeof(float), MG::REGULAR);
+			data[1] = (float *)MG::MemoryAllocate(offdiag_num_floats_per_cb*sizeof(float), MG::REGULAR);
+
+			diag_data[0] = (float *)MG::MemoryAllocate(diag_num_floats_per_cb*sizeof(float), MG::REGULAR);
+			diag_data[1] = (float *)MG::MemoryAllocate(diag_num_floats_per_cb*sizeof(float), MG::REGULAR);
+
+			invdiag_data[0] = (float *)MG::MemoryAllocate(diag_num_floats_per_cb*sizeof(float), MG::REGULAR);
+			invdiag_data[1] = (float *)MG::MemoryAllocate(diag_num_floats_per_cb*sizeof(float), MG::REGULAR);
+
+			AD_data[0] = (float *)MG::MemoryAllocate(offdiag_num_floats_per_cb*sizeof(float), MG::REGULAR);
+			AD_data[1] = (float *)MG::MemoryAllocate(offdiag_num_floats_per_cb*sizeof(float), MG::REGULAR);
+
+			DA_data[0] = (float *)MG::MemoryAllocate(offdiag_num_floats_per_cb*sizeof(float), MG::REGULAR);
+			DA_data[1] = (float *)MG::MemoryAllocate(offdiag_num_floats_per_cb*sizeof(float), MG::REGULAR);
 
 		}
 
-		/** GetCBData
-		 *
-		 * 	Returns a pointer to the data for cb
-		 */
-		inline
-		float* GetCBDataPtr(IndexType cb)
-		{
-			return data[cb];
-		}
-
-		/** Get EO CB Data
-		 *
-		 * returns a pointer to the eo_data for cb
-		 * shwadows GetCBDataPtr
-		 */
-		inline
-		float* GetCBADDataPtr(IndexType cb)
-		{
-			return AD_data[cb];
-
-		}
-
-		inline
-		float* GetCBDADataPtr(IndexType cb)
-		{
-			return DA_data[cb];
-
-		}
-
+#if 0
 		/** GetSiteData
 		 *
 		 *  Returns a pointer to the data for a site in a cb
@@ -273,7 +257,7 @@ namespace MG {
 		{
 			return &DA_data[cb][site*_n_site_offset];
 		}
-
+#endif
 		/** GetSiteDirData
 		 *
 		 *  Returns a pointer to the link in direction mu
@@ -286,7 +270,6 @@ namespace MG {
 		 *  	mu=5 - Z backward
 		 *      mu=6 - T forward
 		 *      mu=7 - T backward
-		 *      mu=8 - Local Term.
 		 */
 		inline
 		float *GetSiteDirDataPtr(IndexType cb, IndexType site, IndexType mu)
@@ -300,7 +283,7 @@ namespace MG {
 			return &data[cb][site*_n_site_offset + mu*_n_link_offset];
 		}
 
-		/** GetSiteDirEOData
+		/** GetSiteDirADData
 		 *
 		 *  Returns a pointer to the link in direction mu
 		 *  Conventions are:
@@ -312,7 +295,6 @@ namespace MG {
 		 *  	mu=5 - Z backward
 		 *      mu=6 - T forward
 		 *      mu=7 - T backward
-		 *      mu=8 - Local Term.
 		 */
 		inline
 		float *GetSiteDirADDataPtr(IndexType cb, IndexType site, IndexType mu)
@@ -326,6 +308,19 @@ namespace MG {
 			return &AD_data[cb][site*_n_site_offset + mu*_n_link_offset];
 		}
 
+		/** GetSiteDirDAData
+			 *
+			 *  Returns a pointer to the link in direction mu
+			 *  Conventions are:
+			 *  	mu=0 - X forward
+			 *  	mu=1 - X backward
+			 *  	mu=2 - Y forwad
+			 *  	mu=3 - Y backward
+			 *  	mu=4 - Z forward
+			 *  	mu=5 - Z backward
+			 *      mu=6 - T forward
+			 *      mu=7 - T backward
+			 */
 		inline
 		float *GetSiteDirDADataPtr(IndexType cb, IndexType site, IndexType mu)
 		{
@@ -338,10 +333,42 @@ namespace MG {
 			return &DA_data[cb][site*_n_site_offset + mu*_n_link_offset];
 		}
 
+
+		inline
+		float *GetSiteDiagDataPtr(IndexType cb, IndexType site)
+		{
+			return &diag_data[cb][site*_n_link_offset];
+		}
+
+		inline
+		const float *GetSiteDiagDataPtr(IndexType cb, IndexType site) const
+		{
+			return &diag_data[cb][site*_n_link_offset];
+		}
+
+		inline
+		float *GetSiteInvDiagDataPtr(IndexType cb, IndexType site)
+		{
+			return &invdiag_data[cb][site*_n_link_offset];
+
+		}
+
+		inline
+		const float *GetSiteInvDiagDataPtr(IndexType cb, IndexType site) const
+		{
+			return &invdiag_data[cb][site*_n_link_offset];
+
+		}
+
+
 		~CoarseGauge()
 		{
 			MemoryFree(data[0]);
 			MemoryFree(data[1]);
+			MemoryFree(diag_data[0]);
+			MemoryFree(diag_data[1]);
+			MemoryFree(invdiag_data[0]);
+			MemoryFree(invdiag_data[1]);
 			MemoryFree(AD_data[0]);
 			MemoryFree(AD_data[1]);
 			MemoryFree(DA_data[0]);
@@ -349,6 +376,10 @@ namespace MG {
 
 			data[0] = nullptr;
 			data[1] = nullptr;
+			diag_data[0] = nullptr;
+			diag_data[1] = nullptr;
+			invdiag_data[0] = nullptr;
+			invdiag_data[1] = nullptr;
 			AD_data[0] = nullptr;
 			AD_data[1] = nullptr;
 			DA_data[0] = nullptr;
@@ -376,6 +407,11 @@ namespace MG {
 		}
 
 		inline
+		IndexType GetSiteOffset() const {
+			return _n_site_offset;
+		}
+
+		inline
 		const LatticeInfo& GetInfo() const {
 			 return _lattice_info;
 		}
@@ -397,9 +433,11 @@ namespace MG {
 
 	private:
 		const LatticeInfo& _lattice_info;
-		float* data[2];  // Even and odd checkerboards
-		float* AD_data[2]; // holds A^{-1}_oo A^{-1}_ee A^{-1}_oo D_oe and A^{-1}_ee D_eo
-		float* DA_data[2]; // holds A^{-1}_oo A^{-1}_ee A^{-1}_oo D_oe and A^{-1}_ee D_eo
+		float* data[2];        // Even and odd checkerboards off diagonal data (D)
+		float* diag_data[2];   // Diagonal data (Clov, or A)
+		float* invdiag_data[2]; // Inverse Clover (A^{-1})
+		float* AD_data[2]; // holds A^{-1}_oo D_oe and A^{-1}_ee D_eo (AD)
+		float* DA_data[2]; // holds D_oe A^{-1}_ee and D_eo A^{-1}_oo (DA)
 
 
 		const IndexType _n_color;

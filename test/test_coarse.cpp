@@ -83,20 +83,20 @@ TEST(CoarseDslash, TestSpeed)
 					for(int z=0; z < n_complex; ++z ) {
 
 						// CB=0 Chiral up
-						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
-						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
+						gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
+						gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
 
 						// CB=0 Chiral down
-						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
-						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
+						gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
+						gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
 
 						// CB=1 Chiral up
-						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
-						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
+						gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
+						gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
 
 						// CB=1 Chiral down
-						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
-						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
+						gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
+						gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
 
 
 

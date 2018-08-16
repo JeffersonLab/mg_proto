@@ -407,7 +407,7 @@ void clovTripleProductSiteQDPXX(const QDPCloverTerm& clov,const multi1d<LatticeF
 			for(int chiral = 0; chiral < Nchiral_c; ++chiral ) {
 
 				// This is now an Ncomplex*Ncolor_c x Ncomplex*Ncolor_c
-				float *coarse_clov = cl_coarse.GetSiteDirDataPtr(cb,cbsite,8);
+				float *coarse_clov = cl_coarse.GetSiteDiagDataPtr(cb,cbsite);
 				int site=rb[cb].siteTable()[cbsite];
 
 				// This is an Ncolor_c x Ncolor_c matmul

@@ -10,6 +10,7 @@
 #include "lattice/geometry_utils.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 #include "lattice/coarse/aggregate_block_coarse.h"
+#include "lattice/halo.h"
 #include <cassert>
 
 #include<omp.h>
@@ -633,7 +634,7 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 
 					// Get teh coarse site for writing
 					// Thiis is fixed
-					float *coarse_link = u_coarse.GetSiteDirDataPtr(coarse_cb,coarse_cbsite, 8);
+					float *coarse_link = u_coarse.GetSiteDiagDataPtr(coarse_cb,coarse_cbsite);
 
 					// Do the accumulation in double
 					std::vector<double> tmp_link(n_complex*num_coarse_colorspin*num_coarse_colorspin);
@@ -813,7 +814,7 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 			// Which is an N_colorspin x N_colorspin
 			// Matrix. Caller must initialize this as both the Dslash Dir and this function
 			// write into it.
-			float *coarse_clov_data = coarse_gauge_clov.GetSiteDirDataPtr(coarse_cb, coarse_cbsite, 8);
+			float *coarse_clov_data = coarse_gauge_clov.GetSiteDiagDataPtr(coarse_cb, coarse_cbsite);
 
 			// Accumulate into a temporary and zero that out
 			std::vector<double> tmp_result(n_complex*num_coarse_colorspin*num_coarse_colorspin);
@@ -906,8 +907,9 @@ void invertCloverDiag(CoarseGauge& u)
 		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
 
 			// 0-7 are the off diags, 8 is the diag
-			float *diag_site_data = u.GetSiteDirDataPtr(cb,cbsite,8);
-			float *invdiag_site_data = u.GetSiteDirADDataPtr(cb,cbsite,8);
+			float *diag_site_data = u.GetSiteDiagDataPtr(cb,cbsite);
+			float *invdiag_site_data = u.GetSiteInvDiagDataPtr(cb,cbsite);
+
 
 			Map< ComplexMatrix > in_mat(reinterpret_cast<std::complex<float>*>(diag_site_data),
 					num_colorspins,
@@ -917,14 +919,12 @@ void invertCloverDiag(CoarseGauge& u)
 					num_colorspins);
 
 			out_mat = in_mat.inverse();
-			//out_mat = in_mat;
-
 		} // sites
 	} // checkerboards
 }
 
 // Multiply the inverse part of the clover into eo_clov
-void multInvClovOffDiag(CoarseGauge& u)
+void multInvClovOffDiaLeft(CoarseGauge& u)
 {
 	const LatticeInfo& info = u.GetInfo();
 	const int num_cbsites = info.GetNumCBSites();
@@ -935,7 +935,7 @@ void multInvClovOffDiag(CoarseGauge& u)
 		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
 
 			// 0-7 are the off diags, 8 is the diag
-			float *invdiag_site_data = u.GetSiteDirADDataPtr(cb,cbsite,8);
+			float *invdiag_site_data = u.GetSiteInvDiagDataPtr(cb,cbsite);
 			for(int mu=0; mu < 8; ++mu) {
 				float *resptr = u.GetSiteDirADDataPtr(cb,cbsite,mu);
 				float *srcptr = u.GetSiteDirDataPtr(cb,cbsite,mu);
@@ -954,6 +954,78 @@ void multInvClovOffDiag(CoarseGauge& u)
 								num_colorspins);
 
 			resmat = invdiag_mat * srcmat;
+			}
+		} // sites
+	} // checkerboards
+}
+
+template<typename T>
+struct InvDiagAccessor {
+	static
+	inline const float* get(const T& in, int cb, int cbsite, int dir, int fb);
+};
+
+template<>
+inline
+const float*
+InvDiagAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, int dir, int fb)
+{
+    return in.GetSiteInvDiagDataPtr(cb,cbsite);
+}
+
+// Multiply the inverse part of the clover into eo_clov
+void multInvClovOffDiagRight(CoarseGauge& u)
+{
+	const LatticeInfo& info = u.GetInfo();
+
+	// Halo Buffers
+	HaloContainer<CoarseGauge> gauge_halo_cb0(info);
+	HaloContainer<CoarseGauge> gauge_halo_cb1(info);
+
+	// This is we can use in a checkerboarded loop
+	HaloContainer<CoarseGauge>* halos[2] = { &gauge_halo_cb0, &gauge_halo_cb1 };
+
+	// Communicate all the halos
+	for(int target_cb=0; target_cb < 2; ++target_cb) {
+		MasterLog(INFO, "Communicating Gauge Halos: target_cb=%d", target_cb);
+		CommunicateHaloSync<CoarseGauge,InvDiagAccessor>(*(halos[target_cb]), u, target_cb);
+	}
+
+	const int num_cbsites = info.GetNumCBSites();
+	const int num_colorspins = info.GetNumColorSpins();
+
+#pragma omp parallel for collapse(2)
+	for(int target_cb = 0; target_cb < n_checkerboard; ++target_cb) {
+		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
+
+			// 0-7 are the off diags, 8 is the diag
+			for(int mu=0; mu < 8; ++mu) {
+
+				// This goes to the DA array
+				float *resptr = u.GetSiteDirDADataPtr(target_cb,cbsite,mu);
+
+				// The original link (the D part)
+				const float *srcptr = u.GetSiteDirDataPtr(target_cb,cbsite,mu);
+
+				// This should get the neighboring A from either u or the halos as needed
+				// It ought to have been already inverted by a previous call.
+				const float *invdiag_ptr =GetNeighborDir<CoarseGauge,InvDiagAccessor>(*(halos[target_cb]), u, mu, target_cb, cbsite);
+
+				// Dress them up as eigen matrices.
+				Map< const ComplexMatrix > invdiag_mat(reinterpret_cast<const std::complex<float>*>(invdiag_ptr),
+						num_colorspins,
+						num_colorspins);
+
+				Map< const ComplexMatrix > srcmat(reinterpret_cast<const std::complex<float>*>(srcptr),
+						num_colorspins,
+						num_colorspins);
+
+				Map< ComplexMatrix > resmat(reinterpret_cast<std::complex<float>*>(resptr),
+						num_colorspins,
+						num_colorspins);
+
+				// Perform the right multiply.
+				resmat = srcmat*invdiag_mat;
 			}
 		} // sites
 	} // checkerboards

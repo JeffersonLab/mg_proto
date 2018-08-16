@@ -554,7 +554,7 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 			}
 
 			// Check new coupling term is 0
-			const float *central_new = u_coarse_coarse.GetSiteDirDataPtr(cb,site,8);
+			const float *central_new = u_coarse_coarse.GetSiteDiagDataPtr(cb,site);
 			for(int j=0; j < num_colorspin*num_colorspin; ++j) {
 				ASSERT_NEAR( central_new[RE+n_complex*j], 0, 5.0e-6);
 				ASSERT_NEAR( central_new[IM+n_complex*j], 0, 5.0e-6);
@@ -734,8 +734,8 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductCloverEyeTrivial)
 	for(int cb=0; cb < n_checkerboard; ++cb) {
 		for(int site = 0; site < info.GetNumCBSites(); ++site) {
 
-				const float* clov_orig = coarse_clover.GetSiteDirDataPtr(cb,site,8);
-				const float* clov_new = coarse_coarse_clover.GetSiteDirDataPtr(cb,site,8);
+				const float* clov_orig = coarse_clover.GetSiteDiagDataPtr(cb,site);
+				const float* clov_new = coarse_coarse_clover.GetSiteDiagDataPtr(cb,site);
 
 				int num_colorspin=info.GetNumColorSpins();
 				for(int j=0; j < num_colorspin*num_colorspin; ++j) {

@@ -408,13 +408,26 @@ TEST(QPhiXIntegration, TestSetupQDPXXVecs)
     for(IndexType cb=0; cb < 2; ++cb) {
       for(IndexType cbsite=0; cbsite < n_coarse_cbsites; cbsite++) {
         for(IndexType mu=0; mu < 9; ++mu) {
-          float *qdp_site = qdpxx_u_coarse.GetSiteDirDataPtr(cb, cbsite,mu);
-          float *qphix_site = qphix_u_coarse.GetSiteDirDataPtr(cb,cbsite,mu);
+
+        	float *qdp_site=nullptr;
+        	float *qphix_site = nullptr;
+        	if ( mu != 8 ) {
+        		qdp_site = qdpxx_u_coarse.GetSiteDirDataPtr(cb, cbsite,mu);
+        		qphix_site = qphix_u_coarse.GetSiteDirDataPtr(cb,cbsite,mu);
+        	}
+        	else {
+        		qdp_site = qdpxx_u_coarse.GetSiteDiagDataPtr(cb, cbsite);
+        		qphix_site = qphix_u_coarse.GetSiteDiagDataPtr(cb,cbsite);
+        	}
           for(int ij=0; ij < n_complex*12*12; ++ij) {
             float diff = std::abs(qphix_site[ij]-qdp_site[ij]);
             ASSERT_LT(diff, 1.0e-6);
           }
         }
+
+
+
+
 
       }
     }
