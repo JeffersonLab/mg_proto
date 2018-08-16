@@ -429,8 +429,8 @@ TEST(TestCoarseQDPXXBlock, TestCoarseQDPXXDslashTrivial)
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
-		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
+		D_op_coarse.unprecOp(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
+		D_op_coarse.unprecOp(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
 	}
 
 	// Export Coa            rse spinor to QDP++ spinors.
@@ -1571,8 +1571,8 @@ TEST(TestCoarseQDPXXBlock, TestCoarseDslashNeighbors)
 	#pragma omp parallel
 		{
 			int tid = omp_get_thread_num();
-			D_op_coarse(out, u, in, 0, LINOP_OP, tid);
-			D_op_coarse(out, u, in, 1, LINOP_OP, tid);
+			D_op_coarse.unprecOp(out, u, in, 0, LINOP_OP, tid);
+			D_op_coarse.unprecOp(out, u, in, 1, LINOP_OP, tid);
 		}
 
 		for(int cb=0; cb < n_checkerboard; ++cb) {
@@ -1724,8 +1724,8 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslashUnitGaugeDir6)
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse(out, u_coarse, v_c, 0, op, tid);
-		D_op_coarse(out, u_coarse, v_c, 1, op, tid);
+		D_op_coarse.unprecOp(out, u_coarse, v_c, 0, op, tid);
+		D_op_coarse.unprecOp(out, u_coarse, v_c, 1, op, tid);
 	}
 
 
@@ -1845,8 +1845,8 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 #pragma omp parallel
 		{
 			int tid = omp_get_thread_num();
-			D_op_coarse(out, u_coarse, v_c, 0, op, tid);
-			D_op_coarse(out, u_coarse, v_c, 1, op, tid);
+			D_op_coarse.unprecOp(out, u_coarse, v_c, 0, op, tid);
+			D_op_coarse.unprecOp(out, u_coarse, v_c, 1, op, tid);
 		}
 
 

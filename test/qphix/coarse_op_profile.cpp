@@ -111,7 +111,7 @@ TEST(CoarseDslash, TestSpeed)
 		double start_time = omp_get_wtime();
 
 		for(int iter = 0; iter < N_iter; ++iter) {
-			D(y_spinor,gauge,x_spinor,0,LINOP_OP,tid);
+			D.unprecOp(y_spinor,gauge,x_spinor,0,LINOP_OP,tid);
 		} // iter
 
 		double end_time = omp_get_wtime();

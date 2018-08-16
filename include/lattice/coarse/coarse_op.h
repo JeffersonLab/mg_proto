@@ -33,6 +33,7 @@ public:
 	/** The main user callable operator()
 	 * Evaluate spinor_in [ 1 + \sum Y_{mu} delta_x+mu ] spinor_in
 	 */
+#if 0
 	void operator()(CoarseSpinor& spinor_out,
 				const CoarseGauge& gauge_clov_in,
 				const CoarseSpinor& spinor_in,
@@ -40,13 +41,11 @@ public:
 				const IndexType dagger,
 				const IndexType tid) const
 	{
-		unprecOp(spinor_out,
-					gauge_clov_in,
-					spinor_in,
-					target_cb,
-					dagger,
-					tid);
+
+
 	}
+#endif
+
     // Applies M on target checkerboard
 	// Full Op is:
 	//

@@ -121,8 +121,8 @@ TEST(TestParallelCoarseDslash, TestDiracOp)
 #pragma omp parallel
 	{
 		int tid = omp_get_thread_num();
-		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
-		D_op_coarse(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
+		D_op_coarse.unprecOp(coarse_s_out, u_coarse, coarse_s_in, 0, op, tid);
+		D_op_coarse.unprecOp(coarse_s_out, u_coarse, coarse_s_in, 1, op, tid);
 	}
 
 	// Export Coa            rse spinor to QDP++ spinors.

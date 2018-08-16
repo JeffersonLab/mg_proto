@@ -323,7 +323,7 @@ TEST(TestCoarseCoarse, TestCoarseDslashDir2)
 	{
 		int tid = omp_get_thread_num();
 		for(int cb=0; cb < n_checkerboard; ++cb) {
-			D_op_coarse(coarse_d_out, u_coarse, v_c, cb, LINOP_OP, tid);
+			D_op_coarse.unprecOp(coarse_d_out, u_coarse, v_c, cb, LINOP_OP, tid);
 		}
 	}
 
@@ -589,14 +589,14 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 #pragma omp parallel
 			{
 				int tid = omp_get_thread_num();
-				D_op_coarse(D_c_psi, u_coarse, psi, cb,op, tid );
+				D_op_coarse.unprecOp(D_c_psi, u_coarse, psi, cb,op, tid );
 				D_op_coarse.CloverApply(X_psi,u_coarse,psi,cb,op,tid);
 			}
 
 #pragma omp parallel
 			{
 				int tid = omp_get_thread_num();
-				D_op_coarse_coarse(D_cc_psi, u_coarse_coarse, psi, cb, op, tid);
+				D_op_coarse_coarse.unprecOp(D_cc_psi, u_coarse_coarse, psi, cb, op, tid);
 			}
 		} // cb
 
