@@ -39,6 +39,7 @@ CoarseAccessor<CoarseSpinor>::get(const CoarseSpinor& in, int cb, int cbsite, in
 	return in.GetSiteDataPtr(cb,cbsite);
 }
 
+#if 0
 template<>
 inline
 const float*
@@ -47,7 +48,7 @@ CoarseAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, int 
     int mu = 8;
     return in.GetSiteDirADDataPtr(cb,cbsite,mu);
 }
-
+#endif
 
 template<typename T, template <typename> class Accessor>
 inline
@@ -64,8 +65,8 @@ packFace( HaloContainer<T>& halo, const T& in, IndexType cb,  IndexType dir, Ind
 	// Grab the buffer from the Halo
 	float* buffer = halo.GetSendToDirBuf(2*dir + fb);
 
-	int num_color_spins = info.GetNumColorSpins();
-	int buffer_site_offset = n_complex*num_color_spins;
+	//int num_color_spins = info.GetNumColorSpins();
+	int buffer_site_offset = halo.GetDataTypeSize();
 	int buffer_sites = halo.NumSitesInFace(dir);
 
 	// Loop through the sites in the buffer

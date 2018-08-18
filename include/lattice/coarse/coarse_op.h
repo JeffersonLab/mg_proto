@@ -76,28 +76,29 @@ public:
 				const IndexType dagger,
 				const IndexType tid) const;
 
+
+
+
+
 	// Apply OffDoagonal and add-to/subtract from spinor_out
 	//  spinor_out_o/e + alpha* M_oe/eo spinor_in_e/o
-	void M_offDiag_xpay(CoarseSpinor& spinor_out,
-				       const float alpha,
-				       const CoarseGauge& gauge_in,
-					   const CoarseSpinor& spinor_in,
-					   const IndexType target_cb,
-					   const IndexType dagger,
-					   const IndexType tid) const;
+	// Use with UnprecOp?
+	void M_D_xpay(CoarseSpinor& spinor_out,
+			const float alpha,
+			const CoarseGauge& gauge_in,
+			const CoarseSpinor& spinor_in,
+			const IndexType target_cb,
+			const IndexType dagger,
+			const IndexType tid) const;
 
 
-	// Apply M_diag^{-1}M_off_diag
-	void M_invOffDiag_xpay(CoarseSpinor& spinor_out,
-				           const float alpha,
-						   const CoarseGauge& gauge_in,
-						   const CoarseSpinor& spinor_in,
-						   const IndexType target_cb,
-						   const IndexType dagger,
-						   const IndexType tid) const;
 
-	// Apply M_diag^{-1}M_off_diag
-	void M_invOffDiag_xpayz(CoarseSpinor& spinor_out,
+
+
+
+
+	// spinor_out = spinor_cb + alpha A^{-1} D spinor_od
+	void M_AD_xpayz(CoarseSpinor& spinor_out,
 				           const float alpha,
 						   const CoarseGauge& gauge_in,
 						   const CoarseSpinor& spinor_cb,
@@ -106,8 +107,27 @@ public:
 						   const IndexType dagger,
 						   const IndexType tid) const;
 
-	// Apply M_diag^{-1}M_off_diag
-	void M_invOffDiag(CoarseSpinor& spinor_out,
+	// spinor_out = spinor_cb + alpha D A^{-1} spinor_od
+	void M_DA_xpayz(CoarseSpinor& spinor_out,
+				           const float alpha,
+						   const CoarseGauge& gauge_in,
+						   const CoarseSpinor& spinor_cb,
+						   const CoarseSpinor& spinor_od,
+						   const IndexType target_cb,
+						   const IndexType dagger,
+						   const IndexType tid) const;
+
+
+	// spinor_out =  A^{-1} D spinor_od
+	void M_AD(CoarseSpinor& spinor_out,
+				const CoarseGauge& gauge_in,
+				const CoarseSpinor& spinor_in,
+				const IndexType target_cb,
+				const IndexType dagger,
+				const IndexType tid) const;
+
+	// spinor_out = D A^{-1} spinor_od
+	void M_DA(CoarseSpinor& spinor_out,
 				const CoarseGauge& gauge_in,
 				const CoarseSpinor& spinor_in,
 				const IndexType target_cb,
@@ -116,75 +136,71 @@ public:
 
 
 
+	// [  1                 0 ] [ spinor_in_e ] = [ spinor_in_e                              ]
+	// [ A_oo^{-1} D_oe     1 ] [ spinor_in_o ]   [ spinor_in_o + A_oo^{-1} D_oe spinor_in_e ]
+	void L_matrix(CoarseSpinor& spinor_out,
+			const CoarseGauge& gauge_in,
+			const CoarseSpinor& spinor_in) const {
 
-	// [  M_ee      0   ] [ spinor_in_e ] = [ M_ee spinor_in_e                    ]
-	// [  M_oe     M_oo ] [ spinor_in_o ]   [ M_oo spinor_in_o + M_oe spinor_in_o ]
-		void L_matrix(CoarseSpinor& spinor_out,
-				  const CoarseGauge& gauge_in,
-				  const CoarseSpinor& spinor_in,
-				  const IndexType dagger) const {
+		CopyVec(spinor_out,spinor_in, SUBSET_ALL);
 
-
-			  if( dagger == LINOP_OP) {
 #pragma omp parallel
-				{
-					int tid = omp_get_thread_num();
+		{
+			int tid = omp_get_thread_num();
+			M_AD_xpayz(spinor_out, 1.0, gauge_in, spinor_out, spinor_in, ODD, LINOP_OP, tid );
+		} // omp parallel
 
-					M_diag(spinor_out, gauge_in, spinor_in, 0, LINOP_OP, tid );
-					unprecOp(spinor_out, gauge_in, spinor_in, 1, LINOP_OP, tid);
+	}
 
-				} // omp parallel
-			  }
-			  else {
-				  // Dagger not yet implemented.
-
-			  }
-		}
-
-
+	// [  1                 0 ] [ spinor_in_e ] = [ spinor_in_e                              ]
+	// [ -A_oo^{-1} D_oe     1 ] [ spinor_in_o ]   [ spinor_in_o - A_oo^{-1} D_oe spinor_in_e ]
 	void	L_inv_matrix(CoarseSpinor& spinor_out,
-					const CoarseGauge& gauge_clov_in,
-					const CoarseSpinor& spinor_in,
-					const IndexType dagger) const;
+			const CoarseGauge& gauge_clov_in,
+			const CoarseSpinor& spinor_in) const {
+
+		CopyVec(spinor_out,spinor_in, SUBSET_ALL);
+
+
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			M_AD_xpayz(spinor_out, -1.0, gauge_clov_in, spinor_out, spinor_in, ODD, LINOP_OP, tid );
+		} // omp parallel
+
+	}
 
 
 
 	// R = [  1    A^{-1} M_eo ]
 	//     [  0         1      ]
 	void R_matrix(CoarseSpinor& spinor_out,
-				  const CoarseGauge& gauge_in,
-				  const CoarseSpinor& spinor_in,
-				  const IndexType dagger) const {
-		if( dagger == LINOP_OP )  {
-			CopyVec( spinor_out, spinor_in);
+			const CoarseGauge& gauge_in,
+			const CoarseSpinor& spinor_in) const {
+
+		CopyVec( spinor_out, spinor_in, SUBSET_ALL  );
+
+
 #pragma omp parallel
-			{
-				int tid=omp_get_thread_num();
-				M_invOffDiag_xpay(spinor_out, 1, gauge_in, spinor_in, 0, dagger, tid);
-			}
-		}
-		else {
-			// Not yet imlemented
+		{
+			int tid=omp_get_thread_num();
+			M_AD_xpayz(spinor_out, 1, gauge_in, spinor_out, spinor_in, EVEN, LINOP_OP, tid);
 		}
 	}
 
 	// R^{inv} = [  1    -A^{-1} M_eo ]
 	//           [  0         1      ]
 	void R_inv_matrix(CoarseSpinor& spinor_out,
-					const CoarseGauge& gauge_in,
-					const CoarseSpinor& spinor_in,
-					const IndexType dagger) const {
-		if( dagger == LINOP_OP ) {
-			CopyVec( spinor_out, spinor_in  );
+			const CoarseGauge& gauge_in,
+			const CoarseSpinor& spinor_in) const {
+
+		CopyVec( spinor_out, spinor_in, SUBSET_ALL  );
+
 #pragma omp parallel
-			{
-				int tid = omp_get_thread_num();
-				M_invOffDiag_xpay(spinor_out, -1, gauge_in, spinor_in, 0, dagger, tid);
-			}
+		{
+			int tid = omp_get_thread_num();
+			M_AD_xpayz(spinor_out, -1, gauge_in, spinor_out, spinor_in, EVEN, LINOP_OP, tid);
 		}
-		else {
-			// Dagger Not yet Implemented
-		}
+
 	}
 
 
@@ -198,14 +214,22 @@ public:
 		{
 			int tid = omp_get_thread_num();
 
-			M_invOffDiag(_tmpvec,
+			// dagger = LINOP_OP => tmp = A^{-1} D spinor_in
+			// dagger = LINOP_DAGGER => tmp = Gamma_c D A^{-1} Gamma_c spinor in
+			M_AD(_tmpvec,
 					gauge_in,
 					spinor_in,
 					1-target_cb,
 					dagger,
 					tid);
 #pragma omp barrier
-			M_invOffDiag_xpayz(spinor_out,
+
+			// dagger = LINOP_OP => out = spinor_in - A^{-1} D tmpvec = spinor_in - A^{-1} D A^{-1} D spinor_in
+			// dagger = LINOP_DAGGER => out = spinor_in - Gamma_c D A^{-1} Gamma_c tmpvec
+			//                              = spinor_in - Gamma_c D A^{-1} Gamma_c Gamma_c D A^{-1} Gamma_c spinor in
+			//                              = spinor_in - Gamma_c D A^{1} D A^{-1} Gamma_c spinor_in
+			//
+			M_AD_xpayz(spinor_out,
 					-1.0,
 					gauge_in,
 					spinor_in,
@@ -213,20 +237,10 @@ public:
 					target_cb,
 					dagger,
 					tid);
-		}
+		} // Parallel
 
 	}
 
-	void Schur_matrix(CoarseSpinor& spinor_out,
-			const CoarseGauge& gauge_in,
-			const CoarseSpinor& spinor_in,
-			const IndexType dagger) const {
-
-
-			CopyVec(spinor_out,spinor_in, SUBSET_EVEN);
-			EOPrecOp(spinor_out,gauge_in,spinor_in,ODD,dagger);
-
-	}
 
 	void CloverApply(CoarseSpinor& spinor_out,
 				const CoarseGauge& gauge_clov_in,
@@ -250,32 +264,34 @@ public:
 
 	// output = sum_0..7 U_mu neigh_mu
 	void siteApplyDslash( float* output,
-			  	  	  	  	 	 const float* gauge_links[9],
-								 const float* neigh_spinors[8],
-								 const IndexType dagger) const;
-
-
-
-    // output =  in_1 +/- sum_0..7 U_mu neigh_mu
-	void siteApplyDslash_xpmy( float* output,
-								 const float coeff,
-			  	  	  	  	 	 const float* gauge_links[9],
-								 const float* neigh_spinors[8],
-								 const IndexType dagger) const;
+			              const float* gauge_links[8],
+						  const float* neigh_spinors[8]) const;
 
 
 	void siteApplyDslash_xpayz( float *output,
 								 const float coeff,
-			  	  	  	  	 	 const float* gauge_links[9],
+			  	  	  	  	 	 const float* gauge_links[8],
 								 const float* in_spinor_cb,
-								 const float* neigh_spinors[8],
-								 const IndexType dagger) const;
+								 const float* neigh_spinors[8]) const;
+
+	// output = sum_0..7 U_mu neigh_mu
+	void siteApplyGcDslashGc( float* output,
+			              const float* gauge_links[8],
+						  const float* neigh_spinors[8]) const;
+
+
+	void siteApplyGcDslashGc_xpayz( float *output,
+								 const float coeff,
+			  	  	  	  	 	 const float* gauge_links[8],
+								 const float* in_spinor_cb,
+								 const float* neigh_spinors[8]) const;
 
 	// output = A_ee input
 	void siteApplyClover( float* output,
 						  const float* clover,
 						  const float* input,
 						  const IndexType dagger) const ;
+
 
 	void DslashDir(CoarseSpinor& spinor_out,
 						const CoarseGauge& gauge_in,

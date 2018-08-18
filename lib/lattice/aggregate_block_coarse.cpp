@@ -898,6 +898,8 @@ using ComplexMatrix = Matrix<std::complex<float>, Dynamic, Dynamic, ColMajor>;
 
 void invertCloverDiag(CoarseGauge& u)
 {
+	MasterLog(INFO, "Inverting Coarse Diagonal Term");
+
 	const LatticeInfo& info = u.GetInfo();
 	const int num_cbsites = info.GetNumCBSites();
 	const int num_colorspins = info.GetNumColorSpins();
@@ -924,8 +926,9 @@ void invertCloverDiag(CoarseGauge& u)
 }
 
 // Multiply the inverse part of the clover into eo_clov
-void multInvClovOffDiaLeft(CoarseGauge& u)
+void multInvClovOffDiagLeft(CoarseGauge& u)
 {
+	MasterLog(INFO, "Computing A^{-1}D links");
 	const LatticeInfo& info = u.GetInfo();
 	const int num_cbsites = info.GetNumCBSites();
 	const int num_colorspins = info.GetNumColorSpins();
@@ -976,6 +979,8 @@ InvDiagAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, int
 // Multiply the inverse part of the clover into eo_clov
 void multInvClovOffDiagRight(CoarseGauge& u)
 {
+
+	MasterLog(INFO, "Computing A^{-1}D links");
 	const LatticeInfo& info = u.GetInfo();
 
 	// Halo Buffers

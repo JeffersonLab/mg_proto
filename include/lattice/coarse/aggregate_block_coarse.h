@@ -69,7 +69,10 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 void invertCloverDiag(CoarseGauge& u);
 
 // Multiply the inverse part of the clover into eo_clov
-void multInvClovOffDiaLeft(CoarseGauge& u);
+void multInvClovOffDiagLeft(CoarseGauge& u);
+
+
+void multInvClovOffDiagRight(CoarseGauge& u);
 
 };
 
