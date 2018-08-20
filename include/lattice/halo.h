@@ -333,6 +333,7 @@ GetNeighborTPlus(const HaloContainer<T>& halo, const T& in, int x_cb, int y, int
 		else {
 
 			int index = halo.GetDataTypeSize()*(x_cb + in.GetNxh()*(y + in.GetNy()*z));
+
 			return  &( halo.GetRecvFromDirBuf(2*T_DIR + MG_FORWARD)[index]);
 		}
 	}

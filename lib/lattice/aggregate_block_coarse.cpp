@@ -980,7 +980,7 @@ InvDiagAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, int
 void multInvClovOffDiagRight(CoarseGauge& u)
 {
 
-	MasterLog(INFO, "Computing A^{-1}D links");
+	MasterLog(INFO, "Computing AD^{-1} links");
 	const LatticeInfo& info = u.GetInfo();
 
 	// Halo Buffers

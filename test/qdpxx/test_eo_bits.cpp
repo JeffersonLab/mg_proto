@@ -3,7 +3,7 @@
 
 #include <lattice/fine_qdpxx/invfgmres_qdpxx.h>
 
-#include "../mock_nodeinfo.h"
+#include "lattice/nodeinfo.h"
 #include "qdpxx_utils.h"
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
@@ -96,6 +96,84 @@ protected:
 	}
 };
 
+
+template<typename T>
+struct MuLinkAccessor
+{
+	  inline
+	  static
+	  const float* get(const T& in, int cb, int cbsite, int dir, int fb);
+};
+template<typename T>
+struct MuLinkADAccessor
+{
+	  inline
+	  static
+	  const float* get(const T& in, int cb, int cbsite, int dir, int fb);
+};
+
+template<>
+inline
+const float*
+MuLinkAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, int dir, int fb)
+{
+	/* Unfortunately the link ordering is
+	 * XPLUS,XMINUS, YPLUS, YMINUS, ZPLUS, ZMINUS
+	 *
+	 * but MG_FORWARD enum is 1 and MG_BACKWARD enum is 0, so
+	 * hence back link (needed when 'fb' Is MG_FORWARD is 2*(XDIR) + 1 = 1 = XMINUS,
+	 * and forward link (ndeeed when 'fb' is MG_WACKWARDS is 2*XDIR + 0 = 0 = XPLUS)
+	 * it seems cack handed I know but it works.
+	 */
+
+
+    int mu;
+    if ( dir == X_DIR && fb == MG_FORWARD) mu = 0;
+    if ( dir == X_DIR && fb == MG_BACKWARD) mu = 1;
+
+    if ( dir == Y_DIR && fb == MG_FORWARD) mu = 2;
+    if ( dir == Y_DIR && fb == MG_BACKWARD) mu = 3;
+
+    if ( dir == Z_DIR && fb == MG_FORWARD) mu = 4;
+    if ( dir == Z_DIR && fb == MG_BACKWARD) mu = 5;
+
+    if ( dir == T_DIR && fb == MG_FORWARD) mu = 6;
+    if ( dir == T_DIR && fb == MG_BACKWARD) mu = 7;
+
+    return in.GetSiteDirDataPtr(cb,cbsite,mu);
+}
+
+template<>
+inline
+const float*
+MuLinkADAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, int dir, int fb)
+{
+	/* Unfortunately the link ordering is
+	 * XPLUS,XMINUS, YPLUS, YMINUS, ZPLUS, ZMINUS
+	 *
+	 * but MG_FORWARD enum is 1 and MG_BACKWARD enum is 0, so
+	 * hence back link (needed when 'fb' Is MG_FORWARD is 2*(XDIR) + 1 = 1 = XMINUS,
+	 * and forward link (ndeeed when 'fb' is MG_WACKWARDS is 2*XDIR + 0 = 0 = XPLUS)
+	 * it seems cack handed I know but it works.
+	 */
+
+
+    int mu;
+    if ( dir == X_DIR && fb == MG_FORWARD) mu = 0;
+    if ( dir == X_DIR && fb == MG_BACKWARD) mu = 1;
+
+    if ( dir == Y_DIR && fb == MG_FORWARD) mu = 2;
+    if ( dir == Y_DIR && fb == MG_BACKWARD) mu = 3;
+
+    if ( dir == Z_DIR && fb == MG_FORWARD) mu = 4;
+    if ( dir == Z_DIR && fb == MG_BACKWARD) mu = 5;
+
+    if ( dir == T_DIR && fb == MG_FORWARD) mu = 6;
+    if ( dir == T_DIR && fb == MG_BACKWARD) mu = 7;
+
+    return in.GetSiteDirADDataPtr(cb,cbsite,mu);
+}
+
 template<typename T>
 struct BackLinkAccessor
 {
@@ -109,19 +187,19 @@ inline
 const float*
 BackLinkAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, int dir, int fb)
 {
-	/* Unfortunately the link ordering is
-	 * XPLUS,XMINUS, YPLUS, YMINUS, ZPLUS, ZMINUS
-	 *
-	 * but MG_FORWARD enum is 1 and MG_BACKWARD enum is 0, so
-	 * hence back link (needed when 'fb' Is MG_FORWARD is 2*(XDIR) + 1 = 1 = XMINUS,
-	 * and forward link (ndeeed when 'fb' is MG_WACKWARDS is 2*XDIR + 0 = 0 = XPLUS)
-	 * it seems cack handed I know but it works.
-	 */
+	  int mu;
+	  if ( dir == X_DIR && fb == MG_FORWARD) mu = 1;
+	  if ( dir == X_DIR && fb == MG_BACKWARD) mu = 0;
 
-	int mu = 2*dir;
-    mu += ( fb == MG_FORWARD ) ? 1 : 0;
+	  if ( dir == Y_DIR && fb == MG_FORWARD) mu = 3;
+	  if ( dir == Y_DIR && fb == MG_BACKWARD) mu = 2;
 
-    return in.GetSiteDirDataPtr(cb,cbsite,mu);
+	  if ( dir == Z_DIR && fb == MG_FORWARD) mu = 5;
+	  if ( dir == Z_DIR && fb == MG_BACKWARD) mu = 4;
+
+	  if ( dir == T_DIR && fb == MG_FORWARD) mu = 7;
+	  if ( dir == T_DIR && fb == MG_BACKWARD) mu = 6;
+	  return in.GetSiteDirDataPtr(cb,cbsite,mu);
 }
 
 template<typename T>
@@ -146,10 +224,21 @@ BackLinkADAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, 
 		 * and forward link (ndeeed when 'fb' is MG_WACKWARDS is 2*XDIR + 0 = 0 = XPLUS)
 		 * it seems cack handed I know but it works.
 		 */
-    int mu = 2*dir;
-    mu += ( fb == MG_FORWARD ) ? 1 : 0;
 
-    return in.GetSiteDirADDataPtr(cb,cbsite,mu);
+	  int mu;
+	  if ( dir == X_DIR && fb == MG_FORWARD) mu = 1;
+	  if ( dir == X_DIR && fb == MG_BACKWARD) mu = 0;
+
+	  if ( dir == Y_DIR && fb == MG_FORWARD) mu = 3;
+	  if ( dir == Y_DIR && fb == MG_BACKWARD) mu = 2;
+
+	  if ( dir == Z_DIR && fb == MG_FORWARD) mu = 5;
+	  if ( dir == Z_DIR && fb == MG_BACKWARD) mu = 4;
+
+	  if ( dir == T_DIR && fb == MG_FORWARD) mu = 7;
+	  if ( dir == T_DIR && fb == MG_BACKWARD) mu = 6;
+
+	  return in.GetSiteDirADDataPtr(cb,cbsite,mu);
 }
 
 // Eigen matrix wrappers for easy multiplication by Gamma_c (DiagonalMatrix
@@ -157,7 +246,7 @@ BackLinkADAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, 
 
 using EigenCMat = Matrix<std::complex<float>, Dynamic, Dynamic, ColMajor>;
 using EigenCDiag = Matrix<std::complex<float>, Dynamic,1,ColMajor>;
-#if 0
+
 TEST_F(EOBitsTesting, TestG5HermLinks)
 {
 	CoarseGauge& coarse_links = getCoarseLinks();
@@ -170,7 +259,8 @@ TEST_F(EOBitsTesting, TestG5HermLinks)
 
 	// Communicate halos with BackLink accessors
 	for(int target_cb=0; target_cb < 2; ++target_cb) {
-		CommunicateHaloSync<CoarseGauge,BackLinkAccessor>(*(halos[target_cb]), coarse_links, target_cb);
+		// Communicate MuLink, access with Back Link
+		CommunicateHaloSync<CoarseGauge,MuLinkAccessor>(*(halos[target_cb]), coarse_links, target_cb);
 	}
 
 	// Make the Gamma_c matrix in Eigen
@@ -253,8 +343,8 @@ TEST_F(EOBitsTesting, TestG5HermLinks)
 			for(int col=0; col < num_colorspins; ++col) {
 				for(int row=0; row < num_colorspins; ++row) {
 
-					ASSERT_LT( fabs((gc_u_clov_gc(col,row)).real()), 1.0e-7);
-					ASSERT_LT( fabs((gc_u_clov_gc(col,row)).imag()), 1.0e-7);
+					ASSERT_LT( fabs((gc_u_clov_gc(col,row)).real()), 5.0e-7);
+					ASSERT_LT( fabs((gc_u_clov_gc(col,row)).imag()), 5.0e-7);
 
 				}
 			}
@@ -265,7 +355,8 @@ TEST_F(EOBitsTesting, TestG5HermLinks)
 
 	MasterLog(INFO, "Checking AD^dagger = G_c DA G_c");
 	for(int target_cb=0; target_cb < 2; ++target_cb) {
-		CommunicateHaloSync<CoarseGauge,BackLinkADAccessor>(*(halos[target_cb]), coarse_links, target_cb);
+		// Communicate with MuLink
+		CommunicateHaloSync<CoarseGauge,MuLinkADAccessor>(*(halos[target_cb]), coarse_links, target_cb);
 	}
 
 	// For all directions
@@ -412,7 +503,7 @@ TEST_F(EOBitsTesting, TestOffDiagG5Herm)
 
 		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb]);
 		MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
-		ASSERT_LT( norm_diff, 5.0e-10);
+		ASSERT_LT( norm_diff, 5.0e-9);
 	}
 }
 
@@ -498,23 +589,174 @@ TEST_F(EOBitsTesting, TestGcHermDiag)
 		ASSERT_LT( norm_diff, 5.0e-10);
 	}
 }
-#endif
+
 
 
 // Test applying DA dagger is the same as applying Gamma_c AD Gamma_c
-TEST_F(EOBitsTesting, TestDADagger)
-{
-
-}
-
-// Test applying AD dagger is the same as applying Gamma_c DA Gamma_c
 TEST_F(EOBitsTesting, TestADDagger)
 {
+	// Get the coarse links
+	CoarseGauge& coarse_links = getCoarseLinks();
 
+	// Get the Lattice info for the coarse lattice
+	const LatticeInfo& coarse_info = getCoarseInfo();
+
+	CoarseDiracOp D(coarse_info);
+
+	CoarseSpinor x(coarse_info);
+	CoarseSpinor gc_tmp1(coarse_info);
+	CoarseSpinor gc_tmp2(coarse_info);
+
+	CoarseSpinor y_dag(coarse_info);
+	CoarseSpinor y_dag2(coarse_info);
+
+
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		// Fill everything with junk unless it needs to be zero
+		// so accidentally zeroed things won't interfere with the
+		// tests.
+		Gaussian(y_dag);
+		Gaussian(gc_tmp2);
+		Gaussian(gc_tmp1);
+		Gaussian(x);
+
+		CopyVec(y_dag2,y_dag);
+
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			D.M_AD_xpayz(y_dag,1.0,coarse_links,y_dag,x,cb,LINOP_DAGGER,tid);
+		}
+
+		// Y dag should hold 0 +  (AD)^|dagger
+
+		// Now in Y dag2 we want 0 + G_c DA G_c
+		applyGamma(gc_tmp1, x, RB[1-cb]);
+		applyGamma(gc_tmp2, y_dag2, RB[cb]);
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			// y_dag' Gamma_c + DA Gamma_c x
+			D.M_DA_xpayz(gc_tmp2,1.0,coarse_links,gc_tmp2,gc_tmp1,cb,LINOP_OP,tid);
+		}
+		// y_dag' + Gamma_c DA Gamma_c
+		applyGamma(y_dag2,gc_tmp2, RB[cb]);
+
+		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb]);
+		MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
+		ASSERT_LT( norm_diff, 1.0e-9);
+
+
+	}
+
+	for(int cb=0; cb < n_checkerboard; ++cb) {
+		// Fill everything with junk unless it needs to be zero
+		// so accidentally zeroed things won't interfere with the
+		// tests.
+		Gaussian(y_dag);
+		Gaussian(gc_tmp2);
+		Gaussian(gc_tmp1);
+		Gaussian(x);
+		CopyVec(y_dag2,y_dag);
+
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			D.M_DA_xpayz(y_dag,1.0,coarse_links,y_dag,x,cb,LINOP_DAGGER,tid);
+		}
+
+		// Y dag should hold 0 +  (AD)^|dagger
+
+		// Now in Y dag2 we want 0 + G_c DA G_c
+		applyGamma(gc_tmp1, x, RB[1-cb]);
+		applyGamma(gc_tmp2, y_dag2, RB[cb]);
+
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			D.M_AD_xpayz(gc_tmp2,1.0,coarse_links,gc_tmp2,gc_tmp1,cb,LINOP_OP,tid);
+		}
+		applyGamma(y_dag2,gc_tmp2, RB[cb]);
+
+		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb]);
+		MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
+		ASSERT_LT( norm_diff, 1.0e-9);
+	}
 }
 
-// FIXME: FIX SCHUR Test
-#if 0
+
+// Applying   A^dagger ( D A^{-1} )^dagger = D^\dagger
+TEST_F(EOBitsTesting, TestADagDAinvDaggerEqDag)
+{
+	CoarseGauge& coarse_links = getCoarseLinks();
+
+	// Get the Lattice info for the coarse lattice
+	const LatticeInfo& coarse_info = getCoarseInfo();
+
+	CoarseDiracOp D(coarse_info);
+
+	// A^dagger  ( D A^{-1} )^\dagger
+	//
+	{
+		CoarseSpinor x(coarse_info);
+		CoarseSpinor DA_invdag_x(coarse_info);
+		CoarseSpinor Ddag_x(coarse_info);
+		CoarseSpinor ADA_invdag_x(coarse_info);
+
+		for(int cb=0; cb < 2; ++cb) {
+			Gaussian(x,RB[1-cb]);
+			ZeroVec(DA_invdag_x,RB[cb]); // In axpyz so zero
+			ZeroVec(Ddag_x, RB[cb]); // In axpy so zero
+#pragma omp parallel
+			{
+				int tid = omp_get_thread_num();
+				// ( D A^{-1} )^\dagger = A^{-dagger} D_dagger
+				D.M_DA_xpayz(DA_invdag_x,1.0, coarse_links, DA_invdag_x, x, cb, LINOP_DAGGER, tid);
+#pragma omp barrier
+
+				// A^\dagger ( A^{-dagger} D^dagger )  = D^\dagger
+				D.M_diag(ADA_invdag_x,coarse_links,DA_invdag_x, cb, LINOP_DAGGER, tid);
+
+#pragma omp barrier
+				D.M_D_xpay(Ddag_x,1.0,coarse_links,x, cb,LINOP_DAGGER, tid);
+			}
+			double norm_diff = XmyNorm2Vec(Ddag_x, ADA_invdag_x ,RB[cb]);
+			MasterLog(INFO, "cb=%d NormDiff=%16.8e",cb,norm_diff);
+			ASSERT_LT(norm_diff, 1.0e-8);
+		}
+	}
+
+	{
+		CoarseSpinor x(coarse_info);
+		CoarseSpinor Ax(coarse_info);
+		CoarseSpinor AinvDdagAx(coarse_info);
+		CoarseSpinor Ddag_x(coarse_info);
+
+		for(int cb=0; cb < 2; ++cb) {
+			Gaussian(x,RB[1-cb]);
+			ZeroVec(AinvDdagAx,RB[cb]); // In axpyz so zero
+			ZeroVec(Ddag_x, RB[cb]); // In axpy so zero
+#pragma omp parallel
+			{
+				int tid = omp_get_thread_num();
+				// A^\dagger x
+				D.M_diag(Ax,coarse_links,x, 1-cb, LINOP_DAGGER, tid);
+#pragma omp barrier
+
+				// (A^{-1} D)^\dagger A =  D_dagger
+				D.M_AD_xpayz(AinvDdagAx,1.0, coarse_links, AinvDdagAx, Ax, cb, LINOP_DAGGER, tid);
+#pragma omp barrier
+
+				// D_dag
+				D.M_D_xpay(Ddag_x,1.0,coarse_links,x, cb,LINOP_DAGGER, tid);
+			}
+			double norm_diff = XmyNorm2Vec(Ddag_x, AinvDdagAx ,RB[cb]);
+			MasterLog(INFO, "cb=%d NormDiff=%16.8e",cb,norm_diff);
+			ASSERT_LT(norm_diff, 1.0e-8);
+		}
+	}
+}
+
 TEST_F(EOBitsTesting, TestSchur)
 {
 	// Get stuff from fixture
@@ -528,36 +770,45 @@ TEST_F(EOBitsTesting, TestSchur)
 		CoarseSpinor Rx(coarse_info);
 		CoarseSpinor DRx(coarse_info);
 		CoarseSpinor LDRx(coarse_info);
+		CoarseSpinor ALDRx(coarse_info);
 		CoarseSpinor Full(coarse_info);
 
 		ZeroVec(Rx);
 		ZeroVec(DRx);
 		ZeroVec(LDRx);
+		ZeroVec(ALDRx);
 		ZeroVec(Full);
 		Gaussian(x);
 
-		D.R_matrix(Rx,coarse_links, x, LINOP_OP);
-		D.Schur_matrix(DRx, coarse_links,Rx, LINOP_OP);
-		D.L_matrix(LDRx, coarse_links, DRx, LINOP_OP);
+		D.R_matrix(Rx,coarse_links, x);
+		CopyVec(DRx,Rx,RB[0]);
+		D.EOPrecOp(DRx,coarse_links,Rx,1,LINOP_OP);
+		D.L_matrix(LDRx, coarse_links, DRx);
+
+
 
 #pragma omp parallel
 		{
 			int tid = omp_get_thread_num();
+			for(int cb=0; cb < 2; ++cb) {
+				D.M_diag(ALDRx,coarse_links,LDRx,cb,LINOP_OP,tid);
+			}
+#pragma omp barrier
+
 			for(int cb=0; cb < 2;++cb) {
 				D.unprecOp(Full,coarse_links,x,cb, LINOP_OP,tid);
 			}
 		}
 
 		for(int cb = 0; cb < 2; ++cb) {
-			double norm_diff = XmyNorm2Vec(Full, LDRx,RB[cb]);
+			double norm_diff = XmyNorm2Vec(Full, ALDRx,RB[cb]);
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e",cb,norm_diff);
-			ASSERT_LT(norm_diff, 1.0e-8);
+			ASSERT_LT(norm_diff, 2.0e-8);
 		}
 
 	}
 }
 
-#endif
 
 
 
@@ -648,7 +899,7 @@ TEST_F(EOBitsTesting, TestCoarse_M_diag_inv_diag)
 
 			double norm_diff = XmyNorm2Vec(spinor_inv,spinor,RB[cb]);
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
-			ASSERT_LT( norm_diff, 1.0e-10);
+			ASSERT_LT( norm_diff, 5.0e-10);
 		}
 	}
 }
@@ -909,7 +1160,7 @@ int main(int argc, char *argv[])
 // This is our test fixture. No tear down or setup
 // Constructor. Set Up Only Once rather than setup/teardown
 void EOBitsTesting::SetUp()  {
-		latdims={{8,8,8,8}};
+		latdims={{8,8,8,4}};
 		initQDPXXLattice(latdims);
 		QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 

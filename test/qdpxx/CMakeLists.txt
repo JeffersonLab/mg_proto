@@ -49,3 +49,4 @@ add_test( NAME QDPXXCoarseCloverLinop COMMAND ./test_qdpxx_coarse_clover_op -geo
 add_test( NAME QDPXXCoarseVCycle COMMAND ./test_vcycle -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME CoarseCoarseBlocking COMMAND ./test_coarse_coarse_blocking -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME RecursiveVCycle COMMAND ./test_recursive_vcycle -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
+add_test( NAME TestEOBits COMMAND ./test_eo_bits -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})

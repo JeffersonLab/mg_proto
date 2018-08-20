@@ -27,7 +27,7 @@ class CoarseEOWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor,Co
 public:
 	// Hardwire n_smt=1 for now.
 	CoarseEOWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : _u(gauge_in),
-	 _the_op( gauge_in->GetInfo(), 1), _level(level)
+	 _the_op( gauge_in->GetInfo(), 1), _level(level), _tmpvec( gauge_in->GetInfo() )
 	{
 
 	}
@@ -58,19 +58,33 @@ public:
 		}
 	}
 
-	void leftOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) const override {
-			_the_op.L_matrix(out, (*_u),in, type);
+	void leftOp(Spinor& out, const Spinor& in) const override {
+		_the_op.L_matrix(_tmpvec, (*_u),in);
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			for(int cb=0; cb < 2; ++cb) {
+				_the_op.M_diag(out,(*_u),_tmpvec,cb,LINOP_OP,tid);
+			}
+		}
 	}
 
-	void leftInvOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) const override {
-			_the_op.L_inv_matrix(out, (*_u),in, type);
+	void leftInvOp(Spinor& out, const Spinor& in) const override {
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+			for(int cb=0; cb < 2; ++cb) {
+				_the_op.M_diagInv(_tmpvec,(*_u),_tmpvec,cb,LINOP_OP,tid);
+			}
+		}
+		_the_op.L_inv_matrix(out, (*_u),_tmpvec);
 	}
 
-	void rightOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) const override {
-			_the_op.R_matrix(out, (*_u),in, type);
+	void rightOp(Spinor& out, const Spinor& in) const override {
+			_the_op.R_matrix(out, (*_u),in);
 	}
-	void rigthInvOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP ) const override {
-			_the_op.R_inv_matrix(out, (*_u),in, type);
+	void rigthInvOp(Spinor& out, const Spinor& in) const override {
+			_the_op.R_inv_matrix(out, (*_u),in);
 	}
 
 	void generateCoarse(const std::vector<Block>& blocklist, const std::vector< std::shared_ptr<CoarseSpinor> > in_vecs, CoarseGauge& u_coarse) const
@@ -88,6 +102,8 @@ public:
 
 		MasterLog(INFO,"CoarseCloverLinearOperator: Clover Triple Product");
 		clovTripleProduct(_the_op, blocklist, (*_u), in_vecs, u_coarse);
+
+
 	}
 
 	int GetLevel(void) const override {
@@ -99,8 +115,9 @@ public:
 	}
 private:
 	const std::shared_ptr<Gauge> _u;
-	const std::shared_ptr<Gauge> _clovInvU;
 	const CoarseDiracOp _the_op;
+	mutable CoarseSpinor _tmpvec;
+
 	const int _level;
 
 };
