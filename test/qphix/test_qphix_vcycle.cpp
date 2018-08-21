@@ -20,7 +20,7 @@
 #include "lattice/fine_qdpxx/qdpxx_helpers.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
-#include "lattice/unprec_wrapper.h"
+#include "lattice/unprec_solver_wrappers.h"
 // Block Stuff
 #include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
 #include "lattice/fine_qdpxx/wilson_clover_linear_operator.h"

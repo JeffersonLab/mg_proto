@@ -24,6 +24,7 @@
 #include "lattice/coarse/block.h"
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"
+#include "lattice/coarse/aggregate_block_coarse.h"
 #include <qphix/clover.h>
 #include "lattice/coarse/subset.h"
 
@@ -290,8 +291,8 @@ public:
     // Generate the triple products directly into the u_coarse
     ZeroGauge(u_coarse);
     for(int mu=0; mu < 8; ++mu) {
-      QDPIO::cout << "QPhiXWilsonCloverLinearOperator: Dslash Triple Product in direction: " << mu << std::endl;
-      dslashTripleProductDir(*this, blocklist, mu, in_vecs, u_coarse);
+        MasterLog(INFO,"QPhiXWilsonCloverEOLinearOperator: Dslash Triple Product in direction: %d ",mu);
+    	dslashTripleProductDir(*this, blocklist, mu, in_vecs, u_coarse);
     }
 
 
@@ -311,8 +312,17 @@ public:
       }
 
 
-    QDPIO::cout << "QPhiXWilsonCloverLinearOperator: Clover Triple Product" << std::endl;
+    MasterLog(INFO,"QPhiXWilsonCloverEOLinearOperator: Clover Triple Product");
     clovTripleProduct(*this,blocklist,  in_vecs, u_coarse);
+
+    MasterLog(INFO,"QPhiXWilsonCloverEOLinearOperator: Inverting Diagonal (A) Links");
+	invertCloverDiag(u_coarse);
+
+	MasterLog(INFO,"QPhiXWilsonCloverEOLinearOperator: Computing A^{-1} D Links");
+	multInvClovOffDiagLeft(u_coarse);
+
+	MasterLog(INFO, "QPhiXWilsonCloverEOLinearOperator: Computing D A^{-1} Links");
+	multInvClovOffDiagRight(u_coarse);
 
   }
 

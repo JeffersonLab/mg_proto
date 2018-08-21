@@ -11,7 +11,7 @@
 #include "lattice/mr_params.h"
 #include "lattice/coarse/coarse_types.h"
 
-#include "lattice/unprec_wrapper.h"
+#include "lattice/unprec_solver_wrappers.h"
 
 namespace MG  {
 
@@ -31,7 +31,7 @@ namespace MG  {
 
   };
 
-  using UnprecMRSolverCoarseWrapper = UnprecWrapper<CoarseSpinor,CoarseGauge,MRSolverCoarse,UnprecLinearSolver>;
+  using UnprecMRSolverCoarseWrapper = UnprecLinearSolverWrapper<CoarseSpinor,CoarseGauge,MRSolverCoarse>;
 
 
   class MRSmootherCoarse : public Smoother<CoarseSpinor,CoarseGauge> {
@@ -47,7 +47,7 @@ namespace MG  {
 	  const MRSolverParams& _params;
 
   };
-  using UnprecMRSmootherCoarseWrapper = UnprecWrapper<CoarseSpinor,CoarseGauge,MRSmootherCoarse,UnprecSmoother>;
+  using UnprecMRSmootherCoarseWrapper = UnprecSmootherWrapper<CoarseSpinor,CoarseGauge,MRSmootherCoarse>;
 
 }
 

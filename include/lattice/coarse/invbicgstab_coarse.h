@@ -5,11 +5,11 @@
 #ifndef INCLUDE_LATTICE_COARSE_INVBICGSTAB_COARSE_H_
 #define INCLUDE_LATTICE_COARSE_INVBICGSTAB_COARSE_H_
 
+#include <lattice/unprec_solver_wrappers.h>
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
 #include "lattice/coarse/coarse_types.h"
-#include "lattice/unprec_wrapper.h"
 
 
 namespace MG {
@@ -29,7 +29,7 @@ public:
 
  };
 
-using UnprecBiCGStabSolverCoarseWrapper = UnprecWrapper<CoarseSpinor,CoarseGauge, BiCGStabSolverCoarse, UnprecLinearSolver>;
+using UnprecBiCGStabSolverCoarseWrapper = UnprecLinearSolverWrapper<CoarseSpinor,CoarseGauge, BiCGStabSolverCoarse>;
 
 }  // end namespace MGTEsting
 

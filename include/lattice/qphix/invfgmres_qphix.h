@@ -11,15 +11,15 @@
 #include  "lattice/qphix/qphix_types.h"
 #include  "lattice/qphix/qphix_blas_wrappers.h"
 #include  "lattice/invfgmres_generic.h"
-#include  "lattice/unprec_wrapper.h"
+#include  "lattice/unprec_solver_wrappers.h"
 
 namespace MG {
 
   using FGMRESSolverQPhiX = FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor,QPhiXGauge>;
   using FGMRESSolverQPhiXF = FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorF,QPhiXGaugeF>;
 
-  using UnprecFGMRESSolverQPhiXWrapper =  UnprecWrapper<QPhiXSpinor,QPhiXGauge,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor,QPhiXGauge>,UnprecLinearSolver>;
-  using UnprecFGMRESSolverQPhiXFWrapper =  UnprecWrapper<QPhiXSpinorF,QPhiXGaugeF,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor,QPhiXGauge>,UnprecLinearSolver>;
+  using UnprecFGMRESSolverQPhiXWrapper =  UnprecLinearSolverWrapper<QPhiXSpinor,QPhiXGauge,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor,QPhiXGauge>>;
+  using UnprecFGMRESSolverQPhiXFWrapper =  UnprecLinearSolverWrapper<QPhiXSpinorF,QPhiXGaugeF,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor,QPhiXGauge>>;
 
 }
 

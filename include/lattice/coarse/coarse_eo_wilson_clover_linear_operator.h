@@ -23,7 +23,7 @@
 
 namespace MG {
 
-class CoarseEOWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor,CoarseGauge > {
+class CoarseEOWilsonCloverLinearOperator : public EOLinearOperator<CoarseSpinor,CoarseGauge > {
 public:
 	// Hardwire n_smt=1 for now.
 	CoarseEOWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : _u(gauge_in),
@@ -74,7 +74,7 @@ public:
 		{
 			int tid = omp_get_thread_num();
 			for(int cb=0; cb < 2; ++cb) {
-				_the_op.M_diagInv(_tmpvec,(*_u),_tmpvec,cb,LINOP_OP,tid);
+				_the_op.M_diagInv(_tmpvec,(*_u),in,cb,LINOP_OP,tid);
 			}
 		}
 		_the_op.L_inv_matrix(out, (*_u),_tmpvec);
@@ -83,8 +83,13 @@ public:
 	void rightOp(Spinor& out, const Spinor& in) const override {
 			_the_op.R_matrix(out, (*_u),in);
 	}
-	void rigthInvOp(Spinor& out, const Spinor& in) const override {
+	void rightInvOp(Spinor& out, const Spinor& in) const override {
 			_the_op.R_inv_matrix(out, (*_u),in);
+	}
+
+	void M_ee_inv(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const override
+	{
+		CopyVec(out,in,SUBSET_EVEN);
 	}
 
 	void generateCoarse(const std::vector<Block>& blocklist, const std::vector< std::shared_ptr<CoarseSpinor> > in_vecs, CoarseGauge& u_coarse) const
@@ -95,14 +100,22 @@ public:
 		// Generate the triple products directly into the u_coarse
 		ZeroGauge(u_coarse);
 		for(int mu=0; mu < 8; ++mu) {
-			MasterLog(INFO,"CoarseCloverLinearOperator: Dslash Triple Product in direction:%d",mu);
+			MasterLog(INFO,"CoarseEOCloverLinearOperator: Dslash Triple Product in direction:%d",mu);
 			dslashTripleProductDir(_the_op,blocklist, mu, (*_u), in_vecs, u_coarse);
 		}
 
 
-		MasterLog(INFO,"CoarseCloverLinearOperator: Clover Triple Product");
+		MasterLog(INFO,"CoarseEOCloverLinearOperator: Clover Triple Product");
 		clovTripleProduct(_the_op, blocklist, (*_u), in_vecs, u_coarse);
 
+	    MasterLog(INFO,"CoarseEOCloverLinearOperator: Inverting Diagonal (A) Links");
+		invertCloverDiag(u_coarse);
+
+		MasterLog(INFO,"CoarseEOCloverLinearOperator: Computing A^{-1} D Links");
+		multInvClovOffDiagLeft(u_coarse);
+
+		MasterLog(INFO, "CoarseEOCloverLinearOperator: Computing D A^{-1} Links");
+		multInvClovOffDiagRight(u_coarse);
 
 	}
 

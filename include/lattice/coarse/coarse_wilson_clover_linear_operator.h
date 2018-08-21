@@ -72,6 +72,15 @@ public:
 
 		MasterLog(INFO,"CoarseCloverLinearOperator: Clover Triple Product");
 		clovTripleProduct(_the_op, blocklist, (*_u), in_vecs, u_coarse);
+
+	    MasterLog(INFO,"CoarseCloverLinearOperator: Inverting Diagonal (A) Links");
+		invertCloverDiag(u_coarse);
+
+		MasterLog(INFO,"CoarseCloverLinearOperator: Computing A^{-1} D Links");
+		multInvClovOffDiagLeft(u_coarse);
+
+		MasterLog(INFO, "CoarseCloverLinearOperator: Computing D A^{-1} Links");
+		multInvClovOffDiagRight(u_coarse);
 	}
 
 	int GetLevel(void) const override {

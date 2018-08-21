@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 #include <lattice/fine_qdpxx/invfgmres_qdpxx.h>
-#include <lattice/unprec_wrapper.h>
+#include <lattice/unprec_solver_wrappers.h>
 
 #include "../test_env.h"
 #include "lattice/qphix/qphix_types.h"

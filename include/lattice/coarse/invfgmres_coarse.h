@@ -11,14 +11,13 @@
 #include  "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/coarse_l1_blas.h"
 #include  "lattice/invfgmres_generic.h"
-#include  "lattice/unprec_wrapper.h"
+#include  "lattice/unprec_solver_wrappers.h"
 namespace MG {
 
   using FGMRESSolverCoarse = FGMRESGeneric::FGMRESSolverGeneric<CoarseSpinor,CoarseGauge>;
 
-  using UnpreFGMRESSolverCoarseWrapper =  UnprecWrapper<CoarseSpinor,CoarseGauge,
-		  	  	  	  	  	  	  	  	  	  	  	  	  FGMRESGeneric::FGMRESSolverGeneric<CoarseSpinor,CoarseGauge>,
-														  UnprecLinearSolver>;
+  using UnprecFGMRESSolverCoarseWrapper =  UnprecLinearSolverWrapper<CoarseSpinor,CoarseGauge,
+		  	  	  	  	  	  	  	  	  	  	  	  	  FGMRESGeneric::FGMRESSolverGeneric<CoarseSpinor,CoarseGauge>>;
 
 }
 

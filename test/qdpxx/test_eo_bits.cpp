@@ -810,7 +810,45 @@ TEST_F(EOBitsTesting, TestSchur)
 }
 
 
+// Tests that   A_oo ( 1 - A D A D )  is Gamma 5 hermitian.
+// I.e.     [ A_op ( 1 - A D A D ) ]^dagger
+//         = ( 1 - A D A D )^\dagger A^\dagger_op
+//           = Gamma_c A ( 1 - A D A D ) Gamma_c
+TEST_F(EOBitsTesting, Gamma5HermDiagEOPrecOp)
+{
+	CoarseGauge& coarse_links = getCoarseLinks();
+	const LatticeInfo& info = getCoarseInfo();
+	CoarseDiracOp D(info);
 
+	CoarseSpinor  x(info);
+	CoarseSpinor tmp1(info);
+	CoarseSpinor SymmPrecOpDagAdagx(info);
+
+	CoarseSpinor tmp2(info);
+	CoarseSpinor GcASymmPrecOpGcx(info);
+
+	Gaussian(x, SUBSET_ODD);
+#pragma omp parallel
+	{
+		int tid = omp_get_thread_num();
+		D.M_diag(tmp1,coarse_links, x, ODD, LINOP_DAGGER, tid);
+	}
+
+	D.EOPrecOp(SymmPrecOpDagAdagx, coarse_links, tmp1, ODD, LINOP_DAGGER );
+
+
+	applyGamma(tmp1, x, SUBSET_ODD);
+	D.EOPrecOp(tmp2, coarse_links, tmp1, ODD, LINOP_OP);
+#pragma omp parallel
+	{
+		int tid = omp_get_thread_num();
+		D.M_diag(tmp1,coarse_links, tmp2, ODD, LINOP_OP, tid);
+	}
+	applyGamma(GcASymmPrecOpGcx,tmp1, SUBSET_ODD);
+
+	double norm_diff = XmyNorm2Vec(SymmPrecOpDagAdagx,GcASymmPrecOpGcx, SUBSET_ODD );
+	MasterLog(INFO, "NormDiff=%16.8e",norm_diff);
+}
 
 TEST_F(EOBitsTesting, TestCoarseInvDiag)
 {
@@ -1183,9 +1221,6 @@ void EOBitsTesting::SetUp()  {
 
 		CoarseGauge& coarse_links = getCoarseLinks();
 
-		invertCloverDiag(coarse_links);
-		multInvClovOffDiagLeft(coarse_links);
-		multInvClovOffDiagRight(coarse_links);
 
 		MasterLog(INFO, "mg_levels has %d levels", mg_levels.n_levels);
 		{

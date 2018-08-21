@@ -121,6 +121,7 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 
 
 	// chi_internal[s] = chi;
+	// ZeroVec(chi_internal);
 	CopyVec(chi_internal, chi, subset);
 
 	/*  r[0]  :=  Chi - M . Psi[0] */
@@ -211,7 +212,6 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 		// r[s] -= Mr * a;
 		std::complex<float> maf(-af.real(), -af.imag());
 		AxpyVec(maf,Mr,r,subset);
-
 
 		if( TerminateOnResidua ) {
 

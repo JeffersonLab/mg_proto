@@ -1041,6 +1041,7 @@ CoarseDiracOp::CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt)
 
 	} // omp parallel
 
+	Gaussian(_tmpvec);
 }
 
 

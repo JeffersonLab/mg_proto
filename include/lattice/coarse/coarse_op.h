@@ -238,7 +238,6 @@ public:
 					dagger,
 					tid);
 		} // Parallel
-
 	}
 
 
