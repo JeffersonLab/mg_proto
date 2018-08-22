@@ -255,7 +255,8 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 BiCGStabSolverCoarse::BiCGStabSolverCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M, const LinearSolverParamsBase& params) : _M(M),
 		_params(params) {}
-
+BiCGStabSolverCoarse::BiCGStabSolverCoarse(std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M,
+		const LinearSolverParamsBase& params) : _M(*M),	_params(params) {}
 LinearSolverResults
 BiCGStabSolverCoarse::operator()(CoarseSpinor& out, const CoarseSpinor& in, ResiduumType resid_type  ) const {
 	return  InvBiCGStabCoarse_a(_M, in, out, _params.RsdTarget, _params.MaxIter, LINOP_OP, resid_type, _params.VerboseP ) ;

@@ -55,6 +55,7 @@ class EOLinearOperator : public LinearOperator<Spinor_t,Gauge_t> {
   	  virtual void rightInvOp(Spinor& out, const Spinor& in) const  = 0;
 
   	 virtual void M_ee_inv(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const = 0;
+  	 virtual void M_diag(Spinor& out, const Spinor& in, int cb) const = 0;
 };
 
 } // Namespace

@@ -57,3 +57,5 @@ add_test( NAME QPhiXVCycleTestsThreaded COMMAND env OMP_NUM_THREADS=8 ./test_qph
 
 add_test( NAME QPhiXRecursiveVCycleTests COMMAND  env OMP_NUM_THREADS=1 ./test_qphix_recursive_vcycle -geom 1 1 1 1 ${DEFAULT_QPHIX_TEST_ARGS})
 add_test( NAME QPhiXRecursiveVCycleTestsThreaded COMMAND env OMP_NUM_THREADS=8 ./test_qphix_recursive_vcycle -geom 1 1 1 1 ${THREADED_QPHIX_TEST_ARGS})
+
+add_test( NAME CoarseEOSolversQPhixSetup COMMAND env OMP_NUM_THREADS=1  mpirun -n 2 -host localhost ./test_coarse_eo_solvers -geom 1 1 1 2 ${DEFAULT_QPHIX_TEST_ARGS})

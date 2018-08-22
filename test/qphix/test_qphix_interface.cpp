@@ -689,6 +689,100 @@ TEST(QPhiXIntegration, QPhiXFGMRESPrecOp)
 
   DiffSpinorRelative(in,Ax,1.0e-5);
 }
+TEST(QPhiXIntegration, QPhiXFGMRESPrecOp2)
+{
+  IndexArray latdims={{8,8,8,8}};
+  initQDPXXLattice(latdims);
+
+  float m_q = 0.1;
+  float c_sw = 1.25;
+
+  int t_bc=-1; // Antiperiodic t BCs
+
+  LatticeFermion in,out;
+  gaussian(in);
+  out=zero;
+
+  multi1d<LatticeColorMatrix> u(Nd);
+  for(int mu=0; mu < Nd; ++mu) {
+    gaussian(u[mu]);
+    reunit(u[mu]);
+  }
+
+  LatticeInfo info(latdims);
+
+
+  FGMRESParams params;
+  params.MaxIter = 500;
+  params.RsdTarget = 1.0e-5;
+  params.VerboseP = true;
+  params.NKrylov = 10;
+
+  // Create linear operator: Even Odd
+  std::shared_ptr<const QPhiXWilsonCloverEOLinearOperator> M_prec
+  	  = std::make_shared<const QPhiXWilsonCloverEOLinearOperator>(info,m_q, c_sw, t_bc, u);
+
+  // Create even odd preconditioned FGMRES
+  std::shared_ptr<const FGMRESSolverQPhiX> FGMRES=std::make_shared<const FGMRESSolverQPhiX>(*M_prec, params,nullptr);
+
+  std::shared_ptr<const QPhiXWilsonCloverLinearOperator> M_unprec
+   	  = std::make_shared<const QPhiXWilsonCloverLinearOperator>(info,m_q, c_sw, t_bc, u);
+
+   // Create even odd preconditioned FGMRES
+   std::shared_ptr<const FGMRESSolverQPhiX> FGMRES_unprec=std::make_shared<const FGMRESSolverQPhiX>(*M_unprec, params,nullptr);
+
+  // Prepare sources and sinks.
+  QPhiXSpinor q_b(info);
+  QPhiXSpinor q_x(info);
+  QPhiXSpinor q_x_unprec(info);
+  QPhiXSpinor q_check(info);
+  in[rb[EVEN]] = QDP::zero;
+  gaussian(in,rb[ODD]);
+
+  QDPSpinorToQPhiXSpinor(in,q_b);
+
+  ZeroVec(q_x);
+  ZeroVec(q_x_unprec);
+
+  // Run the solver: use EO solver internally, but do source and solution reconstructs
+  LinearSolverResults res = (*FGMRES)(q_x,q_b);
+  QDPIO::cout << "EO FGMRES Solver Took: " << res.n_count << " iterations"
+      << std::endl;
+  LinearSolverResults res2 = (*FGMRES_unprec)(q_x_unprec,q_b);
+
+  QDPIO::cout << "UNPREC FGMRES Solver Took: " << res.n_count << " iterations"
+      << std::endl;
+
+  // Check solution claims to match requested.
+  ASSERT_EQ(res.resid_type, RELATIVE);
+  ASSERT_LT(res.resid, 9e-6);
+
+  // Check solution claims to match requested.
+  ASSERT_EQ(res2.resid_type, RELATIVE);
+  ASSERT_LT(res2.resid, 9e-6);
+
+
+  (*M_prec)(q_check,q_x_unprec, LINOP_OP);
+  double norm2_b = sqrt(Norm2Vec(q_b,SUBSET_ODD));
+  double norm2_r = sqrt(XmyNorm2Vec(q_check,q_b,SUBSET_ODD));
+  QDPIO::cout << "|| b - M_prec (unprec_x_odd) || = "
+		  << norm2_r << "  || b - M_prec (unprec_x_odd) || / || b ||="
+		  << norm2_r/norm2_b << std::endl;
+
+  (*M_prec)(q_check,q_x, LINOP_OP);
+   norm2_b = sqrt(Norm2Vec(q_b,SUBSET_ODD));
+   norm2_r = sqrt(XmyNorm2Vec(q_check,q_b, SUBSET_ODD));
+   QDPIO::cout << "|| b - M_prec (prec_x_odd) || = "
+ 		  << norm2_r << "  || b - M_prec (prec_x_odd) || / || b ||="
+ 		  << norm2_r/norm2_b << std::endl;
+
+   norm2_r = sqrt(XmyNorm2Vec(q_x,q_x_unprec,SUBSET_ODD));
+
+   QDPIO::cout << " ||  prec_x_odd - unprec_x_odd || = " << norm2_r << std::endl;
+   QDPIO::cout << " ||  prec_x_odd - unprec_x_odd ||/coarse_site = " << norm2_r/info.GetNumCBSites() << std::endl;
+
+}
+
 
 
 TEST(QPhiXIntegration, QPhiXUnprecFGMRES2F)

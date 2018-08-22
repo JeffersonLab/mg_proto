@@ -244,6 +244,10 @@ public:
       QPhiXEOClov->M_diag_inv(out.getCB(EVEN).get(),in.getCB(EVEN).get(),isign);
     }
 
+  void M_diag(Spinor& out, const Spinor& in, int cb) const override {
+	  QPhiXEOClov->M_diag(out.get(),in.get(),1,cb);
+  }
+
   void M_oo(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const  {
      int isign = (type == LINOP_OP) ? 1 : -1;
      QPhiXEOClov->M_diag(out.get(),in.get(),isign,1);

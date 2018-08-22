@@ -32,6 +32,7 @@ namespace MG {
     std::shared_ptr<  LinOpT> M;
 
 
+
   ~MGLevelQPhiXT() {}
   };
 
@@ -50,15 +51,15 @@ namespace MG {
 
   using MGLevelQPhiXFEO = MGLevelQPhiXT<QPhiXSpinorF,BiCGStabSolverQPhiXF,QPhiXWilsonCloverEOLinearOperatorF>;
 
-  template<typename LinOpF>
+  template<typename LinOpF, typename CoarseLevel>
   struct QPhiXMultigridLevelsT {
     int n_levels;
     MGLevelQPhiXLinOpF<LinOpF> fine_level;
-    std::vector<MGLevelCoarse> coarse_levels;
+    std::vector<CoarseLevel> coarse_levels;
   };
 
-  using QPhiXMultigridLevels = QPhiXMultigridLevelsT<QPhiXWilsonCloverLinearOperatorF>;
-  using QPhiXMultigridLevelsEO = QPhiXMultigridLevelsT<QPhiXWilsonCloverEOLinearOperatorF>;
+  using QPhiXMultigridLevels = QPhiXMultigridLevelsT<QPhiXWilsonCloverLinearOperatorF, MGLevelCoarse>;
+  using QPhiXMultigridLevelsEO = QPhiXMultigridLevelsT<QPhiXWilsonCloverEOLinearOperatorF,MGLevelCoarseEO>;
 
   // Non EO Versions
   void SetupQPhiXToCoarseGenerateVecs(const SetupParams& p,
@@ -101,32 +102,32 @@ namespace MG {
   void SetupQPhiXToCoarseGenerateVecs(const SetupParams& p,
 		  const std::shared_ptr<QPhiXWilsonCloverEOLinearOperator>& M_fine,
 		  MGLevelQPhiXLinOp<QPhiXWilsonCloverEOLinearOperator>& fine_level,
-		  MGLevelCoarse& coarse_level);
+		  MGLevelCoarseEO& coarse_level);
 
      void SetupQPhiXToCoarseGenerateVecs(const SetupParams& p,
     		 const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF>& M_fine,
              MGLevelQPhiXLinOpF<QPhiXWilsonCloverEOLinearOperatorF>& fine_level,
-			 MGLevelCoarse& coarse_level);
+			 MGLevelCoarseEO& coarse_level);
 
      void SetupQPhiXToCoarseVecsIn(const SetupParams& p,
     		 const std::shared_ptr<QPhiXWilsonCloverEOLinearOperator>& M_fine,
              MGLevelQPhiXLinOp<QPhiXWilsonCloverEOLinearOperator>& fine_level,
-			 MGLevelCoarse& coarse_level);
+			 MGLevelCoarseEO& coarse_level);
 
       void SetupQPhiXToCoarseVecsIn(const SetupParams& p,
     		 const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF>& M_fine,
              MGLevelQPhiXLinOpF<QPhiXWilsonCloverEOLinearOperatorF>& fine_level,
-			 MGLevelCoarse& coarse_level);
+			 MGLevelCoarseEO& coarse_level);
 
     void SetupQPhiXToCoarse(const SetupParams& p,
     		const std::shared_ptr<QPhiXWilsonCloverEOLinearOperator>& M_fine,
 			MGLevelQPhiXLinOp<QPhiXWilsonCloverEOLinearOperator>& fine_level,
-			MGLevelCoarse& coarse_level);
+			MGLevelCoarseEO& coarse_level);
 
     void SetupQPhiXToCoarse(const SetupParams& p,
     			const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF>& M_fine,
                 MGLevelQPhiXLinOpF<QPhiXWilsonCloverEOLinearOperatorF>& fine_level,
-				MGLevelCoarse& coarse_level);
+				MGLevelCoarseEO& coarse_level);
 
   void SetupQPhiXMGLevels(const SetupParams& p,
 		  QPhiXMultigridLevelsEO& mg_levels,

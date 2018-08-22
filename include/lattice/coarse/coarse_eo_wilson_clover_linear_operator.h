@@ -80,6 +80,16 @@ public:
 		_the_op.L_inv_matrix(out, (*_u),_tmpvec);
 	}
 
+	void M_diag(Spinor& out, const Spinor& in, int cb)  const override {
+#pragma omp parallel
+		{
+			int tid = omp_get_thread_num();
+
+			_the_op.M_diag(out,(*_u),in,cb,LINOP_OP,tid);
+
+		}
+	}
+
 	void rightOp(Spinor& out, const Spinor& in) const override {
 			_the_op.R_matrix(out, (*_u),in);
 	}

@@ -184,6 +184,7 @@ TEST_F(EOSolverTesting,TestEOCoarseBiCGStab)
 	MasterLog(INFO, "Unprec Residuum after Prec Solve: || r || = %16.8e || r || / || b ||=%16.8e",
 			norm_diff_prec, norm_diff_prec/norm_diff_source);
 
+	ASSERT_LT( (norm_diff_prec/norm_diff_source), p.RsdTarget);
 
 
 }
@@ -240,7 +241,53 @@ TEST_F(EOSolverTesting,TestEOCoarseFGMRES)
 	MasterLog(INFO, "Unprec Residuum after Prec Solve: || r || = %16.8e || r || / || b ||=%16.8e",
 			norm_diff_prec, norm_diff_prec/norm_diff_source);
 
+	ASSERT_LT( (norm_diff_prec/norm_diff_source), p.RsdTarget);
 
+
+	// Check that in the Coarse World with Symmetric precond, the solusions of
+	// S x_o = b_o
+	// and the odd part of the soluition of
+	//            [ x_e ]   [   b_e    ]
+	//   M_unprec [     ] = [          ]
+	//            [ x_o ]   [ A_oo b_o ]
+	//
+	// are coiniding. This would be needed for the preconditioning step.
+
+	MasterLog(INFO, "Setting Off Subset to Zero and solving with preconditioned solver");
+	ZeroVec(source, SUBSET_EVEN);
+	ZeroVec(result, SUBSET_ODD);
+	(*fgmres) (result, source); // Using wrapped, because we still need to hit the source witha clover inv maybe
+
+	MasterLog(INFO, "Now solving with preconditioned solver but on A_oo b_o");
+	CoarseSpinor unprec_source(info);
+	ZeroVec(unprec_source, SUBSET_EVEN);
+	CopyVec(unprec_source, source, SUBSET_EVEN);
+	(*M_coarse).M_diag(unprec_source, source, ODD);
+
+	ZeroVec(result_unprec, SUBSET_ALL);
+	fgmres_unprec(result_unprec, unprec_source);
+
+
+	MasterLog(INFO, "Checking both solutions with prec op");
+	// Prec op
+	(*M_coarse)(Ax, result, LINOP_OP);
+	CopyVec(r,source, M_coarse->GetSubset());
+	double norm_diff_cbsource = sqrt(Norm2Vec(r, M_coarse->GetSubset()));
+	double norm_diff_cbsoln = sqrt(XmyNorm2Vec(r, Ax, M_coarse->GetSubset()));
+	MasterLog(INFO, "EOprec Residuum of Prec System: || r_cb || = %16.8e || r_cb || / || b_cb ||=%16.8e",
+				norm_diff_cbsoln, norm_diff_cbsoln/norm_diff_cbsource);
+
+	(*M_coarse)(Ax, result_unprec, LINOP_OP);
+	CopyVec(r,source, M_coarse->GetSubset());
+	double norm_diff_unprec_cbsoln = sqrt(XmyNorm2Vec(r, Ax, M_coarse->GetSubset()));
+
+	MasterLog(INFO, "EOprec Residuum of UnPrec System: || r_cb || = %16.8e || r_cb || / || b_cb ||=%16.8e",
+			norm_diff_unprec_cbsoln, norm_diff_unprec_cbsoln/norm_diff_cbsource);
+
+	double norm_diff_solutions = sqrt(XmyNorm2Vec(result,result_unprec,M_coarse->GetSubset()));
+	double norm_diff_per_coarse_site = norm_diff_solutions/info.GetNumCBSites();
+	MasterLog(INFO, "|| unprec_result_odd - prec_result || = %16.8e  || diff || / coarse_site = %16.8e\n",
+				norm_diff_solutions, norm_diff_per_coarse_site);
 
 }
 
