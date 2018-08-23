@@ -482,7 +482,8 @@ TEST(QPhiXIntegration, TestSetupQDPXXVecs)
 
 }
 
-TEST(QPhiXIntegration, TestSetup)
+
+TEST(QPhiXIntegration, TestSetupEO)
 {
   // Init the lattice
   IndexArray latdims={{8,8,8,8}};
@@ -507,6 +508,9 @@ TEST(QPhiXIntegration, TestSetup)
   std::shared_ptr<QPhiXWilsonCloverLinearOperatorF> M=
       std::make_shared<QPhiXWilsonCloverLinearOperatorF>(info,m_q, c_sw, t_bc,u);
 
+  std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF> M_eo=
+      std::make_shared<QPhiXWilsonCloverEOLinearOperatorF>(info,m_q, c_sw, t_bc,u);
+
   SetupParams level_setup_params = {
       3,       // Number of levels
       {6,8},   // Null vecs on L0, L1
@@ -520,27 +524,28 @@ TEST(QPhiXIntegration, TestSetup)
   };
 
   QPhiXMultigridLevels mg_levels;
-
-  MultigridLevels mg_levels_qdpxx;
-
   SetupQPhiXMGLevels(level_setup_params, mg_levels, M);
 
+  QPhiXMultigridLevelsEO mg_levels_eo;
+  SetupQPhiXMGLevels(level_setup_params, mg_levels_eo, M_eo);
+
+
   // I want to test that restriction and prolongation work.
-  const LatticeInfo& coarse_info = *(mg_levels.coarse_levels[0].info);
+  const LatticeInfo& coarse_info = *(mg_levels_eo.coarse_levels[0].info);
   CoarseSpinor in(coarse_info);
   Gaussian(in);
   double norm_in = Norm2Vec(in);
   CoarseSpinor out(coarse_info);
   ZeroVec(out);
 
-  const LatticeInfo& fine_info = *(mg_levels.fine_level.info);
+  const LatticeInfo& fine_info = *(mg_levels_eo.fine_level.info);
   QPhiXSpinorF qphix_out(fine_info);
   ZeroVec(qphix_out);
 
   // Test Prolongator and Restrictor
-  const std::vector<Block>& blocklist = mg_levels.fine_level.blocklist;
-  prolongateSpinor(blocklist,mg_levels.fine_level.null_vecs, in, qphix_out);
-  restrictSpinor(blocklist,mg_levels.fine_level.null_vecs, qphix_out, out);
+  const std::vector<Block>& blocklist = mg_levels_eo.fine_level.blocklist;
+  prolongateSpinor(blocklist,mg_levels_eo.fine_level.null_vecs, in, qphix_out);
+  restrictSpinor(blocklist,mg_levels_eo.fine_level.null_vecs, qphix_out, out);
 
   double diff = XmyNorm2Vec(in,out);
   MasterLog(INFO, "QPHIX: || (1 - RP) psi || = %16.8e || (1 - RP) psi || / || psi || = %16.8e",
@@ -550,14 +555,14 @@ TEST(QPhiXIntegration, TestSetup)
 
    // Test Fake Coarse Op:  R D P = D_c
    Gaussian(in);
-   auto& D_c = *(mg_levels.coarse_levels[0].M);
-   D_c(out,in,LINOP_OP);
+   auto& D_c = *(mg_levels_eo.coarse_levels[0].M);
+   D_c.unprecOp(out,in,LINOP_OP);
 
    QPhiXSpinorF DP_in(fine_info);
-   prolongateSpinor(blocklist, mg_levels.fine_level.null_vecs, in, qphix_out);
+   prolongateSpinor(blocklist, mg_levels_eo.fine_level.null_vecs, in, qphix_out);
    (*M)(DP_in,qphix_out,LINOP_OP);
    CoarseSpinor RDP_in(coarse_info);
-   restrictSpinor(blocklist, mg_levels.fine_level.null_vecs, DP_in,RDP_in );
+   restrictSpinor(blocklist, mg_levels_eo.fine_level.null_vecs, DP_in,RDP_in );
 
    diff = XmyNorm2Vec(RDP_in,out);
    MasterLog(INFO, "QPHIX: || (RDP - D_c) psi || = %16.8e || (RDP - D_c) psi || / || psi || = %16.8e",
