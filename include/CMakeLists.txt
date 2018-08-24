@@ -11,6 +11,7 @@ install (FILES lattice/array2d.h
                lattice/mr_params.h
                lattice/nodeinfo.h
 			   lattice/solver.h  
+			   lattice/unprec_solver_wrappers.h
 			   lattice/halo_container_qmp.h
 			   lattice/halo_container_single.h
 			   lattice/halo.h             
@@ -23,6 +24,7 @@ install (FILES lattice/coarse/aggregate_block_coarse.h
                lattice/coarse/coarse_types.h 
                lattice/coarse/coarse_transfer.h
                lattice/coarse/coarse_wilson_clover_linear_operator.h
+               lattice/coarse/coarse_eo_wilson_clover_linear_operator.h
                lattice/coarse/invbicgstab_coarse.h
                lattice/coarse/invfgmres_coarse.h
                lattice/coarse/invmr_coarse.h
@@ -58,6 +60,7 @@ install (FILES lattice/qphix/qphix_types.h
 						   lattice/qphix/qphix_veclen.h
 						   lattice/qphix/qphix_qdp_utils.h
 						   lattice/qphix/qphix_clover_linear_operator.h
+						   lattice/qphix/qphix_eo_clover_linear_operator.h
 						   lattice/qphix/qphix_blas_wrappers.h
 						   lattice/qphix/invfgmres_qphix.h
 						   lattice/qphix/invbicgstab_qphix.h

@@ -291,10 +291,10 @@ TEST_F(EOBitsTesting, TestG5HermLinks)
 						coarse_links, mu_forw, cb, cbsite);
 
 				// Wrap links up as eigen matrix wrappers
-				Map< const EigenCMat > u_forw(reinterpret_cast<const std::complex<float>*>(my_link),
+				Eigen::Map< const EigenCMat > u_forw(reinterpret_cast<const std::complex<float>*>(my_link),
 						num_colorspins,
 						num_colorspins);
-				Map< const EigenCMat > u_back(reinterpret_cast<const std::complex<float>*>(back_link),
+				Eigen::Map< const EigenCMat > u_back(reinterpret_cast<const std::complex<float>*>(back_link),
 						num_colorspins,
 						num_colorspins);
 
@@ -329,7 +329,7 @@ TEST_F(EOBitsTesting, TestG5HermLinks)
 
 
 			// Wrap links up as eigen matrix wrappers
-			Map< const EigenCMat > u_clov(reinterpret_cast<const std::complex<float>*>(my_link),
+			Eigen::Map< const EigenCMat > u_clov(reinterpret_cast<const std::complex<float>*>(my_link),
 					num_colorspins,
 					num_colorspins);
 
@@ -375,10 +375,10 @@ TEST_F(EOBitsTesting, TestG5HermLinks)
 						coarse_links, mu_forw, cb, cbsite);
 
 				// Wrap links up as eigen matrix wrappers
-				Map< const EigenCMat > u_forw(reinterpret_cast<const std::complex<float>*>(my_link),
+				Eigen::Map< const EigenCMat > u_forw(reinterpret_cast<const std::complex<float>*>(my_link),
 						num_colorspins,
 						num_colorspins);
-				Map< const EigenCMat > u_back(reinterpret_cast<const std::complex<float>*>(back_link),
+				Eigen::Map< const EigenCMat > u_back(reinterpret_cast<const std::complex<float>*>(back_link),
 						num_colorspins,
 						num_colorspins);
 
@@ -412,7 +412,7 @@ TEST_F(EOBitsTesting, TestG5HermLinks)
 
 
 			// Wrap links up as eigen matrix wrappers
-			Map< const EigenCMat > u_clov(reinterpret_cast<const std::complex<float>*>(my_link),
+			Eigen::Map< const EigenCMat > u_clov(reinterpret_cast<const std::complex<float>*>(my_link),
 					num_colorspins,
 					num_colorspins);
 
