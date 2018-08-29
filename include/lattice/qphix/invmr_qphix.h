@@ -28,10 +28,7 @@ public:
   MRSolverQPhiXT(QPhiXWilsonCloverLinearOperatorT<FT>& M,
                        const MRSolverParams& params) : _params(params),
                            mr_solver( M.getQPhiXOp(),params.MaxIter,params.Omega),
-                           solver_wrapper(mr_solver,M.getQPhiXOp())
-
-
-  {}
+                           solver_wrapper(mr_solver,M.getQPhiXOp()) {}
 
   MRSolverQPhiXT(QPhiXWilsonCloverEOLinearOperatorT<FT>& M,
                          const MRSolverParams& params) : _params(params),
@@ -89,11 +86,17 @@ public:
                            mr_solver( M.getQPhiXOp(), params.MaxIter, params.Omega),
                            solver_wrapper(mr_solver, M.getQPhiXOp()) {}
 
+  MRSmootherQPhiXT(std::shared_ptr<QPhiXWilsonCloverLinearOperatorT<FT>> M, const MRSolverParams& params) : _params(params),
+          mr_solver( M->getQPhiXOp(), params.MaxIter, params.Omega),
+          solver_wrapper(mr_solver, M->getQPhiXOp()) {}
 
   MRSmootherQPhiXT(QPhiXWilsonCloverEOLinearOperatorT<FT>& M, const MRSolverParams& params) : _params(params),
                            mr_solver( M.getQPhiXOp(), params.MaxIter, params.Omega),
                            solver_wrapper(mr_solver, M.getQPhiXOp()) {}
 
+  MRSmootherQPhiXT(std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorT<FT>> M, const MRSolverParams& params)  : _params(params),
+          mr_solver( M->getQPhiXOp(), params.MaxIter, params.Omega),
+          solver_wrapper(mr_solver, M->getQPhiXOp()) {}
 
   void operator()(QPhiXSpinorT<FT>& out,
                                 const QPhiXSpinorT<FT>& in) const
@@ -130,7 +133,51 @@ public:
   using MRSmootherQPhiX  = MRSmootherQPhiXT<double>;
   using MRSmootherQPhiXF = MRSmootherQPhiXT<float>;
 
+  // Single Precision, for null space solving
+  template<typename FT>
+  class MRSmootherQPhiXTEO : public Smoother<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>> {
+  public:
 
+    MRSmootherQPhiXTEO(QPhiXWilsonCloverLinearOperatorT<FT>& M, const MRSolverParams& params) : _params(params),
+                             mr_smoother( M.getQPhiXOp(), params.MaxIter, params.Omega) {}
+
+
+    MRSmootherQPhiXTEO(QPhiXWilsonCloverEOLinearOperatorT<FT>& M, const MRSolverParams& params) : _params(params),
+                             mr_smoother( M.getQPhiXOp(), params.MaxIter, params.Omega) {}
+
+
+    void operator()(QPhiXSpinorT<FT>& out,
+                                  const QPhiXSpinorT<FT>& in) const
+    {
+      const int isign= 1;
+      int n_iters;
+      double rsd_sq_final;
+      unsigned long site_flops;
+      unsigned long mv_apps;
+
+      (mr_smoother)(out.getCB(ODD).get(),
+          in.getCB(ODD).get(),
+          _params.RsdTarget,
+          n_iters,
+          rsd_sq_final,
+          site_flops,
+          mv_apps,
+          isign,
+          _params.VerboseP,
+          ODD);
+
+    }
+
+   private:
+
+      const LinearSolverParamsBase& _params;
+
+      QPhiXMRSmootherT<FT> mr_smoother;
+
+   };
+
+  using MRSmootherQPhiXEO  = MRSmootherQPhiXTEO<double>;
+   using MRSmootherQPhiXEOF = MRSmootherQPhiXTEO<float>;
 }  // end namespace MGTEsting
 
 

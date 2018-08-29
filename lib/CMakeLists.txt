@@ -7,6 +7,7 @@ LIST(APPEND library_source_list lattice/aggregate_block_coarse.cpp
 			   lattice/invbicgstab_coarse.cpp
 			   lattice/invmr_coarse.cpp
 			   lattice/lattice_info.cpp
+			   lattice/mg_level_coarse.cpp
 			   lattice/nodeinfo.cpp
 			   utils/initialize.cpp
 			   utils/print_utils.cpp
@@ -41,7 +42,6 @@ if ( QPhiX_FOUND )
 		lattice/qphix/qphix_aggregate.cpp
 		lattice/qphix/qphix_blas_wrappers.cpp
 		lattice/qphix/qphix_qdp_utils.cpp
-		lattice/qphix/vcycle_recursive_qphix.cpp
 		)
 endif()
 

@@ -18,8 +18,17 @@ namespace MG
 	class UnprecLinearSolverWrapper: public  UnprecLinearSolver<Spinor,Gauge,EOSolver> {
 	public:
 		UnprecLinearSolverWrapper(const std::shared_ptr<const EOSolver>& eo_solver,
-					  const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>>& linop)
-		: _EOSolver(eo_solver), _EOOperator(linop), tmp_src(linop->GetInfo()), tmp_out(linop->GetInfo()) {}
+					  const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>>& M)
+		: _EOSolver(eo_solver), _EOOperator(M), tmp_src(M->GetInfo()), tmp_out(M->GetInfo()) {}
+
+		UnprecLinearSolverWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
+				const LinearSolverParamsBase& params) :
+			_EOSolver(std::make_shared<EOSolver>(*M,params)), _EOOperator(M),  tmp_src(M->GetInfo()), tmp_out(M->GetInfo()) {}
+
+		UnprecLinearSolverWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
+				const LinearSolverParamsBase& params,
+				const LinearSolver<Spinor,Gauge>* M_prec) :
+					_EOSolver(std::make_shared<EOSolver>(*M,params,M_prec)), _EOOperator(M),  tmp_src(M->GetInfo()), tmp_out(M->GetInfo()) {}
 
 		void SourcePrepare(Spinor& new_source, const Spinor& original_source) const override
 		{

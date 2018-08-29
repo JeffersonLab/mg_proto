@@ -39,6 +39,8 @@ namespace MG  {
 	  MRSmootherCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 			  	  	   const MG::LinearSolverParamsBase& params);
 
+	  MRSmootherCoarse(const std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M_ptr,
+	  			  	  	   const MG::LinearSolverParamsBase& params);
 
 	  void operator()(CoarseSpinor& out, const CoarseSpinor& in) const;
 

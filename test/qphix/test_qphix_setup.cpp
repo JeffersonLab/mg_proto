@@ -32,6 +32,7 @@
 #include "lattice/qphix/mg_level_qphix.h"
 #include "lattice/fine_qdpxx/mg_level_qdpxx.h"
 #include "lattice/qphix/qphix_aggregate.h"
+#include "lattice/qphix/qphix_blas_wrappers.h"
 #include "lattice/fine_qdpxx/aggregate_block_qdpxx.h"
 #include "lattice/fine_qdpxx/aggregate_qdpxx.h"
 
@@ -42,6 +43,9 @@
 using namespace QDP;
 using namespace MG;
 using namespace MGTesting;
+
+
+using MGLevelQPhiXF = MGLevelQPhiXT<QPhiXSpinorF, BiCGStabSolverQPhiXF,QPhiXWilsonCloverLinearOperatorF >;
 
 TEST(QPhiXIntegration, TestSetupPieces)
 {
@@ -322,7 +326,7 @@ TEST(QPhiXIntegration, TestSetupQDPXXVecs)
 
   MasterLog(INFO, "GeneratingVecs with QPhiX Setup");
   // This makes the vecs
-  SetupQPhiXToCoarseGenerateVecs(level_setup_params, M, qphix_level, coarse_level2);
+  SetupQPhiXToCoarseGenerateVecsT<>(level_setup_params, M, qphix_level, coarse_level2);
 
   MasterLog(INFO, "Injecting QPhiX solutions into QDPXX Level");
   // Now let us inject the ves into the QPhiX One
@@ -335,7 +339,7 @@ TEST(QPhiXIntegration, TestSetupQDPXXVecs)
   SetupQDPXXToCoarseVecsIn(level_setup_params, M_qdp,qdpxx_level,coarse_level);
 
   MasterLog(INFO, "Finishing QPhiX Setup");
-  SetupQPhiXToCoarseVecsIn(level_setup_params, M, qphix_level, coarse_level2);
+  SetupQPhiXToCoarseVecsInT<>(level_setup_params, M, qphix_level, coarse_level2);
 
   // NB: If I do the solves, I cannot possibly compare the vectors, since
   // the solves themselves solve Dx=0 and x is going to be approximate to 0.

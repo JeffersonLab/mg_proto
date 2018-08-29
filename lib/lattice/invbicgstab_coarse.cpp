@@ -138,9 +138,13 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 		DComplex beta;
 		beta = ( rho / rho_prev ) * (alpha/omega);
 
+		// So beta in initial iter is 1:
 		// p = r + beta(p - omega v)
 
-		// first work out p - omega v
+		// so in iter 0, p should equal r.
+
+
+		// first work out p - omega v (initial iter v=0 & p = 0, so p-omega v = 0
 		// into tmp
 		// then do p = r + beta tmp
 		FComplex omega_r( (float)omega.real(), (float)omega.imag());
@@ -153,6 +157,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 		// v = Ap
 		A(v,p,OpType);
+
 
 
 		// alpha = rho_{k+1} / < r_0 | v >
@@ -176,8 +181,11 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 		//r[s]  -=  alpha_r*v;
 		AxpyVec(malpha_r,v,r,subset);
 
+
+
 		// t = As  = Ar
 		A(t,r,OpType);
+
 		// omega = < t | s > / < t | t > = < t | r > / norm2(t);
 
 		// This does the full 5D norm
@@ -255,7 +263,7 @@ InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor,CoarseGauge>& A,
 
 BiCGStabSolverCoarse::BiCGStabSolverCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M, const LinearSolverParamsBase& params) : _M(M),
 		_params(params) {}
-BiCGStabSolverCoarse::BiCGStabSolverCoarse(std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M,
+BiCGStabSolverCoarse::BiCGStabSolverCoarse( const std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M,
 		const LinearSolverParamsBase& params) : _M(*M),	_params(params) {}
 LinearSolverResults
 BiCGStabSolverCoarse::operator()(CoarseSpinor& out, const CoarseSpinor& in, ResiduumType resid_type  ) const {

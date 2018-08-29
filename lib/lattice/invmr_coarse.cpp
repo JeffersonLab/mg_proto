@@ -281,6 +281,9 @@ MRSmootherCoarse::MRSmootherCoarse(const LinearOperator<CoarseSpinor,CoarseGauge
 		const MG::LinearSolverParamsBase& params) : _M(M),
 				_params(static_cast<const MRSolverParams&>(params)){}
 
+MRSmootherCoarse::MRSmootherCoarse(const std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M_ptr,
+			  	  	   const MG::LinearSolverParamsBase& params) : _M(*M_ptr), _params(static_cast<const MRSolverParams&>(params)) {}
+
 void
 MRSmootherCoarse::operator()(CoarseSpinor& out, const CoarseSpinor& in) const {
 	InvMR_T(_M, in, out, _params.Omega, _params.RsdTarget,

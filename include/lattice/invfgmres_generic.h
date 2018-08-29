@@ -209,6 +209,9 @@ template<typename ST, typename GT>
 
   }
 
+  FGMRESSolverGeneric(std::shared_ptr<const LinearOperator<ST,GT>> A,
+        const MG::LinearSolverParamsBase& params,
+        const LinearSolver<ST,GT>* M_prec=nullptr)  : FGMRESSolverGeneric(*A,params,M_prec) {}
 
 
     ~FGMRESSolverGeneric()

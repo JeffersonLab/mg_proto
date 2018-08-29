@@ -421,6 +421,124 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStabAbsolute)
 }
 
 
+TEST(QPhiXIntegration, TestQPhiXMRSmootherEO)
+{
+  // Init the lattice
+  IndexArray latdims={{8,8,8,8}};
+  initQDPXXLattice(latdims);
+  LatticeInfo info(latdims);
+
+
+
+  int t_bc = +1;
+  double t_bcf = static_cast<double>(t_bc);
+  double m_q = 0.01;
+  double c_sw = 1.2;
+
+
+
+  multi1d<LatticeColorMatrix> u(Nd);
+  for(int mu=0; mu < Nd; ++mu) {
+    gaussian(u[mu]);
+    reunit(u[mu]);
+  }
+
+  // Make the QPhiX Clover op
+  MG::QPhiXWilsonCloverEOLinearOperatorF D_qphix(info, m_q,c_sw,t_bc,u);
+
+  QPhiXSpinorF source(info);
+  QPhiXSpinorF solution(info);
+  QPhiXGaugeF  qphix_u(info);
+
+  QDPGaugeFieldToQPhiXGauge(u,qphix_u);
+
+  Gaussian(source,D_qphix.GetSubset());
+  ZeroVec(solution, D_qphix.GetSubset());
+
+  MRSolverParams params;
+  params.MaxIter = 5;
+  params.RsdTarget= 1.0e-7;
+  params.VerboseP = true;
+  params.Omega = 1.1;
+
+  MRSmootherQPhiXEOF smoother(D_qphix,params);
+  smoother(solution, source);
+
+  QPhiXSpinorF Ax(info);
+  D_qphix(Ax,solution, LINOP_OP);
+  double normdiff = sqrt(XmyNorm2Vec(Ax,source,D_qphix.GetSubset()));
+  double normsrc = sqrt(Norm2Vec(source,D_qphix.GetSubset()));
+  double rel_normdiff = normdiff/normsrc;
+  MasterLog(INFO, "|| r || = %16.8e", normdiff);
+  MasterLog(INFO, "|| r ||/||b|| = %16.8e",rel_normdiff);
+
+  ASSERT_LT( rel_normdiff, 8.0e-3);
+}
+
+
+TEST(QPhiXIntegration, TestQPhiXBiCGStabEOAbsolute)
+{
+  // Init the lattice
+  IndexArray latdims={{8,8,8,8}};
+  initQDPXXLattice(latdims);
+  LatticeInfo info(latdims);
+
+
+
+  int t_bc = +1;
+  double t_bcf = static_cast<double>(t_bc);
+  double m_q = 0.01;
+  double c_sw = 1.2;
+
+
+  multi1d<LatticeColorMatrixF> u_f(Nd);
+  multi1d<LatticeColorMatrix> u(Nd);
+  for(int mu=0; mu < Nd; ++mu) {
+    gaussian(u[mu]);
+    reunit(u[mu]);
+    u_f[mu] =  u[mu]; // Downcast to single prec
+  }
+
+  // Make the QPhiX Clover op
+  MG::QPhiXWilsonCloverEOLinearOperator D_qphix(info, m_q,c_sw,t_bc,u);
+
+  // Let us make the source
+  LatticeFermion source;
+  source = zero;
+
+  LatticeFermion solution;
+  gaussian(solution); // Initial guess
+
+
+  LatticeFermion transf_source = source;
+
+  QPhiXSpinor source_full(info);
+  QPhiXSpinor solution_full(info);
+  QPhiXGauge  qphix_u(info);
+  QPhiXClover qphix_clov(info);
+
+  QDPGaugeFieldToQPhiXGauge(u,qphix_u);
+
+  QDPSpinorToQPhiXSpinor(transf_source,source_full);
+  QDPSpinorToQPhiXSpinor(solution,solution_full);
+
+
+  LinearSolverParamsBase params;
+  params.MaxIter = 5000;
+  params.RsdTarget= 1.0e-7;
+  params.VerboseP = true;
+  BiCGStabSolverQPhiXEO solver(D_qphix,params);
+  LinearSolverResults res = solver(solution_full, source_full,ABSOLUTE);
+
+  QPhiXSpinor Ax(info);
+  D_qphix(Ax,solution_full, LINOP_OP);
+  double normdiff = sqrt(XmyNorm2Vec(Ax,source_full,D_qphix.GetSubset()));
+
+  MasterLog(INFO, "|| r || = %16.8e", normdiff);
+
+  ASSERT_LT( normdiff, 1.0e-6);
+}
+
 TEST(QPhiXIntegration, TestQPhiXBiCGStabRelativeF)
 {
   // Init the lattice

@@ -38,6 +38,7 @@
 #include "lattice/qphix/mg_level_qphix.h"
 #include "lattice/qphix/invmr_qphix.h"
 #include "lattice/qphix/vcycle_qphix_coarse.h"
+#include "lattice/qphix/qphix_blas_wrappers.h"
 
 #include <memory>
 
@@ -55,7 +56,7 @@ protected:
 	// Some protected variables
 	IndexArray latdims;
 	IndexArray node_orig;
-	const float m_q=0.01;
+	const float m_q=0.00;
 	const float c_sw = 1.25;
 	const int t_bc = -1;
 	QDP::multi1d<QDP::LatticeColorMatrix> u;
@@ -80,6 +81,8 @@ protected:
 	QPhiXMultigridLevelsEO mg_levels;
 	QPhiXMultigridLevels mg_levels_unprec;
 
+
+
 	// A one liner to access the coarse links generated
 	std::shared_ptr<CoarseGauge> getCoarseLinks(int level) {
 		return (mg_levels.coarse_levels[level].gauge);
@@ -93,6 +96,12 @@ protected:
 	const LatticeInfo& getFineInfo(void) const {
 			return *(mg_levels.fine_level.info);
 		}
+
+	const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> getFineLinOp() const
+	{
+		return M_fine;
+	}
+
 	const std::shared_ptr<const CoarseEOWilsonCloverLinearOperator> getCoarseLinOp(int level) const
 	{
 		return mg_levels.coarse_levels[level].M;
@@ -102,10 +111,11 @@ protected:
 	{
 		return mg_levels_unprec.coarse_levels[level].M;
 	}
+
 };
 
 
-
+#if 0
 TEST_F(VCycleEOTesting, TestVCycleApply)
 {
 	const LatticeInfo& fine_info = getCoarseInfo(0);
@@ -203,8 +213,268 @@ TEST_F(VCycleEOTesting, TestVCycleApply)
 	}
 
 }
+#endif
+
+TEST_F(VCycleEOTesting, TestQPhiXVCycleEO3)
+{
+	const LatticeInfo& fine_info = *(mg_levels.fine_level.info);
+	const LatticeInfo& coarse_info = *(mg_levels.coarse_levels[0].info);
+
+	MRSolverParams presmooth;
+	presmooth.MaxIter=1;
+	presmooth.RsdTarget = 0.1;
+	presmooth.Omega = 1.1;
+	presmooth.VerboseP = false;
+
+	QPhiXWilsonCloverEOLinearOperatorF& FineLinOp = const_cast<QPhiXWilsonCloverEOLinearOperatorF&>( *M_fine);
+	// MR Smoother holds only references
+	QDPIO::cout << " *********** Creating Wrapped Smoother ********" << std::endl;
+	MRSmootherQPhiXF the_wrapped_smoother( FineLinOp, presmooth);
+
+	QDPIO::cout << " *********** Creating Non-Wrapped Wrapped Smoother ********" << std::endl;
+	MRSmootherQPhiXEOF the_eo_smoother(FineLinOp,presmooth);
+
+	// Set up the CoarseSolver
+	FGMRESParams coarse_solve_params;
+	coarse_solve_params.MaxIter=200;
+	coarse_solve_params.RsdTarget=0.1;
+	coarse_solve_params.VerboseP = false;
+	coarse_solve_params.NKrylov = 10;
+	auto L0LinOp = mg_levels.coarse_levels[0].M;
+
+	// Bottom solver on level 1 is a wrapper.
+
+	QDPIO::cout << " *********** Creating Non-Wrapped Bottom Solver ********" << std::endl;
+	std::shared_ptr<const FGMRESSolverCoarse> eoprec_bottom_solver = std::make_shared<FGMRESSolverCoarse>(*(L0LinOp),coarse_solve_params);
+
+	QDPIO::cout << " *********** Creating Wrapped Bottom Solver ********" << std::endl;
+	UnprecFGMRESSolverCoarseWrapper wrapped_bottom_solver( eoprec_bottom_solver, L0LinOp);
+
+	{
+		// Create the 2 Level VCycle
+
+		LinearSolverParamsBase vcycle_params;
+		vcycle_params.MaxIter=10;                   // Single application
+		vcycle_params.RsdTarget =1.0e-2;              // The desired reduction in || r ||
+		vcycle_params.VerboseP = false;			   // Verbosity
+
+		// info my_blocks, and vecs can probably be collected in a 'Transfer' class
+		QDPIO::cout << "******* CREATING VCYCLE EO2 with wrapped bottom solver" << std::endl;
+
+		VCycleQPhiXCoarseEO2 vcycle_eo2(fine_info,coarse_info,
+				mg_levels.fine_level.blocklist,
+				mg_levels.fine_level.null_vecs,
+				FineLinOp,
+				the_wrapped_smoother,
+				the_wrapped_smoother,
+				wrapped_bottom_solver,
+				vcycle_params);
+
+		VCycleQPhiXCoarseEO3 vcycle_eo3(fine_info,coarse_info,
+				mg_levels.fine_level.blocklist,
+				mg_levels.fine_level.null_vecs,
+				FineLinOp,
+				the_eo_smoother,
+				the_eo_smoother,
+				*eoprec_bottom_solver,
+				vcycle_params);
+
+		QPhiXSpinor psi_in(fine_info);
+		QPhiXSpinor chi_out(fine_info);
+		ZeroVec(psi_in,SUBSET_EVEN);
+		Gaussian(psi_in, SUBSET_ODD);
+		ZeroVec(chi_out);
+
+		double psi_norm = sqrt(Norm2Vec(psi_in,SUBSET_ODD));
+		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+
+		QDPIO::cout << "********* Applying EO2 Vcycle " << std::endl;
+		double oldtime = -omp_get_wtime();
+		LinearSolverResults res = vcycle_eo2(chi_out,psi_in);
+		oldtime += omp_get_wtime();
+		QDPIO::cout << res.n_count << " iterations" << std::endl;
 
 
+		QPhiXSpinor chi_out_eo3(fine_info);
+		ZeroVec(chi_out_eo3);
+		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		QDPIO::cout << "********* Applying EO3 Vcycle " << std::endl;
+
+		double newtime= -omp_get_wtime();
+		res = vcycle_eo3(chi_out_eo3,psi_in);
+		newtime += omp_get_wtime();
+		QDPIO::cout << res.n_count << " iterations" << std::endl;
+
+		QPhiXSpinor Ax(fine_info);
+		(*M_fine_prec)(Ax,chi_out,LINOP_OP);
+		double normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
+		MasterLog(INFO, "Actual Relative Residuum After Previous QPhiX EO2 Vcycle = %16.8e", normdiff/psi_norm);
+		//ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
+		MasterLog(INFO, "Old VCycle Took %16.8e sec", oldtime);
+
+
+		(*M_fine_prec)(Ax,chi_out_eo3,LINOP_OP);
+		normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
+		MasterLog(INFO, "Actual Relative Residuum of New QPhiX EO3 Vcycle = %16.8e", normdiff/psi_norm);
+		//ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
+		MasterLog(INFO, "New VCycle Took %16.8e sec", newtime);
+
+	}
+
+}
+
+
+TEST_F(VCycleEOTesting, TestVCycleApplyEO2)
+{
+	const LatticeInfo& fine_info = getCoarseInfo(0);
+	const LatticeInfo& coarse_info = getCoarseInfo(1);
+
+	MRSolverParams presmooth;
+	presmooth.MaxIter=1;
+	presmooth.RsdTarget = 0.1;
+	presmooth.Omega = 1.1;
+	presmooth.VerboseP = false;
+
+	auto L0LinOp = getCoarseLinOp(0);
+	auto L0UnprecOp = getCoarseUnprecLinOp(0);
+
+	// MR Smoother holds only references
+	QDPIO::cout << " *********** Creating Wrapped Smoother ********" << std::endl;
+	UnprecMRSmootherCoarseWrapper the_wrapped_smoother( std::make_shared<MRSmootherCoarse>(*L0LinOp,presmooth),L0LinOp);
+
+	QDPIO::cout << " *********** Creating Non-Wrapped Wrapped Smoother ********" << std::endl;
+	MRSmootherCoarse the_eo_smoother(*L0LinOp,presmooth);
+
+	// Set up the CoarseSolver
+	FGMRESParams coarse_solve_params;
+	coarse_solve_params.MaxIter=200;
+	coarse_solve_params.RsdTarget=0.1;
+	coarse_solve_params.VerboseP = false;
+	coarse_solve_params.NKrylov = 10;
+	auto L1LinOp = getCoarseLinOp(1);
+
+
+	// Bottom solver on level 1 is a wrapper.
+
+	QDPIO::cout << " *********** Creating Non-Wrapped Bottom Solver ********" << std::endl;
+	std::shared_ptr<const FGMRESSolverCoarse> eoprec_bottom_solver = std::make_shared<FGMRESSolverCoarse>(*(L1LinOp),coarse_solve_params);
+
+	QDPIO::cout << " *********** Creating Wrapped Bottom Solver ********" << std::endl;
+	UnprecFGMRESSolverCoarseWrapper wrapped_bottom_solver( eoprec_bottom_solver, L1LinOp);
+
+	{
+		// Create the 2 Level VCycle
+
+		LinearSolverParamsBase vcycle_params;
+		vcycle_params.MaxIter=50;                   // Single application
+		vcycle_params.RsdTarget =1.0e-5;              // The desired reduction in || r ||
+		vcycle_params.VerboseP = false;			   // Verbosity
+
+		QDPIO::cout << "******* CREATING OLD EO VCYCLE "<< std::endl;
+		VCycleCoarseEO vcycle(*(mg_levels.coarse_levels[1].info),
+				mg_levels.coarse_levels[0].blocklist,
+				mg_levels.coarse_levels[0].null_vecs,
+				*(mg_levels.coarse_levels[0].M),
+				the_wrapped_smoother,
+				the_wrapped_smoother,
+				wrapped_bottom_solver,
+				vcycle_params);
+
+		// info my_blocks, and vecs can probably be collected in a 'Transfer' class
+		QDPIO::cout << "******* CREATING VCYCLE EO2 with wrapped bottom solver" << std::endl;
+
+		VCycleCoarseEO2 vcycle_eo2( *(mg_levels.coarse_levels[1].info),
+				mg_levels.coarse_levels[0].blocklist,
+				mg_levels.coarse_levels[0].null_vecs,
+				*(mg_levels.coarse_levels[0].M),
+				the_eo_smoother,
+				the_eo_smoother,
+				wrapped_bottom_solver,
+				vcycle_params);
+
+		QDPIO::cout << "******* CREATING VCYCLE EO2 with unwrapped bottom solver" << std::endl;
+		VCycleCoarseEO2 vcycle_eo3( *(mg_levels.coarse_levels[1].info),
+				mg_levels.coarse_levels[0].blocklist,
+				mg_levels.coarse_levels[0].null_vecs,
+				*(mg_levels.coarse_levels[0].M),
+				the_eo_smoother,
+				the_eo_smoother,
+				*eoprec_bottom_solver,
+				vcycle_params);
+
+
+		// Now need to do the coarse test
+		CoarseSpinor psi_in(fine_info);
+		CoarseSpinor chi_out(fine_info);
+		ZeroVec(psi_in,SUBSET_EVEN);
+		Gaussian(psi_in, SUBSET_ODD);
+		ZeroVec(chi_out);
+
+		double psi_norm = sqrt(Norm2Vec(psi_in,SUBSET_ODD));
+		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+
+		QDPIO::cout << "********* Applying old Vcycle " << std::endl;
+		double oldtime = -omp_get_wtime();
+		LinearSolverResults res = vcycle(chi_out,psi_in);
+		oldtime += omp_get_wtime();
+		QDPIO::cout << res.n_count << " iterations" << std::endl;
+
+//		ASSERT_EQ( res.n_count, 1);
+//		ASSERT_EQ( res.resid_type, RELATIVE );
+	//	ASSERT_LT( res.resid, 3.8e-1 );
+
+
+		CoarseSpinor chi_out_eo2(fine_info);
+		ZeroVec(chi_out_eo2);
+		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		QDPIO::cout << "********* Applying EO2 Vcycle " << std::endl;
+
+		double newtime= -omp_get_wtime();
+		res = vcycle_eo2(chi_out_eo2,psi_in);
+		newtime += omp_get_wtime();
+		QDPIO::cout << res.n_count << " iterations" << std::endl;
+
+	//	ASSERT_EQ( res.n_count, 1);
+	//	ASSERT_EQ( res.resid_type, RELATIVE );
+	//	ASSERT_LT( res.resid, 3.8e-1 );
+
+
+		CoarseSpinor chi_out_eo3(fine_info);
+		ZeroVec(chi_out_eo3);
+		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		QDPIO::cout << "********* Applying EO3 Vcycle " << std::endl;
+
+		double newtime2= -omp_get_wtime();
+		res = vcycle_eo3(chi_out_eo3,psi_in);
+		newtime2 += omp_get_wtime();
+		QDPIO::cout << res.n_count << " iterations" << std::endl;
+
+	//	ASSERT_EQ( res.n_count, 1);
+	// Compute true residuum
+		CoarseSpinor Ax(fine_info);
+		(*(mg_levels.coarse_levels[0].M))(Ax,chi_out,LINOP_OP);
+		double normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
+		MasterLog(INFO, "Actual Relative Residuum After Old Vcycle with prec L0 operator = %16.8e", normdiff/psi_norm);
+		//ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
+		MasterLog(INFO, "Old VCycle Took %16.8e sec", oldtime);
+
+
+		(*(mg_levels.coarse_levels[0].M))(Ax,chi_out_eo2,LINOP_OP);
+		normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
+		MasterLog(INFO, "Actual Relative Residuum of New Vcycle with prec L0 operator= %16.8e", normdiff/psi_norm);
+		//ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
+		MasterLog(INFO, "New VCycle Took %16.8e sec", newtime);
+
+		(*(mg_levels.coarse_levels[0].M))(Ax,chi_out_eo3,LINOP_OP);
+		normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
+		MasterLog(INFO, "Actual Relative Residuum of Vcycle with unwrapped bottom with prec L0 operator= %16.8e", normdiff/psi_norm);
+		//		ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
+		MasterLog(INFO, "New Unwrapped BottomVCycle Took %16.8e sec", newtime2);
+	}
+
+}
+
+#if 0
 TEST_F(VCycleEOTesting, TestLevelSetup2Level)
 {
 
@@ -305,7 +575,7 @@ TEST_F(VCycleEOTesting, TestLevelSetup2Level)
 	MasterLog(INFO, "Prec Solve Took: %16.8e sec", etime_prec-stime_prec);
 
 }
-
+#endif
 #if 0
 TEST(TestQPhiXVCycle, TestVCycleSolve)
 {
@@ -852,7 +1122,7 @@ int main(int argc, char *argv[])
 
 void VCycleEOTesting::SetUp()
 {
-	latdims={{8,8,8,8}};
+	latdims={{8,8,16,16}};
 	initQDPXXLattice(latdims);
 
 	LatticeInfo info(latdims);
@@ -864,30 +1134,32 @@ void VCycleEOTesting::SetUp()
 	// Init Gauge field
 	u.resize(n_dim);
 	for(int mu=0; mu < n_dim; ++mu) {
-		gaussian(u[mu]);
+		u[mu] = 1;
+		QDP::LatticeColorMatrix g;
+		gaussian(g);
+		u[mu] += 0.1*g;
 		reunit(u[mu]);
 	}
 
-	QDPIO::cout << "Creating M" << std::endl;
-
+	QDPIO::cout << "Creating Even Odd M_float" << std::endl;
 	M_fine=std::make_shared<QPhiXWilsonCloverEOLinearOperatorF>(info,m_q, c_sw, t_bc,u);
-	M_fine_prec=std::make_shared<QPhiXWilsonCloverEOLinearOperator>(info,m_q, c_sw, t_bc,u);
 
-	QDPIO::cout << "Calling EO Level setup" << std::endl;
-	SetupQPhiXMGLevels(level_setup_params,
-	 			  	  mg_levels,
-					  M_fine);
+	QDPIO::cout << "Creating Even Odd M_doube" << std::endl;
+	M_fine_prec=std::make_shared<QPhiXWilsonCloverEOLinearOperator>(info,m_q, c_sw, t_bc,u);
 
 	M_fine_unprec=std::make_shared<QPhiXWilsonCloverLinearOperatorF>(info,m_q, c_sw, t_bc,u);
 	M_fine_unprec_full=std::make_shared<QPhiXWilsonCloverLinearOperator>(info,m_q, c_sw, t_bc,u);
-	QDPIO::cout << "Calling EO Level setup" << std::endl;
+
+
+	QDPIO::cout << "********* Calling Unprec Level setup" << std::endl;
 	SetupQPhiXMGLevels(level_setup_params,
 			mg_levels_unprec,
 			M_fine_unprec);
 
-	QDPIO::cout << "Done" << std::endl;
-
-
+	QDPIO::cout << "******** Calling EO Level setup" << std::endl;
+	SetupQPhiXMGLevels(level_setup_params,
+	 			  	  mg_levels,
+					  M_fine);
 
 
 	MasterLog(INFO, "mg_levels has %d levels", mg_levels.n_levels);

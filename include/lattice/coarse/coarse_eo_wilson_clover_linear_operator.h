@@ -29,7 +29,7 @@ public:
 	CoarseEOWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : _u(gauge_in),
 	 _the_op( gauge_in->GetInfo(), 1), _level(level), _tmpvec( gauge_in->GetInfo() )
 	{
-
+		MasterLog(INFO, "Creating Coarse CoarseEOWilsonCloverLinearOperator LinOp");
 	}
 
 	~CoarseEOWilsonCloverLinearOperator(){}

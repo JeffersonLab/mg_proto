@@ -12,30 +12,114 @@
 #include <memory>
 #include "lattice/solver.h"
 #include "lattice/qphix/vcycle_qphix_coarse.h"
+#include "lattice/coarse/vcycle_coarse.h"
 #include "lattice/qphix/mg_level_qphix.h"
-
+#include "lattice/qphix/invmr_qphix.h"
+#include "lattice/qphix/invfgmres_qphix.h"
+#include "lattice/coarse/invmr_coarse.h"
+#include "lattice/coarse/invfgmres_coarse.h"
 using namespace QDP;
 
 namespace MG {
-
-class VCycleRecursiveQPhiX :  public LinearSolver<QPhiXSpinor, QPhiXGauge >
+template<typename QPhiXMGLevelsT, typename Fine2CoarseVCycleT, typename Coarse2CoarseVCycleT, typename FineSmootherT, typename CoarseSmootherT, typename BottomSolverT>
+class VCycleRecursiveQPhiXT :  public LinearSolver<QPhiXSpinor, QPhiXGauge >
 {
 public:
-	VCycleRecursiveQPhiX( const std::vector<VCycleParams>& vcycle_params,
-						  const QPhiXMultigridLevels& mg_levels );
+	VCycleRecursiveQPhiXT( const std::vector<VCycleParams>& vcycle_params,
+						  const QPhiXMGLevelsT& mg_levels )  : _vcycle_params(vcycle_params), _mg_levels(mg_levels) {
 
+		MasterLog(INFO, "Constructing Recursive EvenOdd VCycle");
+
+		if ( vcycle_params.size() != mg_levels.n_levels-1 ) {
+			MasterLog(ERROR, "Params provided for %d levels, but with %d levels %d are needed",
+						vcycle_params.size(), mg_levels.n_levels, mg_levels.n_levels-1);
+		}
+		int n_levels = _mg_levels.n_levels;
+		MasterLog(INFO, "There are %d levels", n_levels);
+
+		_bottom_solver.resize(n_levels);  // No bottom level at the toplevel
+		_coarse_presmoother.resize(n_levels -1); // No smoothers on bottom level
+		_coarse_postsmoother.resize(n_levels -1 );
+		_coarse_vcycle.resize(n_levels-1);
+
+
+
+
+		MasterLog(INFO, "Entering Coarse Level Loop");
+		for(int coarse_idx=n_levels-2; coarse_idx >= 0; --coarse_idx) {
+			MasterLog(INFO, "Coarse_idx=%d",coarse_idx);
+			auto this_level_linop = _mg_levels.coarse_levels[coarse_idx].M;
+
+			if( coarse_idx == n_levels-2) {
+				MasterLog(INFO, "Creating FGRMRES Solver Wrapper on Level %d", coarse_idx);
+
+				// Bottom level There is only a bottom solver.
+				_bottom_solver[coarse_idx] = std::make_shared< const BottomSolverT >(this_level_linop,_vcycle_params[coarse_idx].bottom_solver_params,nullptr);
+
+			}
+			else{
+
+				MasterLog(INFO, "Creating PreSmoother on Level %d using VCycleParams[%d]", coarse_idx+1, coarse_idx+1);
+				// This becomes a wrapper
+				_coarse_presmoother[coarse_idx] = std::make_shared<const CoarseSmootherT>(this_level_linop,_vcycle_params[coarse_idx+1].pre_smoother_params);
+
+				MasterLog(INFO, "Creating PreSmoother on Level %d using VCycleParams[%d]", coarse_idx+1, coarse_idx+1);
+				// This becomes a wrapper
+				_coarse_postsmoother[coarse_idx] = std::make_shared<const CoarseSmootherT>(this_level_linop, _vcycle_params[coarse_idx+1].post_smoother_params);
+
+				MasterLog(INFO, "Creating VCycle Between Levels: %d -> %d using VCycleParams[%d]", coarse_idx+1, coarse_idx+2,coarse_idx+1);
+				_coarse_vcycle[coarse_idx] = std::make_shared< Coarse2CoarseVCycleT >(
+						(*(_mg_levels.coarse_levels[coarse_idx+1].info)),
+						(_mg_levels.coarse_levels[coarse_idx].blocklist),
+						(_mg_levels.coarse_levels[coarse_idx].null_vecs),
+						(*(_mg_levels.coarse_levels[coarse_idx].M)),
+						(*(_coarse_presmoother[coarse_idx])),
+						(*(_coarse_postsmoother[coarse_idx])),
+						(*(_bottom_solver[coarse_idx+1])),
+						(_vcycle_params[coarse_idx+1].cycle_params));
+
+				MasterLog(INFO, "Creating Bottom Solver For level: %d, using VCycle Preconditioner from level %d", coarse_idx+1, coarse_idx+1);
+				// This becomes a wrapper
+				_bottom_solver[coarse_idx] = std::make_shared<const BottomSolverT>(this_level_linop,vcycle_params[coarse_idx].bottom_solver_params,_coarse_vcycle[coarse_idx].get());
+
+
+
+			}
+		}
+
+		MasterLog(INFO,"Creating Toplevel Smoothers");
+		// The QPhiX Smoothers are already preconditioned so leave this as is.
+		_pre_smoother = std::make_shared< const FineSmootherT >(_mg_levels.fine_level.M, _vcycle_params[0].pre_smoother_params);
+		_post_smoother = std::make_shared< const FineSmootherT >(_mg_levels.fine_level.M, _vcycle_params[0].post_smoother_params);
+		MasterLog(INFO,"Creating Toplevel VCycle");
+		_toplevel_vcycle = std::make_shared< const Fine2CoarseVCycleT >(
+		    *(_mg_levels.fine_level.info), // Fine Info
+		    *(_mg_levels.coarse_levels[0].info),  // Coarse info for first coarse level
+		    (_mg_levels.fine_level.blocklist),   // Block List
+		    (_mg_levels.fine_level.null_vecs),   // Null vecs
+		    (*(_mg_levels.fine_level.M)),           // LinOp
+		    (*_pre_smoother),                     //
+		    (*_post_smoother),
+		    (*(_bottom_solver[0])),
+		    (_vcycle_params[0].cycle_params));
+
+	}
 
 	LinearSolverResults operator()(QPhiXSpinor& out, const QPhiXSpinor& in,
-	    ResiduumType resid_type = RELATIVE ) const;
+	    ResiduumType resid_type = RELATIVE ) const
+		{
+			LinearSolverResults ret = (*_toplevel_vcycle )( out, in, resid_type );
+			return ret;
+		}
 
 private:
 
 	const std::vector<VCycleParams> _vcycle_params;
-	const QPhiXMultigridLevels& _mg_levels;
+	const QPhiXMGLevelsT& _mg_levels;
 
 	std::shared_ptr< const Smoother<QPhiXSpinorF,QPhiXGaugeF > > _pre_smoother;
 	std::shared_ptr< const Smoother<QPhiXSpinorF,QPhiXGaugeF> > _post_smoother;
-	std::shared_ptr< const VCycleQPhiXCoarse2 > _toplevel_vcycle;
+	std::shared_ptr< const Fine2CoarseVCycleT > _toplevel_vcycle;
 
 	std::vector< std::shared_ptr< const Smoother< CoarseSpinor, CoarseGauge > > >       _coarse_presmoother;
 	std::vector< std::shared_ptr< const Smoother< CoarseSpinor, CoarseGauge > > >       _coarse_postsmoother;
@@ -44,30 +128,10 @@ private:
 
 };
 
-class VCycleRecursiveQPhiXEO :  public LinearSolver<QPhiXSpinor, QPhiXGauge >
-{
-public:
-	VCycleRecursiveQPhiXEO( const std::vector<VCycleParams>& vcycle_params,
-						  const QPhiXMultigridLevelsEO& mg_levels );
+using VCycleRecursiveQPhiX = VCycleRecursiveQPhiXT<QPhiXMultigridLevels,VCycleQPhiXCoarse2, VCycleCoarse, MRSmootherQPhiXF, MRSmootherCoarse,FGMRESSolverCoarse>;
+using VCycleRecursiveQPhiXEO = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO2, VCycleCoarseEO, MRSmootherQPhiXF, UnprecMRSmootherCoarseWrapper, UnprecFGMRESSolverCoarseWrapper>;
+using VCycleRecursiveQPhixEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, MRSmootherQPhiXEOF, MRSmootherCoarse, FGMRESSolverCoarse>;
 
 
-	LinearSolverResults operator()(QPhiXSpinor& out, const QPhiXSpinor& in,
-	    ResiduumType resid_type = RELATIVE ) const;
-
-private:
-
-	const std::vector<VCycleParams> _vcycle_params;
-	const QPhiXMultigridLevelsEO& _mg_levels;
-
-	std::shared_ptr< const Smoother<QPhiXSpinorF,QPhiXGaugeF > > _pre_smoother;
-	std::shared_ptr< const Smoother<QPhiXSpinorF,QPhiXGaugeF> > _post_smoother;
-	std::shared_ptr< const VCycleQPhiXCoarseEO2 > _toplevel_vcycle;
-
-	std::vector< std::shared_ptr< const Smoother< CoarseSpinor, CoarseGauge > > >       _coarse_presmoother;
-	std::vector< std::shared_ptr< const Smoother< CoarseSpinor, CoarseGauge > > >       _coarse_postsmoother;
-	std::vector< std::shared_ptr< const LinearSolver< CoarseSpinor, CoarseGauge > > >   _coarse_vcycle;
-	std::vector< std::shared_ptr< const LinearSolver< CoarseSpinor, CoarseGauge > > >   _bottom_solver;
-
-};
 };
 #endif /* INCLUDE_LATTICE_QPHIX_VCYCLE_RECURSIVE_QPHIX_H_ */
