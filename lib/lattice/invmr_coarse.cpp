@@ -278,8 +278,7 @@ MRSolverCoarse::operator()(CoarseSpinor& out,
 
 
 MRSmootherCoarse::MRSmootherCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
-		const MG::LinearSolverParamsBase& params) : _M(M),
-				_params(static_cast<const MRSolverParams&>(params)){}
+		const MG::LinearSolverParamsBase& params) : _M(M), _params(static_cast<const MRSolverParams&>(params)) {}
 
 MRSmootherCoarse::MRSmootherCoarse(const std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M_ptr,
 			  	  	   const MG::LinearSolverParamsBase& params) : _M(*M_ptr), _params(static_cast<const MRSolverParams&>(params)) {}

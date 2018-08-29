@@ -98,8 +98,17 @@ namespace MG
 	class UnprecSmootherWrapper: public  UnprecSmoother<Spinor,Gauge, EOSmoother> {
 	public:
 		UnprecSmootherWrapper(const std::shared_ptr<const EOSmoother>& eo_smoother,
-							  const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>>& linop)
-		: _EOSmoother(eo_smoother), _EOOperator(linop), tmp_src(linop->GetInfo()), tmp_out(linop->GetInfo()) {}
+				const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>>& linop) :
+					_EOSmoother(eo_smoother), _EOOperator(linop), tmp_src(linop->GetInfo()), tmp_out(linop->GetInfo()) {}
+
+		UnprecSmootherWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
+				const LinearSolverParamsBase& params) :
+					_EOSmoother(std::make_shared<EOSmoother>(*M,params)), _EOOperator(M),  tmp_src(M->GetInfo()), tmp_out(M->GetInfo()) {}
+
+		UnprecSmootherWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
+				const LinearSolverParamsBase& params,
+				const LinearSolver<Spinor,Gauge>* M_prec) :
+					_EOSmoother(std::make_shared<EOSmoother>(*M,params,M_prec)), _EOOperator(M),  tmp_src(M->GetInfo()), tmp_out(M->GetInfo()) {}
 
 		void SourcePrepare(Spinor& new_source, const Spinor& original_source) const override
 		{

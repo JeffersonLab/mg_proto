@@ -145,6 +145,9 @@ public:
     MRSmootherQPhiXTEO(QPhiXWilsonCloverEOLinearOperatorT<FT>& M, const MRSolverParams& params) : _params(params),
                              mr_smoother( M.getQPhiXOp(), params.MaxIter, params.Omega) {}
 
+    MRSmootherQPhiXTEO(const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorT<FT>> M, const MRSolverParams& params) : _params(params),
+                               mr_smoother( M->getQPhiXOp(), params.MaxIter, params.Omega) {}
+
 
     void operator()(QPhiXSpinorT<FT>& out,
                                   const QPhiXSpinorT<FT>& in) const

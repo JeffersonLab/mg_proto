@@ -130,7 +130,7 @@ private:
 
 using VCycleRecursiveQPhiX = VCycleRecursiveQPhiXT<QPhiXMultigridLevels,VCycleQPhiXCoarse2, VCycleCoarse, MRSmootherQPhiXF, MRSmootherCoarse,FGMRESSolverCoarse>;
 using VCycleRecursiveQPhiXEO = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO2, VCycleCoarseEO, MRSmootherQPhiXF, UnprecMRSmootherCoarseWrapper, UnprecFGMRESSolverCoarseWrapper>;
-using VCycleRecursiveQPhixEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, MRSmootherQPhiXEOF, MRSmootherCoarse, FGMRESSolverCoarse>;
+using VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, MRSmootherQPhiXEOF, MRSmootherCoarse, FGMRESSolverCoarse>;
 
 
 };
