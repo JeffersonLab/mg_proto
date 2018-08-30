@@ -140,6 +140,7 @@ void Block::create(const IndexArray local_lattice_dimensions,
 
 
 #endif
+
 	_created = true; // Mark it as done
 
 }

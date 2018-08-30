@@ -269,6 +269,100 @@ public:
 	    }// block CBSITE
 	  } // block CB
 	}
+
+
+  template< int num_coarse_color>
+  void R_op(const CoarseSpinor& fine_in, int source_cb, CoarseSpinor& out) const
+  {
+	  assert(num_coarse_color == out.GetNumColor());
+
+	  const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
+
+	  const int num_coarse_colorspin = 2*num_coarse_color;
+
+	  // Sanity check. The number of sites in the coarse spinor
+	  // Has to equal the number of blocks
+	  //  assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
+
+	  // The number of vectors has to eaqual the number of coarse colors
+	  assert( _n_vecs == num_coarse_color );
+	  assert( num_coarse_cbsites == _n_blocks/2);
+
+	  // This will be a loop over blocks
+#pragma omp parallel for collapse(2)
+	  for(int block_cb = 0; block_cb < n_checkerboard; ++block_cb ) {
+		  for(int block_cbsite = 0 ; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
+
+			  // Identify the current block.
+			  int block_idx = block_cbsite + block_cb*num_coarse_cbsites;
+			  const Block& block = _blocklist[block_idx];
+
+			  // Get the list of fine sites in the blocks
+			  auto block_sitelist = block.getCBSiteList();
+			  auto num_sites_in_block = block_sitelist.size();
+
+			  // The coarse site spinor is where we will write the result
+			  std::complex<float>* coarse_site_spinor = reinterpret_cast<std::complex<float>*>(out.GetSiteDataPtr(block_cb,block_cbsite));
+
+			  // The accumulation goes here
+			  std::complex<float> site_accum[ 2*MAX_VECS ] __attribute__((aligned(64)));
+
+			  const int offset = num_coarse_color;
+			  // Zero the accumulated coarse site
+
+#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum: 64)
+			  for(int i=0; i < 2*num_coarse_color; ++i) {
+				  site_accum[i] = 0;
+			  }
+
+			  // Loop through the fine sites in the block
+			  for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
+
+				  // Find the fine site
+				  const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
+
+				  if( fine_cbsite.cb == source_cb ) {
+					  // Get the pointer to the fine site data. Should be n_complex*num_fine_color*2 floats or 2*num_fine_color complexes
+					  // If num_fine_color is a multiple of 8 this should be properly 64 byte aligned.
+
+					  const std::complex<float>* fine_cbsite_data =  reinterpret_cast<const std::complex<float>*>(fine_in.GetSiteDataPtr(fine_cbsite.cb,
+							  fine_cbsite.site));
+
+					  // for each site we will loop over Ns/2 * Ncolor
+
+					  for(int f_color=0; f_color < num_fine_color; ++f_color) {
+
+
+						  std::complex<float>  psi_upper(fine_cbsite_data[f_color]);
+						  std::complex<float>  psi_lower(fine_cbsite_data[f_color + num_fine_color]);
+
+						  const std::complex<float>* v = reinterpret_cast<const std::complex<float>*>((*this).indexPtr(block_idx, fine_site_idx,f_color));
+
+
+						  // Accumulate the upper chiral compponent
+#pragma simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
+						  for(int c_color=0; c_color < num_coarse_color; c_color++) {
+							  site_accum[c_color] += v[c_color]*psi_upper;
+						  }
+
+						  // Accumulate the lower chiral  componente
+#pragma simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
+						  for(int c_color=0; c_color < num_coarse_color; c_color++) {
+							  site_accum[c_color+offset] += v[c_color+offset]*psi_lower;
+						  }
+
+					  } // f_color
+				  }
+			  } // fine sites in block
+
+			  // Stream out
+#pragma simd simdlen(VECLEN_SP) aligned(coarse_site_spinor, site_accum:64)
+			  for(int colorspin=0; colorspin <  2*num_coarse_color; ++colorspin) {
+				  coarse_site_spinor[colorspin] = site_accum[colorspin];
+			  }
+		  }// block CBSITE
+	  } // block CB
+  }
 #else
   template<int num_coarse_color>
   void R_op(const CoarseSpinor& fine_in, CoarseSpinor& out) const
@@ -445,6 +539,185 @@ public:
 #endif
     } // steps
   } // functions
+
+  template<int num_coarse_color>
+  void R_op(const CoarseSpinor& fine_in, int source_cb, CoarseSpinor& out) const
+  {
+
+	  assert(num_coarse_color == out.GetNumColor());
+
+	  const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
+
+	  constexpr  int num_coarse_colorspin = 2*num_coarse_color;
+	  constexpr  int n_floats = 4*num_coarse_color;
+
+	  // Sanity check. The number of sites in the coarse spinor
+	  // Has to equal the number of blocks
+	  //  assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
+
+	  // The number of vectors has to eaqual the number of coarse colors
+	  assert( _n_vecs == num_coarse_color );
+	  assert( num_coarse_cbsites == _n_blocks/2);
+
+
+	  // Threasd can accumulate in here
+	  float site_accum[ n_floats*_n_threads] __attribute__((aligned(64)));
+
+	  int r_block_threads = _n_threads / _r_threads_per_block;
+	  int n_steps = _n_blocks / r_block_threads;
+	  if ( _n_blocks % r_block_threads != 0  ) n_steps++; // Round steps to ceiling
+
+	  for(int step = 0; step < n_steps; ++step) {
+
+#pragma omp parallel shared(site_accum, r_block_threads)
+		  {
+			  int tid = omp_get_thread_num();
+
+			  int block_tid = tid / _r_threads_per_block;
+			  int site_tid =  tid % _r_threads_per_block;
+
+			  // Each thread zeroes site_accum_buffer
+#pragma omp simd simdlen(16) safelen(16) aligned(site_accum:64)
+			  for(int i=0; i < n_floats; ++i) {
+				  site_accum[i+n_floats*(site_tid + _r_threads_per_block*block_tid)]= 0;
+			  }
+
+			  // Each thread's block idx for this step
+			  // if block_tid range is less than n_blocks then on the
+			  // last step the block_idx may be more than n_blocks
+			  // if block_tid range is more than n_blocks, then in the first step
+			  // block_idx may be more than n_blocks
+			  int block_idx = step*r_block_threads + block_tid;
+
+			  // Only enter the site loop if block_idx is sensible
+			  if( block_idx < _n_blocks ) {
+
+				  // Convert block_idx to cb & site and work out sa_offset
+				  int block_cb = block_idx /num_coarse_cbsites;
+				  int block_cbsite = block_idx % num_coarse_cbsites;
+				  const Block& block = _blocklist[block_idx];
+
+				  // Get the list of fine sites in the blocks
+				  auto block_sitelist = block.getCBSiteList();
+				  auto num_sites_in_block = block_sitelist.size();
+
+				  int sa_offset = n_floats*(site_tid  +_r_threads_per_block*block_tid);
+
+				  const int coffset = 2*num_coarse_color;
+				  const int foffset = 2*num_fine_color;
+
+
+				  for( IndexType fine_site_idx = site_tid;
+						  fine_site_idx < static_cast<IndexType>(num_sites_in_block);
+						  fine_site_idx += _r_threads_per_block ) {
+
+					  const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
+
+					  if( fine_cbsite.cb == source_cb ) {
+						  const float *fine_data  = fine_in.GetSiteDataPtr(fine_cbsite.cb, fine_cbsite.site);
+
+						  for(int color=0; color < num_fine_color; ++color) {
+
+
+							  __m512 psi_upper_re = _mm512_set1_ps(  fine_data[ RE+ 2*color]  );
+							  __m512 psi_upper_im = _mm512_set1_ps(  fine_data[ IM + 2*color]  );
+
+							  __m512 psi_lower_re = _mm512_set1_ps( fine_data[RE + 2*color +foffset ] );
+							  __m512 psi_lower_im = _mm512_set1_ps( fine_data[IM + 2*color +foffset ] );
+
+							  const float* v = ((*this).indexPtr(block_idx, fine_site_idx,color));
+
+
+							  for(int i=0; i < 2*num_coarse_color; i +=16) {
+								  __m512 v_vec = _mm512_load_ps( &v[i] );
+								  __m512 accum_vec = _mm512_load_ps( &site_accum[i+sa_offset]);
+
+								  __m512 v_perm= _mm512_shuffle_ps(v_vec,v_vec, 0xb1);
+								  __m512 t = _mm512_fmaddsub_ps(  v_perm, psi_upper_im, accum_vec);
+								  accum_vec = _mm512_fmaddsub_ps( v_vec, psi_upper_re, t );
+								  _mm512_store_ps( &site_accum[i+sa_offset], accum_vec);
+							  }
+
+							  int soffset = coffset + sa_offset;
+
+							  for(int i=0; i <2*num_coarse_color; i+=16) {
+								  __m512 v_vec = _mm512_load_ps( &v[i+coffset] );
+								  __m512 accum_vec = _mm512_load_ps( &site_accum[i+soffset]);
+
+								  __m512 v_perm= _mm512_shuffle_ps(v_vec,v_vec, 0xb1);
+								  __m512 t = _mm512_fmaddsub_ps(  v_perm, psi_lower_im, accum_vec);
+								  accum_vec = _mm512_fmaddsub_ps( v_vec, psi_lower_re, t );
+								  _mm512_store_ps( &site_accum[i+soffset], accum_vec);
+							  }
+
+						  } // color
+					  } // fine_site.cb == source_cb
+				  } // fine_site_idx
+			  } // block < nblocks
+		  } // Parallel region -- implied barrier
+
+#if 0
+#pragma omp parallel shared(site_accum,r_block_threads)
+		  {
+			  int tid = omp_get_thread_num();
+			  int block_tid = tid / _r_threads_per_block;
+			  int site_tid =  tid % _r_threads_per_block;
+
+			  int block_idx = step*r_block_threads + block_tid;
+
+			  if( block_idx < _n_blocks ) {
+
+				  int block_cb = block_idx /num_coarse_cbsites;
+				  int block_cbsite = block_idx % num_coarse_cbsites;
+				  float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
+
+				  if( site_tid == 0 ) {
+#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor:64)
+					  for(int colorspin=0; colorspin < n_floats; ++colorspin) {
+						  coarse_site_spinor[colorspin]=0;
+					  }
+
+					  for(int s=0; s < _r_threads_per_block; ++s) {
+
+						  int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
+
+#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+						  for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
+							  coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
+						  } //colorspin
+					  } // s
+				  } //site_tid == 0
+			  } // block_idx < n_blocks
+		  } // parallel region implied barrier
+#else
+		  // Serial version
+		  for(int block_tid = 0; block_tid < r_block_threads; block_tid++) {
+			  int block_idx = step*r_block_threads + block_tid;
+			  if( block_idx < _n_blocks ) {
+				  int block_cb = block_idx /num_coarse_cbsites;
+				  int block_cbsite = block_idx % num_coarse_cbsites;
+
+				  float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
+
+#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor:64)
+				  for(int colorspin=0; colorspin < n_floats; ++colorspin) {
+					  coarse_site_spinor[colorspin]=0;
+				  }
+
+				  for(int s=0; s < _r_threads_per_block; ++s) {
+
+					  int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
+
+#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+					  for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
+						  coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
+					  } //colorspin
+				  } // s
+			  } // if block_idx < _n_blocks
+		  } // block tid loop
+#endif
+	  } // steps
+  } // functions
 #endif
 
 
@@ -480,6 +753,39 @@ public:
     }
     return;
   }
+
+  void R(const CoarseSpinor& fine_in, int source_cb, CoarseSpinor& out) const
+    {
+      const  int num_color = out.GetNumColor();
+      if( num_color == 8 ) {
+        R_op<8>(fine_in, source_cb, out);
+      }
+      else if ( num_color == 16 ) {
+        R_op<16>(fine_in, source_cb, out);
+      }
+      else if ( num_color == 24 ) {
+        R_op<24>(fine_in, source_cb, out);
+      }
+      else if ( num_color == 32 ) {
+        R_op<32>(fine_in, source_cb, out);
+      }
+      else if ( num_color == 40 ) {
+         R_op<40>(fine_in, source_cb, out);
+       }
+      else if ( num_color == 48 ) {
+         R_op<48>(fine_in, source_cb, out);
+       }
+      else if ( num_color == 56 ) {
+         R_op<56>(fine_in, source_cb, out);
+       }
+      else if ( num_color == 64 ) {
+         R_op<64>(fine_in, source_cb, out);
+       }
+      else {
+        MasterLog(ERROR, "Unhandled dispatch size %d. Num coarse color must be divisible by 8 and <=64", num_color);
+      }
+      return;
+    }
 
 #ifndef MG_USE_AVX512
 
@@ -541,11 +847,68 @@ public:
     }  // cb
   } // function
 
+  template<int num_coarse_color>
+   void P_op(const CoarseSpinor& coarse_in, int target_cb, CoarseSpinor& fine_out) const
+   {
+
+     const LatticeInfo& fine_info = fine_out.GetInfo();
+     const LatticeInfo& coarse_info = coarse_in.GetInfo();
+
+     assert( num_coarse_color == coarse_info.GetNumColors());
+     assert( num_fine_color == fine_info.GetNumColors());
+
+     const int num_fine_cbsites = fine_info.GetNumCBSites();
+
+     int cb=target_cb;
+
+#pragma omp parallel for
+     	for(int fsite=0; fsite < num_fine_cbsites; ++fsite) {
+
+
+
+     		int block_cb = reverse_map[cb][fsite].cb;
+     		int block_cbsite = reverse_map[cb][fsite].site;
+
+
+     		// These two to index the V-s
+     		int block_idx = block_cbsite + block_cb * coarse_info.GetNumCBSites();
+     		int fine_site_idx = reverse_transfer_row[cb][fsite];
+
+     		std::complex<float>* fine_site_data = reinterpret_cast<std::complex<float>*>(fine_out.GetSiteDataPtr(cb,fsite));
+     		const std::complex<float>* coarse_site_spinor =
+     				reinterpret_cast<const std::complex<float>*>(coarse_in.GetSiteDataPtr(block_cb,block_cbsite));
+
+     		for(int fcolor=0; fcolor < num_fine_color; ++fcolor ) {
+
+     			// v is 2 x num_coarse_color complexes.
+     			const std::complex<float>* v =
+     					reinterpret_cast<const std::complex<float>*>((*this).indexPtr(block_idx, fine_site_idx,fcolor));
+
+     			std::complex<float> reduce_upper(0,0);
+     			std::complex<float> reduce_lower(0,0);
+
+
+ #pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor:64)
+     			for(int i=0; i < num_coarse_color; ++i) {
+     				reduce_upper +=conj( v[i]) * coarse_site_spinor[i];
+     			}
+ #pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor:64)
+     			for(int i=0; i < num_coarse_color; ++i) {
+     				reduce_lower += conj(v[i+num_coarse_color]) * coarse_site_spinor[i+num_coarse_color];
+     			}
+
+     			fine_site_data[fcolor] = reduce_upper;
+     			fine_site_data[fcolor+num_fine_color] = reduce_lower;
+
+     		} // fcolor
+     	} // fsite
+   } // function
+
 
 #else
 
   template<int num_coarse_color>
-    void P_op(const CoarseSpinor& coarse_in, CoarseSpinor& fine_out) const
+    void P_op(const CoarseSpinor& coarse_in, int target_cb, CoarseSpinor& fine_out) const
     {
 
       const LatticeInfo& fine_info = fine_out.GetInfo();
@@ -558,8 +921,9 @@ public:
       const int coffset = 2*num_coarse_color;
       const int foffset = 2*num_fine_color;
 
-  #pragma omp parallel for collapse(2)
-      for(int cb =0; cb < n_checkerboard; ++cb) {
+      int cb=target_cb;
+
+#pragma omp parallel for
       	for(int fsite=0; fsite < num_fine_cbsites; ++fsite) {
 
 
@@ -662,7 +1026,6 @@ public:
       		}
 
       	} // fsite
-      } // cb
     } // funciton
   #endif
 
@@ -702,6 +1065,39 @@ public:
 	  return;
   }
 
+  void P(const CoarseSpinor& coarse_in, int target_cb, CoarseSpinor& fine_out) const
+    {
+  	  int num_color = coarse_in.GetNumColor();
+
+  	  if( num_color == 8 ) {
+  		  P_op<8>(coarse_in, target_cb, fine_out);
+  	  }
+  	  else  if( num_color == 16 ) {
+  		  P_op<16>(coarse_in, target_cb, fine_out);
+  	  }
+  	  else  if( num_color == 24 ) {
+  		  P_op<24>(coarse_in, target_cb, fine_out);
+  	  }
+  	  else if ( num_color == 32 ) {
+  		  P_op<32>(coarse_in, target_cb, fine_out);
+  	  }
+  	  else if ( num_color == 40 ) {
+  		  P_op<40>(coarse_in, target_cb, fine_out);
+  	  }
+  	  else if ( num_color == 48 ) {
+  		  P_op<48>(coarse_in, target_cb, fine_out);
+  	  }
+  	  else if ( num_color == 56 ) {
+  		  P_op<56>(coarse_in, target_cb, fine_out);
+  	  }
+  	  else if ( num_color == 64 ) {
+  		  P_op<64>(coarse_in, target_cb, fine_out);
+  	  }
+  	  else {
+  		  MasterLog(ERROR, "Unhandled dispatch size %d. Num vecs must be divisible by 8 and <= 64", num_color);
+  	  }
+  	  return;
+    }
 
 	~CoarseTransfer()
 	{

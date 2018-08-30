@@ -83,8 +83,8 @@ namespace MG {
     for(int k=0; k < num_vecs; ++k) {
 
       fine_level.null_vecs[k]= std::make_shared<SpinorT>(*(fine_level.info));
-      ZeroVec(*(fine_level.null_vecs[k]));
-      Gaussian(*(fine_level.null_vecs[k]), M_fine->GetSubset());
+     // ZeroVec(*(fine_level.null_vecs[k]));
+      Gaussian(*(fine_level.null_vecs[k]));
     }
 
 

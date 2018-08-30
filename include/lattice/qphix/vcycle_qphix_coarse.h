@@ -526,17 +526,17 @@ public:
 
       // Coarsen r
 #if 1
-      _Transfer.R(r,coarse_in);
+      _Transfer.R(r,ODD,coarse_in);
 #else
 		// hit r with clover before coarsening
 			_M_fine.M_diag(tmp,r, ODD);
-			_Transfer.R(tmp,coarse_in);
+			_Transfer.R(tmp,ODD,coarse_in);
 #endif
       ZeroVec(coarse_delta);
       LinearSolverResults coarse_res =_bottom_solver(coarse_delta,coarse_in);
 
       // Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
-      _Transfer.P(coarse_delta, delta);
+      _Transfer.P(coarse_delta, ODD, delta);
 
       // Update solution
       YpeqXVec(delta,out_f,subset);

@@ -115,6 +115,111 @@ protected:
 };
 
 
+TEST_F(VCycleEOTesting, TestQPhiXRestrictorOdd)
+{
+	const LatticeInfo& fine_info = getFineInfo();
+	const LatticeInfo& coarse_info = getCoarseInfo(0);
+
+	QPhiXSpinorF source(fine_info);
+	CoarseSpinor restricted1(coarse_info);
+	CoarseSpinor restricted2(coarse_info);
+
+	ZeroVec(source);
+	ZeroVec(restricted1);
+	ZeroVec(restricted2);
+	Gaussian(source,SUBSET_ODD);
+
+	QPhiXTransfer<QPhiXSpinorF> Transfer(mg_levels.fine_level.blocklist, mg_levels.fine_level.null_vecs);
+
+	Transfer.R(source,restricted1);
+	Transfer.R(source,1,restricted2);
+#if 0
+	int num_cbsites = coarse_info.GetNumCBSites();
+	int num_colorspins = coarse_info.GetNumColorSpins();
+	for(int cb=0; cb < 2; ++cb ) {
+		for(int s=0; s < num_cbsites; ++s) {
+			float *r1 = restricted1.GetSiteDataPtr(cb,s);
+			float *r2 = restricted2.GetSiteDataPtr(cb,s);
+			for(int cs=0; cs < num_colorspins; ++cs) {
+				float r1_re = r1[2*cs];
+				float r1_im = r1[2*cs+1];
+				float r2_re = r2[2*cs];
+				float r2_im = r2[2*cs+1];
+
+				MasterLog(INFO, "coarse cb=%d, coarse_site=%d cspin=%d:  r1 = ( %16.8e , %16.8e )  r2 = ( %16.8e , %16.8e )", cb, s,cs,r1_re,r1_im,r2_re,r2_im);
+			}
+		}
+	}
+#endif
+
+	{
+	double norm_orig = sqrt(Norm2Vec(restricted1));
+	double normdiff = sqrt(XmyNorm2Vec(restricted1,restricted2));
+
+	MasterLog(INFO, "|| R(source) - R_cb(source) || = %16.8e",normdiff);
+	MasterLog(INFO, "|| R(source) - R_cb(source) || / || R(source) || = %16.8e", normdiff/norm_orig);
+	ASSERT_LT(normdiff, 1.0e-7);
+	}
+	Gaussian(restricted1);
+	QPhiXSpinorF prolong1(fine_info);
+	QPhiXSpinorF prolong2(fine_info);
+	Transfer.P(restricted1,prolong1);
+	Transfer.P(restricted1,ODD,prolong2);
+	{
+	double norm_orig = sqrt(Norm2Vec(prolong1, SUBSET_ALL));
+	double norm_new = sqrt(Norm2Vec(prolong2, SUBSET_ODD));
+	double normdiff = sqrt(XmyNorm2Vec(prolong1,prolong2,SUBSET_ODD));
+
+	MasterLog(INFO, "|| P(source) || = %16.8e  || P_cb(source) || = %16.8e", norm_orig, norm_new);
+	MasterLog(INFO, "|| P(source) - P_cb(source) || = %16.8e",normdiff);
+	ASSERT_LT(normdiff, 1.0e-7);
+	}
+}
+
+TEST_F(VCycleEOTesting, TestQPhiXRestrictorCoarseOdd)
+{
+	const LatticeInfo& fine_info = getCoarseInfo(0);
+	const LatticeInfo& coarse_info = getCoarseInfo(1);
+
+	CoarseSpinor source(fine_info);
+	CoarseSpinor restricted1(coarse_info);
+	CoarseSpinor restricted2(coarse_info);
+
+	ZeroVec(source);
+	ZeroVec(restricted1);
+	ZeroVec(restricted2);
+	Gaussian(source,SUBSET_ODD);
+
+	CoarseTransfer Transfer(mg_levels.coarse_levels[0].blocklist, mg_levels.coarse_levels[0].null_vecs);
+
+	Transfer.R(source,restricted1);
+	Transfer.R(source,ODD,restricted2);
+
+	{
+		double norm_orig = sqrt(Norm2Vec(restricted1));
+		double normdiff = sqrt(XmyNorm2Vec(restricted1,restricted2));
+
+		MasterLog(INFO, "|| R(source) - R_cb(source) || = %16.8e",normdiff);
+		MasterLog(INFO, "|| R(source) - R_cb(source) || / || R(source) || = %16.8e", normdiff/norm_orig);
+		ASSERT_LT(normdiff, 1.0e-7);
+	}
+
+
+	Gaussian(restricted1);
+	CoarseSpinor prolong1(fine_info);
+	CoarseSpinor prolong2(fine_info);
+	Transfer.P(restricted1,prolong1);
+	Transfer.P(restricted1,ODD,prolong2);
+	{
+		double norm_orig = sqrt(Norm2Vec(prolong1, SUBSET_ALL));
+		double norm_new = sqrt(Norm2Vec(prolong2, SUBSET_ODD));
+		double normdiff = sqrt(XmyNorm2Vec(prolong1,prolong2,SUBSET_ODD));
+
+		MasterLog(INFO, "|| P(source) || = %16.8e  || P_cb(source) || = %16.8e", norm_orig, norm_new);
+		MasterLog(INFO, "|| P(source) - P_cb(source) || = %16.8e",normdiff);
+		ASSERT_LT(normdiff, 1.0e-7);
+	}
+}
 
 TEST_F(VCycleEOTesting, TestVCycleApply)
 {
@@ -701,7 +806,7 @@ int main(int argc, char *argv[])
 
 void VCycleEOTesting::SetUp()
 {
-	latdims={{8,8,16,16}};
+	latdims={{8,8,8,8}};
 	initQDPXXLattice(latdims);
 
 	LatticeInfo info(latdims);
