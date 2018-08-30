@@ -15,6 +15,7 @@
 #include "lattice/array2d.h"
 #include <vector>
 #include <cmath>
+#include <memory>
 
 
 
