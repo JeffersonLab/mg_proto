@@ -27,7 +27,7 @@ void genericSiteOffDiagXPayz(float *output,
 
 		// This is the same as for the dagger because we have G_5 I G_5 = G_5 G_5 I = I
 		// D is the diagona
-#pragma omp simd
+#pragma omp simd aligned(output,spinor_cb:64)
 		for(int i=0; i < 2*N_colorspin; ++i) {
 			output[i] = InitOp::op(spinor_cb,i);
 		}
@@ -36,7 +36,11 @@ void genericSiteOffDiagXPayz(float *output,
 
 		// Dslash the offdiag
 		for(int mu=0; mu < 8; ++mu) {
-			CMatMultNaiveCoeffAdd(output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+#ifdef MG_USE_AVX512
+			CMatMultCoeffAddAVX512(output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+#else
+			CMatMultCoeffAddNaive(output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+#endif
 		}
 
 }
@@ -53,48 +57,21 @@ void genericSiteGcOffDiagGcXPayz(float *output,
 
 		// This is the same as for the dagger because we have G_5 I G_5 = G_5 G_5 I = I
 		// D is the diagona
-#pragma omp simd
+#pragma omp simd aligned(output,spinor_cb:64)
 		for(int i=0; i < 2*N_colorspin; ++i) {
 			output[i] = InitOp::op(spinor_cb,i);
 		}
 
 
-
-		// A temporary so I can apply Gamma
-		float in_spinor[N_colorspin*n_complex] __attribute__((aligned(64)));
-		// A temporary so I can apply Gamma
-		float tmpvec[N_colorspin*n_complex] __attribute__((aligned(64)));
-
-		// Apply (1,1,1,..1,-1,-1,...-1);
-		for(int j=0; j < N_color*n_complex; ++j) {
-			in_spinor[j] = neigh_spinors[0][j];
-		}
-		for(int j=N_color*n_complex; j < N_colorspin*n_complex; ++j) {
-			in_spinor[j] = -neigh_spinors[0][j];
-		}
-		CMatMultNaive(tmpvec, gauge_links[0], in_spinor, N_colorspin);
-
-		// Apply the Dslash term.
-		for(int mu=1; mu < 8; ++mu) {
-
-			// Apply (1,1,1,..1,-1,-1,...-1);
-			for(int j=0; j < N_color*n_complex; ++j) {
-				in_spinor[j] = neigh_spinors[mu][j];
-			}
-			for(int j=N_color*n_complex; j < N_colorspin*n_complex; ++j) {
-				in_spinor[j] = -neigh_spinors[mu][j];
+		// Dslash the offdiag
+			for(int mu=0; mu < 8; ++mu) {
+#ifdef MG_USE_AVX512
+				GcCMatMultGcCoeffAddAVX512(output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+#else
+				GcCMatMultGcCoeffAddNaive(output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin);
+#endif
 			}
 
-			CMatMultNaiveAdd(tmpvec, gauge_links[mu], in_spinor, N_colorspin);
-		} // mu
-
-		for(int j=0; j < N_color*n_complex; ++j) {
-			output[j] += alpha * tmpvec[j];
-		}
-
-		for(int j=N_color*n_complex; j < N_colorspin*n_complex; ++j) {
-			output[j] -= alpha * tmpvec[j];
-		}
 }
 
 
@@ -700,6 +677,8 @@ void CoarseDiracOp::M_DA(CoarseSpinor& spinor_out,
 
 class ZeroOutput {
 public:
+
+#pragma omp declare simd notinbranch
 	inline
 	static
 	float op(const float *input, int i) {  return 0; }
@@ -707,6 +686,8 @@ public:
 
 class NopOutput {
 public:
+
+#pragma omp declare simd notinbranch
 	inline
 	static
 	float op(const float *input, int i)  { return input[i]; }
@@ -882,10 +863,22 @@ void CoarseDiracOp::siteApplyClover( float* output,
 	// NB: For = 6 input spinor may not be aligned!!!! BEWARE when testing optimized
 	// CMatMult-s.
 	if( dagger == LINOP_OP) {
+#ifdef MG_USE_AVX512
+		CMatMultAVX512(output, clover, input, N_colorspin);
+#else
 		CMatMultNaive(output, clover, input, N_colorspin);
+
+#endif
 	}
 	else {
-		CMatAdjMultNaive(output, clover, input, N_colorspin);
+		// Slow: CMatAdjMultNaive(output, clover, input, N_colorspin);
+
+		// Use Cc Hermiticity for faster operation
+#ifdef MG_USE_AVX512
+		GcCMatMultGcAVX512(output,clover,input, N_colorspin);
+#else
+		GcCMatMultGcNaive(output,clover,input, N_colorspin);
+#endif
 	}
 
 }
@@ -952,7 +945,11 @@ void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
 		const float *neigh_spinor = GetNeighborDir<CoarseSpinor,CoarseAccessor>(_halo, spinor_in, dir, target_cb, site);
 
 		// Multiply the link with the neighbor. EasyPeasy?
+#ifdef MG_USE_AVX512
+		CMatMultAVX512(output, gauge_link_dir, neigh_spinor, N_colorspin);
+#else
 		CMatMultNaive(output, gauge_link_dir, neigh_spinor, N_colorspin);
+#endif
 	} // Loop over sites
 }
 

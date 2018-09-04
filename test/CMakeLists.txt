@@ -24,6 +24,10 @@ target_link_libraries(test_memory mg gtest_all mg_test ${EXT_LIBS})
 add_executable(test_cmat_mult test_cmat_mult.cpp)
 target_link_libraries(test_cmat_mult mg gtest_all mg_test ${EXT_LIBS})
 
+add_executable(time_cmat_mult time_cmat_mult.cpp)
+target_link_libraries(time_cmat_mult mg gtest_all mg_test ${EXT_LIBS})
+
+
 add_executable(test_coarse test_coarse.cpp)
 target_link_libraries(test_coarse mg gtest_all mg_test ${EXT_LIBS})
 

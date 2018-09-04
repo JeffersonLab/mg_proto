@@ -246,13 +246,13 @@ public:
 
 
 	    			  // Accumulate the upper chiral compponent
-#pragma simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
 	    			  for(int c_color=0; c_color < num_coarse_color; c_color++) {
 	    				  site_accum[c_color] += v[c_color]*psi_upper;
 	    			  }
 
 	    			  // Accumulate the lower chiral  componente
-#pragma simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
 	    			  for(int c_color=0; c_color < num_coarse_color; c_color++) {
 	    				  site_accum[c_color+offset] += v[c_color+offset]*psi_lower;
 	    			  }
@@ -262,7 +262,7 @@ public:
 	      } // fine sites in block
 
 	      // Stream out
-#pragma simd simdlen(VECLEN_SP) aligned(coarse_site_spinor, site_accum:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(coarse_site_spinor, site_accum:64)
 	      for(int colorspin=0; colorspin <  2*num_coarse_color; ++colorspin) {
 	    	  coarse_site_spinor[colorspin] = site_accum[colorspin];
 	      }
@@ -340,13 +340,13 @@ public:
 
 
 						  // Accumulate the upper chiral compponent
-#pragma simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
 						  for(int c_color=0; c_color < num_coarse_color; c_color++) {
 							  site_accum[c_color] += v[c_color]*psi_upper;
 						  }
 
 						  // Accumulate the lower chiral  componente
-#pragma simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
 						  for(int c_color=0; c_color < num_coarse_color; c_color++) {
 							  site_accum[c_color+offset] += v[c_color+offset]*psi_lower;
 						  }
@@ -356,7 +356,7 @@ public:
 			  } // fine sites in block
 
 			  // Stream out
-#pragma simd simdlen(VECLEN_SP) aligned(coarse_site_spinor, site_accum:64)
+#pragma omp simd simdlen(VECLEN_SP) aligned(coarse_site_spinor, site_accum:64)
 			  for(int colorspin=0; colorspin <  2*num_coarse_color; ++colorspin) {
 				  coarse_site_spinor[colorspin] = site_accum[colorspin];
 			  }
@@ -493,7 +493,7 @@ public:
 	  float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
 
 	  if( site_tid == 0 ) { 
-#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor:64)  
+#pragma omp simd  simdlen(16) aligned(coarse_site_spinor:64)
 	    for(int colorspin=0; colorspin < n_floats; ++colorspin) { 
 	      coarse_site_spinor[colorspin]=0;
 	    }
@@ -502,7 +502,7 @@ public:
 	
 	      int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
 	
-#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+#pragma omp simd  simdlen(16) aligned(coarse_site_spinor, site_accum:64)
 	      for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
 		coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
 	      } //colorspin
@@ -520,7 +520,7 @@ public:
 	  
 	  float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
 	  
-#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor:64)  
+#pragma omp simd simdlen(16) aligned(coarse_site_spinor:64)
 	  for(int colorspin=0; colorspin < n_floats; ++colorspin) { 
 	    coarse_site_spinor[colorspin]=0;
 	  }
@@ -529,7 +529,7 @@ public:
 	    
 	    int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
 	    
-#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+#pragma omp simd simdlen(16) aligned(coarse_site_spinor, site_accum:64)
 	    for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
 	      coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
 	    } //colorspin
@@ -672,7 +672,7 @@ public:
 				  float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
 
 				  if( site_tid == 0 ) {
-#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor:64)
+#pragma pmp simd  simdlen(16) aligned(coarse_site_spinor:64)
 					  for(int colorspin=0; colorspin < n_floats; ++colorspin) {
 						  coarse_site_spinor[colorspin]=0;
 					  }
@@ -681,7 +681,7 @@ public:
 
 						  int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
 
-#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+#pragma omp simd  simdlen(16) aligned(coarse_site_spinor, site_accum:64)
 						  for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
 							  coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
 						  } //colorspin
@@ -699,7 +699,7 @@ public:
 
 				  float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
 
-#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor:64)
+#pragma omp simd  simdlen(16) aligned(coarse_site_spinor:64)
 				  for(int colorspin=0; colorspin < n_floats; ++colorspin) {
 					  coarse_site_spinor[colorspin]=0;
 				  }
@@ -708,7 +708,7 @@ public:
 
 					  int soffset =n_floats*(s  + _r_threads_per_block*block_tid);
 
-#pragma simd safelen(16) simdlen(16) aligned(coarse_site_spinor, site_accum:64)
+#pragma omp simd  simdlen(16) aligned(coarse_site_spinor, site_accum:64)
 					  for(int colorspin=0; colorspin <  n_floats; ++colorspin) {
 						  coarse_site_spinor[colorspin] += site_accum[colorspin+soffset];
 					  } //colorspin
@@ -908,6 +908,128 @@ public:
 #else
 
   template<int num_coarse_color>
+    void P_op(const CoarseSpinor& coarse_in, CoarseSpinor& fine_out) const
+    {
+
+      const LatticeInfo& fine_info = fine_out.GetInfo();
+      const LatticeInfo& coarse_info = coarse_in.GetInfo();
+
+      assert( num_coarse_color == coarse_info.GetNumColors());
+      assert( num_fine_color == fine_info.GetNumColors());
+
+      const int num_fine_cbsites = fine_info.GetNumCBSites();
+      const int coffset = 2*num_coarse_color;
+      const int foffset = 2*num_fine_color;
+
+
+#pragma omp parallel for collapse(2)
+      for(int cb=0; cb < 2; ++cb) { 
+      	for(int fsite=0; fsite < num_fine_cbsites; ++fsite) {
+
+
+
+      		int block_cb = reverse_map[cb][fsite].cb;
+      		int block_cbsite = reverse_map[cb][fsite].site;
+
+      		int block_idx = block_cbsite + block_cb * coarse_info.GetNumCBSites();
+      		int fine_site_idx = reverse_transfer_row[cb][fsite];
+
+     		float* fine_site_data =(float *)fine_out.GetSiteDataPtr(cb,fsite);
+      		const float* coarse_site_spinor = coarse_in.GetSiteDataPtr(block_cb,block_cbsite);
+      		float fine_site_tmp[2*MAX_VECS] __attribute__((aligned(64)));
+
+
+      		for(int fcolor=0; fcolor < num_fine_color; ++fcolor ) {
+
+      			// v is 2 x num_coarse_color complexes.
+      			const float* v =
+      					reinterpret_cast<const float*>((*this).indexPtr(block_idx, fine_site_idx,fcolor));
+
+      			float reduce_upper_re=0;
+      			float reduce_upper_im=0;
+
+      			float reduce_lower_re=0;
+      			float reduce_lower_im=0;
+
+
+      			float vec_re[16] __attribute__((aligned(64)));
+      			float vec_im[16] __attribute__((aligned(64)));
+
+      			const __m512 sign = _mm512_set_ps(-1,1,-1,1,-1,1,-1,1, -1,1,-1,1,-1,1,-1,1);
+      			__m512 sum_r_vec __attribute((aligned(64)));
+      			__m512 sum_i_vec __attribute((aligned(64)));
+
+
+      			sum_r_vec = _mm512_setzero_ps();
+      			sum_i_vec = _mm512_setzero_ps();
+
+
+
+      			for(int i=0; i < 2*num_coarse_color; i+=16) {
+
+      				__m512 v_vec = _mm512_load_ps( &(v[i]) );
+      				__m512 c_vec = _mm512_load_ps( &(coarse_site_spinor[i]));
+
+      				sum_r_vec = _mm512_fmadd_ps(v_vec, c_vec, sum_r_vec);
+      				__m512 vtmp = _mm512_shuffle_ps(c_vec, c_vec,0xb1);
+      				sum_i_vec = _mm512_fmadd_ps( v_vec,vtmp,sum_i_vec);
+      			}
+
+      			sum_i_vec = _mm512_mul_ps(sum_i_vec,sign);
+      			_mm512_store_ps(vec_re,sum_r_vec);
+      			_mm512_store_ps(vec_im,sum_i_vec);
+
+#pragma omp simd safelen(16) simdlen(16) aligned(vec_re:64)
+      			for(int i=0; i < 16; ++i) {
+      				reduce_upper_re +=vec_re[i];
+      			}
+
+#pragma omp simd safelen(16) simdlen(16) aligned(vec_im:64)
+      			for(int i=0; i < 16; ++i) {
+      				reduce_upper_im +=vec_im[i];
+      			}
+
+      			fine_site_tmp[RE + 2*fcolor] = reduce_upper_re;
+      			fine_site_tmp[IM  + 2*fcolor] = reduce_upper_im;
+
+      			sum_r_vec = _mm512_setzero_ps();
+      			sum_i_vec = _mm512_setzero_ps();
+
+      			for(int i=0; i < 2*num_coarse_color; i+=16) {
+      				__m512 v_vec = _mm512_load_ps( &v[i + coffset] );
+      				__m512 c_vec = _mm512_load_ps( &coarse_site_spinor[i+coffset]);
+
+      				sum_r_vec = _mm512_fmadd_ps(v_vec, c_vec, sum_r_vec);
+      				sum_i_vec = _mm512_fmadd_ps( v_vec, _mm512_shuffle_ps(c_vec,c_vec,0xb1),sum_i_vec);
+      			}
+      			sum_i_vec = _mm512_mul_ps(sum_i_vec,sign);
+      			_mm512_store_ps(vec_re,sum_r_vec);
+      			_mm512_store_ps(vec_im,sum_i_vec);
+
+#pragma omp simd safelen(16) simdlen(16) aligned(vec_re:64)
+      			for(int i=0; i < 16; ++i) {
+      				reduce_lower_re +=vec_re[i];
+      			}
+
+#pragma omp simd safelen(16) simdlen(16) aligned(vec_im:64)
+      			for(int i=0; i < 16; ++i) {
+      				reduce_lower_im +=vec_im[i];
+      			}
+
+      			fine_site_tmp[ RE +  2*fcolor + foffset]  = reduce_lower_re;
+      			fine_site_tmp[ IM  +  2*fcolor + foffset ] = reduce_lower_im;
+      		} // fcolor
+
+#pragma omp simd simdlen(16) aligned(fine_site_tmp,fine_site_data:64)
+      		for(int i=0; i < 4*num_fine_color; i++) {
+      			fine_site_data[i] = fine_site_tmp[i];
+      		}
+
+      	} // fsite
+      } //cb 
+    } // function
+
+  template<int num_coarse_color>
     void P_op(const CoarseSpinor& coarse_in, int target_cb, CoarseSpinor& fine_out) const
     {
 
@@ -1020,14 +1142,14 @@ public:
       			fine_site_tmp[ IM  +  2*fcolor + foffset ] = reduce_lower_im;
       		} // fcolor
 
-#pragma simd safelen(16) simdlen(16) aligned(fine_site_tmp,fine_site_data:64)
+#pragma omp simd simdlen(16) aligned(fine_site_tmp,fine_site_data:64)
       		for(int i=0; i < 4*num_fine_color; i++) {
       			fine_site_data[i] = fine_site_tmp[i];
       		}
 
       	} // fsite
     } // funciton
-  #endif
+#endif
 
 
 

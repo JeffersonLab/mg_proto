@@ -7,7 +7,7 @@
 
 #ifndef INCLUDE_LATTICE_CMAT_MULT_H_
 #define INCLUDE_LATTICE_CMAT_MULT_H_
-
+#include "MG_config.h"
 #include "constants.h"
 #include <complex>
 
@@ -63,21 +63,51 @@ inline int MinInt(const int& a, const int& b)
 /* y = A x */
 void CMatMultNaive(float* y, const float* A, const float* x, IndexType N);
 
+
+
 /* y = A^\dagger x */
 void CMatAdjMultNaive(float *y, const float *A, const float* x, IndexType N);
 
 
 /* y += A x */
-void CMatMultNaiveAdd(float* y, const float* A, const float* x, IndexType N);
+void CMatMultAddNaive(float* y, const float* A, const float* x, IndexType N);
 
-/* y += A^\dagger x */
-void CMatAdjMultNaiveAdd(float *y, const float *A, const float *x, IndexType N);
+
 
 /* y += alpha A x,  alpha is real */
-void CMatMultNaiveCoeffAdd(float* y, const float alpha, const float* A, const float* x, IndexType N);
+void CMatMultCoeffAddNaive(float* y,  float alpha, const float* A, const float* x, IndexType N);
 
-/* y += alpha A^\dagger x, alpha is real */
-void CMatAdjMultNaiveCoeffAdd(float *y, const float alpha, const float *A, const float *x, IndexType N);
+void GcCMatMultGcNaive(float* y,
+				   const float* A,
+				   const float* x,
+				   IndexType N);
+
+
+void GcCMatMultGcCoeffAddNaive(float* y, float alpha,
+				   const float* A,
+				   const float* x,
+				   IndexType N);
+
+#ifdef MG_USE_AVX512
+void CMatMultAVX512(float *y, const float *A, const float *x, IndexType N );
+void CMatMultAddAVX512(float *y, const float *A, const float *x, IndexType N );
+void CMatMultCoeffAddAVX512(float* y,  float alpha, const float* A, const float* x, IndexType N);
+
+//
+void CMatAdjMultAVX512(float *y, const float *A, const float *x, IndexType N );
+
+void GcCMatMultGcAVX512(float* y,
+				   const float* A,
+				   const float* x,
+				   IndexType N);
+
+void GcCMatMultGcCoeffAddAVX512(float* y, float alpha,
+				   const float* A,
+				   const float* x,
+				   IndexType N);
+#endif
+
+
 
 }
 
