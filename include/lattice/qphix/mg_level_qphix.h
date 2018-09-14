@@ -15,6 +15,7 @@
 #include "lattice/coarse/block.h"
 #include "lattice/mg_level_coarse.h"
 #include "lattice/solver.h"
+#include "utils/timer.h"
 
 #include "lattice/qphix/qphix_clover_linear_operator.h"
 #include "lattice/qphix/qphix_eo_clover_linear_operator.h"
@@ -30,8 +31,6 @@ namespace MG {
     std::vector<Block> blocklist;
     std::shared_ptr<  const SolverT > null_solver;           // Solver for NULL on this level;
     std::shared_ptr<  LinOpT> M;
-
-
 
   ~MGLevelQPhiXT() {}
   };
@@ -208,12 +207,8 @@ namespace MG {
  			  SetupCoarseToCoarse(p,mg_levels.coarse_levels[coarse_level-1].M,
  					  coarse_level, mg_levels.coarse_levels[coarse_level-1],
 					  mg_levels.coarse_levels[coarse_level]);
-
  		  }
-
-
  	  }
-
 
 
    // Unpreconditioned Multigrid levels

@@ -17,7 +17,9 @@
 #include <cmath>
 #include <memory>
 
-
+#ifdef ENABLE_TIMERS
+#include "utils/timer.h"
+#endif
 
 #undef DEBUG_SOLVER
 
@@ -212,8 +214,12 @@ template<typename ST, typename GT>
 
   FGMRESSolverGeneric(std::shared_ptr<const LinearOperator<ST,GT>> A,
         const MG::LinearSolverParamsBase& params,
-        const LinearSolver<ST,GT>* M_prec=nullptr)  : FGMRESSolverGeneric(*A,params,M_prec) {}
-
+        const LinearSolver<ST,GT>* M_prec=nullptr)  : FGMRESSolverGeneric(*A,params,M_prec) {
+#ifdef ENABLE_TIMERS
+            timerAPI = MG::Timer::TimerAPI::getInstance();
+            timerAPI->addTimer("FlexibleArnoldi");
+#endif
+        }
 
     ~FGMRESSolverGeneric()
     {
@@ -343,7 +349,7 @@ template<typename ST, typename GT>
         // NB: We recompute a true 'r' after every cycle
         // So in the cycle we could in principle
         // use reduced precision... TBInvestigated.
-
+        timerAPI->startTimer("FlexibleArnoldi");
         FlexibleArnoldi(n_krylov,
             target,
             V_,
@@ -354,6 +360,7 @@ template<typename ST, typename GT>
             c_,
             dim,
             resid_type);
+        timerAPI->stopTimer("FlexibleArnoldi");
 
         int iters_this_cycle = dim;
         LeastSquaresSolve(H_,c_,eta_, dim); // Solve Least Squares System
@@ -405,11 +412,14 @@ template<typename ST, typename GT>
               n_cycles,iters_total, res.resid, _params.RsdTarget);
         }
       }
+      
+#ifdef ENABLE_TIMERS
+      timerAPI->reportAllTimer();
+#endif
+      
       return res;
 
     }
-
-
 
     void FlexibleArnoldi(int n_krylov,
 			 const double rsd_target,
@@ -479,7 +489,10 @@ template<typename ST, typename GT>
 
     mutable std::vector<std::complex<double>> c_;
     mutable std::vector<std::complex<double>> eta_;
-
+    
+#ifdef ENABLE_TIMERS
+    std::shared_ptr<Timer::TimerAPI> timerAPI;
+#endif
   };
 
 } // namespace FGMRESGeneric

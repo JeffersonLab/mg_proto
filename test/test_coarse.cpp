@@ -25,14 +25,14 @@ using namespace MG;
 
 TEST(CoarseDslash, TestSpeed)
 {
-	const int Nxh = 1;
-	const int Ny = 2;
-	const int Nz = 2;
-	const int Nt = 2;
+	const int Nxh = 8;
+	const int Ny = 4;
+	const int Nz = 4;
+	const int Nt = 4;
 	const int Nx = 2*Nxh;
 	IndexArray latdims={Nx,Ny,Nz,Nt};
 	NodeInfo node;
-	LatticeInfo linfo(latdims, 2, 16, node);
+	LatticeInfo linfo(latdims, 2, 24, node);
 
 	CoarseSpinor x_spinor(linfo);
 	CoarseSpinor y_spinor(linfo);
@@ -42,7 +42,6 @@ TEST(CoarseDslash, TestSpeed)
 	const int n_smt= 1 ;
 
 	double total_time[288][8]; // Timing info for 72 cores x 4 threads
-
 	// Create Coarse Dirac Op.
 	CoarseDiracOp D(linfo,n_smt);
 
@@ -57,7 +56,7 @@ TEST(CoarseDslash, TestSpeed)
 
 		// One thread per site -- fill fields with random junk
 
-#pragma omp for schedule(static)
+#pragma omp for
 		for(IndexType site=0; site < N_sites_cb; ++site) {
 
 			// Fill spinors with some junk
@@ -132,7 +131,7 @@ TEST(CoarseDslash, TestSpeed)
 	double min_time=total_time[0][0];
 	double max_time =total_time[0][0];
 	double avg_time =total_time[0][0];
-	for(int thread=1; thread < omp_get_max_threads(); ++thread) {
+	for(int thread=1; thread < 288; ++thread) {
 		if( total_time[thread][0] > max_time ) max_time = total_time[thread][0];
 		if( total_time[thread][0] < min_time ) min_time = total_time[thread][0];
 		avg_time += total_time[thread][0];

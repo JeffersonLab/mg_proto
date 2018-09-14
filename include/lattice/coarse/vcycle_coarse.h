@@ -20,6 +20,10 @@
 #include "utils/print_utils.h"
 #include "lattice/coarse/subset.h"
 
+#ifdef ENABLE_TIMERS
+#include "utils/timer.h"
+#endif
+
 namespace MG {
 
 class VCycleCoarse : public LinearSolver<CoarseSpinor,CoarseGauge>

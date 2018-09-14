@@ -806,7 +806,7 @@ int main(int argc, char *argv[])
 
 void VCycleEOTesting::SetUp()
 {
-	latdims={{8,8,8,8}};
+	latdims={{16,8,8,8}};
 	initQDPXXLattice(latdims);
 
 	LatticeInfo info(latdims);

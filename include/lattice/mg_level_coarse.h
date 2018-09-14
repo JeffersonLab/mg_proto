@@ -14,6 +14,7 @@
 #include "lattice/coarse/block.h"
 #include "lattice/solver.h"
 #include "lattice/fine_qdpxx/mg_params_qdpxx.h"
+#include "utils/timer.h"
 #include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
 #include "lattice/coarse/coarse_eo_wilson_clover_linear_operator.h"
 
