@@ -503,25 +503,25 @@ public:
       ++iter;
 
 #ifdef ENABLE_TIMERS
-      timerAPI->startTimer("VCycleQPhiXCoarseEO3_presmooth");
+      timerAPI->startTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
 #endif
       ZeroVec(delta,subset);
       // Smoother does not compute a residuum
       _pre_smoother(delta,r);
 #ifdef ENABLE_TIMERS
-      timerAPI->stopTimer("VCycleQPhiXCoarseEO3_presmooth");
+      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
 #endif
 
       // Update solution
 #ifdef ENABLE_TIMERS
-      timerAPI->startTimer("VCycleQPhiXCoarseEO3_update");
+      timerAPI->startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
       YpeqXVec(delta,out_f,subset);
       // Update residuum: even odd matrix
       _M_fine(tmp, delta, LINOP_OP);
       YmeqXVec(tmp, r, subset);
 #ifdef ENABLE_TIMERS
-      timerAPI->stopTimer("VCycleQPhiXCoarseEO3_update");
+      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
 
       if ( _param.VerboseP ) {
@@ -549,12 +549,12 @@ public:
 #endif
 
 #ifdef ENABLE_TIMERS
-      timerAPI->startTimer("VCycleQPhiXCoarseEO3_solve");
+      timerAPI->startTimer("VCycleQPhiXCoarseEO3/solve/level"+std::to_string(level));
 #endif
       ZeroVec(coarse_delta);
       LinearSolverResults coarse_res =_bottom_solver(coarse_delta,coarse_in);
 #ifdef ENABLE_TIMERS
-      timerAPI->stopTimer("VCycleQPhiXCoarseEO3_solve");
+      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/solve/level"+std::to_string(level));
 #endif
 
       // Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
@@ -562,14 +562,14 @@ public:
 
       // Update solution
 #ifdef ENABLE_TIMERS
-      timerAPI->startTimer("VCycleQPhiXCoarseEO3_update");
+      timerAPI->startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
       YpeqXVec(delta,out_f,subset);
       // Update residuum
       _M_fine(tmp, delta, LINOP_OP);
       YmeqXVec(tmp, r,subset);
 #ifdef ENABLE_TIMERS
-      timerAPI->stopTimer("VCycleQPhiXCoarseEO3_update");
+      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
 
       if( _param.VerboseP ) {
@@ -588,23 +588,23 @@ public:
 
       //postsmooth
 #ifdef ENABLE_TIMERS
-      timerAPI->startTimer("VCycleQPhiXCoarseEO3_postsmooth");
+      timerAPI->startTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
 #endif
       ZeroVec(delta,subset);
       _post_smoother(delta,r);
 #ifdef ENABLE_TIMERS
-      timerAPI->stopTimer("VCycleQPhiXCoarseEO3_postsmooth");
+      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
 #endif
       
       // Update full solution
 #ifdef ENABLE_TIMERS
-      timerAPI->startTimer("VCycleQPhiXCoarseEO3_update");
+      timerAPI->startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
       YpeqXVec(delta,out_f,subset);
       _M_fine(tmp,delta,LINOP_OP);
       norm_r = sqrt(XmyNorm2Vec(r,tmp,subset));
 #ifdef ENABLE_TIMERS
-      timerAPI->stopTimer("VCycleQPhiXCoarseEO3_update");
+      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
 
       if( _param.VerboseP ) {
@@ -657,11 +657,12 @@ public:
     _param(param),
 	_Transfer(my_blocks,vecs) {
 #ifdef ENABLE_TIMERS
+        int level = _M_fine.GetLevel();
         timerAPI = MG::Timer::TimerAPI::getInstance();
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3_presmooth");
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3_postsmooth");
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3_solve");
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3_update");
+        timerAPI->addTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
+        timerAPI->addTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
+        timerAPI->addTimer("VCycleQPhiXCoarseEO3/solve/level"+std::to_string(level));
+        timerAPI->addTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
 	}
 

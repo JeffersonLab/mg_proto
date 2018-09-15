@@ -208,18 +208,17 @@ template<typename ST, typename GT>
       eta_[row] = std::complex<double>(0,0);
     }
 
-
+#ifdef ENABLE_TIMERS
+    int level = _A.GetLevel();
+    timerAPI = MG::Timer::TimerAPI::getInstance();
+    timerAPI->addTimer("FGMRESSolverGeneric/FlexibleArnoldi/level"+std::to_string(level));
+#endif
 
   }
 
   FGMRESSolverGeneric(std::shared_ptr<const LinearOperator<ST,GT>> A,
         const MG::LinearSolverParamsBase& params,
-        const LinearSolver<ST,GT>* M_prec=nullptr)  : FGMRESSolverGeneric(*A,params,M_prec) {
-#ifdef ENABLE_TIMERS
-            timerAPI = MG::Timer::TimerAPI::getInstance();
-            timerAPI->addTimer("FlexibleArnoldi");
-#endif
-        }
+        const LinearSolver<ST,GT>* M_prec=nullptr)  : FGMRESSolverGeneric(*A,params,M_prec) {}
 
     ~FGMRESSolverGeneric()
     {
@@ -349,7 +348,9 @@ template<typename ST, typename GT>
         // NB: We recompute a true 'r' after every cycle
         // So in the cycle we could in principle
         // use reduced precision... TBInvestigated.
-        timerAPI->startTimer("FlexibleArnoldi");
+#ifdef ENABLE_TIMERS
+        timerAPI->startTimer("FGMRESSolverGeneric/FlexibleArnoldi/level"+std::to_string(level));
+#endif
         FlexibleArnoldi(n_krylov,
             target,
             V_,
@@ -360,7 +361,9 @@ template<typename ST, typename GT>
             c_,
             dim,
             resid_type);
-        timerAPI->stopTimer("FlexibleArnoldi");
+#ifdef ENABLE_TIMERS
+        timerAPI->stopTimer("FGMRESSolverGeneric/FlexibleArnoldi/level"+std::to_string(level));
+#endif
 
         int iters_this_cycle = dim;
         LeastSquaresSolve(H_,c_,eta_, dim); // Solve Least Squares System
@@ -413,12 +416,7 @@ template<typename ST, typename GT>
         }
       }
       
-#ifdef ENABLE_TIMERS
-      timerAPI->reportAllTimer();
-#endif
-      
       return res;
-
     }
 
     void FlexibleArnoldi(int n_krylov,
@@ -432,7 +430,6 @@ template<typename ST, typename GT>
 			 int&  ndim_cycle,
 			 ResiduumType resid_type) const
     {
-
 
       FlexibleArnoldiT<ST,GT>(n_krylov,
             rsd_target,
