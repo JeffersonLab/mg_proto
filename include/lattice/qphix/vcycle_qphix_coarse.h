@@ -8,6 +8,7 @@
 #ifndef INCLUDE_LATTICE_QPHIX_VCYCLE_QPHIX_COARSE_H_
 #define INCLUDE_LATTICE_QPHIX_VCYCLE_QPHIX_COARSE_H_
 
+#include "MG_config.h"
 #include <lattice/solver.h>
 #include <lattice/qphix/qphix_types.h>
 #include <lattice/qphix/qphix_blas_wrappers.h>
@@ -15,7 +16,7 @@
 #include <lattice/qphix/qphix_aggregate.h>
 #include <lattice/qphix/qphix_transfer.h>
 
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
 #include "utils/timer.h"
 #endif
 
@@ -502,25 +503,25 @@ public:
     while ( continueP ) {
       ++iter;
 
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->startTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
 #endif
       ZeroVec(delta,subset);
       // Smoother does not compute a residuum
       _pre_smoother(delta,r);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->stopTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
 #endif
 
       // Update solution
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
       YpeqXVec(delta,out_f,subset);
       // Update residuum: even odd matrix
       _M_fine(tmp, delta, LINOP_OP);
       YmeqXVec(tmp, r, subset);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
 
@@ -548,12 +549,12 @@ public:
 			_Transfer.R(tmp,ODD,coarse_in);
 #endif
 
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->startTimer("VCycleQPhiXCoarseEO3/solve/level"+std::to_string(level));
 #endif
       ZeroVec(coarse_delta);
       LinearSolverResults coarse_res =_bottom_solver(coarse_delta,coarse_in);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->stopTimer("VCycleQPhiXCoarseEO3/solve/level"+std::to_string(level));
 #endif
 
@@ -561,14 +562,14 @@ public:
       _Transfer.P(coarse_delta, ODD, delta);
 
       // Update solution
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
       YpeqXVec(delta,out_f,subset);
       // Update residuum
       _M_fine(tmp, delta, LINOP_OP);
       YmeqXVec(tmp, r,subset);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
 
@@ -587,23 +588,23 @@ public:
       }
 
       //postsmooth
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->startTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
 #endif
       ZeroVec(delta,subset);
       _post_smoother(delta,r);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->stopTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
 #endif
       
       // Update full solution
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
       YpeqXVec(delta,out_f,subset);
       _M_fine(tmp,delta,LINOP_OP);
       norm_r = sqrt(XmyNorm2Vec(r,tmp,subset));
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
 
@@ -656,7 +657,7 @@ public:
     _bottom_solver(bottom_solver),
     _param(param),
 	_Transfer(my_blocks,vecs) {
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
         int level = _M_fine.GetLevel();
         timerAPI = MG::Timer::TimerAPI::getInstance();
         timerAPI->addTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
@@ -678,7 +679,7 @@ private:
   const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
   const LinearSolverParamsBase& _param;
   const QPhiXTransfer<QPhiXSpinorF> _Transfer;
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
   std::shared_ptr<Timer::TimerAPI> timerAPI;
 #endif
 

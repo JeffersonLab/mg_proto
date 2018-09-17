@@ -8,6 +8,8 @@
 #ifndef INCLUDE_LATTICE_COARSE_VCYCLE_COARSE_H_
 #define INCLUDE_LATTICE_COARSE_VCYCLE_COARSE_H_
 
+#include "MG_config.h"
+
 #include <lattice/coarse/invfgmres_coarse.h>
 #include <lattice/coarse/invmr_coarse.h>
 #include "lattice/constants.h"
@@ -20,7 +22,7 @@
 #include "utils/print_utils.h"
 #include "lattice/coarse/subset.h"
 
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
 #include "utils/timer.h"
 #endif
 
@@ -530,19 +532,19 @@ public:
 
 
 			CoarseSpinor delta(info);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
             timerAPI->startTimer("VCycleCoarseEO2/presmooth/level"+std::to_string(level));
 #endif
 			ZeroVec(delta,subset);
 			// Smoother does not compute a residuum
 			// It is an 'unprec' smoother tho it may use internally a wrapped even-odd
 			_pre_smoother(delta,r);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
             timerAPI->stopTimer("VCycleCoarseEO2/presmooth/level"+std::to_string(level));
 #endif
 
 
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
             timerAPI->startTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 #endif
 			// Update solution
@@ -552,7 +554,7 @@ public:
 			_M_fine(tmp,delta, LINOP_OP);
 			// r -= tmp;
 			YmeqxVec(tmp,r,subset);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
             timerAPI->stopTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 #endif
 
@@ -575,20 +577,20 @@ public:
 
 			CoarseSpinor coarse_delta(_coarse_info);
             
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->startTimer("VCycleCoarseEO2/solve/level"+std::to_string(level));
 #endif
 			ZeroVec(coarse_delta);
 			// Again, this is an unprec solve, tho it may be a wrapped even-odd
 			LinearSolverResults coarse_res =_bottom_solver(coarse_delta,coarse_in);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
       timerAPI->stopTimer("VCycleCoarseEO2/solve/level"+std::to_string(level));
 #endif
 
 			// Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
 			_Transfer.P(coarse_delta, ODD, delta);
 
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
             timerAPI->startTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 #endif
 			// Update solution
@@ -598,7 +600,7 @@ public:
 			_M_fine(tmp, delta, LINOP_OP);
 			// r -= tmp;
 			YmeqxVec(tmp,r,subset);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
             timerAPI->stopTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 #endif
 
@@ -616,17 +618,17 @@ public:
 				}
 			}
 
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
             timerAPI->startTimer("VCycleCoarseEO2/postsmooth/level"+std::to_string(level));
 #endif
 			// delta = zero;
 			ZeroVec(delta,subset);
 			_post_smoother(delta,r);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
             timerAPI->stopTimer("VCycleCoarseEO2/postsmooth/level"+std::to_string(level));
 #endif
 
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
             timerAPI->startTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 #endif
 			// Update full solution
@@ -636,7 +638,7 @@ public:
 			//r -= tmp;
 			YmeqxVec(tmp,r,subset);
 			norm_r = sqrt(Norm2Vec(r,subset));
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
             timerAPI->stopTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 #endif
 
@@ -684,7 +686,7 @@ public:
 					_bottom_solver(bottom_solver),
 					_param(param),
 					_Transfer(my_blocks,vecs) {
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
                         int level = _M_fine.GetLevel();
                         timerAPI = MG::Timer::TimerAPI::getInstance();
                         timerAPI->addTimer("VCycleCoarseEO2/presmooth/level"+std::to_string(level));
@@ -705,7 +707,7 @@ private:
 	const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
 	const LinearSolverParamsBase& _param;
 	const CoarseTransfer _Transfer;
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
     std::shared_ptr<Timer::TimerAPI> timerAPI;
 #endif
 

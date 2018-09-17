@@ -125,8 +125,12 @@ namespace MG
 		MasterLog(INFO, "Finalizing Kokkos");
 		Kokkos::finalize();
 #endif
+
+#ifdef MG_ENABLE_TIMERS
 		MasterLog(INFO, "Dumping Timers");
 		(MG::Timer::TimerAPI::getInstance())->reportAllTimer();
+#endif
+
 		MasterLog(INFO, "Finalizing Memory");
 		MG::FinalizeMemory();
 #if defined(MG_QMP_INIT)

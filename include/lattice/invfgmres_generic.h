@@ -8,6 +8,7 @@
 #ifndef INCLUDE_LATTICE_INVFGMRES_GENERIC_H_
 #define INCLUDE_LATTICE_INVFGMRES_GENERIC_H_
 
+#include "MG_config.h"
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
@@ -17,7 +18,7 @@
 #include <cmath>
 #include <memory>
 
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
 #include "utils/timer.h"
 #endif
 
@@ -208,7 +209,7 @@ template<typename ST, typename GT>
       eta_[row] = std::complex<double>(0,0);
     }
 
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
     int level = _A.GetLevel();
     timerAPI = MG::Timer::TimerAPI::getInstance();
     timerAPI->addTimer("FGMRESSolverGeneric/FlexibleArnoldi/level"+std::to_string(level));
@@ -348,7 +349,7 @@ template<typename ST, typename GT>
         // NB: We recompute a true 'r' after every cycle
         // So in the cycle we could in principle
         // use reduced precision... TBInvestigated.
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
         timerAPI->startTimer("FGMRESSolverGeneric/FlexibleArnoldi/level"+std::to_string(level));
 #endif
         FlexibleArnoldi(n_krylov,
@@ -361,7 +362,7 @@ template<typename ST, typename GT>
             c_,
             dim,
             resid_type);
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
         timerAPI->stopTimer("FGMRESSolverGeneric/FlexibleArnoldi/level"+std::to_string(level));
 #endif
 
@@ -487,7 +488,7 @@ template<typename ST, typename GT>
     mutable std::vector<std::complex<double>> c_;
     mutable std::vector<std::complex<double>> eta_;
     
-#ifdef ENABLE_TIMERS
+#ifdef MG_ENABLE_TIMERS
     std::shared_ptr<Timer::TimerAPI> timerAPI;
 #endif
   };
