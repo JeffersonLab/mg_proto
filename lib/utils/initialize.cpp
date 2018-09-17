@@ -16,6 +16,7 @@
 
 #include "utils/memory.h"
 #include "utils/print_utils.h"
+#include "utils/timer.h"
 #include <string>
 #include <cstdlib>
 
@@ -124,6 +125,8 @@ namespace MG
 		MasterLog(INFO, "Finalizing Kokkos");
 		Kokkos::finalize();
 #endif
+		MasterLog(INFO, "Dumping Timers");
+		(MG::Timer::TimerAPI::getInstance())->reportAllTimer();
 		MasterLog(INFO, "Finalizing Memory");
 		MG::FinalizeMemory();
 #if defined(MG_QMP_INIT)

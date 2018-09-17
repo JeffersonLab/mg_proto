@@ -14,6 +14,7 @@
 #include <string.h>
 #include <unordered_map>
 #include <iostream>
+#include <memory>
 
 namespace MG {
     
@@ -60,7 +61,7 @@ namespace MG {
         class TimerAPI {
         public:
             static std::shared_ptr<TimerAPI> getInstance(){
-                static std::shared_ptr<TimerAPI> instance = std::make_shared<TimerAPI>();
+                static std::shared_ptr<TimerAPI> instance{new TimerAPI };
                 return instance;
             };
             
@@ -82,9 +83,11 @@ namespace MG {
             
             void reportAllTimer() const{
                 for(auto const &item : timers) {
-                    auto key = item.first;
+                    std::string key = item.first;
                     auto value = item.second;
-                    std::cout << "INFO: TIMING " << key << " = " << value.getTotalDuration().count() << std::endl;
+                    // std::cout << "INFO: TIMING " << key << " = " << value.getTotalDuration().count() << std::endl;
+                    MasterLog(INFO, "TIMING %s = %lf (sec.)", key.c_str(), value.getTotalDuration().count());
+
                 }
             }
             
@@ -93,7 +96,10 @@ namespace MG {
             void operator=(TimerAPI const&) = delete;
             
         private:
-            TimerAPI() {}
+            TimerAPI() {
+
+            	//MasterLog(INFO, "Constructing TimerAPI");
+            }
             std::unordered_map<std::string, Timer> timers;
         };
     }
