@@ -28,9 +28,12 @@ namespace MG {
             };
             
             void Reset(){
-                tDeltaTotal = std::chrono::duration<double>(0);
-                tDeltaMin = std::chrono::duration<double>(0);
-                tDeltaMax = std::chrono::duration<double>(0);
+         //       tDeltaTotal = std::chrono::duration<double>(0);
+           //     tDeltaMin = std::chrono::duration<double>(0);
+             //   tDeltaMax = std::chrono::duration<double>(0);
+            	tDeltaTotal = std::chrono::duration<double>::zero();
+            	tDeltaMin = std::chrono::duration<double>::zero();
+            	tDeltaMax = std::chrono::duration<double>::zero();
                 isStarted = false;
             };
             

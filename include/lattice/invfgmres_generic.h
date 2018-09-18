@@ -48,7 +48,9 @@ template<typename ST,typename GT>
      bool VerboseP )
 
  {
-
+#ifdef MG_ENABLE_TIMERS
+	auto  timerAPI = MG::Timer::TimerAPI::getInstance();
+#endif
    ndim_cycle = 0;
    int level = A.GetLevel();
    const CBSubset& subset = A.GetSubset();
@@ -75,8 +77,15 @@ template<typename ST,typename GT>
 		   // But I will go through a tmpsolve temporary because
 		   // a proper unprec solver may overwrite the off checkerboard parts with a reconstruct etc.
 		   //
+#ifdef MG_ENABLE_TIMERS
+		   timerAPI->startTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
+#endif
 
 		   (*M)( *Z[j], *(V[j]), resid_type );  // z_j = M^{-1} v_j
+
+#ifdef MG_ENABLE_TIMERS
+		   timerAPI->stopTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
+#endif
 	   }
 	   else {
 		   CopyVec(*(Z[j]), *(V[j]), subset);      // Vector assignment " copy "
@@ -212,7 +221,8 @@ template<typename ST, typename GT>
 #ifdef MG_ENABLE_TIMERS
     int level = _A.GetLevel();
     timerAPI = MG::Timer::TimerAPI::getInstance();
-    timerAPI->addTimer("FGMRESSolverGeneric/FlexibleArnoldi/level"+std::to_string(level));
+    timerAPI->addTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
+    timerAPI->addTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
 #endif
 
   }
@@ -233,6 +243,12 @@ template<typename ST, typename GT>
     LinearSolverResults operator()(ST& out, const ST& in, ResiduumType resid_type = RELATIVE) const override
 
     {
+    	int level = _A.GetLevel();
+#ifdef MG_ENABLE_TIMERS
+        timerAPI->startTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
+#endif
+
+
       LinearSolverResults res; // Value to return
       const CBSubset& subset = _A.GetSubset();
 
@@ -249,7 +265,7 @@ template<typename ST, typename GT>
       const LatticeInfo&  out_info = out.GetInfo();
       AssertCompatible( in_info, _A.GetInfo());
       AssertCompatible( out_info, _A.GetInfo());
-      int level = _A.GetLevel();
+
 
       // Temporaries - passed into flexible Arnoldi
       ST w( in_info );
@@ -299,6 +315,11 @@ template<typename ST, typename GT>
             MasterLog(INFO,"FGMRES: level=%d Solve Converged: iters=0  Final Absolute || r ||/|| b ||=%16.8e", level, res.resid);
           }
         }
+
+#ifdef MG_ENABLE_TIMERS
+        timerAPI->stopTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
+#endif
+
         return res;
       }
 
@@ -349,9 +370,6 @@ template<typename ST, typename GT>
         // NB: We recompute a true 'r' after every cycle
         // So in the cycle we could in principle
         // use reduced precision... TBInvestigated.
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->startTimer("FGMRESSolverGeneric/FlexibleArnoldi/level"+std::to_string(level));
-#endif
         FlexibleArnoldi(n_krylov,
             target,
             V_,
@@ -362,9 +380,6 @@ template<typename ST, typename GT>
             c_,
             dim,
             resid_type);
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("FGMRESSolverGeneric/FlexibleArnoldi/level"+std::to_string(level));
-#endif
 
         int iters_this_cycle = dim;
         LeastSquaresSolve(H_,c_,eta_, dim); // Solve Least Squares System
@@ -416,7 +431,11 @@ template<typename ST, typename GT>
               n_cycles,iters_total, res.resid, _params.RsdTarget);
         }
       }
-      
+#ifdef MG_ENABLE_TIMERS
+        timerAPI->stopTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
+
+#endif
+
       return res;
     }
 

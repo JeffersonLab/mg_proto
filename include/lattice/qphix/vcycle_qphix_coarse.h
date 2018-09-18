@@ -439,6 +439,10 @@ public:
   LinearSolverResults operator()(QPhiXSpinor& out,
       const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE ) const
   {
+	    int level = _M_fine.GetLevel();
+#ifdef MG_ENABLE_TIMERS
+	    timerAPI->startTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
+#endif
     LinearSolverResults res;
     auto& subset = _M_fine.GetSubset();
     QPhiXSpinorF in_f(_fine_info);
@@ -454,7 +458,7 @@ public:
     QPhiXSpinorF r(_fine_info);
     QPhiXSpinorF out_f(_fine_info);
 
-    int level = _M_fine.GetLevel();
+
 
     double norm_in,  norm_r;
     ZeroVec(out_f);   // out_f = 0
@@ -476,6 +480,9 @@ public:
       if( resid_type == RELATIVE ) {
         res.resid /= norm_r;
       }
+#ifdef MG_ENABLE_TIMERS
+	    timerAPI->stopTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
+#endif
       return res;
     }
 
@@ -539,8 +546,11 @@ public:
         }
       }
 
-
+#ifdef MG_ENABLE_TIMERS
+      timerAPI->startTimer("VCycleQPhiXCoarseEO3/restrictFrom/level"+std::to_string(level));
+#endif
       // Coarsen r
+
 #if 1
       _Transfer.R(r,ODD,coarse_in);
 #else
@@ -550,16 +560,31 @@ public:
 #endif
 
 #ifdef MG_ENABLE_TIMERS
-      timerAPI->startTimer("VCycleQPhiXCoarseEO3/solve/level"+std::to_string(level));
+      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/restrictFrom/level"+std::to_string(level));
+#endif
+
+
+#ifdef MG_ENABLE_TIMERS
+      timerAPI->startTimer("VCycleQPhiXCoarseEO3/bottom_solve/level"+std::to_string(level));
 #endif
       ZeroVec(coarse_delta);
       LinearSolverResults coarse_res =_bottom_solver(coarse_delta,coarse_in);
 #ifdef MG_ENABLE_TIMERS
-      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/solve/level"+std::to_string(level));
+      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/bottom_solve/level"+std::to_string(level));
+#endif
+
+
+#ifdef MG_ENABLE_TIMERS
+      timerAPI->startTimer("VCycleQPhiXCoarseEO3/prolongateTo/level"+std::to_string(level));
 #endif
 
       // Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
       _Transfer.P(coarse_delta, ODD, delta);
+
+      #ifdef MG_ENABLE_TIMERS
+      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/prolongateTo/level"+std::to_string(level));
+#endif
+
 
       // Update solution
 #ifdef MG_ENABLE_TIMERS
@@ -636,6 +661,9 @@ public:
     if( resid_type == RELATIVE ) {
       res.resid /= toDouble(norm_in);
     }
+#ifdef MG_ENABLE_TIMERS
+	    timerAPI->stopTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
+#endif
     return res;
   }
 
@@ -660,9 +688,12 @@ public:
 #ifdef MG_ENABLE_TIMERS
         int level = _M_fine.GetLevel();
         timerAPI = MG::Timer::TimerAPI::getInstance();
+        timerAPI->addTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
         timerAPI->addTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
+        timerAPI->addTimer("VCycleQPhiXCoarseEO3/restrictFrom/level"+std::to_string(level));
+        timerAPI->addTimer("VCycleQPhiXCoarseEO3/prolongateTo/level"+std::to_string(level));
         timerAPI->addTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3/solve/level"+std::to_string(level));
+        timerAPI->addTimer("VCycleQPhiXCoarseEO3/bottom_solve/level"+std::to_string(level));
         timerAPI->addTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif
 	}
