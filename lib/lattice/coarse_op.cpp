@@ -15,62 +15,59 @@
 #include "lattice/geometry_utils.h"
 namespace MG {
 
-template<int N_colorspin, typename InitOp>
-void genericSiteOffDiagXPayz(float *output,
-		const float alpha,
-		const float* gauge_links[8],
-		const float* spinor_cb,
-		const float* neigh_spinors[8])
-{
-	constexpr int N_color = N_colorspin/2;
+namespace {
+	enum InitOp { zero, add };
+	
+	void genericSiteOffDiagXPayz(int N_colorspin,
+			InitOp initop,
+			float *output,
+			const float alpha,
+			const float* gauge_links[8],
+			IndexType dagger, 
+			const float* spinor_cb,
+			const float* neigh_spinors[8],
+			IndexType ncol=1)
+	{
+		int N_color = N_colorspin/2;
 
 
 		// This is the same as for the dagger because we have G_5 I G_5 = G_5 G_5 I = I
-		// D is the diagona
-#pragma omp simd aligned(output,spinor_cb:64)
-		for(int i=0; i < 2*N_colorspin; ++i) {
-			output[i] = InitOp::op(spinor_cb,i);
+		// D is the diagonal
+		if (initop == add) {
+			for(int i=0; i < 2*N_colorspin*ncol; ++i) {
+				output[i] = spinor_cb[i];
+			}
 		}
-
-
 
 		// Dslash the offdiag
 		for(int mu=0; mu < 8; ++mu) {
-#ifdef MG_USE_AVX512
-			CMatMultCoeffAddAVX512(output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin);
-#else
-			CMatMultCoeffAddNaive(output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin);
-#endif
-		}
-
-}
-
-template<int N_colorspin, typename InitOp>
-void genericSiteGcOffDiagGcXPayz(float *output,
-		const float alpha,
-		const float* gauge_links[8],
-		const float* spinor_cb,
-		const float* neigh_spinors[8])
-{
-	constexpr int N_color = N_colorspin/2;
-
-
-		// This is the same as for the dagger because we have G_5 I G_5 = G_5 G_5 I = I
-		// D is the diagona
-#pragma omp simd aligned(output,spinor_cb:64)
-		for(int i=0; i < 2*N_colorspin; ++i) {
-			output[i] = InitOp::op(spinor_cb,i);
-		}
-
-
-		// Dslash the offdiag
-			for(int mu=0; mu < 8; ++mu) {
-#ifdef MG_USE_AVX512
-				GcCMatMultGcCoeffAddAVX512(output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin);
-#else
-				GcCMatMultGcCoeffAddNaive(output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin);
-#endif
+			if (dagger == LINOP_OP) {
+				CMatMultCoeffAddNaive(initop == zero && mu == 0 ? 0.0 : 1.0, output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin, ncol);
+			} else {
+				GcCMatMultGcCoeffAddNaive(initop == zero && mu == 0 ? 0.0 : 1.0, output, alpha, gauge_links[mu], neigh_spinors[mu], N_colorspin, ncol);
 			}
+		}
+	}
+
+	// Lost site apply clover...
+	void siteApplyClover(int N_colorspin,
+			float* output,
+			const float* clover,
+			const float* input,
+			const IndexType dagger,
+			IndexType ncol)
+	{
+		// CMatMult-s.
+		if( dagger == LINOP_OP) {
+			CMatMultNaive(output, clover, input, N_colorspin, ncol);
+		}
+		else {
+			// Slow: CMatAdjMultNaive(output, clover, input, N_colorspin);
+	
+			// Use Cc Hermiticity for faster operation
+			GcCMatMultGcNaive(output,clover,input, N_colorspin, ncol);
+		}
+	}
 
 }
 
@@ -82,7 +79,6 @@ void CoarseDiracOp::unprecOp(CoarseSpinor& spinor_out,
 			const IndexType dagger,
 			const IndexType tid) const
 {
-
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
@@ -90,6 +86,7 @@ void CoarseDiracOp::unprecOp(CoarseSpinor& spinor_out,
 	// We are in an OMP region.
 	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
+	IndexType ncol = spinor_in.GetNCol();
 
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
@@ -106,10 +103,10 @@ void CoarseDiracOp::unprecOp(CoarseSpinor& spinor_out,
 
 
 
-		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* gauge_base = gauge_clov_in.GetSiteDirDataPtr(target_cb,site,0);
 
-		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
+		const float* spinor_cb = spinor_in.GetSiteDataPtr(0, target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
 		const float* clov = gauge_clov_in.GetSiteDiagDataPtr(target_cb,site);
@@ -158,13 +155,8 @@ void CoarseDiracOp::unprecOp(CoarseSpinor& spinor_out,
 		};
 
 
-		siteApplyClover(output,clov,spinor_cb,dagger);
-		if( dagger == LINOP_OP) {
-			siteApplyDslash_xpayz(output, 1.0, gauge_links,output, neigh_spinors);
-		}
-		else {
-			siteApplyGcDslashGc_xpayz(output, 1.0, gauge_links,output, neigh_spinors);
-		}
+		siteApplyClover(GetNumColorSpin(), output,clov,spinor_cb,dagger, ncol);
+		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, 1.0, gauge_links, dagger, output, neigh_spinors, ncol);
 	}
 
 }
@@ -181,14 +173,16 @@ void CoarseDiracOp::M_diag(CoarseSpinor& spinor_out,
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
+	IndexType ncol = spinor_in.GetNCol();
+
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
-		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* clover = gauge_clov_in.GetSiteDiagDataPtr(target_cb,site);
-		const float* input = spinor_in.GetSiteDataPtr(target_cb,site);
+		const float* input = spinor_in.GetSiteDataPtr(0, target_cb,site);
 
-		siteApplyClover(output, clover, input, dagger);
+		siteApplyClover(GetNumColorSpin(), output, clover, input, dagger, ncol);
 	}
 
 }
@@ -203,14 +197,16 @@ void CoarseDiracOp::M_diagInv(CoarseSpinor& spinor_out,
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
+	IndexType ncol = spinor_in.GetNCol();
+
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
-		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* clover = gauge_clov_in.GetSiteInvDiagDataPtr(target_cb,site);
-		const float* input = spinor_in.GetSiteDataPtr(target_cb,site);
+		const float* input = spinor_in.GetSiteDataPtr(0, target_cb,site);
 
-		siteApplyClover(output, clover, input, dagger);
+		siteApplyClover(GetNumColorSpin(), output, clover, input, dagger, ncol);
 	}
 
 }
@@ -231,6 +227,8 @@ void CoarseDiracOp::M_D_xpay(CoarseSpinor& spinor_out,
 	// 	Synchronous for now -- maybe change to comms compute overlap later
 	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
+	IndexType ncol = spinor_in.GetNCol();
+
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
@@ -246,9 +244,9 @@ void CoarseDiracOp::M_D_xpay(CoarseSpinor& spinor_out,
 
 
 
-		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* gauge_base = gauge_clov_in.GetSiteDirDataPtr(target_cb,site,0);
-		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
+		const float* spinor_cb = spinor_in.GetSiteDataPtr(0, target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
 		const float *gauge_links[8]={ gauge_base,                    // X forward
@@ -296,12 +294,7 @@ void CoarseDiracOp::M_D_xpay(CoarseSpinor& spinor_out,
 		};
 
 
-		if( dagger == LINOP_OP ) {
-			siteApplyDslash_xpayz(output, 1.0, gauge_links, output, neigh_spinors);
-		}
-		else {
-			siteApplyGcDslashGc_xpayz(output, 1.0, gauge_links, output, neigh_spinors);
-		}
+		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, 1.0, gauge_links, dagger, output, neigh_spinors, ncol);
 	}
 
 }
@@ -322,6 +315,8 @@ void CoarseDiracOp::M_AD_xpayz(CoarseSpinor& spinor_out,
 	// 	Synchronous for now -- maybe change to comms compute overlap later
 	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in_od,target_cb);
 
+	IndexType ncol = spinor_in_cb.GetNCol();
+
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
@@ -337,12 +332,12 @@ void CoarseDiracOp::M_AD_xpayz(CoarseSpinor& spinor_out,
 
 
 
-		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* gauge_base = ((dagger == LINOP_OP) ?
 					gauge_in.GetSiteDirADDataPtr(target_cb,site,0)
 					: gauge_in.GetSiteDirDADataPtr(target_cb,site,0)) ;
 
-		const float* spinor_cb = spinor_in_cb.GetSiteDataPtr(target_cb,site);
+		const float* spinor_cb = spinor_in_cb.GetSiteDataPtr(0, target_cb,site);
 		const IndexType gdir_offset = gauge_in.GetLinkOffset();
 
 		const float *gauge_links[8]={ gauge_base,                    // X forward
@@ -390,12 +385,7 @@ void CoarseDiracOp::M_AD_xpayz(CoarseSpinor& spinor_out,
 		};
 
 
-		if ( dagger == LINOP_OP ) {
-			siteApplyDslash_xpayz(output, alpha, gauge_links, spinor_cb, neigh_spinors);
-		}
-		else {
-			siteApplyGcDslashGc_xpayz(output, alpha, gauge_links, spinor_cb, neigh_spinors);
-		}
+		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, 1.0, gauge_links, dagger, spinor_cb, neigh_spinors, ncol);
 	}
 
 }
@@ -416,6 +406,8 @@ void CoarseDiracOp::M_DA_xpayz(CoarseSpinor& spinor_out,
 	// 	Synchronous for now -- maybe change to comms compute overlap later
 	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
+	IndexType ncol = spinor_in.GetNCol();
+
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
@@ -431,11 +423,11 @@ void CoarseDiracOp::M_DA_xpayz(CoarseSpinor& spinor_out,
 
 
 
-		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* gauge_base = (dagger == LINOP_OP ) ? gauge_clov_in.GetSiteDirDADataPtr(target_cb,site,0) :
 				gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0);
 
-		const float* in_cb = spinor_cb.GetSiteDataPtr(target_cb,site);
+		const float* in_cb = spinor_cb.GetSiteDataPtr(0, target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
 		const float *gauge_links[8]={ gauge_base,                    // X forward
@@ -482,14 +474,7 @@ void CoarseDiracOp::M_DA_xpayz(CoarseSpinor& spinor_out,
 		};
 
 
-		if( dagger == LINOP_OP ) {
-			siteApplyDslash_xpayz(output, alpha, gauge_links,in_cb,
-				neigh_spinors);
-		}
-		else {
-			siteApplyGcDslashGc_xpayz(output, alpha, gauge_links,in_cb,
-							neigh_spinors);
-		}
+		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, alpha, gauge_links, dagger, in_cb, neigh_spinors, ncol);
 	}
 
 }
@@ -509,6 +494,8 @@ void CoarseDiracOp::M_AD(CoarseSpinor& spinor_out,
 	// 	Synchronous for now -- maybe change to comms compute overlap later
 	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
+	IndexType ncol = spinor_in.GetNCol();
+
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
@@ -524,10 +511,10 @@ void CoarseDiracOp::M_AD(CoarseSpinor& spinor_out,
 
 
 
-		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* gauge_base =(dagger == LINOP_OP)? gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0)
 				: gauge_clov_in.GetSiteDirDADataPtr(target_cb,site,0);
-		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
+		const float* spinor_cb = spinor_in.GetSiteDataPtr(0, target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
 		const float *gauge_links[8]={ gauge_base,                    // X forward
@@ -574,12 +561,7 @@ void CoarseDiracOp::M_AD(CoarseSpinor& spinor_out,
 		};
 
 
-		if( dagger == LINOP_OP ) {
-			siteApplyDslash(output, gauge_links, neigh_spinors);
-		}
-		else {
-			siteApplyGcDslashGc(output, gauge_links, neigh_spinors);
-		}
+		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::zero, output, 1.0, gauge_links, dagger, output, neigh_spinors, ncol);
 	}
 
 }
@@ -599,6 +581,8 @@ void CoarseDiracOp::M_DA(CoarseSpinor& spinor_out,
 	// 	Synchronous for now -- maybe change to comms compute overlap later
 	CommunicateHaloSyncInOMPParallel<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,target_cb);
 
+	IndexType ncol = spinor_in.GetNCol();
+
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
@@ -614,10 +598,10 @@ void CoarseDiracOp::M_DA(CoarseSpinor& spinor_out,
 
 
 
-		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* gauge_base = (dagger == LINOP_OP) ? gauge_clov_in.GetSiteDirDADataPtr(target_cb,site,0)
 					: gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0);
-		const float* spinor_cb = spinor_in.GetSiteDataPtr(target_cb,site);
+		const float* spinor_cb = spinor_in.GetSiteDataPtr(0, target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
 		const float *gauge_links[8]={ gauge_base,                    // X forward
@@ -665,223 +649,11 @@ void CoarseDiracOp::M_DA(CoarseSpinor& spinor_out,
 		};
 
 
-		if( dagger == LINOP_OP ) {
-			siteApplyDslash(output, gauge_links, neigh_spinors);
-		}
-		else {
-			siteApplyGcDslashGc(output, gauge_links, neigh_spinors);
-		}
+		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::zero, output, 1.0, gauge_links, dagger, output, neigh_spinors, ncol);
 	}
 
 }
 
-class ZeroOutput {
-public:
-
-#pragma omp declare simd notinbranch
-	inline
-	static
-	float op(const float *input, int i) {  return 0; }
-};
-
-class NopOutput {
-public:
-
-#pragma omp declare simd notinbranch
-	inline
-	static
-	float op(const float *input, int i)  { return input[i]; }
-};
-
-
-
-inline
-void CoarseDiracOp::siteApplyDslash( float *output,
-		  	  	  	  	 	 const float* gauge_links[8],
-							 const float* neigh_spinors[8]) const
-{
-	const int N_colorspin = GetNumColorSpin();
-	const float coeff = 1;
-
-	if (N_colorspin == 12 ) {
-		genericSiteOffDiagXPayz<12,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-	}
-	else if( N_colorspin == 16 ) {
-		genericSiteOffDiagXPayz<16,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-
-	}
-	else if( N_colorspin == 24 ) {
-		genericSiteOffDiagXPayz<24,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-
-	}
-	else if ( N_colorspin == 32 ) {
-		genericSiteOffDiagXPayz<32,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-
-	}
-	else if (N_colorspin == 48 ) {
-		genericSiteOffDiagXPayz<48,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-
-	}
-	else if (N_colorspin == 64 ) {
-		genericSiteOffDiagXPayz<64,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-
-	}
-	else if (N_colorspin == 96 ) {
-		genericSiteOffDiagXPayz<96,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-	}
-	else {
-		MasterLog(ERROR, "N_colorspin = %d not supported in siteApplyDslash" , N_colorspin );
-	}
-}
-
-
-inline
-void CoarseDiracOp::siteApplyGcDslashGc( float *output,
-		  	  	  	  	 	 const float* gauge_links[8],
-							 const float* neigh_spinors[8]) const
-{
-	const int N_colorspin = GetNumColorSpin();
-	const float coeff = 1;
-
-
-	if (N_colorspin == 12 ) {
-		genericSiteGcOffDiagGcXPayz<12,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-	}
-	else if( N_colorspin == 16 ) {
-		genericSiteGcOffDiagGcXPayz<16,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-
-	}
-	else if( N_colorspin == 24 ) {
-		genericSiteGcOffDiagGcXPayz<24,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-
-	}
-	else if ( N_colorspin == 32 ) {
-		genericSiteGcOffDiagGcXPayz<32,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-
-	}
-	else if (N_colorspin == 48 ) {
-		genericSiteGcOffDiagGcXPayz<48,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-
-	}
-	else if (N_colorspin == 64 ) {
-		genericSiteGcOffDiagGcXPayz<64,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-
-	}
-	else if (N_colorspin == 96 ) {
-		genericSiteGcOffDiagGcXPayz<96,ZeroOutput>(output, coeff, gauge_links, output, neigh_spinors);
-	}
-	else {
-		MasterLog(ERROR, "N_colorspin = %d not supported in siteApplyDslash" , N_colorspin );
-	}
-}
-
-
-inline
-void CoarseDiracOp::siteApplyDslash_xpayz( float *output,
-							 const float coeff,
-		  	  	  	  	 	 const float* gauge_links[8],
-							 const float* in_spinor_cb,
-							 const float* neigh_spinors[8]) const
-{
-	const int N_colorspin = GetNumColorSpin();
-
-
-	if (N_colorspin == 12 ) {
-		genericSiteOffDiagXPayz<12,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if( N_colorspin == 16 ) {
-		genericSiteOffDiagXPayz<16,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if( N_colorspin == 24 ) {
-		genericSiteOffDiagXPayz<24,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if ( N_colorspin == 32 ) {
-		genericSiteOffDiagXPayz<32,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if (N_colorspin == 48 ) {
-		genericSiteOffDiagXPayz<48,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if (N_colorspin == 64 ) {
-		genericSiteOffDiagXPayz<64,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if (N_colorspin == 96 ) {
-		genericSiteOffDiagXPayz<96,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-
-	else {
-		MasterLog(ERROR, "N_colorspin = %d not supported in siteApplyDslash" , N_colorspin );
-	}
-}
-
-
-inline
-void CoarseDiracOp::siteApplyGcDslashGc_xpayz( float *output,
-							 const float coeff,
-		  	  	  	  	 	 const float* gauge_links[8],
-							 const float* in_spinor_cb,
-							 const float* neigh_spinors[8]) const
-{
-	const int N_colorspin = GetNumColorSpin();
-
-
-	if (N_colorspin == 12 ) {
-		genericSiteGcOffDiagGcXPayz<12,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if( N_colorspin == 16 ) {
-		genericSiteGcOffDiagGcXPayz<16,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if( N_colorspin == 24 ) {
-		genericSiteGcOffDiagGcXPayz<24,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if ( N_colorspin == 32 ) {
-		genericSiteGcOffDiagGcXPayz<32,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if (N_colorspin == 48 ) {
-		genericSiteGcOffDiagGcXPayz<48,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if (N_colorspin == 64 ) {
-		genericSiteGcOffDiagGcXPayz<64,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-	else if (N_colorspin == 96 ) {
-		genericSiteGcOffDiagGcXPayz<96,NopOutput>(output, coeff, gauge_links, in_spinor_cb, neigh_spinors);
-	}
-
-	else {
-		MasterLog(ERROR, "N_colorspin = %d not supported in siteApplyDslash" , N_colorspin );
-	}
-}
-// Lost site apply clover...
-inline
-void CoarseDiracOp::siteApplyClover( float* output,
-					  const float* clover,
-					  const float* input,
-					  const IndexType dagger) const
-{
-	const int N_color = GetNumColor();
-	const int N_colorspin = GetNumColorSpin();
-
-	// NB: For = 6 input spinor may not be aligned!!!! BEWARE when testing optimized
-	// CMatMult-s.
-	if( dagger == LINOP_OP) {
-#ifdef MG_USE_AVX512
-		CMatMultAVX512(output, clover, input, N_colorspin);
-#else
-		CMatMultNaive(output, clover, input, N_colorspin);
-
-#endif
-	}
-	else {
-		// Slow: CMatAdjMultNaive(output, clover, input, N_colorspin);
-
-		// Use Cc Hermiticity for faster operation
-#ifdef MG_USE_AVX512
-		GcCMatMultGcAVX512(output,clover,input, N_colorspin);
-#else
-		GcCMatMultGcNaive(output,clover,input, N_colorspin);
-#endif
-	}
-
-}
 
 
 // Apply a single direction of Dslash -- used for coarsening
@@ -934,7 +706,7 @@ void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
 	for(IndexType site=min_site; site < max_site;++site) {
 
 
-		float* output = spinor_out.GetSiteDataPtr(target_cb, site);
+		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* gauge_link_dir = gauge_in.GetSiteDirDataPtr(target_cb,site,dir);
 
 		/* The following case statement selects neighbors.
@@ -945,11 +717,7 @@ void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
 		const float *neigh_spinor = GetNeighborDir<CoarseSpinor,CoarseAccessor>(_halo, spinor_in, dir, target_cb, site);
 
 		// Multiply the link with the neighbor. EasyPeasy?
-#ifdef MG_USE_AVX512
-		CMatMultAVX512(output, gauge_link_dir, neigh_spinor, N_colorspin);
-#else
-		CMatMultNaive(output, gauge_link_dir, neigh_spinor, N_colorspin);
-#endif
+		CMatMultNaive(output, gauge_link_dir, neigh_spinor, N_colorspin, spinor_in.GetNCol());
 	} // Loop over sites
 }
 

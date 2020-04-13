@@ -14,32 +14,32 @@ namespace MG
 {
 
 // x = x - y; followed by || x ||
-double XmyNorm2Vec(QPhiXSpinor& x, const QPhiXSpinor& y, const CBSubset& subset = SUBSET_ALL);
-double Norm2Vec(const QPhiXSpinor& x, const CBSubset& subset = SUBSET_ALL);
-std::complex<double> InnerProductVec(const QPhiXSpinor& x, const QPhiXSpinor& y,const CBSubset& subset = SUBSET_ALL);
+std::vector<double> XmyNorm2Vec(QPhiXSpinor& x, const QPhiXSpinor& y, const CBSubset& subset = SUBSET_ALL);
+std::vector<double> Norm2Vec(const QPhiXSpinor& x, const CBSubset& subset = SUBSET_ALL);
+std::vector<std::complex<double>> InnerProductVec(const QPhiXSpinor& x, const QPhiXSpinor& y,const CBSubset& subset = SUBSET_ALL);
 
 void ZeroVec(QPhiXSpinor& x, const CBSubset& subset = SUBSET_ALL);
 void CopyVec(QPhiXSpinor& x, const QPhiXSpinor& y, const CBSubset& subset = SUBSET_ALL);
-void AxVec(const double alpha, QPhiXSpinor& x,const CBSubset& subset = SUBSET_ALL);
-void AxpyVec(const std::complex<float>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y,const CBSubset& subset = SUBSET_ALL);
-void AxpyVec(const std::complex<double>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y,const CBSubset& subset = SUBSET_ALL);
-void AxpyVec(const double alpha, const QPhiXSpinor& x, QPhiXSpinor& y, const CBSubset& subset = SUBSET_ALL);
+void AxVec(const std::vector<double> alpha, QPhiXSpinor& x,const CBSubset& subset = SUBSET_ALL);
+void AxpyVec(const std::vector<std::complex<float>>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y,const CBSubset& subset = SUBSET_ALL);
+void AxpyVec(const std::vector<std::complex<double>>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y,const CBSubset& subset = SUBSET_ALL);
+void AxpyVec(const std::vector<double> alpha, const QPhiXSpinor& x, QPhiXSpinor& y, const CBSubset& subset = SUBSET_ALL);
 void Gaussian(QPhiXSpinor& v,const CBSubset& subset = SUBSET_ALL);
 void YpeqXVec(const QPhiXSpinor& x, QPhiXSpinor& y,const CBSubset& subset = SUBSET_ALL);
 void YmeqXVec(const QPhiXSpinor& x, QPhiXSpinor& y,const CBSubset& subset = SUBSET_ALL);
 
  // do we need these just now?
-double XmyNorm2Vec(QPhiXSpinorF& x, const QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
-double Norm2Vec(const QPhiXSpinorF& x,const CBSubset& subset = SUBSET_ALL);
-std::complex<double> InnerProductVec(const QPhiXSpinorF& x, const QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
+std::vector<double> XmyNorm2Vec(QPhiXSpinorF& x, const QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
+std::vector<double> Norm2Vec(const QPhiXSpinorF& x,const CBSubset& subset = SUBSET_ALL);
+std::vector<std::complex<double>> InnerProductVec(const QPhiXSpinorF& x, const QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
 
 void ZeroVec(QPhiXSpinorF& x,const CBSubset& subset = SUBSET_ALL);
 
 void CopyVec(QPhiXSpinorF& x, const QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
-void AxVec(const double alpha, QPhiXSpinorF& x,const CBSubset& subset = SUBSET_ALL);
-void AxpyVec(const std::complex<float>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
-void AxpyVec(const std::complex<double>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
-void AxpyVec(const double alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
+void AxVec(const std::vector<double> alpha, QPhiXSpinorF& x,const CBSubset& subset = SUBSET_ALL);
+void AxpyVec(const std::vector<std::complex<float>>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
+void AxpyVec(const std::vector<std::complex<double>>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
+void AxpyVec(const std::vector<double> alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
 void Gaussian(QPhiXSpinorF& v,const CBSubset& subset = SUBSET_ALL);
 void YpeqXVec(const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
 void YmeqXVec(const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);

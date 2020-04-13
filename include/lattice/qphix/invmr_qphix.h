@@ -37,32 +37,38 @@ public:
 
 
     {}
-  LinearSolverResults operator()(QPhiXSpinorT<FT>& out,
+  std::vector<LinearSolverResults> operator()(QPhiXSpinorT<FT>& out,
                                 const QPhiXSpinorT<FT>& in,
                                 ResiduumType resid_type = RELATIVE ) const
   {
     const int isign= 1;
     int n_iters;
-    double rsd_sq_final;
+    std::vector<double> rsd_sq_final;
     unsigned long site_flops;
     unsigned long mv_apps;
+    assert(in.GetNCol() == out.GetNCol());
+    IndexType ncol = in.GetNCol();
 
-    (solver_wrapper)(&(out.get()),
-        &(in.get()),
-        _params.RsdTarget,
-        n_iters,
-        rsd_sq_final,
-        site_flops,
-        mv_apps,
-        isign,
-        _params.VerboseP,
-        ODD,
-        resid_type == MG::RELATIVE ? QPhiX::RELATIVE : QPhiX::ABSOLUTE);
+    for (int col=0; col < ncol; ++col) {
+      (solver_wrapper)(&(out.get(col)),
+          &(in.get(col)),
+          _params.RsdTarget,
+          n_iters,
+          rsd_sq_final,
+          site_flops,
+          mv_apps,
+          isign,
+          _params.VerboseP,
+          ODD,
+          resid_type == MG::RELATIVE ? QPhiX::RELATIVE : QPhiX::ABSOLUTE);
+    }
 
-    LinearSolverResults ret_val;
-    ret_val.n_count = n_iters;
-    ret_val.resid = sqrt(rsd_sq_final);
-    ret_val.resid_type = resid_type;
+    std::vector<LinearSolverResults> ret_val(ncol);
+    for (int col=0; col < ncol; ++col) {
+       ret_val[col].n_count = n_iters;
+       ret_val[col].resid = sqrt(rsd_sq_final[col]);
+       ret_val[col].resid_type = resid_type;
+    }
     return ret_val;
 
   }
@@ -106,17 +112,21 @@ public:
     double rsd_sq_final;
     unsigned long site_flops;
     unsigned long mv_apps;
+    assert(in.GetNCol() == out.GetNCol());
+    IndexType ncol = in.GetNCol();
 
-    (solver_wrapper)(&(out.get()),
-        &(in.get()),
-        _params.RsdTarget,
-        n_iters,
-        rsd_sq_final,
-        site_flops,
-        mv_apps,
-        isign,
-        _params.VerboseP,
-        ODD);
+    for (int col=0; col < ncol; ++col) {
+      (solver_wrapper)(&(out.get(col)),
+          &(in.get(col)),
+          _params.RsdTarget,
+          n_iters,
+          rsd_sq_final,
+          site_flops,
+          mv_apps,
+          isign,
+          _params.VerboseP,
+          ODD);
+    }
 
   }
 

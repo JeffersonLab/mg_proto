@@ -23,7 +23,6 @@ namespace MG {
 	 *  \param LatticeInfo
 	 *
 	 *  Basic Coarse Spinor. Holds memory for two checkerboards of sites
-	 *  The checheckerboards are contiguous for now.
 	 *  Regular site ordering: ie <cb><sites>< Nspin*Ncolor >< n_complex = fastest >
 	 *
 	 *
@@ -32,16 +31,18 @@ namespace MG {
 	 */
 	class CoarseSpinor {
 	public:
-		CoarseSpinor(const LatticeInfo& lattice_info) : _lattice_info(lattice_info), data{nullptr,nullptr},
+		CoarseSpinor(const LatticeInfo& lattice_info, IndexType n_col=1) : _lattice_info(lattice_info), data{nullptr,nullptr},
 				_n_color(lattice_info.GetNumColors()),
 				_n_spin(lattice_info.GetNumSpins()),
 				_n_colorspin(lattice_info.GetNumColors()*lattice_info.GetNumSpins()),
-				_n_site_offset(n_complex*_n_colorspin),
+				_n_site_offset(n_complex*_n_colorspin*n_col),
 				_n_xh( lattice_info.GetCBLatticeDimensions()[0] ),
 				_n_x( lattice_info.GetLatticeDimensions()[0] ),
 				_n_y( lattice_info.GetLatticeDimensions()[1] ),
 				_n_z( lattice_info.GetLatticeDimensions()[2] ),
-				_n_t( lattice_info.GetLatticeDimensions()[3] )
+				_n_t( lattice_info.GetLatticeDimensions()[3] ),
+				_n_col( n_col ),
+				_n_col_offset(n_complex*_n_colorspin)
 		{
 #if 1
 			// Check That we have 2 spins
@@ -78,15 +79,15 @@ namespace MG {
 		 *  or it can be reinterpreted as _n_colorspin complexes
 		 */
 		inline
-		float* GetSiteDataPtr(IndexType cb, IndexType site)
+		float* GetSiteDataPtr(IndexType col, IndexType cb, IndexType site)
 		{
-			return &data[cb][site*_n_site_offset];
+			return &data[cb][site*_n_site_offset+col*_n_col_offset];
 		}
 
 		inline
-		const float* GetSiteDataPtr(IndexType cb, IndexType site) const
+		const float* GetSiteDataPtr(IndexType col, IndexType cb, IndexType site) const
 			{
-				return &data[cb][site*_n_site_offset];
+				return &data[cb][site*_n_site_offset+col*_n_col_offset];
 			}
 
 		~CoarseSpinor()
@@ -132,6 +133,12 @@ namespace MG {
 		inline
 		const IndexType& GetNt() const { return _n_t; }
 
+		inline
+		const IndexType& GetNCol() const { return _n_col; }
+
+		inline
+		const IndexType& GetSiteDataLD() const { return _n_col_offset; }
+
 	private:
 		const LatticeInfo& _lattice_info;
 		float* data[2];  // Even and odd checkerboards
@@ -145,6 +152,8 @@ namespace MG {
 		const IndexType _n_y;
 		const IndexType _n_z;
 		const IndexType _n_t;
+		const IndexType _n_col;
+		const IndexType _n_col_offset;
 
 
 	};

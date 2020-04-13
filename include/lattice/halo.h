@@ -114,6 +114,8 @@ inline
 void
 CommunicateHaloSyncInOMPParallel(HaloContainer<T>& halo, const T& in, const int target_cb)
 {
+
+	halo.setNCols(in.GetNCol());
 	if( halo.NumNonLocalDirs() > 0 ) {
 		for(int mu=0; mu < n_dim; ++mu) {
 			// Pack face usese omp for internally
@@ -146,6 +148,7 @@ inline
 void
 CommunicateHaloSync(HaloContainer<T>& halo, const T& in, const int target_cb)
 {
+	halo.setNCols(in.GetNCol());
 	if( halo.NumNonLocalDirs() > 0 ) {
 		for(int mu=0; mu < n_dim; ++mu) {
 			// Pack face usese omp for internally

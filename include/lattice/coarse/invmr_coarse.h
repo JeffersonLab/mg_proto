@@ -21,7 +21,7 @@ namespace MG  {
 	  MRSolverCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 			  	     const MG::LinearSolverParamsBase& params);
 
-	  LinearSolverResults operator()(CoarseSpinor& out,
+	  std::vector<LinearSolverResults> operator()(CoarseSpinor& out,
 			  	  	  	  	  	  	 const CoarseSpinor& in,
 									 ResiduumType resid_type = RELATIVE) const;
 

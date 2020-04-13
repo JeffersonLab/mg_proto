@@ -70,7 +70,7 @@ namespace MG {
             };
             
             void addTimer(const std::string& key){
-                timers[key] = Timer::Timer();
+                timers[key] = Timer();
             };
             
             void startTimer(const std::string& key){

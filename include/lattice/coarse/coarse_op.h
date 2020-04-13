@@ -260,38 +260,6 @@ public:
 
 
 
-
-	// output = sum_0..7 U_mu neigh_mu
-	void siteApplyDslash( float* output,
-			              const float* gauge_links[8],
-						  const float* neigh_spinors[8]) const;
-
-
-	void siteApplyDslash_xpayz( float *output,
-								 const float coeff,
-			  	  	  	  	 	 const float* gauge_links[8],
-								 const float* in_spinor_cb,
-								 const float* neigh_spinors[8]) const;
-
-	// output = sum_0..7 U_mu neigh_mu
-	void siteApplyGcDslashGc( float* output,
-			              const float* gauge_links[8],
-						  const float* neigh_spinors[8]) const;
-
-
-	void siteApplyGcDslashGc_xpayz( float *output,
-								 const float coeff,
-			  	  	  	  	 	 const float* gauge_links[8],
-								 const float* in_spinor_cb,
-								 const float* neigh_spinors[8]) const;
-
-	// output = A_ee input
-	void siteApplyClover( float* output,
-						  const float* clover,
-						  const float* input,
-						  const IndexType dagger) const ;
-
-
 	void DslashDir(CoarseSpinor& spinor_out,
 						const CoarseGauge& gauge_in,
 						const CoarseSpinor& spinor_in,

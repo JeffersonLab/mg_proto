@@ -24,7 +24,7 @@ public:
 						  const MultigridLevels& mg_levels );
 
 
-	LinearSolverResults operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type = RELATIVE ) const;
+	std::vector<LinearSolverResults> operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type = RELATIVE ) const;
 
 private:
 

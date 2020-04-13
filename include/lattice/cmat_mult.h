@@ -61,54 +61,34 @@ inline int MinInt(const int& a, const int& b)
  */
 
 /* y = A x */
-void CMatMultNaive(float* y, const float* A, const float* x, IndexType N);
+void CMatMultNaive(float* y, const float* A, const float* x, IndexType N, IndexType ncol=1);
 
 
 
 /* y = A^\dagger x */
-void CMatAdjMultNaive(float *y, const float *A, const float* x, IndexType N);
+void CMatAdjMultNaive(float *y, const float *A, const float* x, IndexType N, IndexType ncol=1);
 
 
 /* y += A x */
-void CMatMultAddNaive(float* y, const float* A, const float* x, IndexType N);
+void CMatMultAddNaive(float* y, const float* A, const float* x, IndexType N, IndexType ncol=1);
 
 
 
-/* y += alpha A x,  alpha is real */
-void CMatMultCoeffAddNaive(float* y,  float alpha, const float* A, const float* x, IndexType N);
+/* y = alpha A x + beta*y,  alpha and beta are real */
+void CMatMultCoeffAddNaive(float beta, float* y,  float alpha, const float* A, const float* x, IndexType N, IndexType ncol=1);
 
 void GcCMatMultGcNaive(float* y,
 				   const float* A,
 				   const float* x,
-				   IndexType N);
+				   IndexType N,
+					IndexType ncol=1);
 
 
-void GcCMatMultGcCoeffAddNaive(float* y, float alpha,
+void GcCMatMultGcCoeffAddNaive(float beta, float* y, float alpha,
 				   const float* A,
 				   const float* x,
-				   IndexType N);
-
-#ifdef MG_USE_AVX512
-void CMatMultAVX512(float *y, const float *A, const float *x, IndexType N );
-void CMatMultAddAVX512(float *y, const float *A, const float *x, IndexType N );
-void CMatMultCoeffAddAVX512(float* y,  float alpha, const float* A, const float* x, IndexType N);
-
-//
-void CMatAdjMultAVX512(float *y, const float *A, const float *x, IndexType N );
-
-void GcCMatMultGcAVX512(float* y,
-				   const float* A,
-				   const float* x,
-				   IndexType N);
-
-void GcCMatMultGcCoeffAddAVX512(float* y, float alpha,
-				   const float* A,
-				   const float* x,
-				   IndexType N);
-#endif
-
-
-
+				   IndexType N,
+					IndexType ncol=1);
 }
 
 

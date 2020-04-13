@@ -24,7 +24,7 @@ public:
 	BiCGStabSolverQDPXX(const LinearOperator<Spinor,Gauge>& M, const LinearSolverParamsBase& params) : _M(M),
 	  _params(params){}
 
-	  LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const;
+	  std::vector<LinearSolverResults> operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const;
  private:
 	  const LinearOperator<Spinor,Gauge>& _M;
 	  const LinearSolverParamsBase& _params;

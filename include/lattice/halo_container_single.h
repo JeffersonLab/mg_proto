@@ -23,6 +23,7 @@ public:
 	HaloContainer(const LatticeInfo& info): _info(info), _datatype_size(haloDatumSize<T>(info)){}
 	~HaloContainer(){}
 
+	void setNCols(IndexType n_cols) { }
 	bool
 	LocalDir(int mu ) const { return true; }
 	bool AmIPtMin() const { return true; }

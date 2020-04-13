@@ -21,7 +21,7 @@ public:
 
 	BiCGStabSolverCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M, const LinearSolverParamsBase& params);
 	BiCGStabSolverCoarse(const std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M, const LinearSolverParamsBase& params);
-	  LinearSolverResults operator()(CoarseSpinor& out, const CoarseSpinor& in, ResiduumType resid_type = RELATIVE ) const;
+	  std::vector<LinearSolverResults> operator()(CoarseSpinor& out, const CoarseSpinor& in, ResiduumType resid_type = RELATIVE ) const;
 
  private:
 	  const LinearOperator<CoarseSpinor,CoarseGauge>& _M;

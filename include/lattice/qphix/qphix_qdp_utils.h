@@ -10,16 +10,16 @@ namespace MG {
 
 
   void
-  QDPSpinorToQPhiXSpinor( const QDP::LatticeFermion& qdp_in, QPhiXSpinor& qphix_out, const CBSubset& subset = SUBSET_ALL);
+  QDPSpinorToQPhiXSpinor( const QDP::LatticeFermion& qdp_in, QPhiXSpinor& qphix_out, IndexType col, const CBSubset& subset = SUBSET_ALL);
 
   void
-   QDPSpinorToQPhiXSpinor( const QDP::LatticeFermion& qdp_in, QPhiXSpinorF& qphix_out, const CBSubset& subset = SUBSET_ALL);
+   QDPSpinorToQPhiXSpinor( const QDP::LatticeFermion& qdp_in, QPhiXSpinorF& qphix_out, IndexType col, const CBSubset& subset = SUBSET_ALL);
 
   void
-  QPhiXSpinorToQDPSpinor( const QPhiXSpinor& qphix_in, QDP::LatticeFermion& qdp_out, const CBSubset& subset = SUBSET_ALL);
+  QPhiXSpinorToQDPSpinor( const QPhiXSpinor& qphix_in, IndexType col, QDP::LatticeFermion& qdp_out, const CBSubset& subset = SUBSET_ALL);
 
   void
-    QPhiXSpinorToQDPSpinor( const QPhiXSpinorF& qphix_in, QDP::LatticeFermion& qdp_out, const CBSubset& subset = SUBSET_ALL);
+    QPhiXSpinorToQDPSpinor( const QPhiXSpinorF& qphix_in, IndexType col, QDP::LatticeFermion& qdp_out, const CBSubset& subset = SUBSET_ALL);
 
   void
   QDPGaugeFieldToQPhiXGauge( const QDP::multi1d<QDP::LatticeColorMatrix>& qdp_u, QPhiXGauge& qphix_out);

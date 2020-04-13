@@ -8,6 +8,8 @@
 #ifndef INCLUDE_LATTICE_SOLVER_H_
 #define INCLUDE_LATTICE_SOLVER_H_
 
+#include <vector>
+
 namespace MG {
 	enum ResiduumType { ABSOLUTE, RELATIVE, INVALID};
 
@@ -20,7 +22,7 @@ namespace MG {
 	template<typename Spinor, typename Gauge>
 	class LinearSolver {
 	public:
-		virtual LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const=0;
+		virtual std::vector<LinearSolverResults> operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const=0;
 		virtual ~LinearSolver(){}
 	};
 
@@ -37,8 +39,8 @@ namespace MG {
 		virtual Spinor& GetTmpSpinorIn() const = 0;
 		virtual Spinor& GetTmpSpinorOut() const = 0;
 
-		LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE) const override {
-			LinearSolverResults ret_val;
+		std::vector<LinearSolverResults> operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE) const override {
+			std::vector<LinearSolverResults> ret_val;
 			Spinor& tmp_src = GetTmpSpinorIn();
 			Spinor& tmp_out = GetTmpSpinorOut();
 

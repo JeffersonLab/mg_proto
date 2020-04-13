@@ -236,9 +236,10 @@ InvBiCGStab_a(const LinearOperator<Spinor,Gauge>& A,
   return ret;
 }
 
-LinearSolverResults
+std::vector<LinearSolverResults>
 BiCGStabSolverQDPXX::operator()(Spinor& out, const Spinor& in, ResiduumType resid_type  ) const {
-		  return  InvBiCGStab_a(_M, in, out, _params.RsdTarget, _params.MaxIter, LINOP_OP, resid_type, _params.VerboseP ) ;
+		  return std::vector<LinearSolverResults>(1,
+			InvBiCGStab_a(_M, in, out, _params.RsdTarget, _params.MaxIter, LINOP_OP, resid_type, _params.VerboseP ));
 
 	  }
 

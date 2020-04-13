@@ -103,7 +103,7 @@ public:
 
     using GeomT = QPhiXGeomT<FT>;
 
-    QPhiXSpinorT(const LatticeInfo& info) : _info(info)
+    QPhiXSpinorT(const LatticeInfo& info, IndexType ncol=1) : _info(info)
     {
       if( ! MGQPhiX::IsGeomInitialized() ) {
         MGQPhiX::InitializeGeom(info);
@@ -111,29 +111,32 @@ public:
       else {
         // check the info?
       }
-      _data.reset(new QPhiXFullSpinorT<FT>(MGQPhiX::GetGeom<FT>()));
+      for (IndexType col=0; col<ncol; ++col)
+        _data.emplace_back(new QPhiXFullSpinorT<FT>(MGQPhiX::GetGeom<FT>()));
     }
 
     ~QPhiXSpinorT() {}
 
+    inline IndexType GetNCol() const { return _data.size(); }
+
     inline
-    QPhiXFullSpinorT<FT>& get() {
-       return *_data;
+    QPhiXFullSpinorT<FT>& get(IndexType col) {
+       return *_data[col];
     }
 
     inline
-    const QPhiXFullSpinorT<FT>& get() const {
-      return *_data;
+    const QPhiXFullSpinorT<FT>& get(IndexType col) const {
+      return *_data[col];
     }
 
     inline
-    QPhiXCBSpinorT<FT>& getCB(int cb) {
-      return _data->getCB(cb);
+    QPhiXCBSpinorT<FT>& getCB(IndexType col, int cb) {
+      return _data[col]->getCB(cb);
     }
 
     inline
-    const QPhiXCBSpinorT<FT>& getCB(int cb) const {
-      return _data->getCB(cb);
+    const QPhiXCBSpinorT<FT>& getCB(IndexType col, int cb) const {
+      return _data[col]->getCB(cb);
     }
 
     inline
@@ -152,26 +155,26 @@ public:
     }
 
     inline
-    FT& operator()(int cb, int site, int spin, int color, int cmpx)
+    FT& operator()(int col, int cb, int site, int spin, int color, int cmpx)
     {
       int osite = site / QPHIX_SOALEN;
       int isite = site % QPHIX_SOALEN;
 
-      return (_data.get()->getCBData(cb))[osite][color][spin][cmpx][isite];
+      return (_data[col].get()->getCBData(cb))[osite][color][spin][cmpx][isite];
     }
 
     inline
-    const FT& operator()(int cb, int site, int spin, int color, int cmpx) const
+    const FT& operator()(int col, int cb, int site, int spin, int color, int cmpx) const
      {
        int osite = site / QPHIX_SOALEN;
        int isite = site % QPHIX_SOALEN;
 
-       return (_data.get()->getCBData(cb))[osite][color][spin][cmpx][isite];
+       return (_data[col].get()->getCBData(cb))[osite][color][spin][cmpx][isite];
      }
 private:
     const LatticeInfo& _info;
 
-    std::unique_ptr<QPhiXFullSpinorT<FT>> _data;
+    std::vector<std::unique_ptr<QPhiXFullSpinorT<FT>>> _data;
 };
 
 using QPhiXSpinor = QPhiXSpinorT<double>;

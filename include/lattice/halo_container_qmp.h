@@ -25,8 +25,17 @@ template<typename T>
 class HaloContainer {
 public:
 	HaloContainer(const LatticeInfo& info) : _latt_info(info),
-	_node_info(info.GetNodeInfo()), _datatype_size(haloDatumSize<T>(info))
+	_node_info(info.GetNodeInfo()), _datatype_size(haloDatumSize<T>(info)),
+	_n_cols(0)
 	{
+		create(1);
+	}
+
+	~HaloContainer() { destroy(); }
+
+private:
+	void create(IndexType n_cols) {
+		_n_cols = n_col;
 		MasterLog(INFO, "Creating HaloCB");
 		const IndexArray& latt_size = _latt_info.GetLatticeDimensions();
 
@@ -60,7 +69,7 @@ public:
 		// Count faces in the non-local-dims
 		for(int mu=0; mu < n_dim; ++mu) {
 			if( ! _local_dir[mu] ) {
-				_face_in_bytes[mu] = _n_face_dir[mu]*_datatype_size*sizeof(float);
+				_face_in_bytes[mu] = _n_face_dir[mu]*_datatype_size*n_col*sizeof(float);
 			}
 			else {
 				_face_in_bytes[mu] = 0; // Local
@@ -165,8 +174,8 @@ public:
 
 	}// Function
 
-	~HaloContainer()
-	{
+	void destroy() {
+		_n_cols = 0;
 
 		// Free the combined
 		if( _mh_send_all ) QMP_free_msghandle( _mh_send_all ); _mh_send_all=nullptr;
@@ -214,6 +223,17 @@ public:
 		}
 	}
 
+public:
+
+	void setNCols(IndexType n_cols) {
+#pragma omp master
+		{
+			if (_n_cols == n_cols) return;
+			destroy();
+			create(n_cols);
+		}
+#pragma omp barrier
+	}
 
 	bool
 	LocalDir(int d) const {
@@ -328,7 +348,7 @@ public:
 	inline
 	const size_t& GetDataTypeSize() const
 	{
-		return _datatype_size;
+		return _datatype_size*_n_cols;
 
 	}
 
@@ -344,26 +364,26 @@ private:
 	float* _send_to_dir[8]; // Send buffers. SP for now
 	float* _recv_from_dir[8]; // Receive buffers
 
-    QMP_msgmem_t _msgmem_send_to_dir[8];
-    QMP_msgmem_t _msgmem_recv_from_dir[8];
-    QMP_msghandle_t _mh_send_to_dir[8];
-    QMP_msghandle_t _mh_recv_from_dir[8];
+	QMP_msgmem_t _msgmem_send_to_dir[8];
+	QMP_msgmem_t _msgmem_recv_from_dir[8];
+	QMP_msghandle_t _mh_send_to_dir[8];
+	QMP_msghandle_t _mh_recv_from_dir[8];
 
-    QMP_msghandle_t _mh_recv_all_dir[8];
-    QMP_msghandle_t _mh_send_all_dir[8];
+	QMP_msghandle_t _mh_recv_all_dir[8];
+	QMP_msghandle_t _mh_send_all_dir[8];
 
-    QMP_msghandle_t _mh_send_all;
-    QMP_msghandle_t _mh_recv_all;
-
-
-
-    int _num_nonlocal_dir;
-    int _nonlocal_dir[4];
-
-    bool _am_i_pt_min;
-    bool _am_i_pt_max;
+	QMP_msghandle_t _mh_send_all;
+	QMP_msghandle_t _mh_recv_all;
 
 
+
+	int _num_nonlocal_dir;
+	int _nonlocal_dir[4];
+
+	bool _am_i_pt_min;
+	bool _am_i_pt_max;
+
+	IndexType _n_cols;
 
 
 }; // Halo class

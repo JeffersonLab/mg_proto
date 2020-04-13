@@ -5,6 +5,8 @@
  *      Author: bjoo
  */
 #include <complex>
+#include <cassert>
+#include <algorithm>
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/coarse_l1_blas.h"
@@ -35,6 +37,14 @@ void GlobalSum( double* array, int array_length ) {
 	QMP_sum_double_array(array,array_length);
 	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
 }
+void GlobalSum( std::vector<double>& array ) {
+	QMP_sum_double_array(&array[0],array.size());
+	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
+}
+void GlobalSum( std::vector<std::complex<double>>& array ) {
+	QMP_sum_double_array(&array[0],array.size()*2);
+	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
+}
 #else
 void GlobalSum( double& my_summand )
 {
@@ -45,9 +55,24 @@ void GlobalSum( double* array, int array_length ) {
 	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
 }
 
+void GlobalSum( std::vector<double>& array ) {
+	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
+}
+
+void GlobalSum( std::vector<std::complex<double>>& array ) {
+	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
+}
 #endif
 
 }
+
+#pragma omp declare reduction(vec_double_plus : std::vector<double> : \
+			std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<double>())) \
+			initializer(omp_priv = decltype(omp_orig)(omp_orig.size()))
+
+#pragma omp declare reduction(vec_cdouble_plus : std::vector<std::complex<double>> : \
+			std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<std::complex<double>>())) \
+			initializer(omp_priv = decltype(omp_orig)(omp_orig.size()))
 
 
 /** Performs:
@@ -61,43 +86,42 @@ void GlobalSum( double* array, int array_length ) {
  * @return   double containing the square norm of the difference
  *
  */
-double XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
+std::vector<double> XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
 {
-	double norm_diff = (double)0;
-
 	const LatticeInfo& x_info = x.GetInfo();
-
-
 	const LatticeInfo& y_info = y.GetInfo();
 	AssertCompatible(x_info, y_info);
 
-
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
+
+	std::vector<double> norm_diff(ncol);
 
 	// Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(2) reduction(+:norm_diff)
+#pragma omp parallel for collapse(3) reduction(vec_double_plus:norm_diff) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
+				// Identify the site and the column
+				float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				const float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
 
-			// Identify the site
-			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-			const float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
-
-			// Sum difference over the colorspins
-			double cspin_sum=0;
+				// Sum difference over the colorspins
+				double cspin_sum=0;
 #pragma omp simd reduction(+:cspin_sum)
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
-				double diff_re = x_site_data[ RE + n_complex*cspin ] - y_site_data[ RE + n_complex*cspin ];
-				double diff_im = x_site_data[ IM + n_complex*cspin ] - y_site_data[ IM + n_complex*cspin ];
-				x_site_data[RE + n_complex * cspin] = diff_re;
-				x_site_data[IM + n_complex * cspin] = diff_im;
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
+					float diff_re = x_site_data[ RE + n_complex*cspin ] - y_site_data[ RE + n_complex*cspin ];
+					float diff_im = x_site_data[ IM + n_complex*cspin ] - y_site_data[ IM + n_complex*cspin ];
+					x_site_data[RE + n_complex * cspin] = diff_re;
+					x_site_data[IM + n_complex * cspin] = diff_im;
 
-				cspin_sum += diff_re*diff_re + diff_im*diff_im;
+					cspin_sum += diff_re*diff_re + diff_im*diff_im;
 
+				}
+				norm_diff[col] += cspin_sum;
 			}
-			norm_diff += cspin_sum;
 		}
 	} // End of Parallel for reduction
 
@@ -115,36 +139,38 @@ double XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subse
  * @return   double containing the square norm of the difference
  *
  */
-double Norm2Vec(const CoarseSpinor& x, const CBSubset& subset)
+std::vector<double> Norm2Vec(const CoarseSpinor& x, const CBSubset& subset)
 {
-	double norm_sq = (double)0;
+	std::vector<double> norm_sq(x.GetNCol());
 
 	const LatticeInfo& x_info = x.GetInfo();
 
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
 
 	// Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(2) reduction(+:norm_sq)
+#pragma omp parallel for collapse(3) reduction(vec_double_plus:norm_diff) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
+				// Identify the site and the column
+				const float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
 
-			// Identify the site
-			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-
-			// Sum difference over the colorspins
-			double cspin_sum = 0;
+				// Sum difference over the colorspins
+				double cspin_sum = 0;
 #pragma omp simd reduction(+:cspin_sum)
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
-				double x_re = x_site_data[ RE + n_complex*cspin ];
-				double x_im = x_site_data[ IM + n_complex*cspin ];
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
+					float x_re = x_site_data[ RE + n_complex*cspin ];
+					float x_im = x_site_data[ IM + n_complex*cspin ];
 
-				cspin_sum += x_re*x_re + x_im*x_im;
+					cspin_sum += x_re*x_re + x_im*x_im;
 
+				}
+				norm_sq[col] += cspin_sum;
 			}
-			norm_sq += cspin_sum;
 		}
 	} // End of Parallel for reduction
 
@@ -160,8 +186,8 @@ double Norm2Vec(const CoarseSpinor& x, const CBSubset& subset)
  * @return   double containing the square norm of the difference
  *
  */
-std::complex<double> InnerProductVec(const CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
-		{
+std::vector<std::complex<double>> InnerProductVec(const CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
+{
 
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
@@ -169,48 +195,46 @@ std::complex<double> InnerProductVec(const CoarseSpinor& x, const CoarseSpinor& 
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
 
-	double iprod_re=(double)0;
-	double iprod_im=(double)0;
+	std::vector<std::complex<double>> ipprod(ncol);
 
 	// Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(2) reduction(+:iprod_re) reduction(+:iprod_im)
+#pragma omp parallel for collapse(3) reduction(vec_cdouble_plus:ipprod) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
 
-			// Identify the site
-			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-			const float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
+				// Identify the site and the column
+				const float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				const float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
 
-			// Sum difference over the colorspins
+				// Sum difference over the colorspins
 
-			double cspin_iprod_re=0;
-			double cspin_iprod_im=0;
+				double cspin_iprod_re=0;
+				double cspin_iprod_im=0;
 #pragma omp simd reduction(+:cspin_iprod_re,cspin_iprod_im)
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
-				cspin_iprod_re += x_site_data[ RE + n_complex*cspin ]*y_site_data[ RE + n_complex*cspin ]
+					cspin_iprod_re += x_site_data[ RE + n_complex*cspin ]*y_site_data[ RE + n_complex*cspin ]
 																				   + x_site_data[ IM + n_complex*cspin ]*y_site_data[ IM + n_complex*cspin ];
 
-				cspin_iprod_im += x_site_data[ RE + n_complex*cspin ]*y_site_data[ IM + n_complex*cspin ]
+					cspin_iprod_im += x_site_data[ RE + n_complex*cspin ]*y_site_data[ IM + n_complex*cspin ]
 																				   - x_site_data[ IM + n_complex*cspin ]*y_site_data[ RE + n_complex*cspin ];
 
 
+				}
+				ipprod[col] += std::complex<double>(cspin_iprod_re, cspin_iprod_im);
 			}
-			iprod_re += cspin_iprod_re;
-			iprod_im += cspin_iprod_im;
 		}
 	} // End of Parallel for reduction
 
 	// Global Reduce
-	double iprod_array[2] = { iprod_re, iprod_im };
-	MG::GlobalComm::GlobalSum(iprod_array,2);
+	MG::GlobalComm::GlobalSum(ipprod);
 
-	std::complex<double> ret_val(iprod_array[0],iprod_array[1]);
-
-	return ret_val;
-		}
+	return ipprod;
+}
 
 
 void ZeroVec(CoarseSpinor& x, const CBSubset& subset)
@@ -220,21 +244,24 @@ void ZeroVec(CoarseSpinor& x, const CBSubset& subset)
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
-#pragma omp parallel for collapse(2)
+	IndexType ncol = x.GetNCol();
+
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
+				// Identify the site and the column
+				float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
 
-			// Identify the site
-			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-
-			// Sum difference over the colorspins
+				// Set zeros over the colorspins
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
-				x_site_data[RE + n_complex*cspin] = 0;
-				x_site_data[IM + n_complex*cspin] = 0;
+					x_site_data[RE + n_complex*cspin] = 0;
+					x_site_data[IM + n_complex*cspin] = 0;
 
+				}
 			}
 
 		}
@@ -247,32 +274,34 @@ void ZeroVec(CoarseSpinor& x, const CBSubset& subset)
 void CopyVec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
 {
 
-
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
 	AssertCompatible(x_info, y_info);
 
-
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
-#pragma omp parallel for collapse(2)
+	IndexType ncol = x.GetNCol();
+
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
 
-			// Identify the site
-			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-			const float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
+				// Identify the site and the column
+				float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				const float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
 
-			// Sum difference over the colorspins
+				// Do copies over the colorspins
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
-				x_site_data[RE + n_complex*cspin] = y_site_data[RE + n_complex*cspin];
-				x_site_data[IM + n_complex*cspin] = y_site_data[IM + n_complex*cspin];
+					x_site_data[RE + n_complex*cspin] = y_site_data[RE + n_complex*cspin];
+					x_site_data[IM + n_complex*cspin] = y_site_data[IM + n_complex*cspin];
+
+				}
 
 			}
-
 		}
 	} // End of Parallel for region
 
@@ -280,37 +309,41 @@ void CopyVec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
 
 
 
-void ScaleVec(const float alpha, CoarseSpinor& x, const CBSubset& subset)
+void ScaleVec(const std::vector<float>& alpha, CoarseSpinor& x, const CBSubset& subset)
 {
 
-
+	assert(alpha.size() == x.GetNCol());
 	const LatticeInfo& x_info = x.GetInfo();
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
 
-			// Identify the site
-			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
+				// Identify the site and the column
+				float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				float alpha_col = alpha[col];
 
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
-				x_site_data[RE + n_complex*cspin] *= alpha;
-				x_site_data[IM + n_complex*cspin] *= alpha;
+					x_site_data[RE + n_complex*cspin] *= alpha_col;
+					x_site_data[IM + n_complex*cspin] *= alpha_col;
+				}
+
 			}
-
 		}
 	} // End of Parallel for region
 
 }
 
 
-void ScaleVec(const std::complex<float>& alpha, CoarseSpinor& x, const CBSubset& subset)
+void ScaleVec(const std::vector<std::complex<float>>& alpha, CoarseSpinor& x, const CBSubset& subset)
 {
 
 
@@ -318,31 +351,36 @@ void ScaleVec(const std::complex<float>& alpha, CoarseSpinor& x, const CBSubset&
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
-#pragma omp parallel for collapse(2)
+	IndexType ncol = x.GetNCol();
+
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
 
-			// Identify the site
-			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
+				// Identify the site and the column
+				float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				std::complex<float> alpha_col = alpha[col];
 
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
-				std::complex<float> t( x_site_data[RE + n_complex*cspin],
-						x_site_data[IM + n_complex*cspin]);
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
+					std::complex<float> t( x_site_data[RE + n_complex*cspin],
+							x_site_data[IM + n_complex*cspin]);
 
-				t *= alpha;
-				x_site_data[RE + n_complex*cspin] = std::real(t);
-				x_site_data[IM + n_complex*cspin] = imag(t);
+					t *= alpha_col;
+					x_site_data[RE + n_complex*cspin] = std::real(t);
+					x_site_data[IM + n_complex*cspin] = std::imag(t);
+				}
+
 			}
-
 		}
 	} // End of Parallel for reduction
 
 }
 
 
-void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
+void AxpyVec(const std::vector<std::complex<float>>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
 {
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
@@ -351,33 +389,36 @@ void AxpyVec(const std::complex<float>& alpha, const CoarseSpinor& x, CoarseSpin
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
 
+				// Identify the site and the column
+				const float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
+				std::complex<float> alpha_col = alpha[col];
 
-			// Identify the site
-			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-			float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
-
-			// Sum difference over the colorspins
+				// Do axpy over the colorspins
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
-				std::complex<float> c_x( x_site_data[RE + n_complex*cspin],
-						x_site_data[IM + n_complex*cspin]);
+					std::complex<float> c_x( x_site_data[RE + n_complex*cspin],
+							x_site_data[IM + n_complex*cspin]);
 
-				std::complex<float> c_y( y_site_data[RE + n_complex*cspin],
-						y_site_data[IM + n_complex*cspin]);
+					std::complex<float> c_y( y_site_data[RE + n_complex*cspin],
+							y_site_data[IM + n_complex*cspin]);
 
 
-				c_y += alpha*c_x;
+					c_y += alpha_col*c_x;
 
-				y_site_data[ RE + n_complex*cspin] = std::real(c_y);
-				y_site_data[ IM + n_complex*cspin] = imag(c_y);
+					y_site_data[ RE + n_complex*cspin] = std::real(c_y);
+					y_site_data[ IM + n_complex*cspin] = std::imag(c_y);
+				}
 
 			}
 
@@ -392,28 +433,26 @@ void YpeqxVec(const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
 	const LatticeInfo& y_info = y.GetInfo();
 	AssertCompatible(x_info, y_info);
 
-
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
+				// Identify the site and the column
+				const float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
 
-
-			// Identify the site
-			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-			float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
-
-			// Sum difference over the colorspins
+				// Do over the colorspins
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
-
-
-				y_site_data[ RE + n_complex*cspin] += x_site_data[ RE + n_complex*cspin ];
-				y_site_data[ IM + n_complex*cspin] += x_site_data[ IM + n_complex*cspin ];
+					y_site_data[ RE + n_complex*cspin] += x_site_data[ RE + n_complex*cspin ];
+					y_site_data[ IM + n_complex*cspin] += x_site_data[ IM + n_complex*cspin ];
+				}
 
 			}
 
@@ -427,28 +466,26 @@ void YmeqxVec(const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
 	const LatticeInfo& y_info = y.GetInfo();
 	AssertCompatible(x_info, y_info);
 
-
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
+				// Identify the site and the column
+				const float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
 
-
-			// Identify the site
-			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-			float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
-
-			// Sum difference over the colorspins
+				// Do over the colorspins
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
-
-
-				y_site_data[ RE + n_complex*cspin] -= x_site_data[ RE + n_complex*cspin ];
-				y_site_data[ IM + n_complex*cspin] -= x_site_data[ IM + n_complex*cspin ];
+					y_site_data[ RE + n_complex*cspin] -= x_site_data[ RE + n_complex*cspin ];
+					y_site_data[ IM + n_complex*cspin] -= x_site_data[ IM + n_complex*cspin ];
+				}
 
 			}
 
@@ -457,9 +494,9 @@ void YmeqxVec(const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
 }
 
 
-void BiCGStabPUpdate(const std::complex<float>& beta,
+void BiCGStabPUpdate(const std::vector<std::complex<float>>& beta,
 		const CoarseSpinor& r,
-		const std::complex<float>& omega,
+		const std::vector<std::complex<float>>& omega,
 		const CoarseSpinor& v,
 		CoarseSpinor& p,
 		const CBSubset& subset)
@@ -473,37 +510,40 @@ void BiCGStabPUpdate(const std::complex<float>& beta,
 
 	IndexType num_cbsites = p_info.GetNumCBSites();
 	IndexType num_colorspin = p.GetNumColorSpin();
+	IndexType ncol = r.GetNCol();
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
+				// Identify the site and the column
+				const float* r_site_data = r.GetSiteDataPtr(col,cb,cbsite);
+				const float* v_site_data = v.GetSiteDataPtr(col,cb,cbsite);
+				float* p_site_data = p.GetSiteDataPtr(col,cb,cbsite);
+				std::complex<float> beta_col = beta[col];
+				std::complex<float> omega_col = omega[col];
 
-
-			// Identify the site
-			const float* r_site_data = r.GetSiteDataPtr(cb,cbsite);
-			const float* v_site_data = v.GetSiteDataPtr(cb,cbsite);
-			float* p_site_data = p.GetSiteDataPtr(cb,cbsite);
-
-			// Sum difference over the colorspins
+				// Sum difference over the colorspins
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
-				const std::complex<float> c_p( p_site_data[RE + n_complex*cspin],
-						p_site_data[IM + n_complex*cspin]);
+					const std::complex<float> c_p( p_site_data[RE + n_complex*cspin],
+							p_site_data[IM + n_complex*cspin]);
 
-				const std::complex<float> c_r( r_site_data[RE + n_complex*cspin],
-						r_site_data[IM + n_complex*cspin]);
+					const std::complex<float> c_r( r_site_data[RE + n_complex*cspin],
+							r_site_data[IM + n_complex*cspin]);
 
-				const std::complex<float> c_v( v_site_data[RE + n_complex*cspin],
-						v_site_data[IM + n_complex*cspin]);
+					const std::complex<float> c_v( v_site_data[RE + n_complex*cspin],
+							v_site_data[IM + n_complex*cspin]);
 
 
-				std::complex<float> res = c_r + beta*(c_p - omega*c_v);
+					std::complex<float> res = c_r + beta_col*(c_p - omega_col*c_v);
 
-				p_site_data[ RE + n_complex*cspin] = res.real();
-				p_site_data[ IM + n_complex*cspin] = res.imag();
+					p_site_data[ RE + n_complex*cspin] = res.real();
+					p_site_data[ IM + n_complex*cspin] = res.imag();
+				}
 
 			}
 
@@ -514,9 +554,9 @@ void BiCGStabPUpdate(const std::complex<float>& beta,
 
 
 
-void BiCGStabXUpdate(const std::complex<float>& omega,
+void BiCGStabXUpdate(const std::vector<std::complex<float>>& omega,
 		const CoarseSpinor& r,
-		const std::complex<float>& alpha,
+		const std::vector<std::complex<float>>& alpha,
 		const CoarseSpinor& p,
 		CoarseSpinor& x,
 		const CBSubset& subset)
@@ -530,34 +570,37 @@ void BiCGStabXUpdate(const std::complex<float>& omega,
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
+
+				// Identify the site and the column
+				const float* r_site_data = r.GetSiteDataPtr(col,cb,cbsite);
+				const float* p_site_data = p.GetSiteDataPtr(col,cb,cbsite);
+				float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				std::complex<float> alpha_col = alpha[col];
+				std::complex<float> omega_col = omega[col];
 
 
-
-			// Identify the site
-			const float* r_site_data = r.GetSiteDataPtr(cb,cbsite);
-			const float* p_site_data = p.GetSiteDataPtr(cb,cbsite);
-			float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-
-			// Sum difference over the colorspins
+				// Do over the colorspins
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
-				const std::complex<float> c_p( p_site_data[RE + n_complex*cspin],
-						p_site_data[IM + n_complex*cspin]);
+					const std::complex<float> c_p( p_site_data[RE + n_complex*cspin],
+							p_site_data[IM + n_complex*cspin]);
 
-				const std::complex<float> c_r( r_site_data[RE + n_complex*cspin],
-						r_site_data[IM + n_complex*cspin]);
+					const std::complex<float> c_r( r_site_data[RE + n_complex*cspin],
+							r_site_data[IM + n_complex*cspin]);
 
-				const std::complex<float> res =  omega*c_r + alpha*c_p;
+					const std::complex<float> res =  omega_col*c_r + alpha_col*c_p;
 
-				x_site_data[ RE + n_complex*cspin] += res.real();
-				x_site_data[ IM + n_complex*cspin] += res.imag();
-
+					x_site_data[ RE + n_complex*cspin] += res.real();
+					x_site_data[ IM + n_complex*cspin] += res.imag();
+				}
 			}
 
 		}
@@ -569,8 +612,7 @@ void BiCGStabXUpdate(const std::complex<float>& omega,
 
 
 
-
-void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y, const CBSubset& subset) {
+void AxpyVec(const std::vector<float>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset) {
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
 	AssertCompatible(x_info, y_info);
@@ -578,24 +620,28 @@ void AxpyVec(const float& alpha, const CoarseSpinor&x, CoarseSpinor& y, const CB
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
 
+				// Identify the site and the column
+				const float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
+				float alpha_col = alpha[col];
 
-			// Identify the site
-			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-			float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
-
-			// Sum difference over the colorspins
+				// Do axpy over the colorspins
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
-				y_site_data[ RE + n_complex*cspin] += alpha*x_site_data[ RE + n_complex*cspin];
-				y_site_data[ IM + n_complex*cspin] += alpha*x_site_data[ IM + n_complex*cspin];
+					y_site_data[ RE + n_complex*cspin] += alpha_col*x_site_data[ RE + n_complex*cspin];
+					y_site_data[ IM + n_complex*cspin] += alpha_col*x_site_data[ IM + n_complex*cspin];
+
+				}
 
 			}
 
@@ -616,28 +662,29 @@ void XmyzVec(const CoarseSpinor&x, const CoarseSpinor& y,
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
 
+				// Identify the site and the column
+				const float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+				const float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
+				float* z_site_data = z.GetSiteDataPtr(col,cb,cbsite);
 
-
-			// Identify the site
-			const float* x_site_data = x.GetSiteDataPtr(cb,cbsite);
-			const float* y_site_data = y.GetSiteDataPtr(cb,cbsite);
-			float* z_site_data = z.GetSiteDataPtr(cb,cbsite);
-
-			// Sum difference over the colorspins
+				// Do over the colorspins
 #pragma omp simd
-			for(int cspin=0; cspin < num_colorspin; ++cspin) {
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
 
 
-				z_site_data[ RE + n_complex*cspin] = x_site_data[ RE + n_complex*cspin] - y_site_data[ RE + n_complex * cspin];
-				z_site_data[ IM + n_complex*cspin] = x_site_data[ IM + n_complex*cspin] - y_site_data[ IM + n_complex * cspin];
+					z_site_data[ RE + n_complex*cspin] = x_site_data[ RE + n_complex*cspin] - y_site_data[ RE + n_complex * cspin];
+					z_site_data[ IM + n_complex*cspin] = x_site_data[ IM + n_complex*cspin] - y_site_data[ IM + n_complex * cspin];
+
+				}
 
 			}
-
 		}
 	} // End of Parallel for region
 }
@@ -650,6 +697,7 @@ void Gaussian(CoarseSpinor& x, const CBSubset& subset)
 	const LatticeInfo& info = x.GetInfo();
 	const IndexType num_colorspin = info.GetNumColors()*info.GetNumSpins();
 	const IndexType num_cbsites = info.GetNumCBSites();
+	const IndexType ncol = x.GetNCol();
 
 	/* FIXME: This is quick and dirty and nonreproducible. A better source of random
 	 * numbers which is reproducible, and can scale with the number of sites in the
@@ -666,19 +714,21 @@ void Gaussian(CoarseSpinor& x, const CBSubset& subset)
 		// A normal distribution centred on 0, with width 1
 		std::normal_distribution<> normal_dist(0.0,1.0);
 
-#pragma omp for collapse(2)
+#pragma omp parallel for collapse(3) schedule(static)
 		for(int cb=subset.start; cb < subset.end; ++cb) {
 			for(int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
+				for(int col = 0; col < ncol; ++col ) {
 
-				float *x_site_data = x.GetSiteDataPtr(cb,cbsite);
+					float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
 
-				for(int cspin=0; cspin < num_colorspin; ++cspin)  {
+					for(int cspin=0; cspin < num_colorspin; ++cspin)  {
 
-					// Using the Twister Engine, draw from the normal distribution
-					x_site_data[ RE + n_complex*cspin ] = normal_dist( twister_engine );
-					x_site_data[ IM + n_complex*cspin ] = normal_dist( twister_engine );
+						// Using the Twister Engine, draw from the normal distribution
+						x_site_data[ RE + n_complex*cspin ] = normal_dist( twister_engine );
+						x_site_data[ IM + n_complex*cspin ] = normal_dist( twister_engine );
+					}
+
 				}
-
 			}
 		}
 
