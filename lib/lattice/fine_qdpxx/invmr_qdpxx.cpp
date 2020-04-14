@@ -257,10 +257,10 @@ namespace MG  {
 									const MG::LinearSolverParamsBase& params) : _M(M),
 	  _params(static_cast<const MRSolverParams&>(params)){}
 
-	  LinearSolverResults
+	  std::vector<LinearSolverResults>
 	  MRSolverQDPXX::operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in, ResiduumType resid_type) const {
-		  return  InvMR_a(_M, in, out, Real(_params.Omega), Real(_params.RsdTarget),
-				  _params.MaxIter, LINOP_OP, resid_type, _params.VerboseP , true);
+		  return  std::vector<LinearSolverResults>(1, InvMR_a(_M, in, out, Real(_params.Omega), Real(_params.RsdTarget),
+				  _params.MaxIter, LINOP_OP, resid_type, _params.VerboseP , true));
 
 	  }
 

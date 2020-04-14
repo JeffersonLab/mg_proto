@@ -38,7 +38,7 @@ public:
   using CBSpinor = QPhiXCBSpinorT<FT>;
 
   QPhiXWilsonCloverEOLinearOperatorT( const LatticeInfo& info, double m_q, double c_sw, int t_bc, const QDPGauge& gauge_in ) :
-    _info(info), _t_bc(t_bc),_u(info), _clov(info), _tmp1(info)
+    _info(info), _t_bc(t_bc),_u(info), _clov(info)
   {
     // The QPhiX Operator takes unmodified fields.
      QDPGaugeFieldToQPhiXGauge(gauge_in, _u);
@@ -84,7 +84,7 @@ public:
   }
 
   QPhiXWilsonCloverEOLinearOperatorT(const LatticeInfo& info, double m_q, double u0, double xi0, double nu, double c_sw_r, double c_sw_t,
-      int t_bc, const QDPGauge& gauge_in ) : _info(info),_t_bc(t_bc),_u(info), _clov(info),  _tmp1(info)
+      int t_bc, const QDPGauge& gauge_in ) : _info(info),_t_bc(t_bc),_u(info), _clov(info)
   {
 
     // The QPhiX Operator takes unmodified fields.
@@ -154,13 +154,19 @@ public:
   // The predoncidioned operator
   void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override{
     int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->operator()(out.getCB(ODD).get(),in.getCB(ODD).get(),isign,ODD);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->operator()(out.getCB(col,ODD).get(),in.getCB(col,ODD).get(),isign,ODD);
   }
 
   // The unpreconditioned operator
   void unprecOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override {
-	int isign = (type == LINOP_OP) ? 1 : -1;
-	QPhiXEOClov->M_unprec(out.get(),in.get(),isign);
+    int isign = (type == LINOP_OP) ? 1 : -1;
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_unprec(out.get(col),in.get(col),isign);
   }
 
 
@@ -168,13 +174,16 @@ public:
 
   	  // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
   	  const int isign = 1;
-  	  QPhiXEOClov->M_diag_inv(_tmp1.getCB(EVEN).get(), in.getCB(EVEN).get(), isign);
+      assert(out.GetNCol() == in.GetNCol());
+      IndexType ncol = out.GetNCol();
+      for (int col=0; col < ncol; ++col) {
+        QPhiXEOClov->M_diag_inv(tmp(ncol).getCB(col,EVEN).get(), in.getCB(col,EVEN).get(), isign);
 
-  	  // tmp2 = M_oe M tmp1 = M_oe M_ee^{-1} in
-  	  QPhiXEOClov->M_offdiag(_tmp1.getCB(ODD).get() ,_tmp1.getCB(EVEN).get(), isign, ODD);
-
+        // tmp2 = M_oe M tmp1 = M_oe M_ee^{-1} in
+        QPhiXEOClov->M_offdiag(tmp(ncol).getCB(col,ODD).get() ,tmp(ncol).getCB(col,EVEN).get(), isign, ODD);
+      }
   	  CopyVec(out, in,  SUBSET_ALL);
-  	  AxpyVec(1.0,_tmp1, out,SUBSET_ODD);
+      YpeqXVec(tmp(ncol), out,SUBSET_ODD);
 
     }
 
@@ -184,13 +193,17 @@ public:
 
 	  // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
 	  const int isign = 1;
-	  QPhiXEOClov->M_diag_inv(_tmp1.getCB(EVEN).get(), in.getCB(EVEN).get(), isign);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+	  for (int col=0; col < ncol; ++col){
+      QPhiXEOClov->M_diag_inv(tmp(ncol).getCB(col,EVEN).get(), in.getCB(col,EVEN).get(), isign);
 
-	  // tmp2 = M_oe M tmp1 = M_oe M_ee^{-1} in
-	  QPhiXEOClov->M_offdiag(_tmp1.getCB(ODD).get(), _tmp1.getCB(EVEN).get(), isign, ODD);
+      // tmp2 = M_oe M tmp1 = M_oe M_ee^{-1} in
+      QPhiXEOClov->M_offdiag(tmp(ncol).getCB(col,ODD).get(), tmp(ncol).getCB(col,EVEN).get(), isign, ODD);
+    }
 
 	  CopyVec(out, in, SUBSET_ALL);
-	  AxpyVec(-1.0,_tmp1,out,SUBSET_ODD);
+    YmeqXVec(tmp(ncol), out,SUBSET_ODD);
 
   }
 
@@ -212,16 +225,20 @@ public:
   void rightOp(Spinor& out, const Spinor& in) const override {
 
    	  const int isign = 1;
+      assert(out.GetNCol() == in.GetNCol());
+      IndexType ncol = out.GetNCol();
 
    	  // use odd cb of tmp1 as a temporary storage
    	  // it is not really the odd checkerboardl
-   	  QPhiXEOClov->M_offdiag(_tmp1.getCB(ODD).get(), in.getCB(ODD).get(), isign, EVEN);
+   	  for (int col=0; col < ncol; ++col) {
+        QPhiXEOClov->M_offdiag(tmp(ncol).getCB(col,ODD).get(), in.getCB(col,ODD).get(), isign, EVEN);
 
-   	  // we will go from the odd into the final target.
-   	  QPhiXEOClov->M_diag_inv(_tmp1.getCB(EVEN).get(), _tmp1.getCB(ODD).get(), isign);
+        // we will go from the odd into the final target.
+        QPhiXEOClov->M_diag_inv(tmp(ncol).getCB(col,EVEN).get(), tmp(ncol).getCB(col,ODD).get(), isign);
+      }
 
    	  CopyVec(out, in, SUBSET_ALL);
-   	  AxpyVec(1.0,_tmp1,out, SUBSET_EVEN);
+      YpeqXVec(tmp(ncol), out,SUBSET_ODD);
 
      }
 
@@ -229,33 +246,49 @@ public:
 
  	  // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
  	  const int isign = 1;
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
 
 
- 	 QPhiXEOClov->M_offdiag(_tmp1.getCB(ODD).get(), in.getCB(ODD).get(), isign, EVEN);
- 	 QPhiXEOClov->M_diag_inv(_tmp1.getCB(EVEN).get(), _tmp1.getCB(ODD).get(), isign);
+    for (int col=0; col < ncol; ++col){
+      QPhiXEOClov->M_offdiag(tmp(ncol).getCB(col,ODD).get(), in.getCB(col,ODD).get(), isign, EVEN);
+      QPhiXEOClov->M_diag_inv(tmp(ncol).getCB(col,EVEN).get(), tmp(ncol).getCB(col,ODD).get(), isign);
+    }
  	 CopyVec(out, in, SUBSET_ALL);
- 	 AxpyVec(-1.0,_tmp1,out, SUBSET_EVEN);
+   YmeqXVec(tmp(ncol), out,SUBSET_ODD);
 
 
    }
 
   void M_ee_inv(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const override{
       const int isign = (type == LINOP_OP) ? 1: -1;
-      QPhiXEOClov->M_diag_inv(out.getCB(EVEN).get(),in.getCB(EVEN).get(),isign);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_diag_inv(out.getCB(col,EVEN).get(),in.getCB(col,EVEN).get(),isign);
     }
 
   void M_diag(Spinor& out, const Spinor& in, int cb) const override {
-	  QPhiXEOClov->M_diag(out.get(),in.get(),1,cb);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_diag(out.get(col),in.get(col),1,cb);
   }
 
   void M_oo(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const  {
      int isign = (type == LINOP_OP) ? 1 : -1;
-     QPhiXEOClov->M_diag(out.get(),in.get(),isign,1);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_diag(out.get(col),in.get(col),isign,1);
    }
 
   void M_ee(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const{
       int isign = (type == LINOP_OP) ? 1 : -1;
-      QPhiXEOClov->M_diag(out.get(),in.get(),isign,0);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_diag(out.get(col),in.get(col),isign,0);
     }
   int GetLevel(void) const override {
     return 0;
@@ -274,8 +307,10 @@ public:
   void DslashDir(Spinor& spinor_out,
         const Spinor& spinor_in,
         const IndexType dir) const {
-
-    QPhiXEOClov->DslashDir(spinor_out.get(),spinor_in.get(),dir);
+    assert(spinor_out.GetNCol() == spinor_in.GetNCol());
+    IndexType ncol = spinor_out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->DslashDir(spinor_out.get(col),spinor_in.get(col),dir);
   }
 
   QPhiXClovOpT<FT>& getQPhiXOp()
@@ -343,8 +378,12 @@ private:
   const LatticeInfo& _info;
 
   std::unique_ptr<QPhiXClovOpT<FT>> QPhiXEOClov;
-  mutable Spinor _tmp1;
-
+  mutable std::unique_ptr<Spinor> _tmp1;
+  Spinor& tmp(IndexType ncol) const {
+    if (!_tmp1 || _tmp1->GetNCol() != ncol)
+      _tmp1.reset(new Spinor(_info, ncol));
+    return *_tmp1;
+  }
 
 };
 

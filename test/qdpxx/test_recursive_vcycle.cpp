@@ -138,7 +138,7 @@ TEST(TestRecursiveVCycle, TestLevelSetup2Level)
 	gaussian(psi_in);
 	chi_out = zero;
 	QDPIO::cout << "psi_in has norm =" << sqrt(norm2(psi_in)) << std::endl;
-	LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
+	LinearSolverResults res=FGMRESOuter(chi_out, psi_in)[0];
 	QDPIO::cout << "Returned residue = || r || / || b ||="<< res.resid<< std::endl;
 
 	LatticeFermion r=psi_in;

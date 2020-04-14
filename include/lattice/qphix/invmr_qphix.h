@@ -54,7 +54,7 @@ public:
           &(in.get(col)),
           _params.RsdTarget,
           n_iters,
-          rsd_sq_final,
+          rsd_sq_final[col],
           site_flops,
           mv_apps,
           isign,
@@ -66,7 +66,7 @@ public:
     std::vector<LinearSolverResults> ret_val(ncol);
     for (int col=0; col < ncol; ++col) {
        ret_val[col].n_count = n_iters;
-       ret_val[col].resid = sqrt(rsd_sq_final[col]);
+       ret_val[col].resid = std::sqrt(rsd_sq_final[col]);
        ret_val[col].resid_type = resid_type;
     }
     return ret_val;
@@ -167,9 +167,12 @@ public:
       double rsd_sq_final;
       unsigned long site_flops;
       unsigned long mv_apps;
+      assert(out.GetNCol() == in.GetNCol());
+      IndexType ncol = out.GetNCol();
 
-      (mr_smoother)(out.getCB(ODD).get(),
-          in.getCB(ODD).get(),
+      for (int col=0; col < ncol; ++col)
+        (mr_smoother)(out.getCB(col,ODD).get(),
+          in.getCB(col,ODD).get(),
           _params.RsdTarget,
           n_iters,
           rsd_sq_final,

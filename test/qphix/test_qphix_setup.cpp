@@ -94,7 +94,7 @@ TEST(QPhiXIntegration, TestSetupPieces)
   for(int j=0; j < 6; ++j ) {
     gaussian(qdpxx_level.null_vecs[j]);
     qphix_level.null_vecs[j] = std::make_shared<QPhiXSpinorF>(info);
-    QDPSpinorToQPhiXSpinor(qdpxx_level.null_vecs[j], *(qphix_level.null_vecs[j]));
+    QDPSpinorToQPhiXSpinor(qdpxx_level.null_vecs[j], *(qphix_level.null_vecs[j]), 0);
   }
 
   std::shared_ptr<QDPWilsonCloverLinearOperator> M_qdp=
@@ -122,7 +122,7 @@ TEST(QPhiXIntegration, TestSetupPieces)
       for(int b = 0; b < qdpxx_level.blocklist.size(); ++b) {
 
         y = x;
-        QDPSpinorToQPhiXSpinor(x,qy);
+        QDPSpinorToQPhiXSpinor(x,qy,0);
 
         axBlockAggrQDPXX(dfalfa, y, qdpxx_level.blocklist[b], aggr);
         axBlockAggr(dfalfa, qy, qdpxx_level.blocklist[b], aggr);
@@ -140,8 +140,8 @@ TEST(QPhiXIntegration, TestSetupPieces)
       for(int b = 0; b < qdpxx_level.blocklist.size(); ++b) {
         LatticeFermion x2=x; LatticeFermion y2=y;
 
-        QDPSpinorToQPhiXSpinor(x2,qx);
-        QDPSpinorToQPhiXSpinor(y2,qy);
+        QDPSpinorToQPhiXSpinor(x2,qx,0);
+        QDPSpinorToQPhiXSpinor(y2,qy,0);
         caxpyBlockAggrQDPXX(calpha, x2, y2, qdpxx_level.blocklist[b], aggr);
         caxpyBlockAggr(calpha,qx,qy,qdpxx_level.blocklist[b],aggr);
 
@@ -159,7 +159,7 @@ TEST(QPhiXIntegration, TestSetupPieces)
     for(int aggr=0; aggr < 2; ++aggr) {
       for(int b = 0; b < qdpxx_level.blocklist.size(); ++b) {
         LatticeFermion x2=x;
-        QDPSpinorToQPhiXSpinor(x2,qx);
+        QDPSpinorToQPhiXSpinor(x2,qx,0);
         Block& block = qdpxx_level.blocklist[b];
         double qdp_norm = norm2BlockAggrQDPXX(x2,block,aggr);
         double qphix_norm = norm2BlockAggr(qx,block,aggr);
@@ -179,8 +179,8 @@ TEST(QPhiXIntegration, TestSetupPieces)
       for(int b = 0; b < qdpxx_level.blocklist.size(); ++b) {
         LatticeFermion x2=x;
         LatticeFermion y2=y;
-        QDPSpinorToQPhiXSpinor(x2,qx);
-        QDPSpinorToQPhiXSpinor(y2,qy);
+        QDPSpinorToQPhiXSpinor(x2,qx,0);
+        QDPSpinorToQPhiXSpinor(y2,qy,0);
         Block& block = qdpxx_level.blocklist[b];
         std::complex<double> qdp_iprod = innerProductBlockAggrQDPXX(x2,y2,block,aggr);
         std::complex<double> qphix_iprod = innerProductBlockAggr(qx,qy,block,aggr);
@@ -205,8 +205,8 @@ TEST(QPhiXIntegration, TestSetupPieces)
       for(int b = 0; b < qdpxx_level.blocklist.size(); ++b) {
         LatticeFermion x2=x;
         LatticeFermion y2=y;
-        QDPSpinorToQPhiXSpinor(x2,qx);
-        QDPSpinorToQPhiXSpinor(y2,qy);
+        QDPSpinorToQPhiXSpinor(x2,qx,0);
+        QDPSpinorToQPhiXSpinor(y2,qy,0);
         Block& block = qdpxx_level.blocklist[b];
         extractAggregateQDPXX(x2,y2,block,aggr);
         extractAggregateBlock(qx,qy,block,aggr);
@@ -224,8 +224,8 @@ TEST(QPhiXIntegration, TestSetupPieces)
     for(int aggr=0; aggr < 2; ++aggr ) {
       LatticeFermion x2 = x;
       LatticeFermion y2 = y;
-      QDPSpinorToQPhiXSpinor(x2,qx);
-      QDPSpinorToQPhiXSpinor(y2,qy);
+      QDPSpinorToQPhiXSpinor(x2,qx,0);
+      QDPSpinorToQPhiXSpinor(y2,qy,0);
       extractAggregateQDPXX(x2,y2,aggr);
       extractAggregate(qx,qy,aggr);
       DiffSpinorPerSite(x2,qx,5.0e-6);
@@ -240,7 +240,7 @@ TEST(QPhiXIntegration, TestSetupPieces)
     for(int j=0; j < 6; ++j ) {
       gaussian(qdpxx_level.null_vecs[j]);
       qphix_level.null_vecs[j] = std::make_shared<QPhiXSpinorF>(info);
-      QDPSpinorToQPhiXSpinor(qdpxx_level.null_vecs[j], *(qphix_level.null_vecs[j]));
+      QDPSpinorToQPhiXSpinor(qdpxx_level.null_vecs[j], *(qphix_level.null_vecs[j]),0);
     }
 
     orthonormalizeBlockAggregatesQDPXX(qdpxx_level.null_vecs,qdpxx_level.blocklist);
@@ -332,7 +332,7 @@ TEST(QPhiXIntegration, TestSetupQDPXXVecs)
   // Now let us inject the ves into the QPhiX One
   qdpxx_level.null_vecs.resize(qphix_level.null_vecs.size());
   for(int k = 0; k < qdpxx_level.null_vecs.size(); ++k ) {
-    QPhiXSpinorToQDPSpinor(*(qphix_level.null_vecs[k]), qdpxx_level.null_vecs[k]);
+    QPhiXSpinorToQDPSpinor(*(qphix_level.null_vecs[k]), 0, qdpxx_level.null_vecs[k]);
   }
 
   MasterLog(INFO, "Finishing QDPXX Setup");
@@ -438,38 +438,40 @@ TEST(QPhiXIntegration, TestSetupQDPXXVecs)
   }
 
   // Check Prolongation
-  CoarseSpinor in( qphix_coarse_info );
-  CoarseSpinor in2( qphix_coarse_info) ;
-  CoarseSpinor out( qphix_coarse_info );
-  CoarseSpinor out2( qphix_coarse_info );
+  int ncol = 1;
+  CoarseSpinor in( qphix_coarse_info, ncol );
+  CoarseSpinor in2( qphix_coarse_info, ncol) ;
+  CoarseSpinor out( qphix_coarse_info, ncol );
+  CoarseSpinor out2( qphix_coarse_info, ncol );
   Gaussian(in);
   CopyVec(in2,in);
   ZeroVec(out);
   ZeroVec(out2);
-  double norm_in = Norm2Vec(in);
+  std::vector<double> norm_in = Norm2Vec(in);
 
   const LatticeInfo& fine_info = *(qphix_level.info);
 
-  QPhiXSpinorF qphix_out(fine_info);
+  QPhiXSpinorF qphix_out(fine_info, ncol);
   ZeroVec(qphix_out);
 
    prolongateSpinor(qphix_level.blocklist, qphix_level.null_vecs, in, qphix_out);
    restrictSpinor(qphix_level.blocklist, qphix_level.null_vecs, qphix_out, out);
    restrictSpinor2(qphix_level.blocklist, qphix_level.null_vecs, qphix_out,out2);
-   double diff = XmyNorm2Vec(in,out);
-   double diff2 = XmyNorm2Vec(in2,out2);
+   std::vector<double> diff = XmyNorm2Vec(in,out);
+   std::vector<double> diff2 = XmyNorm2Vec(in2,out2);
 
+   for (int col=0; col < ncol; ++col) {
+     MasterLog(INFO, "QPHIX: || (1 - RP) psi || = %16.8e || (1 - RP) psi || / || psi || = %16.8e",
+         sqrt(diff[col]), sqrt(diff[col]/norm_in[col]));
 
-   MasterLog(INFO, "QPHIX: || (1 - RP) psi || = %16.8e || (1 - RP) psi || / || psi || = %16.8e",
-         sqrt(diff), sqrt(diff/norm_in));
+     ASSERT_LT( sqrt(diff[col]/norm_in[col]), 5.0e-7);
 
-   ASSERT_LT( sqrt(diff/norm_in), 5.0e-7);
+     MasterLog(INFO, "QPHIX: || (1 - R2P) psi || = %16.8e || (1 - R2P) psi || / || psi || = %16.8e",
+         sqrt(diff2[col]), sqrt(diff2[col]/norm_in[col]));
 
-   MasterLog(INFO, "QPHIX: || (1 - R2P) psi || = %16.8e || (1 - R2P) psi || / || psi || = %16.8e",
-         sqrt(diff2), sqrt(diff2/norm_in));
-
-   ASSERT_LT( sqrt(diff/norm_in), 5.0e-7);
-   ASSERT_LT( sqrt(diff2/norm_in), 5.0e-7);
+     ASSERT_LT( sqrt(diff[col]/norm_in[col]), 5.0e-7);
+     ASSERT_LT( sqrt(diff2[col]/norm_in[col]), 5.0e-7);
+   }
    Gaussian(in);
    norm_in = Norm2Vec(in);
 
@@ -479,10 +481,11 @@ TEST(QPhiXIntegration, TestSetupQDPXXVecs)
    restrictSpinorQDPXXFineToCoarse(qdpxx_level.blocklist, qdpxx_level.null_vecs, tmp, out);
    diff = XmyNorm2Vec(in,out);
 
-   MasterLog(INFO, "QDP++: || (1 - RP) psi || = %16.8e || (1 - RP) psi || / || psi || = %16.8e",
-       sqrt(diff), sqrt(diff/norm_in));
-   ASSERT_LT( sqrt(diff/norm_in), 5.0e-7);
-
+   for (int col=0; col < ncol; ++col) {
+     MasterLog(INFO, "QDP++: || (1 - RP) psi || = %16.8e || (1 - RP) psi || / || psi || = %16.8e",
+         sqrt(diff[col]), sqrt(diff[col]/norm_in[col]));
+     ASSERT_LT( sqrt(diff[col]/norm_in[col]), 5.0e-7);
+   }
 
 }
 
@@ -535,15 +538,16 @@ TEST(QPhiXIntegration, TestSetupEO)
 
 
   // I want to test that restriction and prolongation work.
+  int ncol = 1;
   const LatticeInfo& coarse_info = *(mg_levels_eo.coarse_levels[0].info);
-  CoarseSpinor in(coarse_info);
+  CoarseSpinor in(coarse_info, ncol);
   Gaussian(in);
-  double norm_in = Norm2Vec(in);
-  CoarseSpinor out(coarse_info);
+  std::vector<double> norm_in = Norm2Vec(in);
+  CoarseSpinor out(coarse_info, ncol);
   ZeroVec(out);
 
   const LatticeInfo& fine_info = *(mg_levels_eo.fine_level.info);
-  QPhiXSpinorF qphix_out(fine_info);
+  QPhiXSpinorF qphix_out(fine_info, ncol);
   ZeroVec(qphix_out);
 
   // Test Prolongator and Restrictor
@@ -551,29 +555,32 @@ TEST(QPhiXIntegration, TestSetupEO)
   prolongateSpinor(blocklist,mg_levels_eo.fine_level.null_vecs, in, qphix_out);
   restrictSpinor(blocklist,mg_levels_eo.fine_level.null_vecs, qphix_out, out);
 
-  double diff = XmyNorm2Vec(in,out);
-  MasterLog(INFO, "QPHIX: || (1 - RP) psi || = %16.8e || (1 - RP) psi || / || psi || = %16.8e",
-         sqrt(diff), sqrt(diff/norm_in));
+  std::vector<double> diff = XmyNorm2Vec(in,out);
+  for (int col=0; col < ncol; ++col) {
+    MasterLog(INFO, "QPHIX: || (1 - RP) psi || = %16.8e || (1 - RP) psi || / || psi || = %16.8e",
+        sqrt(diff[col]), sqrt(diff[col]/norm_in[col]));
 
-   ASSERT_LT( sqrt(diff/norm_in), 5.0e-7);
+    ASSERT_LT( sqrt(diff[col]/norm_in[col]), 5.0e-7);
+  }
 
    // Test Fake Coarse Op:  R D P = D_c
    Gaussian(in);
    auto& D_c = *(mg_levels_eo.coarse_levels[0].M);
    D_c.unprecOp(out,in,LINOP_OP);
 
-   QPhiXSpinorF DP_in(fine_info);
+   QPhiXSpinorF DP_in(fine_info, ncol);
    prolongateSpinor(blocklist, mg_levels_eo.fine_level.null_vecs, in, qphix_out);
    (*M)(DP_in,qphix_out,LINOP_OP);
-   CoarseSpinor RDP_in(coarse_info);
+   CoarseSpinor RDP_in(coarse_info, ncol);
    restrictSpinor(blocklist, mg_levels_eo.fine_level.null_vecs, DP_in,RDP_in );
 
    diff = XmyNorm2Vec(RDP_in,out);
-   MasterLog(INFO, "QPHIX: || (RDP - D_c) psi || = %16.8e || (RDP - D_c) psi || / || psi || = %16.8e",
-          sqrt(diff), sqrt(diff/norm_in));
+   for (int col=0; col < ncol; ++col) {
+     MasterLog(INFO, "QPHIX: || (RDP - D_c) psi || = %16.8e || (RDP - D_c) psi || / || psi || = %16.8e",
+         sqrt(diff[col]), sqrt(diff[col]/norm_in[col]));
 
-    ASSERT_LT( sqrt(diff/norm_in), 5.0e-6);
-
+     ASSERT_LT( sqrt(diff[col]/norm_in[col]), 5.0e-6);
+   }
 }
 
 int main(int argc, char *argv[])

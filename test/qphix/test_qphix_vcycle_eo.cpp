@@ -119,10 +119,11 @@ TEST_F(VCycleEOTesting, TestQPhiXRestrictorOdd)
 {
 	const LatticeInfo& fine_info = getFineInfo();
 	const LatticeInfo& coarse_info = getCoarseInfo(0);
+  int ncol = 1;
 
-	QPhiXSpinorF source(fine_info);
-	CoarseSpinor restricted1(coarse_info);
-	CoarseSpinor restricted2(coarse_info);
+	QPhiXSpinorF source(fine_info, ncol);
+	CoarseSpinor restricted1(coarse_info, ncol);
+	CoarseSpinor restricted2(coarse_info, ncol);
 
 	ZeroVec(source);
 	ZeroVec(restricted1);
@@ -152,38 +153,43 @@ TEST_F(VCycleEOTesting, TestQPhiXRestrictorOdd)
 	}
 #endif
 
-	{
-	double norm_orig = sqrt(Norm2Vec(restricted1));
-	double normdiff = sqrt(XmyNorm2Vec(restricted1,restricted2));
+  {
+    std::vector<double> norm_orig = sqrt(Norm2Vec(restricted1));
+    std::vector<double> normdiff = sqrt(XmyNorm2Vec(restricted1,restricted2));
 
-	MasterLog(INFO, "|| R(source) - R_cb(source) || = %16.8e",normdiff);
-	MasterLog(INFO, "|| R(source) - R_cb(source) || / || R(source) || = %16.8e", normdiff/norm_orig);
-	ASSERT_LT(normdiff, 1.0e-7);
-	}
-	Gaussian(restricted1);
-	QPhiXSpinorF prolong1(fine_info);
-	QPhiXSpinorF prolong2(fine_info);
+    for (int col=0; col < ncol; ++col){
+      MasterLog(INFO, "|| R(source) - R_cb(source) || = %16.8e",normdiff[col]);
+      MasterLog(INFO, "|| R(source) - R_cb(source) || / || R(source) || = %16.8e", normdiff[col]/norm_orig[col]);
+      ASSERT_LT(normdiff[col], 1.0e-7);
+    }
+  }
+  Gaussian(restricted1);
+	QPhiXSpinorF prolong1(fine_info, ncol);
+	QPhiXSpinorF prolong2(fine_info, ncol);
 	Transfer.P(restricted1,prolong1);
 	Transfer.P(restricted1,ODD,prolong2);
-	{
-	double norm_orig = sqrt(Norm2Vec(prolong1, SUBSET_ALL));
-	double norm_new = sqrt(Norm2Vec(prolong2, SUBSET_ODD));
-	double normdiff = sqrt(XmyNorm2Vec(prolong1,prolong2,SUBSET_ODD));
+  {
+    std::vector<double> norm_orig = sqrt(Norm2Vec(prolong1, SUBSET_ALL));
+    std::vector<double> norm_new = sqrt(Norm2Vec(prolong2, SUBSET_ODD));
+    std::vector<double> normdiff = sqrt(XmyNorm2Vec(prolong1,prolong2,SUBSET_ODD));
 
-	MasterLog(INFO, "|| P(source) || = %16.8e  || P_cb(source) || = %16.8e", norm_orig, norm_new);
-	MasterLog(INFO, "|| P(source) - P_cb(source) || = %16.8e",normdiff);
-	ASSERT_LT(normdiff, 1.0e-7);
-	}
+    for (int col=0; col < ncol; ++col) {
+      MasterLog(INFO, "|| P(source) || = %16.8e  || P_cb(source) || = %16.8e", norm_orig[col], norm_new[col]);
+      MasterLog(INFO, "|| P(source) - P_cb(source) || = %16.8e",normdiff[col]);
+      ASSERT_LT(normdiff[col], 1.0e-7);
+    }
+  }
 }
 
 TEST_F(VCycleEOTesting, TestQPhiXRestrictorCoarseOdd)
 {
 	const LatticeInfo& fine_info = getCoarseInfo(0);
 	const LatticeInfo& coarse_info = getCoarseInfo(1);
+  int ncol = 1;
 
-	CoarseSpinor source(fine_info);
-	CoarseSpinor restricted1(coarse_info);
-	CoarseSpinor restricted2(coarse_info);
+	CoarseSpinor source(fine_info, ncol);
+	CoarseSpinor restricted1(coarse_info, ncol);
+	CoarseSpinor restricted2(coarse_info, ncol);
 
 	ZeroVec(source);
 	ZeroVec(restricted1);
@@ -196,13 +202,15 @@ TEST_F(VCycleEOTesting, TestQPhiXRestrictorCoarseOdd)
 	Transfer.R(source,ODD,restricted2);
 
 	{
-		double norm_orig = sqrt(Norm2Vec(restricted1));
-		double normdiff = sqrt(XmyNorm2Vec(restricted1,restricted2));
+    std::vector<double> norm_orig = sqrt(Norm2Vec(restricted1));
+    std::vector<double> normdiff = sqrt(XmyNorm2Vec(restricted1,restricted2));
 
-		MasterLog(INFO, "|| R(source) - R_cb(source) || = %16.8e",normdiff);
-		MasterLog(INFO, "|| R(source) - R_cb(source) || / || R(source) || = %16.8e", normdiff/norm_orig);
-		ASSERT_LT(normdiff, 1.0e-7);
-	}
+    for (int col=0; col < ncol; ++col){
+      MasterLog(INFO, "|| R(source) - R_cb(source) || = %16.8e",normdiff[col]);
+      MasterLog(INFO, "|| R(source) - R_cb(source) || / || R(source) || = %16.8e", normdiff[col]/norm_orig[col]);
+      ASSERT_LT(normdiff[col], 1.0e-7);
+    }
+  }
 
 
 	Gaussian(restricted1);
@@ -211,14 +219,16 @@ TEST_F(VCycleEOTesting, TestQPhiXRestrictorCoarseOdd)
 	Transfer.P(restricted1,prolong1);
 	Transfer.P(restricted1,ODD,prolong2);
 	{
-		double norm_orig = sqrt(Norm2Vec(prolong1, SUBSET_ALL));
-		double norm_new = sqrt(Norm2Vec(prolong2, SUBSET_ODD));
-		double normdiff = sqrt(XmyNorm2Vec(prolong1,prolong2,SUBSET_ODD));
+		std::vector<double> norm_orig = sqrt(Norm2Vec(prolong1, SUBSET_ALL));
+		std::vector<double> norm_new = sqrt(Norm2Vec(prolong2, SUBSET_ODD));
+		std::vector<double> normdiff = sqrt(XmyNorm2Vec(prolong1,prolong2,SUBSET_ODD));
 
-		MasterLog(INFO, "|| P(source) || = %16.8e  || P_cb(source) || = %16.8e", norm_orig, norm_new);
-		MasterLog(INFO, "|| P(source) - P_cb(source) || = %16.8e",normdiff);
-		ASSERT_LT(normdiff, 1.0e-7);
-	}
+    for (int col=0; col < ncol; ++col){
+      MasterLog(INFO, "|| P(source) || = %16.8e  || P_cb(source) || = %16.8e", norm_orig[col], norm_new[col]);
+      MasterLog(INFO, "|| P(source) - P_cb(source) || = %16.8e",normdiff[col]);
+      ASSERT_LT(normdiff[col], 1.0e-7);
+    }
+  }
 }
 
 TEST_F(VCycleEOTesting, TestVCycleApply)
@@ -278,42 +288,49 @@ TEST_F(VCycleEOTesting, TestVCycleApply)
 				vcycle_params);
 
 		// Now need to do the coarse test
-		CoarseSpinor psi_in(fine_info);
-		CoarseSpinor chi_out(fine_info);
+    int ncol = 1;
+		CoarseSpinor psi_in(fine_info, ncol);
+		CoarseSpinor chi_out(fine_info, ncol);
 		ZeroVec(psi_in,SUBSET_EVEN);
 		Gaussian(psi_in, SUBSET_ODD);
 		ZeroVec(chi_out);
 
-		double psi_norm = sqrt(Norm2Vec(psi_in));
-		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 
-		LinearSolverResults res = vcycle(chi_out,psi_in);
-		ASSERT_EQ( res.n_count, 1);
-		ASSERT_EQ( res.resid_type, RELATIVE );
-		ASSERT_LT( res.resid, 3.8e-1 );
+		std::vector<LinearSolverResults> res = vcycle(chi_out,psi_in);
+    for (int col=0; col < ncol; ++col){
+      ASSERT_EQ( res[col].n_count, 1);
+      ASSERT_EQ( res[col].resid_type, RELATIVE );
+      ASSERT_LT( res[col].resid, 3.8e-1 );
+    }
 
-
-		CoarseSpinor chi_out_unprec(fine_info);
+		CoarseSpinor chi_out_unprec(fine_info, ncol);
 		ZeroVec(chi_out_unprec);
 		psi_norm = sqrt(Norm2Vec(psi_in));
-		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 
 		res = vcycle_unprec(chi_out_unprec,psi_in);
-		ASSERT_EQ( res.n_count, 1);
-		ASSERT_EQ( res.resid_type, RELATIVE );
-		ASSERT_LT( res.resid, 3.8e-1 );
-
-		// Compute true residuum
+    for (int col=0; col < ncol; ++col){
+      ASSERT_EQ( res[col].n_count, 1);
+      ASSERT_EQ( res[col].resid_type, RELATIVE );
+      ASSERT_LT( res[col].resid, 3.8e-1 );
+    }
+    // Compute true residuum
 		CoarseSpinor Ax(fine_info);
 		(*L0LinOp)(Ax,chi_out,LINOP_OP);
-		double normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
-		MasterLog(INFO, "Actual Relative Residuum = %16.8e", normdiff/psi_norm);
-		ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
+		std::vector<double> normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
+    for (int col=0; col < ncol; ++col) {
+      MasterLog(INFO, "Actual Relative Residuum = %16.8e", normdiff[col]/psi_norm[col]);
+      ASSERT_LT( (normdiff[col]/psi_norm[col]), 3.8e-1);
+    }
 
 		(*L0UnprecOp)(Ax,chi_out_unprec,LINOP_OP);
 		normdiff = sqrt(XmyNorm2Vec(Ax,psi_in));
-		MasterLog(INFO, "Unprec Actual Relative Residuum = %16.8e", normdiff/psi_norm);
-		ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
+    for (int col=0; col < ncol; ++col){
+      MasterLog(INFO, "Unprec Actual Relative Residuum = %16.8e", normdiff[col]/psi_norm[col]);
+      ASSERT_LT( (normdiff[col]/psi_norm[col]), 3.8e-1);
+    }
 
 	}
 
@@ -384,43 +401,44 @@ TEST_F(VCycleEOTesting, TestQPhiXVCycleEO3)
 				*eoprec_bottom_solver,
 				vcycle_params);
 
-		QPhiXSpinor psi_in(fine_info);
-		QPhiXSpinor chi_out(fine_info);
+    int ncol = 1;
+		QPhiXSpinor psi_in(fine_info, ncol);
+		QPhiXSpinor chi_out(fine_info, ncol);
 		ZeroVec(psi_in,SUBSET_EVEN);
 		Gaussian(psi_in, SUBSET_ODD);
 		ZeroVec(chi_out);
 
-		double psi_norm = sqrt(Norm2Vec(psi_in,SUBSET_ODD));
-		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in,SUBSET_ODD));
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 
 		QDPIO::cout << "********* Applying EO2 Vcycle " << std::endl;
 		double oldtime = -omp_get_wtime();
-		LinearSolverResults res = vcycle_eo2(chi_out,psi_in);
+		std::vector<LinearSolverResults> res = vcycle_eo2(chi_out,psi_in);
 		oldtime += omp_get_wtime();
-		QDPIO::cout << res.n_count << " iterations" << std::endl;
+		QDPIO::cout << res[0].n_count << " iterations" << std::endl;
 
 
-		QPhiXSpinor chi_out_eo3(fine_info);
+		QPhiXSpinor chi_out_eo3(fine_info, ncol);
 		ZeroVec(chi_out_eo3);
-		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 		QDPIO::cout << "********* Applying EO3 Vcycle " << std::endl;
 
 		double newtime= -omp_get_wtime();
 		res = vcycle_eo3(chi_out_eo3,psi_in);
 		newtime += omp_get_wtime();
-		QDPIO::cout << res.n_count << " iterations" << std::endl;
+		QDPIO::cout << res[0].n_count << " iterations" << std::endl;
 
-		QPhiXSpinor Ax(fine_info);
+		QPhiXSpinor Ax(fine_info, ncol);
 		(*M_fine_prec)(Ax,chi_out,LINOP_OP);
-		double normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
-		MasterLog(INFO, "Actual Relative Residuum After Previous QPhiX EO2 Vcycle = %16.8e", normdiff/psi_norm);
+		std::vector<double> normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "Actual Relative Residuum After Previous QPhiX EO2 Vcycle = %16.8e", normdiff[col]/psi_norm[col]);
 		//ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
 		MasterLog(INFO, "Old VCycle Took %16.8e sec", oldtime);
 
 
 		(*M_fine_prec)(Ax,chi_out_eo3,LINOP_OP);
 		normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
-		MasterLog(INFO, "Actual Relative Residuum of New QPhiX EO3 Vcycle = %16.8e", normdiff/psi_norm);
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "Actual Relative Residuum of New QPhiX EO3 Vcycle = %16.8e", normdiff[col]/psi_norm[col]);
 		//ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
 		MasterLog(INFO, "New VCycle Took %16.8e sec", newtime);
 
@@ -509,70 +527,71 @@ TEST_F(VCycleEOTesting, TestVCycleApplyEO2)
 
 
 		// Now need to do the coarse test
-		CoarseSpinor psi_in(fine_info);
-		CoarseSpinor chi_out(fine_info);
+    int ncol = 1;
+		CoarseSpinor psi_in(fine_info, ncol);
+		CoarseSpinor chi_out(fine_info, ncol);
 		ZeroVec(psi_in,SUBSET_EVEN);
 		Gaussian(psi_in, SUBSET_ODD);
 		ZeroVec(chi_out);
 
-		double psi_norm = sqrt(Norm2Vec(psi_in,SUBSET_ODD));
-		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in,SUBSET_ODD));
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 
 		QDPIO::cout << "********* Applying old Vcycle " << std::endl;
 		double oldtime = -omp_get_wtime();
-		LinearSolverResults res = vcycle(chi_out,psi_in);
+		std::vector<LinearSolverResults> res = vcycle(chi_out,psi_in);
 		oldtime += omp_get_wtime();
-		QDPIO::cout << res.n_count << " iterations" << std::endl;
+		QDPIO::cout << res[0].n_count << " iterations" << std::endl;
 
 //		ASSERT_EQ( res.n_count, 1);
 //		ASSERT_EQ( res.resid_type, RELATIVE );
 	//	ASSERT_LT( res.resid, 3.8e-1 );
 
 
-		CoarseSpinor chi_out_eo2(fine_info);
+		CoarseSpinor chi_out_eo2(fine_info, ncol);
 		ZeroVec(chi_out_eo2);
-		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 		QDPIO::cout << "********* Applying EO2 Vcycle " << std::endl;
 
 		double newtime= -omp_get_wtime();
 		res = vcycle_eo2(chi_out_eo2,psi_in);
 		newtime += omp_get_wtime();
-		QDPIO::cout << res.n_count << " iterations" << std::endl;
+		QDPIO::cout << res[0].n_count << " iterations" << std::endl;
 
 	//	ASSERT_EQ( res.n_count, 1);
 	//	ASSERT_EQ( res.resid_type, RELATIVE );
 	//	ASSERT_LT( res.resid, 3.8e-1 );
 
 
-		CoarseSpinor chi_out_eo3(fine_info);
+		CoarseSpinor chi_out_eo3(fine_info, ncol);
 		ZeroVec(chi_out_eo3);
-		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 		QDPIO::cout << "********* Applying EO3 Vcycle " << std::endl;
 
 		double newtime2= -omp_get_wtime();
 		res = vcycle_eo3(chi_out_eo3,psi_in);
 		newtime2 += omp_get_wtime();
-		QDPIO::cout << res.n_count << " iterations" << std::endl;
+		QDPIO::cout << res[0].n_count << " iterations" << std::endl;
 
 	//	ASSERT_EQ( res.n_count, 1);
 	// Compute true residuum
 		CoarseSpinor Ax(fine_info);
 		(*(mg_levels.coarse_levels[0].M))(Ax,chi_out,LINOP_OP);
-		double normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
-		MasterLog(INFO, "Actual Relative Residuum After Old Vcycle with prec L0 operator = %16.8e", normdiff/psi_norm);
+		std::vector<double> normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "Actual Relative Residuum After Old Vcycle with prec L0 operator = %16.8e", normdiff[col]/psi_norm[col]);
 		//ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
 		MasterLog(INFO, "Old VCycle Took %16.8e sec", oldtime);
 
 
 		(*(mg_levels.coarse_levels[0].M))(Ax,chi_out_eo2,LINOP_OP);
 		normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
-		MasterLog(INFO, "Actual Relative Residuum of New Vcycle with prec L0 operator= %16.8e", normdiff/psi_norm);
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "Actual Relative Residuum of New Vcycle with prec L0 operator= %16.8e", normdiff[col]/psi_norm[col]);
 		//ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
 		MasterLog(INFO, "New VCycle Took %16.8e sec", newtime);
 
 		(*(mg_levels.coarse_levels[0].M))(Ax,chi_out_eo3,LINOP_OP);
 		normdiff = sqrt(XmyNorm2Vec(Ax,psi_in, L0LinOp->GetSubset()));
-		MasterLog(INFO, "Actual Relative Residuum of Vcycle with unwrapped bottom with prec L0 operator= %16.8e", normdiff/psi_norm);
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "Actual Relative Residuum of Vcycle with unwrapped bottom with prec L0 operator= %16.8e", normdiff[col]/psi_norm[col]);
 		//		ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
 		MasterLog(INFO, "New Unwrapped BottomVCycle Took %16.8e sec", newtime2);
 	}
@@ -631,24 +650,25 @@ TEST_F(VCycleEOTesting, TestLevelSetup2Level)
 	MasterLog(INFO, "*** Recursive VCycle Structure + Solver Created");
 	const LatticeInfo& fine_info = getFineInfo();
 
-	QPhiXSpinor psi_in(fine_info);
-	QPhiXSpinor chi_out(fine_info);
-	QPhiXSpinor chi_out_unprec(fine_info);
+  int ncol = 1;
+	QPhiXSpinor psi_in(fine_info, ncol);
+	QPhiXSpinor chi_out(fine_info, ncol);
+	QPhiXSpinor chi_out_unprec(fine_info, ncol);
 	Gaussian(psi_in);
 	ZeroVec(chi_out);
 	ZeroVec(chi_out_unprec);
 
-	double psi_norm = sqrt(Norm2Vec(psi_in));
-	MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+	std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
+	for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 
 	MasterLog(INFO, "About to do preconditioned solve");
 	double stime_prec = omp_get_wtime();
-	LinearSolverResults res=fgmres_wrapper(chi_out, psi_in);
+	std::vector<LinearSolverResults> res=fgmres_wrapper(chi_out, psi_in);
 	double etime_prec = omp_get_wtime();
 
 	MasterLog(INFO, "About to do unpreconditioned solve");
 	double stime_unprec = omp_get_wtime();
-	LinearSolverResults res2=fgmres_unprec(chi_out_unprec, psi_in);
+	std::vector<LinearSolverResults> res2=fgmres_unprec(chi_out_unprec, psi_in);
 	double etime_unprec = omp_get_wtime();
 
 	// Compute true residuum
@@ -656,25 +676,29 @@ TEST_F(VCycleEOTesting, TestLevelSetup2Level)
 	QPhiXSpinor Ax(fine_info);
 	{
 		(*M_fine_unprec_full)(Ax,chi_out_unprec,LINOP_OP);
-		double diff = sqrt(XmyNorm2Vec(Ax,psi_in));
-		double diff_rel = diff/psi_norm;
-		MasterLog(INFO,"Unprec Solution: || b - A x || = %16.8e", diff);
-		MasterLog(INFO,"Unprec Solution: || b - A x ||/ || b || = %16.8e",diff_rel);
-		ASSERT_EQ( res.resid_type, RELATIVE);
-		ASSERT_LT( res.resid, 1.0e-13);
-		ASSERT_LT( toDouble(diff_rel), 1.0e-13);
-	}
+		std::vector<double> diff = sqrt(XmyNorm2Vec(Ax,psi_in));
+    for (int col=0; col < ncol; ++col) {
+		  double diff_rel = diff[col]/psi_norm[col];
+      MasterLog(INFO,"Unprec Solution: || b - A x || = %16.8e", diff[col]);
+      MasterLog(INFO,"Unprec Solution: || b - A x ||/ || b || = %16.8e",diff_rel);
+      ASSERT_EQ( res[col].resid_type, RELATIVE);
+      ASSERT_LT( res[col].resid, 1.0e-13);
+      ASSERT_LT( toDouble(diff_rel), 1.0e-13);
+    }
+  }
 	{
 		(*M_fine_unprec_full)(Ax,chi_out,LINOP_OP);
-		double diff = sqrt(XmyNorm2Vec(Ax,psi_in));
-		double diff_rel = diff/psi_norm;
-		MasterLog(INFO,"Prec Solution: || b - A x || = %16.8e", diff);
-		MasterLog(INFO,"Prec Solution: || b - A x ||/ || b || = %16.8e",diff_rel);
+    std::vector<double> diff = sqrt(XmyNorm2Vec(Ax,psi_in));
+    for (int col=0; col < ncol; ++col) {
+      double diff_rel = diff[col]/psi_norm[col];
+      MasterLog(INFO,"Prec Solution: || b - A x || = %16.8e", diff[col]);
+      MasterLog(INFO,"Prec Solution: || b - A x ||/ || b || = %16.8e",diff_rel);
 
-		ASSERT_EQ( res.resid_type, RELATIVE);
-		ASSERT_LT( res.resid, 1.0e-13);
-		ASSERT_LT( toDouble(diff_rel), 1.0e-13);
-	}
+      ASSERT_EQ( res[col].resid_type, RELATIVE);
+      ASSERT_LT( res[col].resid, 1.0e-13);
+      ASSERT_LT( toDouble(diff_rel), 1.0e-13);
+    }
+  }
 
 	MasterLog(INFO, "Unprec Solve Took: %16.8e sec", etime_unprec-stime_unprec);
 	MasterLog(INFO, "Prec Solve Took: %16.8e sec", etime_prec-stime_prec);
@@ -729,69 +753,76 @@ TEST_F(VCycleEOTesting, TestLevelSetup2LevelEO2)
 	MasterLog(INFO, "*** Recursive VCycle Structure + Solver Created");
 	const LatticeInfo& fine_info = getFineInfo();
 
-	QPhiXSpinor psi_in(fine_info);
-	QPhiXSpinor chi_out(fine_info);
-	QPhiXSpinor chi_out_unprec(fine_info);
-	QPhiXSpinor chi_out_totunprec(fine_info);
+  int ncol = 1;
+	QPhiXSpinor psi_in(fine_info, ncol);
+	QPhiXSpinor chi_out(fine_info, ncol);
+	QPhiXSpinor chi_out_unprec(fine_info, ncol);
+	QPhiXSpinor chi_out_totunprec(fine_info, ncol);
 	Gaussian(psi_in);
 	ZeroVec(chi_out);
 	ZeroVec(chi_out_unprec);
 	ZeroVec(chi_out_totunprec);
 
-	double psi_norm = sqrt(Norm2Vec(psi_in));
-	MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+	std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
+	for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 
 	MasterLog(INFO, "About to do VCycleEO3 preconditioned solve");
 	double stime_prec = omp_get_wtime();
-	LinearSolverResults res=fgmres_wrapper(chi_out, psi_in);
+	std::vector<LinearSolverResults> res=fgmres_wrapper(chi_out, psi_in);
 	double etime_prec = omp_get_wtime();
 
 	MasterLog(INFO, "About to do unpreconditioned solve");
 	double stime_unprec = omp_get_wtime();
-	LinearSolverResults res2=fgmres_unprec(chi_out_unprec, psi_in);
+	std::vector<LinearSolverResults> res2=fgmres_unprec(chi_out_unprec, psi_in);
 	double etime_unprec = omp_get_wtime();
 
 
 	MasterLog(INFO, "About to do no-MG unpreconditioned solve");
 	double stime_tunprec = omp_get_wtime();
-	LinearSolverResults res3=totally_unprec(chi_out_totunprec, psi_in);
+	std::vector<LinearSolverResults> res3=totally_unprec(chi_out_totunprec, psi_in);
 	double etime_tunprec = omp_get_wtime();
 	// Compute true residuum
 
-	QPhiXSpinor Ax(fine_info);
+	QPhiXSpinor Ax(fine_info, ncol);
 	{
 		(*M_fine_unprec_full)(Ax,chi_out_unprec,LINOP_OP);
-		double diff = sqrt(XmyNorm2Vec(Ax,psi_in));
-		double diff_rel = diff/psi_norm;
-		MasterLog(INFO,"Unprec Solution: || b - A x || = %16.8e", diff);
-		MasterLog(INFO,"Unprec Solution: || b - A x ||/ || b || = %16.8e",diff_rel);
-		ASSERT_EQ( res.resid_type, RELATIVE);
-		ASSERT_LT( res.resid, 1.0e-13);
-		ASSERT_LT( toDouble(diff_rel), 1.0e-13);
-	}
-	{
+		std::vector<double> diff = sqrt(XmyNorm2Vec(Ax,psi_in));
+    for (int col=0; col < ncol; ++col)  {
+      double diff_rel = diff[col]/psi_norm[col];
+      MasterLog(INFO,"Unprec Solution: || b - A x || = %16.8e", diff[col]);
+      MasterLog(INFO,"Unprec Solution: || b - A x ||/ || b || = %16.8e",diff_rel);
+      ASSERT_EQ( res[col].resid_type, RELATIVE);
+      ASSERT_LT( res[col].resid, 1.0e-13);
+      ASSERT_LT( toDouble(diff_rel), 1.0e-13);
+    }
+  }
+  {
 		(*M_fine_unprec_full)(Ax,chi_out,LINOP_OP);
-		double diff = sqrt(XmyNorm2Vec(Ax,psi_in));
-		double diff_rel = diff/psi_norm;
-		MasterLog(INFO,"Prec Solution: || b - A x || = %16.8e", diff);
-		MasterLog(INFO,"Prec Solution: || b - A x ||/ || b || = %16.8e",diff_rel);
+		std::vector<double> diff = sqrt(XmyNorm2Vec(Ax,psi_in));
+    for (int col=0; col < ncol; ++col){
+      double diff_rel = diff[col]/psi_norm[col];
+      MasterLog(INFO,"Prec Solution: || b - A x || = %16.8e", diff[col]);
+      MasterLog(INFO,"Prec Solution: || b - A x ||/ || b || = %16.8e",diff_rel);
 
-		ASSERT_EQ( res.resid_type, RELATIVE);
-		ASSERT_LT( res.resid, 1.0e-13);
-		ASSERT_LT( toDouble(diff_rel), 1.0e-13);
-	}
+      ASSERT_EQ( res[col].resid_type, RELATIVE);
+      ASSERT_LT( res[col].resid, 1.0e-13);
+      ASSERT_LT( toDouble(diff_rel), 1.0e-13);
+    }
+  }
 
 	{
 		(*M_fine_unprec_full)(Ax,chi_out_totunprec,LINOP_OP);
-		double diff = sqrt(XmyNorm2Vec(Ax,psi_in));
-		double diff_rel = diff/psi_norm;
-		MasterLog(INFO,"Totally unprec (No MG) Solution: || b - A x || = %16.8e", diff);
-		MasterLog(INFO,"Totally unprec (No MG)  Solution: || b - A x ||/ || b || = %16.8e",diff_rel);
+    std::vector<double> diff = sqrt(XmyNorm2Vec(Ax,psi_in));
+    for (int col=0; col < ncol; ++col){
+      double diff_rel = diff[col]/psi_norm[col];
+      MasterLog(INFO,"Totally unprec (No MG) Solution: || b - A x || = %16.8e", diff[col]);
+      MasterLog(INFO,"Totally unprec (No MG)  Solution: || b - A x ||/ || b || = %16.8e",diff_rel);
 
-		ASSERT_EQ( res.resid_type, RELATIVE);
-		ASSERT_LT( res.resid, 1.0e-13);
-		ASSERT_LT( toDouble(diff_rel), 1.0e-13);
-	}
+      ASSERT_EQ( res[col].resid_type, RELATIVE);
+      ASSERT_LT( res[col].resid, 1.0e-13);
+      ASSERT_LT( toDouble(diff_rel), 1.0e-13);
+    }
+  }
 
 	MasterLog(INFO, "Tot Unprec Solve Took: %16.8e sec", etime_tunprec-stime_tunprec);
 	MasterLog(INFO, "Unprec Solve Took: %16.8e sec", etime_unprec-stime_unprec);

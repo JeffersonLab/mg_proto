@@ -28,6 +28,7 @@
 #include "lattice/coarse/invbicgstab_coarse.h"
 #include "lattice/coarse/invfgmres_coarse.h"
 #include "utils/print_utils.h"
+#include "utils/auxiliary.h"
 
 #include "../qdpxx/qdpxx_latticeinit.h"
 #include "../qdpxx/qdpxx_utils.h"
@@ -93,8 +94,9 @@ TEST_F(EOSolverTesting,TestEOCoarseMRSmoother)
 	std::shared_ptr<const MRSmootherCoarse> smoother=std::make_shared<const MRSmootherCoarse>(*M_coarse, p);
 	UnprecMRSmootherCoarseWrapper wrapped(smoother, M_coarse);
 
-	CoarseSpinor source(info);
-	CoarseSpinor result(info);
+  int ncol = 1;
+	CoarseSpinor source(info, ncol);
+	CoarseSpinor result(info, ncol);
 
 	Gaussian(source);
 	ZeroVec(result);
@@ -106,31 +108,32 @@ TEST_F(EOSolverTesting,TestEOCoarseMRSmoother)
 	CoarseWilsonCloverLinearOperator M_unprec(coarse_links, 1);
 	MRSmootherCoarse smoother_unprec(M_unprec, p);
 
-	CoarseSpinor result_unprec(info);
+	CoarseSpinor result_unprec(info, ncol);
 	ZeroVec(result_unprec);
 	MasterLog(INFO, "Doing Unprec Smooth");
 	smoother_unprec(result_unprec, source);
 
-	CoarseSpinor r(info);
+	CoarseSpinor r(info, ncol);
 	CopyVec(r,source);
-	CoarseSpinor Ax(info);
+	CoarseSpinor Ax(info, ncol);
 	M_unprec(Ax,result,LINOP_OP);
-	double norm_diff_prec = sqrt(XmyNorm2Vec(r,Ax));
+	std::vector<double> norm_diff_prec = sqrt(XmyNorm2Vec(r,Ax));
 
 	CopyVec(r,source);
 	M_unprec(Ax,result_unprec,LINOP_OP);
-	double norm_diff_unprec =  sqrt(XmyNorm2Vec(r, Ax));
+	std::vector<double> norm_diff_unprec =  sqrt(XmyNorm2Vec(r, Ax));
 
-	double norm_diff_source = sqrt(Norm2Vec(source));
+	std::vector<double> norm_diff_source = sqrt(Norm2Vec(source));
 
-	MasterLog(INFO, "Unprec Residuum after %d Unprec Smoother Reductions: || r || = %16.8e|| r || / || b ||=%16.8e",
-			p.MaxIter, norm_diff_unprec, norm_diff_unprec/norm_diff_source);
+  for (int col=0; col < ncol; ++col){
+    MasterLog(INFO, "Unprec Residuum after %d Unprec Smoother Reductions: || r || = %16.8e|| r || / || b ||=%16.8e",
+        p.MaxIter, norm_diff_unprec[col], norm_diff_unprec[col]/norm_diff_source[col]);
 
-	MasterLog(INFO, "Unprec Residuum after %d Prec Smoother Reductions: || r || = %16.8e || r || / || b ||=%16.8e",
-			p.MaxIter, norm_diff_prec, norm_diff_prec/norm_diff_source);
+    MasterLog(INFO, "Unprec Residuum after %d Prec Smoother Reductions: || r || = %16.8e || r || / || b ||=%16.8e",
+        p.MaxIter, norm_diff_prec[col], norm_diff_prec[col]/norm_diff_source[col]);
 
-	ASSERT_LT( norm_diff_prec, norm_diff_unprec);
-
+    ASSERT_LT( norm_diff_prec[col], norm_diff_unprec[col]);
+  }
 }
 
 TEST_F(EOSolverTesting,TestEOCoarseBiCGStab)
@@ -148,8 +151,9 @@ TEST_F(EOSolverTesting,TestEOCoarseBiCGStab)
 	std::shared_ptr<const BiCGStabSolverCoarse> bicgstab=std::make_shared<const BiCGStabSolverCoarse>(*M_coarse, p);
 	UnprecBiCGStabSolverCoarseWrapper wrapped(bicgstab, M_coarse);
 
-	CoarseSpinor source(info);
-	CoarseSpinor result(info);
+  int ncol = 1;
+	CoarseSpinor source(info, ncol);
+	CoarseSpinor result(info, ncol);
 
 	Gaussian(source);
 	ZeroVec(result);
@@ -161,31 +165,32 @@ TEST_F(EOSolverTesting,TestEOCoarseBiCGStab)
 	CoarseWilsonCloverLinearOperator M_unprec(coarse_links, 1);
 	BiCGStabSolverCoarse bicgstab_unprec(M_unprec, p);
 
-	CoarseSpinor result_unprec(info);
+	CoarseSpinor result_unprec(info, ncol);
 	ZeroVec(result_unprec);
 	MasterLog(INFO, "Doing Unprec Smooth");
 	bicgstab_unprec(result_unprec, source);
 
-	CoarseSpinor r(info);
+	CoarseSpinor r(info, ncol);
 	CopyVec(r,source);
-	CoarseSpinor Ax(info);
+	CoarseSpinor Ax(info, ncol);
 	M_unprec(Ax,result,LINOP_OP);
-	double norm_diff_prec = sqrt(XmyNorm2Vec(r,Ax));
+	std::vector<double> norm_diff_prec = sqrt(XmyNorm2Vec(r,Ax));
 
 	CopyVec(r,source);
 	M_unprec(Ax,result_unprec,LINOP_OP);
-	double norm_diff_unprec =  sqrt(XmyNorm2Vec(r, Ax));
+	std::vector<double> norm_diff_unprec =  sqrt(XmyNorm2Vec(r, Ax));
 
-	double norm_diff_source = sqrt(Norm2Vec(source));
+	std::vector<double> norm_diff_source = sqrt(Norm2Vec(source));
 
-	MasterLog(INFO, "Unprec Residuum after Unprec Solve: || r || = %16.8e || r || / || b ||=%16.8e",
-			norm_diff_unprec, norm_diff_unprec/norm_diff_source);
+  for (int col=0; col < ncol; ++col) {
+    MasterLog(INFO, "Unprec Residuum after Unprec Solve: || r || = %16.8e || r || / || b ||=%16.8e",
+        norm_diff_unprec[col], norm_diff_unprec[col]/norm_diff_source[col]);
 
-	MasterLog(INFO, "Unprec Residuum after Prec Solve: || r || = %16.8e || r || / || b ||=%16.8e",
-			norm_diff_prec, norm_diff_prec/norm_diff_source);
+    MasterLog(INFO, "Unprec Residuum after Prec Solve: || r || = %16.8e || r || / || b ||=%16.8e",
+        norm_diff_prec[col], norm_diff_prec[col]/norm_diff_source[col]);
 
-	ASSERT_LT( (norm_diff_prec/norm_diff_source), p.RsdTarget);
-
+    ASSERT_LT( (norm_diff_prec[col]/norm_diff_source[col]), p.RsdTarget);
+  }
 
 }
 
@@ -205,8 +210,9 @@ TEST_F(EOSolverTesting,TestEOCoarseFGMRES)
 	std::shared_ptr<const FGMRESSolverCoarse> fgmres=std::make_shared<const FGMRESSolverCoarse>(*M_coarse, p);
 	UnprecFGMRESSolverCoarseWrapper wrapped(fgmres, M_coarse);
 
-	CoarseSpinor source(info);
-	CoarseSpinor result(info);
+  int ncol = 1;
+	CoarseSpinor source(info, ncol);
+	CoarseSpinor result(info, ncol);
 
 	Gaussian(source);
 	ZeroVec(result);
@@ -218,31 +224,32 @@ TEST_F(EOSolverTesting,TestEOCoarseFGMRES)
 	CoarseWilsonCloverLinearOperator M_unprec(coarse_links, 1);
 	FGMRESSolverCoarse fgmres_unprec(M_unprec, p);
 
-	CoarseSpinor result_unprec(info);
+	CoarseSpinor result_unprec(info, ncol);
 	ZeroVec(result_unprec);
 	MasterLog(INFO, "Doing Unprec FGMRES Solver");
 	fgmres_unprec(result_unprec, source);
 
-	CoarseSpinor r(info);
+	CoarseSpinor r(info, ncol);
 	CopyVec(r,source);
-	CoarseSpinor Ax(info);
+	CoarseSpinor Ax(info, ncol);
 	M_unprec(Ax,result,LINOP_OP);
-	double norm_diff_prec = sqrt(XmyNorm2Vec(r,Ax));
+	std::vector<double> norm_diff_prec = sqrt(XmyNorm2Vec(r,Ax));
 
 	CopyVec(r,source);
 	M_unprec(Ax,result_unprec,LINOP_OP);
-	double norm_diff_unprec =  sqrt(XmyNorm2Vec(r, Ax));
+	std::vector<double> norm_diff_unprec =  sqrt(XmyNorm2Vec(r, Ax));
 
-	double norm_diff_source = sqrt(Norm2Vec(source));
+	std::vector<double> norm_diff_source = sqrt(Norm2Vec(source));
 
-	MasterLog(INFO, "Unprec Residuum after Unprec Solve: || r || = %16.8e || r || / || b ||=%16.8e",
-			norm_diff_unprec, norm_diff_unprec/norm_diff_source);
+  for (int col=0; col < ncol; ++col) {
+    MasterLog(INFO, "Unprec Residuum after Unprec Solve: || r || = %16.8e || r || / || b ||=%16.8e",
+        norm_diff_unprec[col], norm_diff_unprec[col]/norm_diff_source[col]);
 
-	MasterLog(INFO, "Unprec Residuum after Prec Solve: || r || = %16.8e || r || / || b ||=%16.8e",
-			norm_diff_prec, norm_diff_prec/norm_diff_source);
+    MasterLog(INFO, "Unprec Residuum after Prec Solve: || r || = %16.8e || r || / || b ||=%16.8e",
+        norm_diff_prec[col], norm_diff_prec[col]/norm_diff_source[col]);
 
-	ASSERT_LT( (norm_diff_prec/norm_diff_source), p.RsdTarget);
-
+    ASSERT_LT( (norm_diff_prec[col]/norm_diff_source[col]), p.RsdTarget);
+  }
 
 	// Check that in the Coarse World with Symmetric precond, the solusions of
 	// S x_o = b_o
@@ -259,7 +266,7 @@ TEST_F(EOSolverTesting,TestEOCoarseFGMRES)
 	(*fgmres) (result, source); // Using wrapped, because we still need to hit the source witha clover inv maybe
 
 	MasterLog(INFO, "Now solving with preconditioned solver but on A_oo b_o");
-	CoarseSpinor unprec_source(info);
+	CoarseSpinor unprec_source(info, ncol);
 	ZeroVec(unprec_source, SUBSET_EVEN);
 	CopyVec(unprec_source, source, SUBSET_EVEN);
 	(*M_coarse).M_diag(unprec_source, source, ODD);
@@ -272,23 +279,24 @@ TEST_F(EOSolverTesting,TestEOCoarseFGMRES)
 	// Prec op
 	(*M_coarse)(Ax, result, LINOP_OP);
 	CopyVec(r,source, M_coarse->GetSubset());
-	double norm_diff_cbsource = sqrt(Norm2Vec(r, M_coarse->GetSubset()));
-	double norm_diff_cbsoln = sqrt(XmyNorm2Vec(r, Ax, M_coarse->GetSubset()));
-	MasterLog(INFO, "EOprec Residuum of Prec System: || r_cb || = %16.8e || r_cb || / || b_cb ||=%16.8e",
-				norm_diff_cbsoln, norm_diff_cbsoln/norm_diff_cbsource);
+	std::vector<double> norm_diff_cbsource = sqrt(Norm2Vec(r, M_coarse->GetSubset()));
+	std::vector<double> norm_diff_cbsoln = sqrt(XmyNorm2Vec(r, Ax, M_coarse->GetSubset()));
+	for (int col=0; col < ncol; ++col) MasterLog(INFO, "EOprec Residuum of Prec System: || r_cb || = %16.8e || r_cb || / || b_cb ||=%16.8e",
+				norm_diff_cbsoln[col], norm_diff_cbsoln[col]/norm_diff_cbsource[col]);
 
 	(*M_coarse)(Ax, result_unprec, LINOP_OP);
 	CopyVec(r,source, M_coarse->GetSubset());
-	double norm_diff_unprec_cbsoln = sqrt(XmyNorm2Vec(r, Ax, M_coarse->GetSubset()));
+	std::vector<double> norm_diff_unprec_cbsoln = sqrt(XmyNorm2Vec(r, Ax, M_coarse->GetSubset()));
 
-	MasterLog(INFO, "EOprec Residuum of UnPrec System: || r_cb || = %16.8e || r_cb || / || b_cb ||=%16.8e",
-			norm_diff_unprec_cbsoln, norm_diff_unprec_cbsoln/norm_diff_cbsource);
+	for (int col=0; col < ncol; ++col) MasterLog(INFO, "EOprec Residuum of UnPrec System: || r_cb || = %16.8e || r_cb || / || b_cb ||=%16.8e",
+			norm_diff_unprec_cbsoln[col], norm_diff_unprec_cbsoln[col]/norm_diff_cbsource[col]);
 
-	double norm_diff_solutions = sqrt(XmyNorm2Vec(result,result_unprec,M_coarse->GetSubset()));
-	double norm_diff_per_coarse_site = norm_diff_solutions/info.GetNumCBSites();
-	MasterLog(INFO, "|| unprec_result_odd - prec_result || = %16.8e  || diff || / coarse_site = %16.8e\n",
-				norm_diff_solutions, norm_diff_per_coarse_site);
-
+	std::vector<double> norm_diff_solutions = sqrt(XmyNorm2Vec(result,result_unprec,M_coarse->GetSubset()));
+  for (int col=0; col < ncol; ++col) {
+    double norm_diff_per_coarse_site = norm_diff_solutions[col]/info.GetNumCBSites();
+    MasterLog(INFO, "|| unprec_result_odd - prec_result || = %16.8e  || diff || / coarse_site = %16.8e\n",
+        norm_diff_solutions[col], norm_diff_per_coarse_site);
+  }
 }
 
 int main(int argc, char *argv[])

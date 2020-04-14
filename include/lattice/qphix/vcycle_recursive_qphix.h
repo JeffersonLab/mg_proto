@@ -105,11 +105,10 @@ public:
 
 	}
 
-	LinearSolverResults operator()(QPhiXSpinor& out, const QPhiXSpinor& in,
+	std::vector<LinearSolverResults> operator()(QPhiXSpinor& out, const QPhiXSpinor& in,
 	    ResiduumType resid_type = RELATIVE ) const
 		{
-			LinearSolverResults ret = (*_toplevel_vcycle )( out, in, resid_type );
-			return ret;
+			return (*_toplevel_vcycle )( out, in, resid_type );
 		}
 
 private:

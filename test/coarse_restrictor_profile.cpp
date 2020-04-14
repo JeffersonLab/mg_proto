@@ -62,6 +62,7 @@ TEST(Timing,RestrictorProfile)
 
 	const int n_fine = args.fine_colors;
 	const int num_vecs = args.nvec;
+	const int ncol = 1;
 
 	MasterLog(INFO, "Testing Restrictors with n_fine_colors=%d n_coarse_colors=%d",n_fine,num_vecs);
 
@@ -109,34 +110,31 @@ TEST(Timing,RestrictorProfile)
 
 	  {
 		  MasterLog(INFO, "Testing Restrictor");
-		  CoarseSpinor coarse(coarse_info);
-		  CoarseSpinor coarse2(coarse_info);
+		  CoarseSpinor coarse(coarse_info, ncol);
+		  CoarseSpinor coarse2(coarse_info, ncol);
 
-		  CoarseSpinor fine(fine_info);
+		  CoarseSpinor fine(fine_info, ncol);
 		  Gaussian(fine);
 
 		 restrictSpinor(blocklist, null_vecs, fine, coarse);
 
 		  Transf.R(fine,coarse2);
 
-		  double ref = Norm2Vec(coarse);
-		  MasterLog(INFO,"Coarse Vector has norm=%lf", std::sqrt(ref));
-		  double ref2 = Norm2Vec(coarse2);
-		  MasterLog(INFO,"Coarse Vector has norm=%lf", std::sqrt(ref2));
+		  std::vector<double> ref = Norm2Vec(coarse);
+		  std::vector<double> ref2 = Norm2Vec(coarse2);
+		  for (int col=0; col < ncol; ++col) MasterLog(INFO,"Coarse Vector has norm=%lf, and after, %1f", std::sqrt(ref[col]), std::sqrt(ref2[col]));
 
-		  double norm_diff = std::sqrt(XmyNorm2Vec(coarse,coarse2));
-		  double rel_norm_diff = norm_diff/std::sqrt(ref);
-		  MasterLog(INFO, "norm_diff=%16.8e",norm_diff);
-		  MasterLog(INFO, "rel_norm_diff = %16.8e", rel_norm_diff);
+		  std::vector<double> norm2_diff = XmyNorm2Vec(coarse,coarse2);
+		  for (int col=0; col < ncol; ++col) MasterLog(INFO, "norm_diff=%16.8e rel_norm_diff = %16.8e",std::sqrt(norm2_diff[col]),  std::sqrt(norm2_diff[col]/ref[col]));
 		  double tol=1.0e-6;
-		  ASSERT_LT( rel_norm_diff, tol );
+		  for (int col=0; col < ncol; ++col) ASSERT_LT( std::sqrt(norm2_diff[col]/ref[col]), tol );
 	  }
 
 
 
 
-	  CoarseSpinor fine(fine_info);
-	  CoarseSpinor coarse(coarse_info);
+	  CoarseSpinor fine(fine_info, ncol);
+	  CoarseSpinor coarse(coarse_info, ncol);
 
 	  Gaussian(fine);
 
@@ -177,7 +175,7 @@ TEST(Timing,RestrictorProfile)
 
 	    //   #blocks * #sites_in_block = GetNumSites()
 	    //
-	    double Gflops = (double)N_iters
+	    double Gflops = (double)N_iters*ncol
 	      *(double)fine_info.GetNumSites()
 	      *(double)(2*n_fine*num_vecs*8)/1.0E9;
 	    double Gflops_per_sec = Gflops/total_time;

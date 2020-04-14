@@ -21,7 +21,7 @@ namespace MG  {
 			                        QDP::multi1d<QDP::LatticeColorMatrix> >& M,
 									const MG::LinearSolverParamsBase& params);
 
-	  LinearSolverResults operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in, ResiduumType resid_type = RELATIVE) const;
+	  std::vector<LinearSolverResults> operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in, ResiduumType resid_type = RELATIVE) const;
 
   private:
 	  const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> >& _M;

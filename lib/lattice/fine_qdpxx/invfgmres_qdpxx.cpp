@@ -254,7 +254,7 @@ FGMRESSolverQDPXX::InitMatrices()
 
 }
 
-LinearSolverResults
+std::vector<LinearSolverResults>
 FGMRESSolverQDPXX::operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type) const
 {
 	LinearSolverResults res; // Value to return
@@ -304,7 +304,7 @@ FGMRESSolverQDPXX::operator()(LatticeFermion& out, const LatticeFermion& in, Res
     		    				res.resid);
 			}
 		}
-		return res;
+		return std::vector<LinearSolverResults>(1, res);
 	}
 
 	int n_cycles = 0;
@@ -421,7 +421,7 @@ FGMRESSolverQDPXX::operator()(LatticeFermion& out, const LatticeFermion& in, Res
 		res.resid /= toDouble( norm_rhs ) ;
 		MasterLog(INFO,"FGMRES: level=%d  Solve Done. Cycles=%d, Iters=%d || r ||/|| b ||=%16.8e",level,
 		        	n_cycles,iters_total, res.resid, _params.RsdTarget);  	}
-	return res;
+	return std::vector<LinearSolverResults>(1, res);
 
 }
 

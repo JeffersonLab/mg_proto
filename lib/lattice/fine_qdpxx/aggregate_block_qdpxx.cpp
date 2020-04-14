@@ -156,6 +156,7 @@ void restrictSpinorQDPXXFineToCoarse( const std::vector<Block>& blocklist, const
 
 	const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
 	const int num_coarse_color = out.GetNumColor();
+	assert(out.GetNCol() == 1);
 
 	// Sanity check. The number of sites in the coarse spinor
 	// Has to equal the number of blocks
@@ -173,7 +174,7 @@ void restrictSpinorQDPXXFineToCoarse( const std::vector<Block>& blocklist, const
 			int block_idx = block_cbsite + block_cb*num_coarse_cbsites;
 
 			// The coarse site spinor is where we will write the result
-			float* coarse_site_spinor = out.GetSiteDataPtr(block_cb,block_cbsite);
+			float* coarse_site_spinor = out.GetSiteDataPtr(0,block_cb,block_cbsite);
 
 			// Identify the current block
 			const Block& block = blocklist[block_idx];
@@ -255,6 +256,7 @@ void prolongateSpinorCoarseToQDPXXFine(const std::vector<Block>& blocklist,
 {
 		// Prolongate in here
 	IndexType num_coarse_cbsites=coarse_in.GetInfo().GetNumCBSites();
+	assert(coarse_in.GetNCol() == 1);
 
 	// assert( num_coarse_cbsites == static_cast<IndexType>(blocklist.size()/2) );
 
@@ -277,7 +279,7 @@ void prolongateSpinorCoarseToQDPXXFine(const std::vector<Block>& blocklist,
 
 					int block_idx = block_cbsite + block_cb*num_coarse_cbsites;
 
-			const float *coarse_spinor = coarse_in.GetSiteDataPtr(block_cb,block_cbsite);
+			const float *coarse_spinor = coarse_in.GetSiteDataPtr(0,block_cb,block_cbsite);
 
 			// Get the list of sites in the block
 			auto fine_sitelist = blocklist[block_idx].getCBSiteList();

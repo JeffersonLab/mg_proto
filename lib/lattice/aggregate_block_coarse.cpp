@@ -35,11 +35,12 @@ void axBlockAggr(const double alpha, CoarseSpinor& v, const Block& block, int ag
 
 	const int min_cspin = aggr*n_per_chiral;
 	const int max_cspin = (aggr+1)*n_per_chiral;
+	assert(v.GetNCol() == 1);
 
 #pragma omp parallel for
 	for(int site=0; site < num_sites; ++site) {
 		const CBSite& cbsite = block_sitelist[site];
-		float *v_site_data = v.GetSiteDataPtr(cbsite.cb, cbsite.site);
+		float *v_site_data = v.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
 		for(int j=min_cspin; j < max_cspin; ++j) {
 			v_site_data[RE + n_complex*j] *= alpha;
 			v_site_data[IM + n_complex*j] *= alpha;
@@ -62,12 +63,14 @@ void caxpyBlockAggr(const std::complex<double>& alpha, const CoarseSpinor& x, Co
 
 	const int min_cspin = aggr*n_per_chiral;
 	const int max_cspin = (aggr+1)*n_per_chiral;
+	assert(x.GetNCol() == 1);
+	assert(y.GetNCol() == 1);
 
 #pragma omp parallel for
 	for(int site=0; site < num_sites; ++site) {
 		const CBSite& cbsite = block_sitelist[site];
-		const float *x_site_data = x.GetSiteDataPtr(cbsite.cb, cbsite.site);
-		float *y_site_data = y.GetSiteDataPtr(cbsite.cb, cbsite.site);
+		const float *x_site_data = x.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
+		float *y_site_data = y.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
 		for(int colorspin=min_cspin; colorspin < max_cspin; ++colorspin) {
 			double ar = real(alpha);
 			double ai = imag(alpha);
@@ -98,12 +101,13 @@ double norm2BlockAggr(const CoarseSpinor& v, const Block& block, int aggr)
 	const int max_cspin = (aggr+1)*n_per_chiral;
 
 	double block_sum=0;
+	assert(v.GetNCol() == 1);
 
 
 #pragma omp parallel for reduction(+:block_sum)
 	for(int site=0; site < num_sites; ++site) {
 		const CBSite& cbsite = block_sitelist[site];
-		const float *v_site_data = v.GetSiteDataPtr(cbsite.cb, cbsite.site);
+		const float *v_site_data = v.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
 		for(int colorspin=min_cspin; colorspin < max_cspin; ++colorspin) {
 
 			double vr = v_site_data[ RE + n_complex*colorspin];
@@ -132,6 +136,8 @@ innerProductBlockAggr(const CoarseSpinor& left, const CoarseSpinor& right, const
 
 	const int min_cspin = aggr*n_per_chiral;
 	const int max_cspin = (aggr+1)*n_per_chiral;
+	assert(left.GetNCol() == 1);
+	assert(right.GetNCol() == 1);
 
 	double real_part=0;
 	double imag_part=0;
@@ -140,8 +146,8 @@ innerProductBlockAggr(const CoarseSpinor& left, const CoarseSpinor& right, const
 	for(int site=0; site < num_sites; ++site) {
 
 		const CBSite& cbsite = block_sitelist[site];
-		const float *left_site_data = left.GetSiteDataPtr(cbsite.cb, cbsite.site);
-		const float *right_site_data = right.GetSiteDataPtr(cbsite.cb, cbsite.site);
+		const float *left_site_data = left.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
+		const float *right_site_data = right.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
 		for(int colorspin=min_cspin; colorspin < max_cspin; ++colorspin) {
 
 			double left_r = left_site_data[ RE + n_complex*colorspin];
@@ -175,12 +181,14 @@ void extractAggregateBlock(CoarseSpinor& target, const CoarseSpinor& src, const 
 
 	const int min_cspin = aggr*n_per_chiral;
 	const int max_cspin = (aggr+1)*n_per_chiral;
+	assert(target.GetNCol() == 1);
+	assert(src.GetNCol() == 1);
 
 #pragma omp parallel for
 	for(int site=0; site < num_sites; ++site) {
 		const CBSite& cbsite = block_sitelist[site];
-		const float *src_site_data = src.GetSiteDataPtr(cbsite.cb, cbsite.site);
-		float *target_site_data = target.GetSiteDataPtr(cbsite.cb, cbsite.site);
+		const float *src_site_data = src.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
+		float *target_site_data = target.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
 		for(int colorspin=min_cspin; colorspin < max_cspin; ++colorspin) {
 			target_site_data[ RE + n_complex*colorspin] = src_site_data[ RE + n_complex*colorspin ];
 			target_site_data[ IM + n_complex*colorspin] = src_site_data[ IM + n_complex*colorspin ];
@@ -201,6 +209,8 @@ void extractAggregate(CoarseSpinor& target, const CoarseSpinor& src, int aggr )
 
 	const int min_cspin = aggr*n_per_chiral;
 	const int max_cspin = (aggr+1)*n_per_chiral;
+	assert(target.GetNCol() == 1);
+	assert(src.GetNCol() == 1);
 
 	const int num_cbsites = info.GetNumCBSites();
 
@@ -208,8 +218,8 @@ void extractAggregate(CoarseSpinor& target, const CoarseSpinor& src, int aggr )
 	for(int cb =0; cb < n_checkerboard; ++cb) {
 		for(int site=0; site < num_cbsites; ++site) {
 
-			const float *src_site_data = src.GetSiteDataPtr(cb, site);
-			float *target_site_data = target.GetSiteDataPtr(cb, site);
+			const float *src_site_data = src.GetSiteDataPtr(0, cb, site);
+			float *target_site_data = target.GetSiteDataPtr(0, cb, site);
 			for(int colorspin=min_cspin; colorspin < max_cspin; ++colorspin) {
 				target_site_data[ RE + n_complex*colorspin] = src_site_data[ RE + n_complex*colorspin ];
 				target_site_data[ IM + n_complex*colorspin] = src_site_data[ IM + n_complex*colorspin ];
@@ -289,6 +299,8 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 	// The number of vectors has to eaqual the number of coarse colors
 	assert( static_cast<IndexType>(fine_vecs.size()) == num_coarse_colors );
 
+	assert(fine_in.GetNCol() == coarse_out.GetNCol());
+	IndexType ncol = fine_in.GetNCol();	
 
 	for(IndexType vec=0; vec < static_cast<IndexType>(fine_vecs.size()); ++vec) {
 		AssertCompatible( fine_vecs[vec]->GetInfo(), fine_info );
@@ -300,61 +312,62 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 	  for(int block_cbsite = 0; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
 	    for(int chiral = 0; chiral < 2; ++chiral ) {
 	      for(int coarse_color=0; coarse_color  < num_coarse_colors; coarse_color++) {
+	        for (int col=0; col < ncol; ++col) {
+	          IndexType block_idx = block_cbsite + block_cb*num_coarse_cbsites;
 
-	        IndexType block_idx = block_cbsite + block_cb*num_coarse_cbsites;
+	          // The coarse site spinor is where we will write the result
+	          float* coarse_site_spinor = coarse_out.GetSiteDataPtr(col,block_cb,block_cbsite);
+	          int coarse_colorspin = coarse_color + chiral * num_coarse_colors;
 
-	        // The coarse site spinor is where we will write the result
-	        float* coarse_site_spinor = coarse_out.GetSiteDataPtr(block_cb,block_cbsite);
-	        int coarse_colorspin = coarse_color + chiral * num_coarse_colors;
+	          // Identify the current block
+	          const Block& block = blocklist[block_idx];
 
-	        // Identify the current block
-	        const Block& block = blocklist[block_idx];
+	          // Get the list of fine (cb,cbsite) pairs in the blocks
+	          auto block_sitelist = block.getCBSiteList();
 
-	        // Get the list of fine (cb,cbsite) pairs in the blocks
-	        auto block_sitelist = block.getCBSiteList();
+	          // and their number -- this is redundant, I could get it from block_sitelist.size()
+	          auto num_sites_in_block = block.getNumSites();
 
-	        // and their number -- this is redundant, I could get it from block_sitelist.size()
-	        auto num_sites_in_block = block.getNumSites();
+	          float iprod_re=0;
+	          float iprod_im=0;
 
-	        float iprod_re=0;
-	        float iprod_im=0;
+	          for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
 
-	        for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
-
-	          // Find the fine site
-	          const CBSite& fine_site = block_sitelist[fine_site_idx];
-	          const float *ferm_in_site_data = fine_in.GetSiteDataPtr(fine_site.cb, fine_site.site);
-	          const float *vec_in_site_data = fine_vecs[ coarse_color ]->GetSiteDataPtr(fine_site.cb, fine_site.site);
+	            // Find the fine site
+	            const CBSite& fine_site = block_sitelist[fine_site_idx];
+	            const float *ferm_in_site_data = fine_in.GetSiteDataPtr(col,fine_site.cb, fine_site.site);
+	            const float *vec_in_site_data = fine_vecs[ coarse_color ]->GetSiteDataPtr(0, fine_site.cb, fine_site.site);
 
 
-	          int min_fine_cspin = chiral*fine_n_per_chiral;
-	          int max_fine_cspin = (chiral+1)*fine_n_per_chiral;
+	            int min_fine_cspin = chiral*fine_n_per_chiral;
+	            int max_fine_cspin = (chiral+1)*fine_n_per_chiral;
 
 #pragma omp simd reduction(+:iprod_re,iprod_im)
-	          for(int fine_colorspin=min_fine_cspin; fine_colorspin < max_fine_cspin; ++fine_colorspin) {
+	            for(int fine_colorspin=min_fine_cspin; fine_colorspin < max_fine_cspin; ++fine_colorspin) {
 
 
-	            //REAL left_r = fine_v[ coarse_color ].elem(fine_site).elem(targ_spin).elem(color).real();
-	            // REAL left_i = v[ coarse_color ].elem(fine_site).elem(targ_spin).elem(color).imag();
-	            float left_r = vec_in_site_data[RE + n_complex*fine_colorspin];
-	            float left_i = vec_in_site_data[IM + n_complex*fine_colorspin];
+	              //REAL left_r = fine_v[ coarse_color ].elem(fine_site).elem(targ_spin).elem(color).real();
+	              // REAL left_i = v[ coarse_color ].elem(fine_site).elem(targ_spin).elem(color).imag();
+	              float left_r = vec_in_site_data[RE + n_complex*fine_colorspin];
+	              float left_i = vec_in_site_data[IM + n_complex*fine_colorspin];
 
 
-	            // REAL right_r = ferm_in.elem(fine_site).elem(targ_spin).elem(color).real();
-	            // REAL right_i = ferm_in.elem(fine_site).elem(targ_spin).elem(color).imag();
-	            float right_r = ferm_in_site_data[RE + n_complex*fine_colorspin];
-	            float right_i = ferm_in_site_data[IM + n_complex*fine_colorspin];
+	              // REAL right_r = ferm_in.elem(fine_site).elem(targ_spin).elem(color).real();
+	              // REAL right_i = ferm_in.elem(fine_site).elem(targ_spin).elem(color).imag();
+	              float right_r = ferm_in_site_data[RE + n_complex*fine_colorspin];
+	              float right_i = ferm_in_site_data[IM + n_complex*fine_colorspin];
 
-	            // It is V_j^H  ferm_in so conj(left)*right.
-	            iprod_re += left_r * right_r + left_i * right_i;
-	            iprod_im += left_r * right_i - right_r * left_i;
+	              // It is V_j^H  ferm_in so conj(left)*right.
+	              iprod_re += left_r * right_r + left_i * right_i;
+	              iprod_im += left_r * right_i - right_r * left_i;
 
 
-	          }	 // fine-spincolor
+	            }	 // fine-spincolor
 
-	        } // fine site_idx
-	        coarse_site_spinor[ RE + n_complex*coarse_colorspin ] = iprod_re;
-	        coarse_site_spinor[ IM + n_complex*coarse_colorspin ] = iprod_im;
+	          } // fine site_idx
+	          coarse_site_spinor[ RE + n_complex*coarse_colorspin ] = iprod_re;
+	          coarse_site_spinor[ IM + n_complex*coarse_colorspin ] = iprod_im;
+	        }// col
 	      } // coarse_color
 	    } // chiral component
 	  } // block_cbsite
@@ -381,6 +394,8 @@ void prolongateSpinor(const std::vector<Block>& blocklist,
 	IndexType num_coarse_cbsites=coarse_info.GetNumCBSites();
 	assert( num_coarse_cbsites == static_cast<IndexType>(blocklist.size()/2) );
 
+	assert(coarse_in.GetNCol() == fine_out.GetNCol());
+	IndexType ncol = coarse_in.GetNCol();	
 
 	assert( static_cast<IndexType>(fine_v.size()) == num_coarse_colors );
 
@@ -407,49 +422,50 @@ void prolongateSpinor(const std::vector<Block>& blocklist,
 	  for(int block_cbsite=0; block_cbsite < num_coarse_cbsites; ++block_cbsite ) {
 	    for(int chiral =0; chiral < 2; ++chiral ) {
 	      for(int fine_color=0; fine_color < n_fine_per_chiral; fine_color++ ) {
+	        for (int col=0; col < ncol; ++col) {
+	          // Our block index is always block_cbsite + block_cb * num_coarse_cbsites
+	          IndexType block_idx = block_cbsite + block_cb*num_coarse_cbsites;
 
-	        // Our block index is always block_cbsite + block_cb * num_coarse_cbsites
-	        IndexType block_idx = block_cbsite + block_cb*num_coarse_cbsites;
+	          const float *coarse_spinor = coarse_in.GetSiteDataPtr(col,block_cb,block_cbsite);
 
-	        const float *coarse_spinor = coarse_in.GetSiteDataPtr(block_cb,block_cbsite);
+	          // Get the list of sites in the block
+	          auto fine_sitelist = blocklist[block_idx].getCBSiteList();
+	          auto num_fine_sitelist = blocklist[block_idx].getNumSites();
 
-	        // Get the list of sites in the block
-	        auto fine_sitelist = blocklist[block_idx].getCBSiteList();
-	        auto num_fine_sitelist = blocklist[block_idx].getNumSites();
+	          int fine_colorspin  = fine_color + n_fine_per_chiral*chiral;
 
-	        int fine_colorspin  = fine_color + n_fine_per_chiral*chiral;
+	          // Loop over fine sites
+	          for( unsigned int fine_site_idx = 0; fine_site_idx < num_fine_sitelist; ++fine_site_idx) {
 
-	        // Loop over fine sites
-	        for( unsigned int fine_site_idx = 0; fine_site_idx < num_fine_sitelist; ++fine_site_idx) {
+	            const CBSite& cbsite = fine_sitelist[fine_site_idx];
+	            float *fine_site_data = fine_out.GetSiteDataPtr(col, cbsite.cb, cbsite.site);
 
-	          const CBSite& cbsite = fine_sitelist[fine_site_idx];
-	          float *fine_site_data = fine_out.GetSiteDataPtr( cbsite.cb, cbsite.site);
-
-	          float csum_re =0;
-	          float csum_im =0;
+	            float csum_re =0;
+	            float csum_im =0;
 
 #pragma omp simd reduction(+:csum_re,csum_im)
-	          for(int coarse_color = 0; coarse_color < num_coarse_colors; coarse_color++) {
+	            for(int coarse_color = 0; coarse_color < num_coarse_colors; coarse_color++) {
 
-	            const float* vec_in_data = fine_v[coarse_color]->GetSiteDataPtr( cbsite.cb, cbsite.site);
+	              const float* vec_in_data = fine_v[coarse_color]->GetSiteDataPtr(0, cbsite.cb, cbsite.site);
 
-	            int coarse_colorspin = coarse_color + chiral*num_coarse_colors; // coarse_color(chiral) is the row
+	              int coarse_colorspin = coarse_color + chiral*num_coarse_colors; // coarse_color(chiral) is the row
 
-	            float left_r = vec_in_data[RE + n_complex*fine_colorspin]; // Fine_color(chiral) is row, coarse_color is column
-	            float left_i = vec_in_data[IM + n_complex*fine_colorspin];
+	              float left_r = vec_in_data[RE + n_complex*fine_colorspin]; // Fine_color(chiral) is row, coarse_color is column
+	              float left_i = vec_in_data[IM + n_complex*fine_colorspin];
 
-	            float right_r = coarse_spinor[ RE + n_complex*coarse_colorspin];
-	            float right_i = coarse_spinor[ IM + n_complex*coarse_colorspin];
+	              float right_r = coarse_spinor[ RE + n_complex*coarse_colorspin];
+	              float right_i = coarse_spinor[ IM + n_complex*coarse_colorspin];
 
-	            // V_j | out  (rather than V^{H}) so needs regular complex mult?
-	            csum_re += left_r * right_r - left_i * right_i;
-	            csum_im += left_i * right_r + left_r * right_i;
+	              // V_j | out  (rather than V^{H}) so needs regular complex mult?
+	              csum_re += left_r * right_r - left_i * right_i;
+	              csum_im += left_i * right_r + left_r * right_i;
 
-	          } // coarse color
-	          fine_site_data[ RE + n_complex*fine_colorspin ] = csum_re;
-	          fine_site_data[ IM + n_complex*fine_colorspin ] = csum_im;
+	            } // coarse color
+	            fine_site_data[ RE + n_complex*fine_colorspin ] = csum_re;
+	            fine_site_data[ IM + n_complex*fine_colorspin ] = csum_im;
 
-	        } // fine site
+	          } // fine site
+	        } // col
 	      } // fine color
 	    } // chiral
 	  } // coarse site
@@ -582,7 +598,7 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 											// Right vector
 											//float right_r = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).real());
 											//float right_i = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).imag());
-											const float* right_vector_data = out_vecs[col]->GetSiteDataPtr(fine_cbsite.cb,fine_cbsite.site);
+											const float* right_vector_data = out_vecs[col]->GetSiteDataPtr(0,fine_cbsite.cb,fine_cbsite.site);
 											const float right_r = right_vector_data[RE + sc*n_complex];
 											const float right_i = right_vector_data[IM + sc*n_complex];
 
@@ -597,7 +613,7 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 											// so index with row % num_coarse_colors = matmul_row
 											// float left_r = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).real());
 											// float left_i = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).imag());
-											const float* left_vector_data = in_vecs[matmul_row]->GetSiteDataPtr(fine_cbsite.cb, fine_cbsite.site);
+											const float* left_vector_data = in_vecs[matmul_row]->GetSiteDataPtr(0,fine_cbsite.cb, fine_cbsite.site);
 											const float left_r = left_vector_data[RE + sc*n_complex] ;
 											const float left_i = left_vector_data[IM + sc*n_complex] ;
 
@@ -688,7 +704,7 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 											// Right vector
 											//float right_r = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).real());
 											//float right_i = (float)(out_vecs[col].elem(qdp_site).elem(spin).elem(color).imag());
-											const float* right_vector_data = out_vecs[col]->GetSiteDataPtr(fine_cbsite.cb,fine_cbsite.site);
+											const float* right_vector_data = out_vecs[col]->GetSiteDataPtr(0,fine_cbsite.cb,fine_cbsite.site);
 											const float right_r = right_vector_data[RE + sc*n_complex];
 											const float right_i = right_vector_data[IM + sc*n_complex];
 
@@ -703,7 +719,7 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 											// so index with row % num_coarse_colors = matmul_row
 											// float left_r = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).real());
 											// float left_i = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).imag());
-											const float* left_vector_data = in_vecs[matmul_row]->GetSiteDataPtr(fine_cbsite.cb, fine_cbsite.site);
+											const float* left_vector_data = in_vecs[matmul_row]->GetSiteDataPtr(0,fine_cbsite.cb, fine_cbsite.site);
 											const float left_r = left_vector_data[RE + sc*n_complex] ;
 											const float left_i = left_vector_data[IM + sc*n_complex] ;
 
@@ -846,7 +862,7 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 
 									int sc=k+aggr_row*num_spincolor_per_chiral;
 
-									const float* right_vector_data = out_vecs[col]->GetSiteDataPtr(fine_site.cb,fine_site.site);
+									const float* right_vector_data = out_vecs[col]->GetSiteDataPtr(0,fine_site.cb,fine_site.site);
 									const float right_r = right_vector_data[RE + sc*n_complex];
 									const float right_i = right_vector_data[IM + sc*n_complex];
 
@@ -861,7 +877,7 @@ void clovTripleProduct(const CoarseDiracOp& D_op,
 									// so index with row % num_coarse_colors = matmul_row
 									//float left_r = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).real());
 									//float left_i = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).imag());
-									const float* left_vector_data = in_fine_vecs[matmul_row]->GetSiteDataPtr(fine_site.cb, fine_site.site);
+									const float* left_vector_data = in_fine_vecs[matmul_row]->GetSiteDataPtr(0,fine_site.cb, fine_site.site);
 									const float left_r = left_vector_data[ RE + sc*n_complex];
 									const float left_i = left_vector_data[ IM + sc*n_complex];
 

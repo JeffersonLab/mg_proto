@@ -92,7 +92,7 @@ public:
 					// Copy components  into  (n_num_fine_color x num_coarse_colorspin )
 					for(int v=0; v < _n_vecs; ++v) {
 
-						const float* vsite = vectors[v]->GetSiteDataPtr(fine_cbsite.cb, fine_cbsite.site);
+						const float* vsite = vectors[v]->GetSiteDataPtr(0,fine_cbsite.cb, fine_cbsite.site);
 
 
 
@@ -182,6 +182,8 @@ public:
 	void R_op(const CoarseSpinor& fine_in, CoarseSpinor& out) const
 	{
 	  assert(num_coarse_color == out.GetNumColor());
+          assert(fine_in.GetNCol() == out.GetNCol());
+	  IndexType ncol = fine_in.GetNCol();
 
 	  const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
 
@@ -196,56 +198,56 @@ public:
 	  assert( num_coarse_cbsites == _n_blocks/2);
 
 	  // This will be a loop over blocks
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3)
 	  for(int block_cb = 0; block_cb < n_checkerboard; ++block_cb ) {
 	    for(int block_cbsite = 0 ; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
+	      for (int col=0; col < ncol; ++col) { 
+	        // Identify the current block.
+	        int block_idx = block_cbsite + block_cb*num_coarse_cbsites;
+	        const Block& block = _blocklist[block_idx];
 
-	      // Identify the current block.
-	      int block_idx = block_cbsite + block_cb*num_coarse_cbsites;
-	      const Block& block = _blocklist[block_idx];
+	        // Get the list of fine sites in the blocks
+	        auto block_sitelist = block.getCBSiteList();
+	        auto num_sites_in_block = block_sitelist.size();
 
-	      // Get the list of fine sites in the blocks
-	      auto block_sitelist = block.getCBSiteList();
-	      auto num_sites_in_block = block_sitelist.size();
+	        // The coarse site spinor is where we will write the result
+	        std::complex<float>* coarse_site_spinor = reinterpret_cast<std::complex<float>*>(out.GetSiteDataPtr(col,block_cb,block_cbsite));
 
-	      // The coarse site spinor is where we will write the result
-	      std::complex<float>* coarse_site_spinor = reinterpret_cast<std::complex<float>*>(out.GetSiteDataPtr(block_cb,block_cbsite));
+	        // The accumulation goes here
+	        std::complex<float> site_accum[ 2*MAX_VECS ] __attribute__((aligned(64)));
 
-	      // The accumulation goes here
-	      std::complex<float> site_accum[ 2*MAX_VECS ] __attribute__((aligned(64)));
-
-	      const int offset = num_coarse_color;
-	      // Zero the accumulated coarse site
+	        const int offset = num_coarse_color;
+	        // Zero the accumulated coarse site
 
 #pragma omp simd simdlen(VECLEN_SP) aligned(site_accum: 64)
-	      for(int i=0; i < 2*num_coarse_color; ++i) {
-	    	  site_accum[i] = 0;
-	      }
+	        for(int i=0; i < 2*num_coarse_color; ++i) {
+	            site_accum[i] = 0;
+	        }
 
-	      // Loop through the fine sites in the block
-	      for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
+	        // Loop through the fine sites in the block
+	        for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
 
-	    	  // Find the fine site
-	    	  const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
+	            // Find the fine site
+	            const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
 
-	    	  // Get the pointer to the fine site data. Should be n_complex*num_fine_color*2 floats or 2*num_fine_color complexes
-	    	  // If num_fine_color is a multiple of 8 this should be properly 64 byte aligned.
+	            // Get the pointer to the fine site data. Should be n_complex*num_fine_color*2 floats or 2*num_fine_color complexes
+	            // If num_fine_color is a multiple of 8 this should be properly 64 byte aligned.
 
-	    	  const std::complex<float>* fine_cbsite_data =  reinterpret_cast<const std::complex<float>*>(fine_in.GetSiteDataPtr(fine_cbsite.cb,
-	    			  fine_cbsite.site));
+	            const std::complex<float>* fine_cbsite_data =  reinterpret_cast<const std::complex<float>*>(fine_in.GetSiteDataPtr(col,fine_cbsite.cb,
+	          		  fine_cbsite.site));
 
-	    	  // for each site we will loop over Ns/2 * Ncolor
+	            // for each site we will loop over Ns/2 * Ncolor
 
-	    	  for(int f_color=0; f_color < num_fine_color; ++f_color) {
-
-
-	    		  std::complex<float>  psi_upper(fine_cbsite_data[f_color]);
-	    		  std::complex<float>  psi_lower(fine_cbsite_data[f_color + num_fine_color]);
-
-	    		  const std::complex<float>* v = reinterpret_cast<const std::complex<float>*>((*this).indexPtr(block_idx, fine_site_idx,f_color));
+	            for(int f_color=0; f_color < num_fine_color; ++f_color) {
 
 
-	    			  // Accumulate the upper chiral compponent
+	          	  std::complex<float>  psi_upper(fine_cbsite_data[f_color]);
+	          	  std::complex<float>  psi_lower(fine_cbsite_data[f_color + num_fine_color]);
+
+	          	  const std::complex<float>* v = reinterpret_cast<const std::complex<float>*>((*this).indexPtr(block_idx, fine_site_idx,f_color));
+
+
+	          		  // Accumulate the upper chiral compponent
 #pragma omp simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
 	    			  for(int c_color=0; c_color < num_coarse_color; c_color++) {
 	    				  site_accum[c_color] += v[c_color]*psi_upper;
@@ -259,13 +261,14 @@ public:
 
 	    		  } // f_color
 
-	      } // fine sites in block
+	        } // fine sites in block
 
-	      // Stream out
+	        // Stream out
 #pragma omp simd simdlen(VECLEN_SP) aligned(coarse_site_spinor, site_accum:64)
-	      for(int colorspin=0; colorspin <  2*num_coarse_color; ++colorspin) {
-	    	  coarse_site_spinor[colorspin] = site_accum[colorspin];
-	      }
+	        for(int colorspin=0; colorspin <  2*num_coarse_color; ++colorspin) {
+	            coarse_site_spinor[colorspin] = site_accum[colorspin];
+	        }
+	      }//col
 	    }// block CBSITE
 	  } // block CB
 	}
@@ -275,6 +278,8 @@ public:
   void R_op(const CoarseSpinor& fine_in, int source_cb, CoarseSpinor& out) const
   {
 	  assert(num_coarse_color == out.GetNumColor());
+          assert(fine_in.GetNCol() == out.GetNCol());
+	  IndexType ncol = fine_in.GetNCol();
 
 	  const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
 
@@ -292,74 +297,75 @@ public:
 #pragma omp parallel for collapse(2)
 	  for(int block_cb = 0; block_cb < n_checkerboard; ++block_cb ) {
 		  for(int block_cbsite = 0 ; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
-
-			  // Identify the current block.
-			  int block_idx = block_cbsite + block_cb*num_coarse_cbsites;
-			  const Block& block = _blocklist[block_idx];
-
-			  // Get the list of fine sites in the blocks
-			  auto block_sitelist = block.getCBSiteList();
-			  auto num_sites_in_block = block_sitelist.size();
-
-			  // The coarse site spinor is where we will write the result
-			  std::complex<float>* coarse_site_spinor = reinterpret_cast<std::complex<float>*>(out.GetSiteDataPtr(block_cb,block_cbsite));
-
-			  // The accumulation goes here
-			  std::complex<float> site_accum[ 2*MAX_VECS ] __attribute__((aligned(64)));
-
-			  const int offset = num_coarse_color;
-			  // Zero the accumulated coarse site
+			for (int col=0; col < ncol; ++col) {
+				  // Identify the current block.
+				  int block_idx = block_cbsite + block_cb*num_coarse_cbsites;
+				  const Block& block = _blocklist[block_idx];
+	
+				  // Get the list of fine sites in the blocks
+				  auto block_sitelist = block.getCBSiteList();
+				  auto num_sites_in_block = block_sitelist.size();
+	
+				  // The coarse site spinor is where we will write the result
+				  std::complex<float>* coarse_site_spinor = reinterpret_cast<std::complex<float>*>(out.GetSiteDataPtr(col,block_cb,block_cbsite));
+	
+				  // The accumulation goes here
+				  std::complex<float> site_accum[ 2*MAX_VECS ] __attribute__((aligned(64)));
+	
+				  const int offset = num_coarse_color;
+				  // Zero the accumulated coarse site
 
 #pragma omp simd simdlen(VECLEN_SP) aligned(site_accum: 64)
-			  for(int i=0; i < 2*num_coarse_color; ++i) {
-				  site_accum[i] = 0;
-			  }
-
-			  // Loop through the fine sites in the block
-			  for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
-
-				  // Find the fine site
-				  const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
-
-				  if( fine_cbsite.cb == source_cb ) {
-					  // Get the pointer to the fine site data. Should be n_complex*num_fine_color*2 floats or 2*num_fine_color complexes
-					  // If num_fine_color is a multiple of 8 this should be properly 64 byte aligned.
-
-					  const std::complex<float>* fine_cbsite_data =  reinterpret_cast<const std::complex<float>*>(fine_in.GetSiteDataPtr(fine_cbsite.cb,
-							  fine_cbsite.site));
-
-					  // for each site we will loop over Ns/2 * Ncolor
-
-					  for(int f_color=0; f_color < num_fine_color; ++f_color) {
-
-
-						  std::complex<float>  psi_upper(fine_cbsite_data[f_color]);
-						  std::complex<float>  psi_lower(fine_cbsite_data[f_color + num_fine_color]);
-
-						  const std::complex<float>* v = reinterpret_cast<const std::complex<float>*>((*this).indexPtr(block_idx, fine_site_idx,f_color));
-
-
-						  // Accumulate the upper chiral compponent
-#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
-						  for(int c_color=0; c_color < num_coarse_color; c_color++) {
-							  site_accum[c_color] += v[c_color]*psi_upper;
-						  }
-
-						  // Accumulate the lower chiral  componente
-#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
-						  for(int c_color=0; c_color < num_coarse_color; c_color++) {
-							  site_accum[c_color+offset] += v[c_color+offset]*psi_lower;
-						  }
-
-					  } // f_color
+				  for(int i=0; i < 2*num_coarse_color; ++i) {
+					  site_accum[i] = 0;
 				  }
-			  } // fine sites in block
+	
+				  // Loop through the fine sites in the block
+				  for( IndexType fine_site_idx = 0; fine_site_idx < static_cast<IndexType>(num_sites_in_block); fine_site_idx++ ) {
+	
+					  // Find the fine site
+					  const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
+	
+					  if( fine_cbsite.cb == source_cb ) {
+						  // Get the pointer to the fine site data. Should be n_complex*num_fine_color*2 floats or 2*num_fine_color complexes
+						  // If num_fine_color is a multiple of 8 this should be properly 64 byte aligned.
+	
+						  const std::complex<float>* fine_cbsite_data =  reinterpret_cast<const std::complex<float>*>(fine_in.GetSiteDataPtr(col,fine_cbsite.cb,
+								  fine_cbsite.site));
+	
+						  // for each site we will loop over Ns/2 * Ncolor
+	
+						  for(int f_color=0; f_color < num_fine_color; ++f_color) {
+	
+	
+							  std::complex<float>  psi_upper(fine_cbsite_data[f_color]);
+							  std::complex<float>  psi_lower(fine_cbsite_data[f_color + num_fine_color]);
+	
+							  const std::complex<float>* v = reinterpret_cast<const std::complex<float>*>((*this).indexPtr(block_idx, fine_site_idx,f_color));
+	
 
-			  // Stream out
+							  // Accumulate the upper chiral compponent
+#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
+							  for(int c_color=0; c_color < num_coarse_color; c_color++) {
+								  site_accum[c_color] += v[c_color]*psi_upper;
+							  }
+	
+							  // Accumulate the lower chiral  componente
+#pragma omp simd simdlen(VECLEN_SP) aligned(site_accum, v:64)
+							  for(int c_color=0; c_color < num_coarse_color; c_color++) {
+								  site_accum[c_color+offset] += v[c_color+offset]*psi_lower;
+							  }
+	
+						  } // f_color
+					  }
+				  } // fine sites in block
+	
+				  // Stream out
 #pragma omp simd simdlen(VECLEN_SP) aligned(coarse_site_spinor, site_accum:64)
-			  for(int colorspin=0; colorspin <  2*num_coarse_color; ++colorspin) {
-				  coarse_site_spinor[colorspin] = site_accum[colorspin];
-			  }
+				  for(int colorspin=0; colorspin <  2*num_coarse_color; ++colorspin) {
+					  coarse_site_spinor[colorspin] = site_accum[colorspin];
+				  }
+			}//col
 		  }// block CBSITE
 	  } // block CB
   }
@@ -795,16 +801,18 @@ public:
 
     const LatticeInfo& fine_info = fine_out.GetInfo();
     const LatticeInfo& coarse_info = coarse_in.GetInfo();
+    assert(coarse_in.GetNCol() == fine_out.GetNCol());
+    IndexType ncol = coarse_in.GetNCol();
 
     assert( num_coarse_color == coarse_info.GetNumColors());
     assert( num_fine_color == fine_info.GetNumColors());
 
     const int num_fine_cbsites = fine_info.GetNumCBSites();
 
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(3)
     for(int cb =0; cb < n_checkerboard; ++cb) {
     	for(int fsite=0; fsite < num_fine_cbsites; ++fsite) {
-
+            for (int col=0; col < ncol; ++col) {
 
 
     		int block_cb = reverse_map[cb][fsite].cb;
@@ -815,9 +823,9 @@ public:
     		int block_idx = block_cbsite + block_cb * coarse_info.GetNumCBSites();
     		int fine_site_idx = reverse_transfer_row[cb][fsite];
 
-    		std::complex<float>* fine_site_data = reinterpret_cast<std::complex<float>*>(fine_out.GetSiteDataPtr(cb,fsite));
+    		std::complex<float>* fine_site_data = reinterpret_cast<std::complex<float>*>(fine_out.GetSiteDataPtr(col,cb,fsite));
     		const std::complex<float>* coarse_site_spinor =
-    				reinterpret_cast<const std::complex<float>*>(coarse_in.GetSiteDataPtr(block_cb,block_cbsite));
+    				reinterpret_cast<const std::complex<float>*>(coarse_in.GetSiteDataPtr(col,block_cb,block_cbsite));
 
     		for(int fcolor=0; fcolor < num_fine_color; ++fcolor ) {
 
@@ -842,6 +850,7 @@ public:
     			fine_site_data[fcolor+num_fine_color] = reduce_lower;
 
     		} // fcolor
+	   } //col
     	} // fsite
 
     }  // cb
@@ -853,6 +862,8 @@ public:
 
      const LatticeInfo& fine_info = fine_out.GetInfo();
      const LatticeInfo& coarse_info = coarse_in.GetInfo();
+     assert(coarse_in.GetNCol() == fine_out.GetNCol());
+     IndexType ncol = coarse_in.GetNCol();
 
      assert( num_coarse_color == coarse_info.GetNumColors());
      assert( num_fine_color == fine_info.GetNumColors());
@@ -863,44 +874,45 @@ public:
 
 #pragma omp parallel for
      	for(int fsite=0; fsite < num_fine_cbsites; ++fsite) {
+		for (int col=0; col < ncol; ++col) {
 
 
-
-     		int block_cb = reverse_map[cb][fsite].cb;
-     		int block_cbsite = reverse_map[cb][fsite].site;
-
-
-     		// These two to index the V-s
-     		int block_idx = block_cbsite + block_cb * coarse_info.GetNumCBSites();
-     		int fine_site_idx = reverse_transfer_row[cb][fsite];
-
-     		std::complex<float>* fine_site_data = reinterpret_cast<std::complex<float>*>(fine_out.GetSiteDataPtr(cb,fsite));
-     		const std::complex<float>* coarse_site_spinor =
-     				reinterpret_cast<const std::complex<float>*>(coarse_in.GetSiteDataPtr(block_cb,block_cbsite));
-
-     		for(int fcolor=0; fcolor < num_fine_color; ++fcolor ) {
-
-     			// v is 2 x num_coarse_color complexes.
-     			const std::complex<float>* v =
-     					reinterpret_cast<const std::complex<float>*>((*this).indexPtr(block_idx, fine_site_idx,fcolor));
-
-     			std::complex<float> reduce_upper(0,0);
-     			std::complex<float> reduce_lower(0,0);
+			int block_cb = reverse_map[cb][fsite].cb;
+			int block_cbsite = reverse_map[cb][fsite].site;
 
 
- #pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor:64)
-     			for(int i=0; i < num_coarse_color; ++i) {
-     				reduce_upper +=conj( v[i]) * coarse_site_spinor[i];
-     			}
- #pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor:64)
-     			for(int i=0; i < num_coarse_color; ++i) {
-     				reduce_lower += conj(v[i+num_coarse_color]) * coarse_site_spinor[i+num_coarse_color];
-     			}
+			// These two to index the V-s
+			int block_idx = block_cbsite + block_cb * coarse_info.GetNumCBSites();
+			int fine_site_idx = reverse_transfer_row[cb][fsite];
 
-     			fine_site_data[fcolor] = reduce_upper;
-     			fine_site_data[fcolor+num_fine_color] = reduce_lower;
+			std::complex<float>* fine_site_data = reinterpret_cast<std::complex<float>*>(fine_out.GetSiteDataPtr(col,cb,fsite));
+			const std::complex<float>* coarse_site_spinor =
+				reinterpret_cast<const std::complex<float>*>(coarse_in.GetSiteDataPtr(col,block_cb,block_cbsite));
 
-     		} // fcolor
+			for(int fcolor=0; fcolor < num_fine_color; ++fcolor ) {
+
+				// v is 2 x num_coarse_color complexes.
+				const std::complex<float>* v =
+					reinterpret_cast<const std::complex<float>*>((*this).indexPtr(block_idx, fine_site_idx,fcolor));
+
+				std::complex<float> reduce_upper(0,0);
+				std::complex<float> reduce_lower(0,0);
+
+
+#pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor:64)
+				for(int i=0; i < num_coarse_color; ++i) {
+					reduce_upper +=conj( v[i]) * coarse_site_spinor[i];
+				}
+#pragma omp simd simdlen(VECLEN_SP) aligned(v,coarse_site_spinor:64)
+				for(int i=0; i < num_coarse_color; ++i) {
+					reduce_lower += conj(v[i+num_coarse_color]) * coarse_site_spinor[i+num_coarse_color];
+				}
+
+				fine_site_data[fcolor] = reduce_upper;
+				fine_site_data[fcolor+num_fine_color] = reduce_lower;
+
+     			} // fcolor
+		} // col
      	} // fsite
    } // function
 

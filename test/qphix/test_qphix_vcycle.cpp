@@ -132,24 +132,28 @@ TEST(TestQPhiXVCycle, TestVCycleApply)
 
 
 		// Now need to do the coarse test
-		QPhiXSpinor psi_in(fine_info);
-		QPhiXSpinor chi_out(fine_info);
+		int ncol = 1;
+		QPhiXSpinor psi_in(fine_info, ncol);
+		QPhiXSpinor chi_out(fine_info, ncol);
 		Gaussian(psi_in);
 		ZeroVec(chi_out);
-		double psi_norm = sqrt(Norm2Vec(psi_in));
-		MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+		std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
+		for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 
-		LinearSolverResults res = vcycle(chi_out,psi_in);
-		ASSERT_EQ( res.n_count, 1);
-		ASSERT_EQ( res.resid_type, RELATIVE );
-		ASSERT_LT( res.resid, 3.8e-1 );
-
+		std::vector<LinearSolverResults> res = vcycle(chi_out,psi_in);
+		for (int col=0; col < ncol; ++col) {
+			ASSERT_EQ( res[col].n_count, 1);
+			ASSERT_EQ( res[col].resid_type, RELATIVE );
+			ASSERT_LT( res[col].resid, 3.8e-1 );
+		}
 		// Compute true residuum
-		QPhiXSpinor Ax(fine_info);
+		QPhiXSpinor Ax(fine_info, ncol);
 		M(Ax,chi_out,LINOP_OP);
-		double normdiff = sqrt(XmyNorm2Vec(psi_in,Ax));
-		MasterLog(INFO, "Actual Relative Residuum = %16.8e", normdiff/psi_norm);
-		ASSERT_LT( (normdiff/psi_norm), 3.8e-1);
+		std::vector<double> normdiff = sqrt(XmyNorm2Vec(psi_in,Ax));
+		for (int col=0; col < ncol; ++col) {
+			MasterLog(INFO, "Actual Relative Residuum = %16.8e", normdiff[col]/psi_norm[col]);
+			ASSERT_LT( (normdiff[col]/psi_norm[col]), 3.8e-1);
+		}
 	}
 
 
@@ -248,29 +252,29 @@ TEST(TestQPhiXVCycle, TestVCycleSolve)
 		        vcycle_params);
 
 		// Now need to do the coarse test
-		QPhiXSpinor psi_in(fine_info);
-		QPhiXSpinor chi_out(fine_info);
+		int ncol = 1;
+		QPhiXSpinor psi_in(fine_info, ncol);
+		QPhiXSpinor chi_out(fine_info, ncol);
 		Gaussian(psi_in);
 		ZeroVec(chi_out);
-		double psi_norm = sqrt(Norm2Vec(psi_in));
+		std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
 
-		MasterLog(INFO,"psi_in has norm = %16.8e",psi_norm);
-		LinearSolverResults res = vcycle(chi_out,psi_in);
+		for (int col=0; col < ncol; ++col) MasterLog(INFO,"psi_in has norm = %16.8e",psi_norm[col]);
+		std::vector<LinearSolverResults> res = vcycle(chi_out,psi_in);
 
-    // Compute true residuum
-    QPhiXSpinor Ax(fine_info);
-    M(Ax,chi_out,LINOP_OP);
-    double diff = sqrt(XmyNorm2Vec(psi_in,Ax));
-    double diff_rel = diff/psi_norm;
-  	MasterLog(INFO,"|| b - A x || = %16.8e", diff);
-		MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
-		ASSERT_EQ( res.resid_type, RELATIVE);
-		ASSERT_LT( res.resid, 5.0e-7);
-		ASSERT_LT( diff_rel, 5.0e-7);
-
-
+		// Compute true residuum
+		QPhiXSpinor Ax(fine_info, ncol);
+		M(Ax,chi_out,LINOP_OP);
+		std::vector<double> diff = sqrt(XmyNorm2Vec(psi_in,Ax));
+		for (int col=0; col < ncol; ++col) {
+			double diff_rel = diff[col]/psi_norm[col];
+			MasterLog(INFO,"|| b - A x || = %16.8e", diff[col]);
+			MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
+			ASSERT_EQ( res[col].resid_type, RELATIVE);
+			ASSERT_LT( res[col].resid, 5.0e-7);
+			ASSERT_LT( diff_rel, 5.0e-7);
+		}
 	}
-
 
 }
 
@@ -368,28 +372,27 @@ TEST(TestQPhiXVCycle, TestVCyclePrec)
 	FGMRESSolverQPhiX FGMRESOuter(M,fine_solve_params, &vcycle);
 
 	// Now need to do the coarse test
-  // Now need to do the coarse test
-  QPhiXSpinor psi_in(fine_info);
-  QPhiXSpinor chi_out(fine_info);
-  Gaussian(psi_in);
-  ZeroVec(chi_out);
-  double psi_norm = sqrt(Norm2Vec(psi_in));
-  MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+	int ncol = 1;
+	QPhiXSpinor psi_in(fine_info, ncol);
+	QPhiXSpinor chi_out(fine_info, ncol);
+	Gaussian(psi_in);
+	ZeroVec(chi_out);
+	std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
 
-  LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
+	std::vector<LinearSolverResults> res=FGMRESOuter(chi_out, psi_in);
 
-  // Compute true residuum
-  QPhiXSpinor Ax(fine_info);
-  M(Ax,chi_out,LINOP_OP);
-  double diff = sqrt(XmyNorm2Vec(psi_in,Ax));
-  double diff_rel = diff/psi_norm;
-  MasterLog(INFO,"|| b - A x || = %16.8e", diff);
-  MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
-
-	ASSERT_EQ( res.resid_type, RELATIVE);
-	ASSERT_LT( res.resid, 1.0e-13);
-	ASSERT_LT( toDouble(diff_rel), 1.0e-13);
-
+	// Compute true residuum
+	QPhiXSpinor Ax(fine_info, ncol);
+	M(Ax,chi_out,LINOP_OP);
+	std::vector<double> diff = sqrt(XmyNorm2Vec(psi_in,Ax));
+	for (int col=0; col < ncol; ++col) {
+		double diff_rel = diff[col]/psi_norm[col];
+		MasterLog(INFO,"|| b - A x || = %16.8e", diff[col]);
+		MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
+		ASSERT_EQ( res[col].resid_type, RELATIVE);
+		ASSERT_LT( res[col].resid, 1e-13);
+		ASSERT_LT( diff_rel, 1e-13);
+	}
 }
 
 
@@ -493,28 +496,27 @@ TEST(TestQPhiXVCycle, TestVCyclePrecEOPrec)
 	UnprecFGMRESSolverQPhiXWrapper FGMRESWrapper(FGMRES, M);
 
 	// Now need to do the coarse test
-  // Now need to do the coarse test
-  QPhiXSpinor psi_in(fine_info);
-  QPhiXSpinor chi_out(fine_info);
-  Gaussian(psi_in);
-  ZeroVec(chi_out);
-  double psi_norm = sqrt(Norm2Vec(psi_in));
-  MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+	int ncol = 1;
+	QPhiXSpinor psi_in(fine_info, ncol);
+	QPhiXSpinor chi_out(fine_info, ncol);
+	Gaussian(psi_in);
+	ZeroVec(chi_out);
+	std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
 
-  LinearSolverResults res=FGMRESWrapper(chi_out, psi_in);
+	std::vector<LinearSolverResults> res=FGMRESWrapper(chi_out, psi_in);
 
-  // Compute true residuum
-  QPhiXSpinor Ax(fine_info);
-  (*M).unprecOp(Ax,chi_out,LINOP_OP);
-  double diff = sqrt(XmyNorm2Vec(psi_in,Ax));
-  double diff_rel = diff/psi_norm;
-  MasterLog(INFO,"|| b - A x || = %16.8e", diff);
-  MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
-
-	ASSERT_EQ( res.resid_type, RELATIVE);
-	ASSERT_LT( res.resid, 1.0e-13);
-	ASSERT_LT( toDouble(diff_rel), 1.0e-13);
-
+	// Compute true residuum
+	QPhiXSpinor Ax(fine_info, ncol);
+	(*M).unprecOp(Ax,chi_out,LINOP_OP);
+	std::vector<double> diff = sqrt(XmyNorm2Vec(psi_in,Ax));
+	for (int col=0; col < ncol; ++col) {
+		double diff_rel = diff[col]/psi_norm[col];
+		MasterLog(INFO,"|| b - A x || = %16.8e", diff[col]);
+		MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
+		ASSERT_EQ( res[col].resid_type, RELATIVE);
+		ASSERT_LT( res[col].resid, 1e-13);
+		ASSERT_LT( diff_rel, 1e-13);
+	}
 }
 
 
@@ -669,24 +671,25 @@ TEST(TestQPhiXVCycle, TestVCycle2Level)
 	QPhiXSpinor psi_in(fine_info);
 	QPhiXSpinor chi_out(fine_info);
 	Gaussian(psi_in);
+	int ncol = 1;
 	ZeroVec(chi_out);
-	double psi_norm = sqrt(Norm2Vec(psi_in));
-	MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+	std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
+	for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 
-	LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
+	std::vector<LinearSolverResults> res=FGMRESOuter(chi_out, psi_in);
 
 	// Compute true residuum
-	QPhiXSpinor Ax(fine_info);
+	QPhiXSpinor Ax(fine_info, ncol);
 	M(Ax,chi_out,LINOP_OP);
-	double diff = sqrt(XmyNorm2Vec(psi_in,Ax));
-	double diff_rel = diff/psi_norm;
-	MasterLog(INFO,"|| b - A x || = %16.8e", diff);
-	MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
-
-	ASSERT_EQ( res.resid_type, RELATIVE);
-	ASSERT_LT( res.resid, 1.0e-13);
-	ASSERT_LT( toDouble(diff_rel), 1.0e-13);
-
+	std::vector<double> diff = sqrt(XmyNorm2Vec(psi_in,Ax));
+	for (int col=0; col < ncol; ++col) {
+		double diff_rel = diff[col]/psi_norm[col];
+		MasterLog(INFO,"|| b - A x || = %16.8e", diff[col]);
+		MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
+		ASSERT_EQ( res[col].resid_type, RELATIVE);
+		ASSERT_LT( res[col].resid, 1e-13);
+		ASSERT_LT( diff_rel, 1e-13);
+	}
 }
 
 int main(int argc, char *argv[]) 

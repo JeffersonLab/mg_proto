@@ -369,6 +369,8 @@ namespace MG {
 
 		}
 
+		inline
+		const IndexType GetNCol() const { return 1; }
 
 		~CoarseGauge()
 		{

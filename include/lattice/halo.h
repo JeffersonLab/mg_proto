@@ -36,7 +36,7 @@ inline
 const float*
 CoarseAccessor<CoarseSpinor>::get(const CoarseSpinor& in, int cb, int cbsite, int dir, int fb)
 {
-	return in.GetSiteDataPtr(cb,cbsite);
+	return in.GetSiteDataPtr(0,cb,cbsite);
 }
 
 #if 0

@@ -89,7 +89,7 @@ namespace MG {
     //! Initialize the internal matrices
     void InitMatrices();
 
-    LinearSolverResults operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type = RELATIVE) const;
+    std::vector<LinearSolverResults> operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type = RELATIVE) const;
 
 
     void FlexibleArnoldi(int n_krylov,

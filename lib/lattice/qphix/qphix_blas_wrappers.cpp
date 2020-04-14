@@ -144,7 +144,7 @@ void AxVec(const std::vector<double> alpha, QPhiXSpinorF& x, const CBSubset& sub
 
 template<typename ST, typename T>
 inline
-void AxpyVecT(const std::vector<T> alpha, const ST& x, ST& y, const CBSubset& subset )
+void AxpyVecT(const std::vector<T>& alpha, const ST& x, ST& y, const CBSubset& subset )
 {
   const typename ST::GeomT& geom = y.getGeom();
   int n_blas_simt = geom.getNSIMT();
@@ -156,13 +156,12 @@ void AxpyVecT(const std::vector<T> alpha, const ST& x, ST& y, const CBSubset& su
   }
 }
 
-void AxpyVec(const std::vector<double> alpha, const QPhiXSpinor& x, QPhiXSpinor& y,const CBSubset& subset)
+void AxpyVec(const std::vector<double>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y,const CBSubset& subset)
 {
    AxpyVecT(alpha,x,y,subset);
-
 }
 
-void AxpyVec(const std::vector<double> alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y, const CBSubset& subset )
+void AxpyVec(const std::vector<double>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y, const CBSubset& subset )
 {
   AxpyVecT(alpha,x,y,subset);
 }
@@ -191,7 +190,7 @@ void AxpyVec(const std::vector<std::complex<double>>& alpha, const QPhiXSpinorF&
 
 
 template<typename ST>
-void Gaussian(ST& v,const CBSubset& subset)
+void GaussianT(ST& v,const CBSubset& subset)
 {
   IndexType ncol = v.GetNCol();
   LatticeFermion x;
@@ -200,6 +199,14 @@ void Gaussian(ST& v,const CBSubset& subset)
     QDPSpinorToQPhiXSpinor(x,v,col,subset);
   }
 
+}
+
+void Gaussian(QPhiXSpinor& v,const CBSubset& subset) {
+  GaussianT(v, subset);
+}
+
+void Gaussian(QPhiXSpinorF& v,const CBSubset& subset) {
+  GaussianT(v, subset);
 }
 
 template<typename S1, typename S2>

@@ -24,7 +24,7 @@ void DiffCBSpinorT(const LatticeFermion& s1, const QPhiXT& qphix_spinor, int cb,
 
   LatticeFermion s2;
 
-  QPhiXSpinorToQDPSpinor(qphix_spinor,s2);
+  QPhiXSpinorToQDPSpinor(qphix_spinor,0,s2);
 
   LatticeFermion diff=zero;
   diff[rb[cb]]=s1-s2;
@@ -61,7 +61,7 @@ inline
 void DiffSpinorT(const LatticeFermion& s1, const QPhiXT& qphix_spinor, double tol, bool persite_tol=false)
 {
   LatticeFermion s2;
-  QPhiXSpinorToQDPSpinor(qphix_spinor,s2);
+  QPhiXSpinorToQDPSpinor(qphix_spinor,0,s2);
 
   LatticeFermion diff=s1-s2;
   double vol=static_cast<double>(Layout::vol());
@@ -154,7 +154,7 @@ inline
 void DiffCBSpinorPerSiteT(const QDPT& s1, const QPT& qphix_spinor, int cb, double tol)
 {
   QDPT s2;
-  QPhiXSpinorToQDPSpinor(qphix_spinor,s2);
+  QPhiXSpinorToQDPSpinor(qphix_spinor,0,s2);
 
   const int cbsites = rb[cb].numSiteTable();
 

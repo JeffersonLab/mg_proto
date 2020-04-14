@@ -30,6 +30,7 @@ TEST(CoarseDslash, TestSpeed)
 	const int Nz = 4;
 	const int Nt = 4;
 	const int Nx = 2*Nxh;
+	const int ncol = 1;
 	IndexArray latdims={Nx,Ny,Nz,Nt};
 	NodeInfo node;
 	LatticeInfo linfo(latdims, 2, 24, node);
@@ -60,11 +61,13 @@ TEST(CoarseDslash, TestSpeed)
 		for(IndexType site=0; site < N_sites_cb; ++site) {
 
 			// Fill spinors with some junk
-			for(int j=0; j < n_complex*N; ++j) {
-				x_spinor.GetSiteDataPtr((IndexType)0,site)[j] = 0.5;
-				x_spinor.GetSiteDataPtr((IndexType)1,site)[j] = 0.5;
-				y_spinor.GetSiteDataPtr((IndexType)0,site)[j] = 0;
-				y_spinor.GetSiteDataPtr((IndexType)1,site)[j] = 0;
+			for (int col=0; col < ncol; ++col) {
+				for(int j=0; j < n_complex*N; ++j) {
+					x_spinor.GetSiteDataPtr(col,(IndexType)0,site)[j] = 0.5;
+					x_spinor.GetSiteDataPtr(col,(IndexType)1,site)[j] = 0.5;
+					y_spinor.GetSiteDataPtr(col,(IndexType)0,site)[j] = 0;
+					y_spinor.GetSiteDataPtr(col,(IndexType)1,site)[j] = 0;
+				}
 			}
 
 			for(int dir=0; dir < 8; ++dir) {
@@ -126,7 +129,7 @@ TEST(CoarseDslash, TestSpeed)
 	double N_dble = static_cast<double>(N);
 	double N_iter_dble = static_cast<double>(N_iter);
 	double N_sites_cb_dble = static_cast<double>(N_sites_cb);
-	double gflops=N_sites_cb*N_iter_dble*(N_dir*(N_dble*(8*N_dble-2))+(N_dir-1)*2*N)/1.0e9;
+	double gflops=ncol*N_sites_cb*N_iter_dble*(N_dir*(N_dble*(8*N_dble-2))+(N_dir-1)*2*N)/1.0e9;
 
 	double min_time=total_time[0][0];
 	double max_time =total_time[0][0];

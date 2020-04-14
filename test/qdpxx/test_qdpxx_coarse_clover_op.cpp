@@ -105,8 +105,8 @@ TEST(TestLattice, CoarseLinOpRandomNullVecs)
 		restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, tmp2, fake_coarse_out);
 
 		// Now I need to diff coarse_out and fake_coarse_out
-		double diff_norm = XmyNorm2Vec(fake_coarse_out,coarse_out);
-		double coarse_out_norm = Norm2Vec(coarse_out);
+		double diff_norm = XmyNorm2Vec(fake_coarse_out,coarse_out)[0];
+		double coarse_out_norm = Norm2Vec(coarse_out)[0];
 		double rel_diff = sqrt(diff_norm/coarse_out_norm);
 		QDPIO::cout << "|| coarse_out - fake_coarse_out ||=" << sqrt(diff_norm) <<std::endl;
 		QDPIO::cout << "|| coarse_out - fake_coarse_out ||/||coarse_out||=" <<rel_diff <<std::endl;
@@ -212,8 +212,8 @@ TEST(TestLattice, CoarseLinOpMRInv)
 
 	M_coarse(solution_check, coarse_solution, LINOP_OP);
 
-	double diff_norm = XmyNorm2Vec(solution_check,psi_in_coarse);
-		double psi_norm = Norm2Vec(psi_in_coarse);
+	double diff_norm = XmyNorm2Vec(solution_check,psi_in_coarse)[0];
+		double psi_norm = Norm2Vec(psi_in_coarse)[0];
 		double rel_diff = sqrt(diff_norm/psi_norm);
 		QDPIO::cout << "|| b - Ax ||=" << sqrt(diff_norm) <<std::endl;
 		QDPIO::cout << "|| b - Ax ||/|| b ||=" <<rel_diff <<std::endl;
@@ -426,8 +426,8 @@ TEST(TestLattice, CoarseLinOpBiCGStabInv)
 
 	M_coarse(solution_check, coarse_solution, LINOP_OP);
 
-	double diff_norm = XmyNorm2Vec(solution_check,psi_in_coarse);
-		double psi_norm = Norm2Vec(psi_in_coarse);
+	double diff_norm = XmyNorm2Vec(solution_check,psi_in_coarse)[0];
+		double psi_norm = Norm2Vec(psi_in_coarse)[0];
 		double rel_diff = sqrt(diff_norm/psi_norm);
 		QDPIO::cout << "|| b - Ax ||=" << sqrt(diff_norm) <<std::endl;
 		QDPIO::cout << "|| b - Ax ||/|| b ||=" <<rel_diff <<std::endl;
@@ -555,8 +555,8 @@ TEST(TestLattice, CoarseLinOpFGMRESInvTrivial)
 
 	M_coarse(solution_check, coarse_solution, LINOP_OP);
 
-	double diff_norm = XmyNorm2Vec(solution_check,psi_in_coarse);
-		double psi_norm = Norm2Vec(psi_in_coarse);
+	double diff_norm = XmyNorm2Vec(solution_check,psi_in_coarse)[0];
+		double psi_norm = Norm2Vec(psi_in_coarse)[0];
 		double rel_diff = sqrt(diff_norm/psi_norm);
 		QDPIO::cout << "|| b - Ax ||=" << sqrt(diff_norm) <<std::endl;
 		QDPIO::cout << "|| b - Ax ||/|| b ||=" <<rel_diff <<std::endl;
@@ -660,8 +660,8 @@ TEST(TestLattice, CoarseLinOpFGMRESInvBlocked)
 
 	// Multiply back to check the solution
 	M_coarse(solution_check, coarse_solution, LINOP_OP);
-	double diff_norm = XmyNorm2Vec(solution_check,psi_in_coarse);
-	double psi_norm = Norm2Vec(psi_in_coarse);
+	double diff_norm = XmyNorm2Vec(solution_check,psi_in_coarse)[0];
+	double psi_norm = Norm2Vec(psi_in_coarse)[0];
 	double rel_diff = sqrt(diff_norm/psi_norm);
 	QDPIO::cout << "|| b - Ax ||=" << sqrt(diff_norm) <<std::endl;
 	QDPIO::cout << "|| b - Ax ||/|| b ||=" <<rel_diff <<std::endl;

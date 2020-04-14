@@ -88,12 +88,13 @@ namespace MG {
 
 
     for(int k=0; k < num_vecs; ++k ) {
-      LinearSolverResults res = (*(fine_level.null_solver))(*(fine_level.null_vecs[k]),b, ABSOLUTE);
+      std::vector<LinearSolverResults> res = (*(fine_level.null_solver))(*(fine_level.null_vecs[k]),b, ABSOLUTE);
+      assert(res.size() == 1);
 
-      double norm2_cb0 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_EVEN));
-      double norm2_cb1 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_ODD));
+      double norm2_cb0 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_EVEN)[0]);
+      double norm2_cb1 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_ODD)[0]);
 
-      MasterLog(INFO,"MG Level 0: BiCGStab Solver Took: %d iterations: || v_e ||=%16.8e || v_o ||=%16.8e",res.n_count,
+      MasterLog(INFO,"MG Level 0: BiCGStab Solver Took: %d iterations: || v_e ||=%16.8e || v_o ||=%16.8e",res[0].n_count,
     		  norm2_cb0, norm2_cb1);
     }
 

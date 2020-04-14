@@ -101,11 +101,10 @@ namespace MG
 
 	}
 
-	LinearSolverResults
+	std::vector<LinearSolverResults>
 	VCycleRecursiveQDPXX::operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type ) const
 	{
-		LinearSolverResults ret = (*_toplevel_vcycle )( out, in, resid_type );
-		return ret;
+		return (*_toplevel_vcycle )( out, in, resid_type );
 	}
 
 }

@@ -113,8 +113,8 @@ public:
       IndexType ncol = in.GetNCol();
 
       for (int col=0; col < ncol; ++col) {
-        (bicg_solver)(out.getCB(ODD).get(col),
-            in.getCB(ODD).get(col),
+        (bicg_solver)(out.getCB(col,ODD).get(),
+            in.getCB(col,ODD).get(),
             _params.RsdTarget,
             n_iters,
             rsd_sq_final[col],

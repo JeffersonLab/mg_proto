@@ -48,7 +48,7 @@ namespace {
 	template <typename T>
 	std::vector<std::complex<float>> negate(const std::vector<std::complex<T>>& x) {
 		std::vector<std::complex<float>> r(x.size());
-		std::transform(x.begin(), x.end(), r.begin(), [](std::complex<T>& f) { return -f;});
+		std::transform(x.begin(), x.end(), r.begin(), [](const std::complex<T>& f) { return -f;});
 		return r;
 	}
 }
@@ -57,7 +57,7 @@ namespace FGMRESGeneric {
 
 template<typename ST,typename GT>
  void FlexibleArnoldiT(int n_krylov,
-     const double& rsd_target,
+     const std::vector<double>& rsd_target,
      const LinearOperator<ST,GT>& A,     // Operator
      const LinearSolver<ST,GT>* M,  // Preconditioner
      std::vector<ST*>& V,                 // Nuisance: Need constructor free way to make these. Init functions?
@@ -190,10 +190,10 @@ template<typename ST,typename GT>
 
         if ( VerboseP ) {
            MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Iter=%d col=%d || r || = %16.8e Target=%16.8e",level,
-                 j+1, col, accum_resid,rsd_target);
+                 j+1, col, accum_resid,rsd_target[col]);
 
         }
-        if (  accum_resid <= rsd_target  ) {
+        if (  accum_resid <= rsd_target[col]  ) {
            if ( VerboseP ) {
               MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d col=%d Cycle Converged at iter = %d",level, col, j+1);
            }
@@ -244,22 +244,25 @@ private:
     destroy();
 
     H_.resize(ncol);
-    V_.resize(ncol);
-    Z_.resize(ncol);
     givens_rots_.resize(ncol);
     c_.resize(ncol);
     eta_.resize(ncol);
 
+    V_.resize(_params.NKrylov+1);
+    Z_.resize(_params.NKrylov+1);
+
+    for(int i=0; i < _params.NKrylov+1;++i) {
+      V_[i] = new ST(_info, ncol);
+      Z_[i] = new ST(_info, ncol);
+    }
+
+    for(int row = 0; row < _params.NKrylov+1; row++) {
+       ZeroVec(*(V_[row]),SUBSET_ALL);                  // BLAS ZERO
+       ZeroVec(*(Z_[row]),SUBSET_ALL);                  // BLAS ZERO
+    }
+
     for (int col=0; col < ncol; ++col) {
       H_[col].resize(_params.NKrylov, _params.NKrylov+1); // This is odd. Shouldn't it be
-
-      V_[col].resize(_params.NKrylov+1);
-      Z_[col].resize(_params.NKrylov+1);
-
-      for(int i=0; i < _params.NKrylov+1;++i) {
-         V_[col][i] = new ST(_info);
-         Z_[col][i] = new ST(_info);
-      }
 
 
       givens_rots_[col].resize(_params.NKrylov+1);
@@ -274,8 +277,6 @@ private:
       }
 
       for(int row = 0; row < _params.NKrylov+1; row++) {
-         ZeroVec(*(V_[col][row]),SUBSET_ALL);                  // BLAS ZERO
-         ZeroVec(*(Z_[col][row]),SUBSET_ALL);                  // BLAS ZERO
          c_[col][row] = std::complex<double>(0,0);                  // COMPLEX ZERO
          givens_rots_[col][row] = nullptr;
       }
@@ -287,13 +288,13 @@ private:
   }
 
   void destroy() {
-     for (int col=0; col < H_.size(); ++col)  {
-        for(int i=0; i < _params.NKrylov+1; ++i) {
-           delete V_[col][i];
-           delete Z_[col][i];
+    for(int i=0; i < _params.NKrylov+1; ++i) {
+      delete V_[i];
+      delete Z_[i];
+      for (int col=0; col < H_.size(); ++col)  {
            if( givens_rots_[col][i] != nullptr ) delete givens_rots_[col][i];
-        }
-     }
+      }
+    }
   }
 
 public:
@@ -371,7 +372,7 @@ public:
       int iters_total = 0;
       if ( _params.VerboseP ) {
         for (int col=0; col < ncol; ++col) {
-           MasterLog(INFO,"FGMRES: level=%d col=%d iters=%d || r ||=%16.8e Target || r ||=%16.8e", level, col, iters_total, sqrt(r_norm2[col]),target);
+           MasterLog(INFO,"FGMRES: level=%d col=%d iters=%d || r ||=%16.8e Target || r ||=%16.8e", level, col, iters_total, sqrt(r_norm2[col]),target[col]);
         }
       }
 
@@ -487,10 +488,12 @@ public:
         }
 
         // Init matrices should've initialized this but just in case this is e.g. a second call or something.
-        for(int j=0; j < _params.NKrylov; ++j) {
-          if ( givens_rots_[j] != nullptr ) {
-            delete givens_rots_[j];
-            givens_rots_[j] = nullptr;
+        for (int col=0; col < ncol; ++col) {
+          for(int j=0; j < _params.NKrylov; ++j) {
+            if ( givens_rots_[col][j] != nullptr ) {
+              delete givens_rots_[col][j];
+              givens_rots_[col][j] = nullptr;
+            }
           }
         }
 
@@ -530,13 +533,13 @@ public:
     }
 
     void FlexibleArnoldi(int n_krylov,
-             const double rsd_target,
+             const std::vector<double> rsd_target,
              std::vector<ST*>& V,
              std::vector<ST*>& Z,
              ST& w,
-             Array2d<std::complex<double>>& H,
-             std::vector<Givens* >& givens_rots,
-             std::vector<std::complex<double>>& c,
+             std::vector<Array2d<std::complex<double>>>& H,
+             std::vector<std::vector<Givens* >>& givens_rots,
+             std::vector<std::vector<std::complex<double>>>& c,
              int&  ndim_cycle,
              ResiduumType resid_type) const
     {
@@ -577,8 +580,8 @@ public:
     // handed around
     mutable std::vector<Array2d<std::complex<double>>> H_; // The H matrix
     mutable std::vector<Array2d<std::complex<double>>> R_; // R = H diagonalized with Givens rotations
-    mutable std::vector<std::vector<ST*>> V_;  // K(A)
-    mutable std::vector<std::vector<ST*>> Z_;  // K(MA)
+    mutable std::vector<ST*> V_;  // K(A)
+    mutable std::vector<ST*> Z_;  // K(MA)
     mutable std::vector<std::vector< Givens* >> givens_rots_;
 
     // This is the c = V^H_{k+1} r vector (c is frommers Notation)

@@ -481,7 +481,7 @@ void restrictSpinorQDPXXFineToCoarse( const multi1d<LatticeFermion>& v, const La
 {
 	int num_coarse_cbsites=out.GetInfo().GetNumCBSites();
 	int num_coarse_color = out.GetNumColor();
-
+	assert(out.GetNCol() == 1);
 
 	assert( v.size() == num_coarse_color );
 
@@ -489,7 +489,7 @@ void restrictSpinorQDPXXFineToCoarse( const multi1d<LatticeFermion>& v, const La
 	for(int cb=0; cb < 2; ++cb) {
 		for(int cbsite=0; cbsite < num_coarse_cbsites; ++cbsite ) {
 
-			float* site_spinor = out.GetSiteDataPtr(cb,cbsite);
+			float* site_spinor = out.GetSiteDataPtr(0,cb,cbsite);
 			int qdpsite = rb[cb].siteTable()[cbsite];
 
 			for(int chiral = 0; chiral < 2; ++chiral ) {
@@ -528,6 +528,7 @@ void prolongateSpinorCoarseToQDPXXFine( const multi1d<LatticeFermion>& v, const 
 {
 	int num_coarse_cbsites=coarse_in.GetInfo().GetNumCBSites();
 	int num_coarse_color = coarse_in.GetNumColor();
+	assert(coarse_in.GetNCol() == 1);
 
 	assert( v.size() == num_coarse_color );
 
@@ -537,7 +538,7 @@ void prolongateSpinorCoarseToQDPXXFine( const multi1d<LatticeFermion>& v, const 
 	for(int cb=0; cb < 2; ++cb) {
 		for(int cbsite=0; cbsite < num_coarse_cbsites; ++cbsite ) {
 
-			const float *coarse_spinor = coarse_in.GetSiteDataPtr(cb,cbsite);
+			const float *coarse_spinor = coarse_in.GetSiteDataPtr(0,cb,cbsite);
 			int qdpsite = rb[cb].siteTable()[cbsite];
 
 			for(int fine_spin=0; fine_spin < Ns; ++fine_spin) {

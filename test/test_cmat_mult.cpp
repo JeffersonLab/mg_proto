@@ -139,7 +139,7 @@ TEST_P(CMatMultTest, TestCMatMultCoeffAddWithEigen)
 	float alpha=-0.754;
 
 	MG::MasterLog(MG::DEBUG2, "Computing Reference");
-	CMatMultCoeffAddNaive(y,alpha,A,x,N );
+	CMatMultCoeffAddNaive( 1.0,y,alpha,A,x,N );
 
 	ComplexMatrix  in_mat(reinterpret_cast<std::complex<float>*>(A),N,N);
 	ComplexVector  eigen_x(reinterpret_cast<std::complex<float>*>(x),N);
@@ -213,7 +213,7 @@ TEST_P(CMatMultTest, TestGcCMatMultGcNaiveCoeffAdd)
 
 	MG::MasterLog(MG::DEBUG2, "Computing Reference");
 	float alpha = 0.263;
-	GcCMatMultGcCoeffAddNaive(y,alpha,A,x,N );
+	GcCMatMultGcCoeffAddNaive( 1.0,y,alpha,A,x,N );
 
 	// tmp = Gamma_c x
 	for(int i=0; i < N; ++i) {

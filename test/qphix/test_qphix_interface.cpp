@@ -114,7 +114,7 @@ TEST(QPhiXIntegration, TestQPhiXUnprecOpIsoConstructor)
   QPhiXSpinor q_src(info);
   QPhiXSpinor q_res(info);
 
-  QDPSpinorToQPhiXSpinor(source,q_src);
+  QDPSpinorToQPhiXSpinor(source,q_src,0);
 
   // Test Full Op
   MasterLog(INFO,"Checking Unprec Op");
@@ -203,7 +203,7 @@ TEST(QPhiXIntegration, TestQPhiXUnprecOpAnisoConstructor)
   QPhiXSpinor q_src(info);
   QPhiXSpinor q_res(info);
 
-  QDPSpinorToQPhiXSpinor(source,q_src);
+  QDPSpinorToQPhiXSpinor(source,q_src,0);
 
   // Test Full Op
   MasterLog(INFO,"Checking Unprec Op");
@@ -293,7 +293,7 @@ TEST(QPhiXIntegration, TestQPhiXUnprecOpAnisoConstructorF)
   QPhiXSpinorF q_src(info);
   QPhiXSpinorF q_res(info);
 
-  QDPSpinorToQPhiXSpinor(source,q_src);
+  QDPSpinorToQPhiXSpinor(source,q_src,0);
 
   // Test Full Op
   MasterLog(INFO,"Checking Unprec Op");
@@ -390,8 +390,8 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStabAbsolute)
 
   QDPGaugeFieldToQPhiXGauge(u,qphix_u);
 
-  QDPSpinorToQPhiXSpinor(transf_source,source_full);
-  QDPSpinorToQPhiXSpinor(solution,solution_full);
+  QDPSpinorToQPhiXSpinor(transf_source,source_full,0);
+  QDPSpinorToQPhiXSpinor(solution,solution_full,0);
 
 
   LinearSolverParamsBase params;
@@ -399,10 +399,10 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStabAbsolute)
   params.RsdTarget= 1.0e-7;
   params.VerboseP = true;
   BiCGStabSolverQPhiX solver(D_qphix,params);
-  LinearSolverResults res = solver(solution_full, source_full,ABSOLUTE);
+  LinearSolverResults res = solver(solution_full, source_full,ABSOLUTE)[0];
 
   // Solution[odd] is the same between the transformed and untransformed system
-  QPhiXSpinorToQDPSpinor(solution_full,solution);
+  QPhiXSpinorToQDPSpinor(solution_full,0,solution);
 
   // Check solution
   LatticeFermion tmp=QDP::zero;
@@ -466,8 +466,8 @@ TEST(QPhiXIntegration, TestQPhiXMRSmootherEO)
 
   QPhiXSpinorF Ax(info);
   D_qphix(Ax,solution, LINOP_OP);
-  double normdiff = sqrt(XmyNorm2Vec(Ax,source,D_qphix.GetSubset()));
-  double normsrc = sqrt(Norm2Vec(source,D_qphix.GetSubset()));
+  double normdiff = sqrt(XmyNorm2Vec(Ax,source,D_qphix.GetSubset())[0]);
+  double normsrc = sqrt(Norm2Vec(source,D_qphix.GetSubset())[0]);
   double rel_normdiff = normdiff/normsrc;
   MasterLog(INFO, "|| r || = %16.8e", normdiff);
   MasterLog(INFO, "|| r ||/||b|| = %16.8e",rel_normdiff);
@@ -519,8 +519,8 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStabEOAbsolute)
 
   QDPGaugeFieldToQPhiXGauge(u,qphix_u);
 
-  QDPSpinorToQPhiXSpinor(transf_source,source_full);
-  QDPSpinorToQPhiXSpinor(solution,solution_full);
+  QDPSpinorToQPhiXSpinor(transf_source,source_full,0);
+  QDPSpinorToQPhiXSpinor(solution,solution_full,0);
 
 
   LinearSolverParamsBase params;
@@ -528,11 +528,11 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStabEOAbsolute)
   params.RsdTarget= 1.0e-7;
   params.VerboseP = true;
   BiCGStabSolverQPhiXEO solver(D_qphix,params);
-  LinearSolverResults res = solver(solution_full, source_full,ABSOLUTE);
+  LinearSolverResults res = solver(solution_full, source_full,ABSOLUTE)[0];
 
   QPhiXSpinor Ax(info);
   D_qphix(Ax,solution_full, LINOP_OP);
-  double normdiff = sqrt(XmyNorm2Vec(Ax,source_full,D_qphix.GetSubset()));
+  double normdiff = sqrt(XmyNorm2Vec(Ax,source_full,D_qphix.GetSubset())[0]);
 
   MasterLog(INFO, "|| r || = %16.8e", normdiff);
 
@@ -583,20 +583,20 @@ TEST(QPhiXIntegration, TestQPhiXBiCGStabRelativeF)
 
   QDPGaugeFieldToQPhiXGauge(u,qphix_u);
 
-  QDPSpinorToQPhiXSpinor(transf_source,source_full);
-  QDPSpinorToQPhiXSpinor(solution,solution_full);
+  QDPSpinorToQPhiXSpinor(transf_source,source_full,0);
+  QDPSpinorToQPhiXSpinor(solution,solution_full,0);
 
   LinearSolverParamsBase params;
   params.MaxIter = 5000;
   params.RsdTarget= 1.0e-6;
   params.VerboseP = true;
   BiCGStabSolverQPhiXF solver(D_qphix,params);
-  LinearSolverResults res = solver(solution_full, source_full);
+  LinearSolverResults res = solver(solution_full, source_full)[0];
 
   QPhiXSpinorF Ax(info);
   D_qphix(Ax,solution_full,LINOP_OP);
   LatticeFermion Ax_qdp;
-  QPhiXSpinorToQDPSpinor(Ax,Ax_qdp);
+  QPhiXSpinorToQDPSpinor(Ax,0,Ax_qdp);
   DiffSpinorRelative(source,Ax_qdp,1.0e-6);
 }
 
@@ -635,13 +635,13 @@ TEST(QPhiXIntegration, QPhiXFGMRESUnprecOp)
   QPhiXSpinor q_b(info);
   QPhiXSpinor q_x(info);
 
-  QDPSpinorToQPhiXSpinor(in,q_b);
+  QDPSpinorToQPhiXSpinor(in,q_b,0);
   Gaussian(q_x);
 
-  QDPIO::cout << "|| b ||=  " << sqrt(Norm2Vec(q_b)) << std::endl;
-  QDPIO::cout << "|| x || = " << sqrt(Norm2Vec(q_x)) << std::endl;
+  QDPIO::cout << "|| b ||=  " << sqrt(Norm2Vec(q_b)[0]) << std::endl;
+  QDPIO::cout << "|| x || = " << sqrt(Norm2Vec(q_x)[0]) << std::endl;
 
-  LinearSolverResults res = FGMRES(q_x,q_b);
+  LinearSolverResults res = FGMRES(q_x,q_b)[0];
 
   QDPIO::cout << "FGMRES Solver Took: " << res.n_count << " iterations"
       << std::endl;
@@ -649,7 +649,7 @@ TEST(QPhiXIntegration, QPhiXFGMRESUnprecOp)
   ASSERT_EQ(res.resid_type, RELATIVE);
   ASSERT_LT(res.resid, 9e-6);
   QDPWilsonCloverLinearOperator M_qdp(m_q, c_sw, t_bc, u);
-  QPhiXSpinorToQDPSpinor(q_x,out);
+  QPhiXSpinorToQDPSpinor(q_x,0,out);
   LatticeFermion Ax;
   M_qdp(Ax,out, LINOP_OP);
 
@@ -694,15 +694,15 @@ TEST(QPhiXIntegration, QPhiXUnprecFGMRES2)
   QPhiXSpinor q_b(info);
   QPhiXSpinor q_x(info);
 
-  QDPSpinorToQPhiXSpinor(in,q_b);
+  QDPSpinorToQPhiXSpinor(in,q_b,0);
   ZeroVec(q_x);
 
-  QDPIO::cout << "|| b ||=  " << sqrt(Norm2Vec(q_b)) << std::endl;
-  QDPIO::cout << "|| x || = " << sqrt(Norm2Vec(q_x)) << std::endl;
+  QDPIO::cout << "|| b ||=  " << sqrt(Norm2Vec(q_b)[0]) << std::endl;
+  QDPIO::cout << "|| x || = " << sqrt(Norm2Vec(q_x)[0]) << std::endl;
 
   StopWatch swatch;
   swatch.reset(); swatch.start();
-  LinearSolverResults res = FGMRES(q_x,q_b);
+  LinearSolverResults res = FGMRES(q_x,q_b)[0];
   swatch.stop();
 
   // Check Answer
@@ -710,7 +710,7 @@ TEST(QPhiXIntegration, QPhiXUnprecFGMRES2)
       << std::endl;
   ASSERT_EQ(res.resid_type, RELATIVE);
   ASSERT_LT(res.resid, 9e-6);
-  QPhiXSpinorToQDPSpinor(q_x,out);
+  QPhiXSpinorToQDPSpinor(q_x,0,out);
   LatticeFermion Ax;
   M_qdp(Ax,out, LINOP_OP);
   DiffSpinorRelative(in,Ax,1.0e-5);
@@ -718,7 +718,7 @@ TEST(QPhiXIntegration, QPhiXUnprecFGMRES2)
   out = zero;
   StopWatch swatch_qdp;
   swatch_qdp.reset(); swatch_qdp.start();
-  res = FGMRESQDP(out,in);
+  res = FGMRESQDP(out,in)[0];
   swatch_qdp.stop();
   QDPIO::cout << "QDP FGMRES Solver Took: " << res.n_count << " iterations"
        << std::endl;
@@ -783,13 +783,13 @@ TEST(QPhiXIntegration, QPhiXFGMRESPrecOp)
   QPhiXSpinor q_b(info);
   QPhiXSpinor q_x(info);
   QPhiXSpinor q_check(info);
-  QDPSpinorToQPhiXSpinor(in,q_b);
+  QDPSpinorToQPhiXSpinor(in,q_b,0);
 
   // Fill source with noide on both CBs
   Gaussian(q_x);
 
   // Run the solver: use EO solver internally, but do source and solution reconstructs
-  LinearSolverResults res = FGMRESWrapper(q_x,q_b);
+  LinearSolverResults res = FGMRESWrapper(q_x,q_b)[0];
 
   QDPIO::cout << "FGMRES Solver Took: " << res.n_count << " iterations"
       << std::endl;
@@ -800,7 +800,7 @@ TEST(QPhiXIntegration, QPhiXFGMRESPrecOp)
 
   // Now check back with a QDP++ unpreconditioned operator
   QDPWilsonCloverLinearOperator M_qdp(m_q, c_sw, t_bc, u);
-  QPhiXSpinorToQDPSpinor(q_x,out);
+  QPhiXSpinorToQDPSpinor(q_x,0,out);
 
   LatticeFermion Ax;
   M_qdp(Ax,out, LINOP_OP);
@@ -857,16 +857,16 @@ TEST(QPhiXIntegration, QPhiXFGMRESPrecOp2)
   in[rb[EVEN]] = QDP::zero;
   gaussian(in,rb[ODD]);
 
-  QDPSpinorToQPhiXSpinor(in,q_b);
+  QDPSpinorToQPhiXSpinor(in,q_b,0);
 
   ZeroVec(q_x);
   ZeroVec(q_x_unprec);
 
   // Run the solver: use EO solver internally, but do source and solution reconstructs
-  LinearSolverResults res = (*FGMRES)(q_x,q_b);
+  LinearSolverResults res = (*FGMRES)(q_x,q_b)[0];
   QDPIO::cout << "EO FGMRES Solver Took: " << res.n_count << " iterations"
       << std::endl;
-  LinearSolverResults res2 = (*FGMRES_unprec)(q_x_unprec,q_b);
+  LinearSolverResults res2 = (*FGMRES_unprec)(q_x_unprec,q_b)[0];
 
   QDPIO::cout << "UNPREC FGMRES Solver Took: " << res.n_count << " iterations"
       << std::endl;
@@ -881,20 +881,20 @@ TEST(QPhiXIntegration, QPhiXFGMRESPrecOp2)
 
 
   (*M_prec)(q_check,q_x_unprec, LINOP_OP);
-  double norm2_b = sqrt(Norm2Vec(q_b,SUBSET_ODD));
-  double norm2_r = sqrt(XmyNorm2Vec(q_check,q_b,SUBSET_ODD));
+  double norm2_b = sqrt(Norm2Vec(q_b,SUBSET_ODD)[0]);
+  double norm2_r = sqrt(XmyNorm2Vec(q_check,q_b,SUBSET_ODD)[0]);
   QDPIO::cout << "|| b - M_prec (unprec_x_odd) || = "
 		  << norm2_r << "  || b - M_prec (unprec_x_odd) || / || b ||="
 		  << norm2_r/norm2_b << std::endl;
 
   (*M_prec)(q_check,q_x, LINOP_OP);
-   norm2_b = sqrt(Norm2Vec(q_b,SUBSET_ODD));
-   norm2_r = sqrt(XmyNorm2Vec(q_check,q_b, SUBSET_ODD));
+   norm2_b = sqrt(Norm2Vec(q_b,SUBSET_ODD)[0]);
+   norm2_r = sqrt(XmyNorm2Vec(q_check,q_b, SUBSET_ODD)[0]);
    QDPIO::cout << "|| b - M_prec (prec_x_odd) || = "
  		  << norm2_r << "  || b - M_prec (prec_x_odd) || / || b ||="
  		  << norm2_r/norm2_b << std::endl;
 
-   norm2_r = sqrt(XmyNorm2Vec(q_x,q_x_unprec,SUBSET_ODD));
+   norm2_r = sqrt(XmyNorm2Vec(q_x,q_x_unprec,SUBSET_ODD)[0]);
 
    QDPIO::cout << " ||  prec_x_odd - unprec_x_odd || = " << norm2_r << std::endl;
    QDPIO::cout << " ||  prec_x_odd - unprec_x_odd ||/coarse_site = " << norm2_r/info.GetNumCBSites() << std::endl;
@@ -941,15 +941,15 @@ TEST(QPhiXIntegration, QPhiXUnprecFGMRES2F)
   QPhiXSpinorF q_b(info);
   QPhiXSpinorF q_x(info);
 
-  QDPSpinorToQPhiXSpinor(in,q_b);
+  QDPSpinorToQPhiXSpinor(in,q_b,0);
   ZeroVec(q_x);
 
-  QDPIO::cout << "|| b ||=  " << sqrt(Norm2Vec(q_b)) << std::endl;
-  QDPIO::cout << "|| x || = " << sqrt(Norm2Vec(q_x)) << std::endl;
+  QDPIO::cout << "|| b ||=  " << sqrt(Norm2Vec(q_b)[0]) << std::endl;
+  QDPIO::cout << "|| x || = " << sqrt(Norm2Vec(q_x)[0]) << std::endl;
 
   StopWatch swatch;
   swatch.reset(); swatch.start();
-  LinearSolverResults res = FGMRES(q_x,q_b);
+  LinearSolverResults res = FGMRES(q_x,q_b)[0];
   swatch.stop();
 
   // Check Answer
@@ -957,7 +957,7 @@ TEST(QPhiXIntegration, QPhiXUnprecFGMRES2F)
       << std::endl;
   ASSERT_EQ(res.resid_type, RELATIVE);
   ASSERT_LT(res.resid, 9e-6);
-  QPhiXSpinorToQDPSpinor(q_x,out);
+  QPhiXSpinorToQDPSpinor(q_x,0,out);
   LatticeFermion Ax;
   M_qdp(Ax,out, LINOP_OP);
   DiffSpinorRelative(in,Ax,1.0e-5);
@@ -965,7 +965,7 @@ TEST(QPhiXIntegration, QPhiXUnprecFGMRES2F)
   out = zero;
   StopWatch swatch_qdp;
   swatch_qdp.reset(); swatch_qdp.start();
-  res = FGMRESQDP(out,in);
+  res = FGMRESQDP(out,in)[0];
   swatch_qdp.stop();
   QDPIO::cout << "QDP FGMRES Solver Took: " << res.n_count << " iterations"
        << std::endl;
@@ -1025,10 +1025,10 @@ TEST(QPhiXIntegration, QPhiXMRSmootherTime)
   QPhiXSpinorF q_b(info);
   QPhiXSpinorF q_x(info);
 
-  QDPSpinorToQPhiXSpinor(in,q_b);
+  QDPSpinorToQPhiXSpinor(in,q_b,0);
 
-  QDPIO::cout << "|| b ||=  " << sqrt(Norm2Vec(q_b)) << std::endl;
-  QDPIO::cout << "|| x || = " << sqrt(Norm2Vec(q_x)) << std::endl;
+  QDPIO::cout << "|| b ||=  " << sqrt(Norm2Vec(q_b)[0]) << std::endl;
+  QDPIO::cout << "|| x || = " << sqrt(Norm2Vec(q_x)[0]) << std::endl;
 
   QDPIO::cout << "Timing QPhiX MR Smoother" << std::endl;
   StopWatch swatch;
@@ -1113,8 +1113,8 @@ TEST(QPhiXIntegration, TestQPhiXMRRelativeF)
 
   QDPGaugeFieldToQPhiXGauge(u,qphix_u);
 
-  QDPSpinorToQPhiXSpinor(transf_source,source_full);
-  QDPSpinorToQPhiXSpinor(solution,solution_full);
+  QDPSpinorToQPhiXSpinor(transf_source,source_full,0);
+  QDPSpinorToQPhiXSpinor(solution,solution_full,0);
 
   MRSolverParams params;
   params.MaxIter = 5000;
@@ -1122,12 +1122,12 @@ TEST(QPhiXIntegration, TestQPhiXMRRelativeF)
   params.VerboseP = true;
   params.Omega = 1.1;
   MRSolverQPhiXF solver(D_qphix,params);
-  LinearSolverResults res = solver(solution_full, source_full);
+  LinearSolverResults res = solver(solution_full, source_full)[0];
 
   QPhiXSpinorF Ax(info);
   D_qphix(Ax,solution_full,LINOP_OP);
   LatticeFermion Ax_qdp;
-  QPhiXSpinorToQDPSpinor(Ax,Ax_qdp);
+  QPhiXSpinorToQDPSpinor(Ax,0,Ax_qdp);
   DiffSpinorRelative(source,Ax_qdp,1.0e-6);
 }
 
@@ -1154,8 +1154,8 @@ TEST(QPhiXIntegration, QPhiXIndexing)
        for(int spin=0; spin < 4; ++spin) {
          for(int color = 0; color < 3; ++color ) {
 
-           f_q(cb,site,spin,color,RE) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).real();
-           f_q(cb,site,spin,color,IM) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).imag();
+           f_q(0,cb,site,spin,color,RE) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).real();
+           f_q(0,cb,site,spin,color,IM) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).imag();
          }// color
        } // spin
      } // cbsite
@@ -1174,8 +1174,8 @@ TEST(QPhiXIntegration, QPhiXIndexing)
        for(int spin=0; spin < 4; ++spin) {
          for(int color = 0; color < 3; ++color ) {
 
-           f_qf(cb,site,spin,color,RE) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).real();
-           f_qf(cb,site,spin,color,IM) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).imag();
+           f_qf(0,cb,site,spin,color,RE) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).real();
+           f_qf(0,cb,site,spin,color,IM) = f.elem(rb[cb].siteTable()[site]).elem(spin).elem(color).imag();
          }// color
        } // spin
      } // cbsite

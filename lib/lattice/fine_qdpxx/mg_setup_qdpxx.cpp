@@ -59,8 +59,9 @@ void SetupQDPXXToCoarseGenerateVecs(const SetupParams& p, std::shared_ptr<const 
     }
 
     for(int k=0; k < num_vecs; ++k) {
-       LinearSolverResults res = (*(fine_level.null_solver))(fine_level.null_vecs[k],b, ABSOLUTE);
-       QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
+       std::vector<LinearSolverResults> res = (*(fine_level.null_solver))(fine_level.null_vecs[k],b, ABSOLUTE);
+       assert(res.size() == 1);
+       QDPIO::cout << "BiCGStab Solver Took: " << res[0].n_count << " iterations"
           << std::endl;
     }
 }

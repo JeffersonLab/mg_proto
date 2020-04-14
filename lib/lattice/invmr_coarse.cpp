@@ -45,7 +45,7 @@ namespace {
 	template <typename T>
 	std::vector<std::complex<float>> negate(const std::vector<std::complex<T>>& x) {
 		std::vector<std::complex<float>> r(x.size());
-		std::transform(x.begin(), x.end(), r.begin(), [](std::complex<T>& f) { return -f;});
+		std::transform(x.begin(), x.end(), r.begin(), [](const std::complex<T>& f) { return -f;});
 		return r;
 	}
 }

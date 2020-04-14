@@ -71,8 +71,9 @@ namespace MG {
 			fine_level.null_vecs[k] = std::make_shared<CoarseSpinor>(fine_info);
 
 	  		Gaussian(*(fine_level.null_vecs[k]));
-			LinearSolverResults res = (*(fine_level.null_solver))((*fine_level.null_vecs[k]),b, ABSOLUTE);
-			MasterLog(INFO, "Level %d: Solver Took: %d iterations",fine_level_id, res.n_count);
+			std::vector<LinearSolverResults> res = (*(fine_level.null_solver))((*fine_level.null_vecs[k]),b, ABSOLUTE);
+			assert(res.size() == 1);
+			MasterLog(INFO, "Level %d: Solver Took: %d iterations",fine_level_id, res[0].n_count);
 
 		}
 

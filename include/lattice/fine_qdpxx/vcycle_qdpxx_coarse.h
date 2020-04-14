@@ -25,7 +25,7 @@ namespace MG {
 class VCycleQDPCoarse2 : public LinearSolver<LatticeFermion, multi1d<LatticeColorMatrix> >
 {
 public:
-	LinearSolverResults operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type = RELATIVE ) const
+	std::vector<LinearSolverResults> operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type = RELATIVE ) const
 	{
 
 		LinearSolverResults res;
@@ -57,7 +57,7 @@ public:
 			if( resid_type == RELATIVE ) {
 				res.resid /= toDouble(norm_r);
 			}
-			return res;
+			return std::vector<LinearSolverResults>(1, res);
 		}
 
 		if( _param.VerboseP ) {
@@ -115,7 +115,7 @@ public:
 
 			CoarseSpinor coarse_delta(_coarse_info);
 			ZeroVec(coarse_delta);
-			LinearSolverResults coarse_res =_bottom_solver(coarse_delta,coarse_in);
+			_bottom_solver(coarse_delta,coarse_in);
 
 			// Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
 			prolongateSpinorCoarseToQDPXXFine(_my_blocks, _vecs, coarse_delta, delta);
@@ -175,7 +175,7 @@ public:
 		if( resid_type == RELATIVE ) {
 			res.resid /= toDouble(norm_in);
 		}
-		return res;
+		return std::vector<LinearSolverResults>(1, res);
 	}
 
 	VCycleQDPCoarse2(const LatticeInfo& coarse_info,

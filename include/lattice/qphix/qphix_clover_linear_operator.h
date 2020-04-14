@@ -154,33 +154,51 @@ public:
 
   void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override{
     int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->M_unprec(out.get(),in.get(),isign);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_unprec(out.get(col),in.get(col),isign);
   }
 
 
   void M_ee(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const{
     int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->M_diag(out.get(),in.get(),isign,0);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_diag(out.get(col),in.get(col),isign,0);
   }
 
   void M_oo(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const  {
     int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->M_diag(out.get(),in.get(),isign,1);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_diag(out.get(col),in.get(col),isign,1);
   }
 
   void M_eo(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
     int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->M_offdiag(out.getCB(0).get(),in.getCB(1).get(), isign,0);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_offdiag(out.getCB(col,0).get(),in.getCB(col,1).get(), isign,0);
   }
 
   void M_oe(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
     int isign = (type == LINOP_OP) ? 1 : -1;
-    QPhiXEOClov->M_offdiag(out.getCB(1).get() ,in.getCB(0).get(), isign, 1);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_offdiag(out.getCB(col,1).get() ,in.getCB(col,0).get(), isign, 1);
   }
 
   void M_ee_inv(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const {
     const int isign = (type == LINOP_OP) ? 1: -1;
-    QPhiXEOClov->M_diag_inv(out.getCB(0).get(),in.getCB(0).get(),isign);
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->M_diag_inv(out.getCB(col,0).get(),in.getCB(col,0).get(),isign);
   }
 
 
@@ -202,7 +220,10 @@ public:
         const Spinor& spinor_in,
         const IndexType dir) const {
 
-    QPhiXEOClov->DslashDir(spinor_out.get(),spinor_in.get(),dir);
+    assert(spinor_out.GetNCol() == spinor_in.GetNCol());
+    IndexType ncol = spinor_out.GetNCol();
+    for (int col=0; col < ncol; ++col)
+      QPhiXEOClov->DslashDir(spinor_out.get(col),spinor_in.get(col),dir);
   }
 
   QPhiXClovOpT<FT>& getQPhiXOp()

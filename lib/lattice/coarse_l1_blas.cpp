@@ -151,7 +151,7 @@ std::vector<double> Norm2Vec(const CoarseSpinor& x, const CBSubset& subset)
 	IndexType ncol = x.GetNCol();
 
 	// Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(3) reduction(vec_double_plus:norm_diff) schedule(static)
+#pragma omp parallel for collapse(3) reduction(vec_double_plus:norm_sq) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 			for(int col = 0; col < ncol; ++col ) {
@@ -379,8 +379,14 @@ void ScaleVec(const std::vector<std::complex<float>>& alpha, CoarseSpinor& x, co
 
 }
 
+namespace {
+	template <typename T> inline float toFloat(const T& f);
+	template <typename T> inline float toFloat(const T& f) { return float(f); } 
+	template <typename T> inline std::complex<float> toFloat(const std::complex<T>& f) { return std::complex<float>(f); } 
+}
 
-void AxpyVec(const std::vector<std::complex<float>>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
+template <typename T>
+void AxpyVecT(const std::vector<T>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
 {
 	const LatticeInfo& x_info = x.GetInfo();
 	const LatticeInfo& y_info = y.GetInfo();
@@ -398,26 +404,14 @@ void AxpyVec(const std::vector<std::complex<float>>& alpha, const CoarseSpinor& 
 
 
 				// Identify the site and the column
-				const float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
-				float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
-				std::complex<float> alpha_col = alpha[col];
+				const std::complex<float>* x_site_data = reinterpret_cast<const std::complex<float>*>(x.GetSiteDataPtr(col,cb,cbsite));
+				std::complex<float>* y_site_data = reinterpret_cast<std::complex<float>*>(y.GetSiteDataPtr(col,cb,cbsite));
+				auto alpha_col = toFloat(alpha[col]);
 
 				// Do axpy over the colorspins
 #pragma omp simd
 				for(int cspin=0; cspin < num_colorspin; ++cspin) {
-
-
-					std::complex<float> c_x( x_site_data[RE + n_complex*cspin],
-							x_site_data[IM + n_complex*cspin]);
-
-					std::complex<float> c_y( y_site_data[RE + n_complex*cspin],
-							y_site_data[IM + n_complex*cspin]);
-
-
-					c_y += alpha_col*c_x;
-
-					y_site_data[ RE + n_complex*cspin] = std::real(c_y);
-					y_site_data[ IM + n_complex*cspin] = std::imag(c_y);
+					y_site_data[cspin] += x_site_data[cspin] * alpha_col;
 				}
 
 			}
@@ -426,7 +420,21 @@ void AxpyVec(const std::vector<std::complex<float>>& alpha, const CoarseSpinor& 
 	} // End of Parallel for region
 }
 
+void AxpyVec(const std::vector<std::complex<float>>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset) {
+	AxpyVecT(alpha, x, y, subset);
+}
 
+void AxpyVec(const std::vector<float>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset) {
+	AxpyVecT(alpha, x, y, subset);
+}
+
+void AxpyVec(const std::vector<std::complex<double>>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset) {
+	AxpyVecT(alpha, x, y, subset);
+}
+
+void AxpyVec(const std::vector<double>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset) {
+	AxpyVecT(alpha, x, y, subset);
+}
 void YpeqxVec(const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset)
 {
 	const LatticeInfo& x_info = x.GetInfo();
@@ -611,43 +619,6 @@ void BiCGStabXUpdate(const std::vector<std::complex<float>>& omega,
 
 
 
-
-void AxpyVec(const std::vector<float>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset) {
-	const LatticeInfo& x_info = x.GetInfo();
-	const LatticeInfo& y_info = y.GetInfo();
-	AssertCompatible(x_info, y_info);
-
-
-	IndexType num_cbsites = x_info.GetNumCBSites();
-	IndexType num_colorspin = x.GetNumColorSpin();
-	IndexType ncol = x.GetNCol();
-
-#pragma omp parallel for collapse(3) schedule(static)
-	for(int cb=subset.start; cb < subset.end; ++cb ) {
-		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
-			for(int col = 0; col < ncol; ++col ) {
-
-
-				// Identify the site and the column
-				const float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
-				float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
-				float alpha_col = alpha[col];
-
-				// Do axpy over the colorspins
-#pragma omp simd
-				for(int cspin=0; cspin < num_colorspin; ++cspin) {
-
-
-					y_site_data[ RE + n_complex*cspin] += alpha_col*x_site_data[ RE + n_complex*cspin];
-					y_site_data[ IM + n_complex*cspin] += alpha_col*x_site_data[ IM + n_complex*cspin];
-
-				}
-
-			}
-
-		}
-	} // End of Parallel for region
-}
 
 
 void XmyzVec(const CoarseSpinor&x, const CoarseSpinor& y,

@@ -30,9 +30,10 @@ TEST(CoarseDslash, TestSpeed)
 	IndexArray latdims=args.ldims;
 	NodeInfo node;
 	LatticeInfo linfo(latdims, 2, args.fine_colors, node);
+  int ncol = 1;
 
-	CoarseSpinor x_spinor(linfo);
-	CoarseSpinor y_spinor(linfo);
+	CoarseSpinor x_spinor(linfo, ncol);
+	CoarseSpinor y_spinor(linfo, ncol);
 	CoarseGauge gauge(linfo);
 
 	const int N_iter =args.iter;
@@ -55,53 +56,54 @@ TEST(CoarseDslash, TestSpeed)
 		// One thread per site -- fill fields with random junk
 
 #pragma omp for schedule(static)
-		for(IndexType site=0; site < N_sites_cb; ++site) {
+    for(IndexType site=0; site < N_sites_cb; ++site) {
+      // Fill spinors with some junk
+      for (int col=0; col < ncol; ++col) {
+        for(int j=0; j < n_complex*N; ++j) {
+          x_spinor.GetSiteDataPtr(col, (IndexType)0,site)[j] = 0.5;
+          x_spinor.GetSiteDataPtr(col, (IndexType)1,site)[j] = 0.5;
+          y_spinor.GetSiteDataPtr(col, (IndexType)0,site)[j] = 0;
+          y_spinor.GetSiteDataPtr(col, (IndexType)1,site)[j] = 0;
+        }
+      }
 
-			// Fill spinors with some junk
-			for(int j=0; j < n_complex*N; ++j) {
-				x_spinor.GetSiteDataPtr((IndexType)0,site)[j] = 0.5;
-				x_spinor.GetSiteDataPtr((IndexType)1,site)[j] = 0.5;
-				y_spinor.GetSiteDataPtr((IndexType)0,site)[j] = 0;
-				y_spinor.GetSiteDataPtr((IndexType)1,site)[j] = 0;
-			}
+      for(int dir=0; dir < 8; ++dir) {
+        for(int row=0; row < n_complex*N; ++row) {
+          for(int col=0; col < N; col++) {
 
-			for(int dir=0; dir < 8; ++dir) {
-				for(int row=0; row < n_complex*N; ++row) {
-					for(int col=0; col < N; col++) {
+            gauge.GetSiteDirDataPtr(0,site,dir)[ col + n_complex*N*row ] = 0.23;
+            gauge.GetSiteDirDataPtr(1,site,dir)[ col + n_complex*N*row ] = 0.23;
+          }
+        }
+      }
 
-						gauge.GetSiteDirDataPtr(0,site,dir)[ col + n_complex*N*row ] = 0.23;
-						gauge.GetSiteDirDataPtr(1,site,dir)[ col + n_complex*N*row ] = 0.23;
-					}
-				}
-			}
+      for(int row=0; row < (N/2); ++row) {
+        for(int col=0; col < N; col++) {
+          for(int z=0; z < n_complex; ++z ) {
 
-			for(int row=0; row < (N/2); ++row) {
-				for(int col=0; col < N; col++) {
-					for(int z=0; z < n_complex; ++z ) {
+            // CB=0 Chiral up
+            gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
+            gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
 
-						// CB=0 Chiral up
-						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
-						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
+            // CB=0 Chiral down
+            gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
+            gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
 
-						// CB=0 Chiral down
-						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
-						gauge.GetSiteDirDataPtr(0,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
+            // CB=1 Chiral up
+            gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
+            gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
 
-						// CB=1 Chiral up
-						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
-						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
-
-						// CB=1 Chiral down
-						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
-						gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
+            // CB=1 Chiral down
+            gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
+            gauge.GetSiteDirDataPtr(1,site,8)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
 
 
 
-					}
-				}
-			}
-		}
-	}
+          }
+        }
+      }
+    }
+  }
 
 	double outer_start_time = omp_get_wtime();
 #pragma omp parallel shared(x_spinor,y_spinor, gauge)	// Make sure all the data has been filled.
@@ -124,7 +126,7 @@ TEST(CoarseDslash, TestSpeed)
 	double N_dble = static_cast<double>(N);
 	double N_iter_dble = static_cast<double>(N_iter);
 	double N_sites_cb_dble = static_cast<double>(N_sites_cb);
-	double gflops=N_sites_cb*N_iter_dble*(N_dir*(N_dble*(8*N_dble-2))+(N_dir-1)*2*N)/1.0e9;
+	double gflops=ncol*N_sites_cb*N_iter_dble*(N_dir*(N_dble*(8*N_dble-2))+(N_dir-1)*2*N)/1.0e9;
 
 	double min_time=total_time[0][0];
 	double max_time =total_time[0][0];

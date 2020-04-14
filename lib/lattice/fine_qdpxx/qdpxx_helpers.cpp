@@ -20,7 +20,7 @@ QDPSpinorToCoarseSpinor(const LatticeFermion& qdpxx_in,
 {
 	IndexType num_colorspin = coarse_out.GetNumColorSpin();
 	IndexType num_cb_sites = coarse_out.GetInfo().GetNumCBSites();
-
+	assert(coarse_out.GetNCol() == 1);
 
 	// Assert site tables are equal
 	if ( num_cb_sites != rb[0].numSiteTable() ) {
@@ -38,7 +38,7 @@ QDPSpinorToCoarseSpinor(const LatticeFermion& qdpxx_in,
 #pragma omp parallel for collapse(2)
 	for(int cb=0; cb < 2; ++cb) {
 		for(int cbsite=0; cbsite < num_cb_sites; ++cbsite) {
-			float *spinor_data=coarse_out.GetSiteDataPtr(cb,cbsite);
+			float *spinor_data=coarse_out.GetSiteDataPtr(0,cb,cbsite);
 
 			for(int colorspin=0; colorspin < num_colorspin; ++colorspin) {
 				int spin=colorspin/3;
@@ -59,6 +59,7 @@ CoarseSpinorToQDPSpinor(const CoarseSpinor& coarse_in,
 {
 	IndexType num_colorspin = coarse_in.GetNumColorSpin();
 	IndexType num_cb_sites = coarse_in.GetInfo().GetNumCBSites();
+	assert(coarse_in.GetNCol() == 1);
 
 	// Assert site tables are equal
 	if ( num_cb_sites != rb[0].numSiteTable() ) {
@@ -77,7 +78,7 @@ CoarseSpinorToQDPSpinor(const CoarseSpinor& coarse_in,
 	for(int cb=0; cb < 2; ++cb) {
 		for(int cbsite=0; cbsite < num_cb_sites; ++cbsite) {
 
-			const float *spinor_data=coarse_in.GetSiteDataPtr(cb,cbsite);
+			const float *spinor_data=coarse_in.GetSiteDataPtr(0,cb,cbsite);
 
 			for(int colorspin=0; colorspin < num_colorspin; ++colorspin) {
 				int spin=colorspin/3;
