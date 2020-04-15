@@ -238,7 +238,7 @@ template<typename ST, typename GT>
 
 private:
 
-  void initialize(IndexType ncol) {  
+  void initialize(IndexType ncol) const {  
     if (H_.size() == ncol) return;
 
     destroy();
@@ -287,8 +287,8 @@ private:
     }
   }
 
-  void destroy() {
-    for(int i=0; i < _params.NKrylov+1; ++i) {
+  void destroy() const {
+    for(int i=0; i < V_.size(); ++i) {
       delete V_[i];
       delete Z_[i];
       for (int col=0; col < H_.size(); ++col)  {
@@ -317,10 +317,11 @@ public:
 
       assert(in.GetNCol() == out.GetNCol());
 
-      std::vector<LinearSolverResults> res; // Value to return
       const CBSubset& subset = _A.GetSubset();
 
       IndexType ncol = in.GetNCol();
+      initialize(ncol);
+      std::vector<LinearSolverResults> res(ncol); // Value to return
       for (int col=0; col < ncol; ++col) res[col].resid_type = resid_type;
 
       std::vector<double> norm2_rhs = Norm2Vec(in,subset);   //  || b ||                      BLAS: NORM2
@@ -391,8 +392,9 @@ public:
                if( _params.VerboseP ) {
                   MasterLog(INFO,"FGMRES: level=%d col=%d Solve Converged: iters=0  Final Absolute || r ||/|| b ||=%16.8e", level,col, res[col].resid);
                }
-               all_converged = false;
             }
+         } else {
+           all_converged = false;
          }
       }
 
@@ -426,7 +428,7 @@ public:
         // NB: We will have a copy of this called 'g' onto which we will
         // apply Givens rotations to get an inline estimate of the residuum
         for (int col=0; col < ncol; ++col) {
-           for(int j=0; j < c_.size(); ++j) {
+           for(int j=0; j < c_[col].size(); ++j) {
               c_[col][j] = std::complex<double>(0);
            }
            c_[col][0] = sqrt(r_norm2[col]);
@@ -533,7 +535,7 @@ public:
     }
 
     void FlexibleArnoldi(int n_krylov,
-             const std::vector<double> rsd_target,
+             const std::vector<double>& rsd_target,
              std::vector<ST*>& V,
              std::vector<ST*>& Z,
              ST& w,
@@ -579,7 +581,6 @@ public:
     // These can become state variables, as they will need to be
     // handed around
     mutable std::vector<Array2d<std::complex<double>>> H_; // The H matrix
-    mutable std::vector<Array2d<std::complex<double>>> R_; // R = H diagonalized with Givens rotations
     mutable std::vector<ST*> V_;  // K(A)
     mutable std::vector<ST*> Z_;  // K(MA)
     mutable std::vector<std::vector< Givens* >> givens_rots_;

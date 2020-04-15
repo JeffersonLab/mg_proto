@@ -66,14 +66,15 @@ void GlobalSum( std::vector<std::complex<double>>& array ) {
 
 }
 
-#pragma omp declare reduction(vec_double_plus : std::vector<double> : \
-			std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<double>())) \
-			initializer(omp_priv = decltype(omp_orig)(omp_orig.size()))
+#pragma omp declare reduction(vec_double_plus : std::vector<double>* : \
+			(std::transform(omp_out->begin(), omp_out->end(), omp_in->begin(), omp_out->begin(), std::plus<double>()), \
+			 delete omp_in)) \
+			initializer(omp_priv = new std::vector<double>(omp_orig->size()))
 
-#pragma omp declare reduction(vec_cdouble_plus : std::vector<std::complex<double>> : \
-			std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<std::complex<double>>())) \
-			initializer(omp_priv = decltype(omp_orig)(omp_orig.size()))
-
+#pragma omp declare reduction(vec_cdouble_plus : std::vector<std::complex<double>>* : \
+			(std::transform(omp_out->begin(), omp_out->end(), omp_in->begin(), omp_out->begin(), std::plus<std::complex<double>>()), \
+			 delete omp_in)) \
+			initializer(omp_priv = new std::vector<std::complex<double>>(omp_orig->size()))
 
 /** Performs:
  *  x <- x - y;
@@ -96,10 +97,10 @@ std::vector<double> XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y, const CB
 	IndexType num_colorspin = x.GetNumColorSpin();
 	IndexType ncol = x.GetNCol();
 
-	std::vector<double> norm_diff(ncol);
+	std::vector<double> norm_diff(ncol), *norm_diff_ptr = &norm_diff;
 
 	// Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(3) reduction(vec_double_plus:norm_diff) schedule(static)
+#pragma omp parallel for collapse(3) reduction(vec_double_plus:norm_diff_ptr) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 			for(int col = 0; col < ncol; ++col ) {
@@ -120,7 +121,7 @@ std::vector<double> XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y, const CB
 					cspin_sum += diff_re*diff_re + diff_im*diff_im;
 
 				}
-				norm_diff[col] += cspin_sum;
+				(*norm_diff_ptr)[col] += cspin_sum;
 			}
 		}
 	} // End of Parallel for reduction
@@ -141,7 +142,6 @@ std::vector<double> XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y, const CB
  */
 std::vector<double> Norm2Vec(const CoarseSpinor& x, const CBSubset& subset)
 {
-	std::vector<double> norm_sq(x.GetNCol());
 
 	const LatticeInfo& x_info = x.GetInfo();
 
@@ -149,9 +149,10 @@ std::vector<double> Norm2Vec(const CoarseSpinor& x, const CBSubset& subset)
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
 	IndexType ncol = x.GetNCol();
+	std::vector<double> norm_sq(x.GetNCol()), *norm_sq_ptr = &norm_sq;
 
 	// Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(3) reduction(vec_double_plus:norm_sq) schedule(static)
+#pragma omp parallel for collapse(3) reduction(vec_double_plus:norm_sq_ptr) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 			for(int col = 0; col < ncol; ++col ) {
@@ -169,7 +170,7 @@ std::vector<double> Norm2Vec(const CoarseSpinor& x, const CBSubset& subset)
 					cspin_sum += x_re*x_re + x_im*x_im;
 
 				}
-				norm_sq[col] += cspin_sum;
+				(*norm_sq_ptr)[col] += cspin_sum;
 			}
 		}
 	} // End of Parallel for reduction
@@ -197,10 +198,10 @@ std::vector<std::complex<double>> InnerProductVec(const CoarseSpinor& x, const C
 	IndexType num_colorspin = x.GetNumColorSpin();
 	IndexType ncol = x.GetNCol();
 
-	std::vector<std::complex<double>> ipprod(ncol);
+	std::vector<std::complex<double>> ipprod(ncol), *ipprod_ptr = &ipprod;
 
 	// Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(3) reduction(vec_cdouble_plus:ipprod) schedule(static)
+#pragma omp parallel for collapse(3) reduction(vec_cdouble_plus:ipprod_ptr) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 			for(int col = 0; col < ncol; ++col ) {
@@ -225,7 +226,7 @@ std::vector<std::complex<double>> InnerProductVec(const CoarseSpinor& x, const C
 
 
 				}
-				ipprod[col] += std::complex<double>(cspin_iprod_re, cspin_iprod_im);
+				(*ipprod_ptr)[col] += std::complex<double>(cspin_iprod_re, cspin_iprod_im);
 			}
 		}
 	} // End of Parallel for reduction

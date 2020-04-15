@@ -255,7 +255,7 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 				for (int col=0; col < ncol; ++col)  {
 					MasterLog(INFO, "MR: level=%d iter=%d col=%d || r ||^2 = %16.8e  Target || r^2 || = %16.8e", level,
 							k, col, cp[col], rsd_sq[col] );
-					if (continueP[col] && cp[col] > rsd_sq[col]) {
+					if (continueP[col] && cp[col] <= rsd_sq[col]) {
 						res[col].n_count = k;
 						continueP[col] = false;
 					}
