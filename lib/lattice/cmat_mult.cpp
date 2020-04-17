@@ -66,6 +66,26 @@ void CMatMultAddNaive(float* y,
 	CMatMultCoeffAddNaive(1.0, y, 1.0, A, x, N, ncol);
 }
 
+void CMatMultCoeffAddNaive(float beta,
+		std::complex<float>* y,
+		IndexType ldy,
+		float alpha,
+		const std::complex<float>* A,
+		IndexType ldA,
+		const std::complex<float>* x,
+		IndexType ldx,
+		IndexType Arows,
+		IndexType Acols,
+		IndexType xcols)
+{
+	if (fabs(beta) == 0.0) {
+		for (IndexType j=0; j < xcols; ++j) 
+			for (IndexType i=0; i < Arows; ++i) y[i + ldy*j] = 0.0;
+	}
+
+	XGEMM("N", "N", Arows, xcols, Acols, alpha, A, ldA, x, ldx, beta, y, ldy);
+}
+
 
 void CMatMultCoeffAddNaive(float beta,
 		float* y,
@@ -99,6 +119,26 @@ void CMatAdjMultNaive(float* y,
 	const std::complex<float>* xc = reinterpret_cast<const std::complex<float>*>(x);
 
 	XGEMM("C", "N", N, ncol, N, 1.0, Ac, N, xc, N, 0.0, yc, N);
+}
+
+void CMatAdjMultCoeffAddNaive(float beta,
+		std::complex<float>* y,
+		IndexType ldy,
+		float alpha,
+		const std::complex<float>* A,
+		IndexType ldA,
+		const std::complex<float>* x,
+		IndexType ldx,
+		IndexType Arows,
+		IndexType Acols,
+		IndexType xcols)
+{
+	if (fabs(beta) == 0.0) {
+		for (IndexType j=0; j < xcols; ++j) 
+			for (IndexType i=0; i < Acols; ++i) y[i + ldy*j] = 0.0;
+	}
+
+	XGEMM("C", "N", Acols, xcols, Arows, alpha, A, ldA, x, ldx, beta, y, ldy);
 }
 
 

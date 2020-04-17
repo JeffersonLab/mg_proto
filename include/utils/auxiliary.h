@@ -13,6 +13,13 @@ namespace MG {
 			std::transform(v.begin(), v.end(), out.begin(), [](const T& x){ return std::sqrt(x); });
 			return out;
 		}
+
+		template<typename T> std::vector<T> operator/(const std::vector<T>& a, const std::vector<T>& b) {
+			assert(a.size() == b.size());
+			std::vector<T> out(a.size());
+			std::transform(a.begin(), a.end(), b.begin(), out.begin(), [](const T& x, const T& y){ return x/y; });
+			return out;
+		}
 	}
 
 	template<typename Spinor>

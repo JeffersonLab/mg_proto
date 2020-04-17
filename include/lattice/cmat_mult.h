@@ -77,6 +77,30 @@ void CMatMultAddNaive(float* y, const float* A, const float* x, IndexType N, Ind
 /* y = alpha A x + beta*y,  alpha and beta are real */
 void CMatMultCoeffAddNaive(float beta, float* y,  float alpha, const float* A, const float* x, IndexType N, IndexType ncol=1);
 
+void CMatMultCoeffAddNaive(float beta,
+		std::complex<float>* y,
+		IndexType ldy,
+		float alpha,
+		const std::complex<float>* A,
+		IndexType ldA,
+		const std::complex<float>* x,
+		IndexType ldx,
+		IndexType Arows,
+		IndexType Acols,
+		IndexType xcols);
+
+void CMatAdjMultCoeffAddNaive(float beta,
+		std::complex<float>* y,
+		IndexType ldy,
+		float alpha,
+		const std::complex<float>* A,
+		IndexType ldA,
+		const std::complex<float>* x,
+		IndexType ldx,
+		IndexType Arows,
+		IndexType Acols,
+		IndexType xcols);
+
 void GcCMatMultGcNaive(float* y,
 				   const float* A,
 				   const float* x,

@@ -37,10 +37,12 @@
 #include <lattice/coarse/coarse_l1_blas.h>
 #include <lattice/coarse/aggregate_block_coarse.h>
 #include <lattice/coarse/coarse_transfer.h>
+#include <utils/auxiliary.h>
 
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
+using namespace MG::aux;
 
 
 
@@ -50,7 +52,6 @@ TEST(Timing, ProlongatorProfile)
 
 	const int n_fine =24;
 	const int num_vecs = 32;
-	const int ncol = 1;
 
 
 	MasterLog(INFO, "Testing Prolongators with n_fine_colors=%d n_coarse_colors=%d",n_fine,num_vecs);
@@ -99,6 +100,7 @@ TEST(Timing, ProlongatorProfile)
 
 	  CoarseTransfer Transf(blocklist,null_vecs);
 
+	  const int ncol = 3;
 	  {
 		  MasterLog(INFO, "Testing Prolongator");
 		  CoarseSpinor coarse(coarse_info, ncol);
@@ -122,6 +124,7 @@ TEST(Timing, ProlongatorProfile)
 		  XmyzVec(fine2,fine,diff_v);
 		  std::vector<double> norm2_diff = Norm2Vec(diff_v);
 		  for (int col=0; col < ncol; ++col) {
+			MasterLog(INFO," == Col %d ===", col);
 			MasterLog(INFO,"Fine Vector has norm=%16.8e", sqrt(ref[col]));
 			MasterLog(INFO,"Fine Vector2 has norm=%16.8e",sqrt(ref2[col]));
 			MasterLog(INFO, "norm_diff=%16.8e",sqrt(norm2_diff[col]));
@@ -159,13 +162,7 @@ TEST(Timing, ProlongatorProfile)
 
 
 
-	 CoarseSpinor fine(fine_info);
-	  CoarseSpinor coarse(coarse_info);
-
-	  Gaussian(coarse);
-	  Gaussian(fine);
-
-#if 1
+#if 0
 	  {
 	    int N_iters=5000;
 	    MasterLog(INFO, "Timing Prolongator with %d iterations", N_iters);
@@ -188,9 +185,17 @@ TEST(Timing, ProlongatorProfile)
 
 #endif
 
-	  {
-	    int N_iters=5000;
-	    MasterLog(INFO, "Timing Opt. Prolongator with %d iterations",N_iters);
+	  int N_iters=5000;
+	  MasterLog(INFO, "Timing Opt. Prolongator with %d iterations",N_iters);
+
+	  std::vector<int> ncols = {1, 4, 16, 64, 256};
+	  for (int ncoli = 0; ncoli < ncols.size(); ncoli++) {
+	    int ncol = ncols[ncoli];
+	    CoarseSpinor fine(fine_info, ncol);
+	    CoarseSpinor coarse(coarse_info, ncol);
+
+	    Gaussian(coarse);
+	    Gaussian(fine);
 
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < N_iters; ++i ) {
@@ -201,7 +206,7 @@ TEST(Timing, ProlongatorProfile)
 
 	    //   #blocks * #sites_in_block = GetNumSites()
 	    //
-	    double Gflops = (double)N_iters
+	    double Gflops = (double)N_iters*ncol
 	      *(double)fine_info.GetNumSites()
 	      *(double)(2*n_fine*num_vecs*8)/1.0E9;
 	    double Gflops_per_sec = Gflops/total_time;
