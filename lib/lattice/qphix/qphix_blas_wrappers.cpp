@@ -81,7 +81,7 @@ std::vector<std::complex<double>> InnerProductVecT(const ST& x, const ST& y, con
   std::vector<std::complex<double>> ret(ncol);
   for (int col=0; col < ncol; ++col) {
     double result[2];
-    innerProductSpinor(result,x.get(ncol),y.get(ncol),geom, n_blas_simt, subset.start, subset.end);
+    innerProductSpinor(result,x.get(col),y.get(col),geom, n_blas_simt, subset.start, subset.end);
     ret[col] = std::complex<double>(result[0],result[1]);
   }
 

@@ -25,6 +25,7 @@
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
+using namespace MG::aux;
 
 TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 {

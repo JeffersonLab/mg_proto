@@ -18,16 +18,18 @@
 #include "lattice/linear_operator.h"
 #include "lattice/coarse/aggregate_block_coarse.h"
 #include "utils/print_utils.h"
+#include "utils/auxiliary.h"
 #include <omp.h>
 
 
 namespace MG {
 
-class CoarseEOWilsonCloverLinearOperator : public EOLinearOperator<CoarseSpinor,CoarseGauge > {
+class CoarseEOWilsonCloverLinearOperator : public EOLinearOperator<CoarseSpinor,CoarseGauge >,
+                                           public AuxiliarySpinors<CoarseSpinor> {
 public:
 	// Hardwire n_smt=1 for now.
 	CoarseEOWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : _u(gauge_in),
-	 _the_op( gauge_in->GetInfo(), 1), _level(level), _tmpvec( gauge_in->GetInfo() )
+	 _the_op( gauge_in->GetInfo(), 1), _level(level)
 	{
 		MasterLog(INFO, "Creating Coarse CoarseEOWilsonCloverLinearOperator LinOp");
 	}
@@ -59,25 +61,27 @@ public:
 	}
 
 	void leftOp(Spinor& out, const Spinor& in) const override {
-		_the_op.L_matrix(_tmpvec, (*_u),in);
+		std::shared_ptr<Spinor> _tmpvec = this->tmp(in); 
+		_the_op.L_matrix(*_tmpvec, (*_u),in);
 #pragma omp parallel
 		{
 			int tid = omp_get_thread_num();
 			for(int cb=0; cb < 2; ++cb) {
-				_the_op.M_diag(out,(*_u),_tmpvec,cb,LINOP_OP,tid);
+				_the_op.M_diag(out,(*_u),*_tmpvec,cb,LINOP_OP,tid);
 			}
 		}
 	}
 
 	void leftInvOp(Spinor& out, const Spinor& in) const override {
+		std::shared_ptr<Spinor> _tmpvec = this->tmp(in); 
 #pragma omp parallel
 		{
 			int tid = omp_get_thread_num();
 			for(int cb=0; cb < 2; ++cb) {
-				_the_op.M_diagInv(_tmpvec,(*_u),in,cb,LINOP_OP,tid);
+				_the_op.M_diagInv(*_tmpvec,(*_u),in,cb,LINOP_OP,tid);
 			}
 		}
-		_the_op.L_inv_matrix(out, (*_u),_tmpvec);
+		_the_op.L_inv_matrix(out, (*_u),*_tmpvec);
 	}
 
 	void M_diag(Spinor& out, const Spinor& in, int cb)  const override {
@@ -139,7 +143,6 @@ public:
 private:
 	const std::shared_ptr<Gauge> _u;
 	const CoarseDiracOp _the_op;
-	mutable CoarseSpinor _tmpvec;
 
 	const int _level;
 

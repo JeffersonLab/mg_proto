@@ -11,6 +11,7 @@
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "utils/memory.h"
+#include "utils/auxiliary.h"
 #include "utils/print_utils.h"
 
 
@@ -29,7 +30,7 @@ namespace MG {
 	 *  Destruction frees memory
 	 *
 	 */
-	class CoarseSpinor {
+	class CoarseSpinor : public AbstractSpinor<CoarseSpinor> {
 	public:
 		CoarseSpinor(const LatticeInfo& lattice_info, IndexType n_col=1) : _lattice_info(lattice_info), data{nullptr,nullptr},
 				_n_color(lattice_info.GetNumColors()),
@@ -138,6 +139,14 @@ namespace MG {
 
 		inline
 		const IndexType& GetSiteDataLD() const { return _n_col_offset; }
+
+		bool is_like(const CoarseSpinor& s) const {
+			return _lattice_info.isCompatibleWith(s._lattice_info) && _n_col == s._n_col;
+		}
+
+		CoarseSpinor* create_new() const {
+			return new CoarseSpinor(GetInfo(), GetNCol());
+		}
 
 	private:
 		const LatticeInfo& _lattice_info;

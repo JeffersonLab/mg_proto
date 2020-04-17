@@ -35,6 +35,7 @@
 using namespace MG;
 using namespace MG;
 using namespace MGTesting;
+using namespace MG::aux;
 
 // Test fixture to save me writing code all the time.
 class EOSolverTesting : public ::testing::Test {

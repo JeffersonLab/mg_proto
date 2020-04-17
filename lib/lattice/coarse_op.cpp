@@ -385,7 +385,7 @@ void CoarseDiracOp::M_AD_xpayz(CoarseSpinor& spinor_out,
 		};
 
 
-		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, 1.0, gauge_links, dagger, spinor_cb, neigh_spinors, ncol);
+		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, alpha, gauge_links, dagger, spinor_cb, neigh_spinors, ncol);
 	}
 
 }
@@ -736,8 +736,7 @@ CoarseDiracOp::CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt)
 	  _n_y( l_info.GetLatticeDimensions()[1] ),
 	  _n_z( l_info.GetLatticeDimensions()[2] ),
 	  _n_t( l_info.GetLatticeDimensions()[3] ),
-	  _halo( l_info ),
-	  _tmpvec( l_info )
+	  _halo( l_info )
 {
 #pragma omp parallel
 	{
@@ -805,8 +804,6 @@ CoarseDiracOp::CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt)
 
 
 	} // omp parallel
-
-	Gaussian(_tmpvec);
 }
 
 

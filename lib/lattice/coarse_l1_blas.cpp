@@ -671,22 +671,24 @@ void Gaussian(CoarseSpinor& x, const CBSubset& subset)
 	const IndexType num_cbsites = info.GetNumCBSites();
 	const IndexType ncol = x.GetNCol();
 
-	/* FIXME: This is quick and dirty and nonreproducible. A better source of random
-	 * numbers which is reproducible, and can scale with the number of sites in the
-	 * info nicely and is thread safe is neeeded.
+	/* FIXME: This is quick and dirty and nonreproducible if the lattice is distributed
+	 *  among the processes is a different way. 
 	 */
 
-	// Create the thread team
-#pragma omp parallel
-	{
-		// Each thread team create its own RNG
-		std::random_device r;
-		std::mt19937_64 twister_engine(r());  // An engine based on a 'truly random seed'
+#ifdef MG_QMP_COMMS
+	static const int node = QMP_get_node_number();
+#else
+	static const int node = 0;
+#endif
+	static std::mt19937_64 twister_engine(10+node);
 
+
+	// Create the thread team
+#pragma omp single
+	{
 		// A normal distribution centred on 0, with width 1
 		std::normal_distribution<> normal_dist(0.0,1.0);
 
-#pragma omp parallel for collapse(3) schedule(static)
 		for(int cb=subset.start; cb < subset.end; ++cb) {
 			for(int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
 				for(int col = 0; col < ncol; ++col ) {

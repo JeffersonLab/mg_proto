@@ -27,11 +27,13 @@
 #include "lattice/coarse/aggregate_block_coarse.h"
 #include <qphix/clover.h>
 #include "lattice/coarse/subset.h"
+#include "utils/auxiliary.h"
 
 namespace MG {
 
 template<typename FT>
-class QPhiXWilsonCloverEOLinearOperatorT : public EOLinearOperator<QPhiXSpinorT<FT>,QPhiXGaugeT<FT> > {
+class QPhiXWilsonCloverEOLinearOperatorT : public EOLinearOperator<QPhiXSpinorT<FT>,QPhiXGaugeT<FT> >,
+                                           public AuxiliarySpinors<QPhiXSpinorT<FT>> {
 public:
   using QDPGauge = QDP::multi1d<QDP::LatticeColorMatrix>;
   using Spinor = QPhiXSpinorT<FT>;
@@ -172,90 +174,94 @@ public:
 
   void leftOp(Spinor& out, const Spinor& in) const override{
 
-  	  // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
-  	  const int isign = 1;
-      assert(out.GetNCol() == in.GetNCol());
-      IndexType ncol = out.GetNCol();
-      for (int col=0; col < ncol; ++col) {
-        QPhiXEOClov->M_diag_inv(tmp(ncol).getCB(col,EVEN).get(), in.getCB(col,EVEN).get(), isign);
-
-        // tmp2 = M_oe M tmp1 = M_oe M_ee^{-1} in
-        QPhiXEOClov->M_offdiag(tmp(ncol).getCB(col,ODD).get() ,tmp(ncol).getCB(col,EVEN).get(), isign, ODD);
-      }
-  	  CopyVec(out, in,  SUBSET_ALL);
-      YpeqXVec(tmp(ncol), out,SUBSET_ODD);
-
-    }
-
-  void leftInvOp(Spinor& out, const Spinor& in) const override {
-	  // L^{-1}[ in_e ] = [ 1       0 ][ in_e ] = [ in_e                       ]
-	  //       [ in_o ]   [-DA^{-1} 1 ][ in_o ]   [ in_o - D_oe A^{-1}_ee in_e ]
-
-	  // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
-	  const int isign = 1;
+    // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
+    const int isign = 1;
     assert(out.GetNCol() == in.GetNCol());
+    std::shared_ptr<Spinor> tmp = this->tmp(in); 
     IndexType ncol = out.GetNCol();
-	  for (int col=0; col < ncol; ++col){
-      QPhiXEOClov->M_diag_inv(tmp(ncol).getCB(col,EVEN).get(), in.getCB(col,EVEN).get(), isign);
+    for (int col=0; col < ncol; ++col) {
+      QPhiXEOClov->M_diag_inv(tmp->getCB(col,EVEN).get(), in.getCB(col,EVEN).get(), isign);
 
       // tmp2 = M_oe M tmp1 = M_oe M_ee^{-1} in
-      QPhiXEOClov->M_offdiag(tmp(ncol).getCB(col,ODD).get(), tmp(ncol).getCB(col,EVEN).get(), isign, ODD);
+      QPhiXEOClov->M_offdiag(tmp->getCB(col,ODD).get() ,tmp->getCB(col,EVEN).get(), isign, ODD);
+    }
+    CopyVec(out, in,  SUBSET_ALL);
+    YpeqXVec(*tmp, out,SUBSET_ODD);
+
+  }
+
+  void leftInvOp(Spinor& out, const Spinor& in) const override {
+    // L^{-1}[ in_e ] = [ 1       0 ][ in_e ] = [ in_e                       ]
+    //       [ in_o ]   [-DA^{-1} 1 ][ in_o ]   [ in_o - D_oe A^{-1}_ee in_e ]
+
+    // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
+    const int isign = 1;
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    std::shared_ptr<Spinor> tmp = this->tmp(in); 
+    for (int col=0; col < ncol; ++col){
+      QPhiXEOClov->M_diag_inv(tmp->getCB(col,EVEN).get(), in.getCB(col,EVEN).get(), isign);
+
+      // tmp2 = M_oe M tmp1 = M_oe M_ee^{-1} in
+      QPhiXEOClov->M_offdiag(tmp->getCB(col,ODD).get(), tmp->getCB(col,EVEN).get(), isign, ODD);
     }
 
-	  CopyVec(out, in, SUBSET_ALL);
-    YmeqXVec(tmp(ncol), out,SUBSET_ODD);
+    CopyVec(out, in, SUBSET_ALL);
+    YmeqXVec(*tmp, out,SUBSET_ODD);
 
   }
 
 #if 0
   // Special case when in even is known to be zero.
   void leftInvOpZero(Spinor& out,const Spinor& in) const override {
-	  // L^{-1}[ in_e ] = [ 1       0 ][ in_e ] = [ in_e                       ]
-	  //       [ in_o ]   [-DA^{-1} 1 ][ in_o ]   [ in_o - D_oe A^{-1}_ee in_e ]
-  	  // when in_e = 0 we have
-	  //
-	  // L^{-1} [ in_e ] = [ in_e     ] = [in_e]
-	  //        [ in_o ]   [ in_o - 0 ]   [in_o]
+    // L^{-1}[ in_e ] = [ 1       0 ][ in_e ] = [ in_e                       ]
+    //       [ in_o ]   [-DA^{-1} 1 ][ in_o ]   [ in_o - D_oe A^{-1}_ee in_e ]
+      // when in_e = 0 we have
+    //
+    // L^{-1} [ in_e ] = [ in_e     ] = [in_e]
+    //        [ in_o ]   [ in_o - 0 ]   [in_o]
 
-  	  CopyVec(out,in,SUBSET_ALL);   // This automatically zeros out's even subset
+      CopyVec(out,in,SUBSET_ALL);   // This automatically zeros out's even subset
 
     }
 #endif
 
   void rightOp(Spinor& out, const Spinor& in) const override {
 
-   	  const int isign = 1;
-      assert(out.GetNCol() == in.GetNCol());
-      IndexType ncol = out.GetNCol();
+    const int isign = 1;
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    std::shared_ptr<Spinor> tmp = this->tmp(in); 
 
-   	  // use odd cb of tmp1 as a temporary storage
-   	  // it is not really the odd checkerboardl
-   	  for (int col=0; col < ncol; ++col) {
-        QPhiXEOClov->M_offdiag(tmp(ncol).getCB(col,ODD).get(), in.getCB(col,ODD).get(), isign, EVEN);
+    // use odd cb of tmp1 as a temporary storage
+    // it is not really the odd checkerboardl
+    for (int col=0; col < ncol; ++col) {
+      QPhiXEOClov->M_offdiag(tmp->getCB(col,ODD).get(), in.getCB(col,ODD).get(), isign, EVEN);
 
-        // we will go from the odd into the final target.
-        QPhiXEOClov->M_diag_inv(tmp(ncol).getCB(col,EVEN).get(), tmp(ncol).getCB(col,ODD).get(), isign);
-      }
+      // we will go from the odd into the final target.
+      QPhiXEOClov->M_diag_inv(tmp->getCB(col,EVEN).get(), tmp->getCB(col,ODD).get(), isign);
+    }
 
-   	  CopyVec(out, in, SUBSET_ALL);
-      YpeqXVec(tmp(ncol), out,SUBSET_ODD);
+    CopyVec(out, in, SUBSET_ALL);
+    YpeqXVec(*tmp, out,SUBSET_EVEN);
 
-     }
+  }
 
   void rightInvOp(Spinor& out, const Spinor& in) const override  {
 
- 	  // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
- 	  const int isign = 1;
+    // tmp1 = M^{-1}_ee in[even] -- use out[even] as temporary
+    const int isign = 1;
     assert(out.GetNCol() == in.GetNCol());
     IndexType ncol = out.GetNCol();
+    std::shared_ptr<Spinor> tmp = this->tmp(in); 
 
 
     for (int col=0; col < ncol; ++col){
-      QPhiXEOClov->M_offdiag(tmp(ncol).getCB(col,ODD).get(), in.getCB(col,ODD).get(), isign, EVEN);
-      QPhiXEOClov->M_diag_inv(tmp(ncol).getCB(col,EVEN).get(), tmp(ncol).getCB(col,ODD).get(), isign);
+      QPhiXEOClov->M_offdiag(tmp->getCB(col,ODD).get(), in.getCB(col,ODD).get(), isign, EVEN);
+      QPhiXEOClov->M_diag_inv(tmp->getCB(col,EVEN).get(), tmp->getCB(col,ODD).get(), isign);
     }
- 	 CopyVec(out, in, SUBSET_ALL);
-   YmeqXVec(tmp(ncol), out,SUBSET_ODD);
+   CopyVec(out, in, SUBSET_ALL);
+   YmeqXVec(*tmp, out,SUBSET_EVEN);
 
 
    }
@@ -295,7 +301,7 @@ public:
   }
 
   const CBSubset& GetSubset() const override {
-	  return SUBSET_ODD;
+    return SUBSET_ODD;
   }
 
   const LatticeInfo& GetInfo(void) const override {
@@ -331,7 +337,7 @@ public:
     ZeroGauge(u_coarse);
     for(int mu=0; mu < 8; ++mu) {
         MasterLog(INFO,"QPhiXWilsonCloverEOLinearOperator: Dslash Triple Product in direction: %d ",mu);
-    	dslashTripleProductDir(*this, blocklist, mu, in_vecs, u_coarse);
+      dslashTripleProductDir(*this, blocklist, mu, in_vecs, u_coarse);
     }
 
 
@@ -345,7 +351,7 @@ public:
           }
           float* diag_link=u_coarse.GetSiteDiagDataPtr(cb,cbsite);
           for(int j=0; j < n_complex*num_colorspin*num_colorspin; ++j) {
-          	diag_link[j] *= -0.5;
+            diag_link[j] *= -0.5;
           }
         }
       }
@@ -355,13 +361,13 @@ public:
     clovTripleProduct(*this,blocklist,  in_vecs, u_coarse);
 
     MasterLog(INFO,"QPhiXWilsonCloverEOLinearOperator: Inverting Diagonal (A) Links");
-	invertCloverDiag(u_coarse);
+  invertCloverDiag(u_coarse);
 
-	MasterLog(INFO,"QPhiXWilsonCloverEOLinearOperator: Computing A^{-1} D Links");
-	multInvClovOffDiagLeft(u_coarse);
+  MasterLog(INFO,"QPhiXWilsonCloverEOLinearOperator: Computing A^{-1} D Links");
+  multInvClovOffDiagLeft(u_coarse);
 
-	MasterLog(INFO, "QPhiXWilsonCloverEOLinearOperator: Computing D A^{-1} Links");
-	multInvClovOffDiagRight(u_coarse);
+  MasterLog(INFO, "QPhiXWilsonCloverEOLinearOperator: Computing D A^{-1} Links");
+  multInvClovOffDiagRight(u_coarse);
 
   }
 
@@ -378,12 +384,6 @@ private:
   const LatticeInfo& _info;
 
   std::unique_ptr<QPhiXClovOpT<FT>> QPhiXEOClov;
-  mutable std::unique_ptr<Spinor> _tmp1;
-  Spinor& tmp(IndexType ncol) const {
-    if (!_tmp1 || _tmp1->GetNCol() != ncol)
-      _tmp1.reset(new Spinor(_info, ncol));
-    return *_tmp1;
-  }
 
 };
 

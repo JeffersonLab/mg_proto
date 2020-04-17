@@ -22,6 +22,7 @@
 #include <qphix/qdp_packer.h>
 #include <qphix/unprec_solver_wrapper.h>
 #include <utils/initialize.h>
+#include <utils/auxiliary.h>
 #include <memory>
 
 namespace MG {
@@ -98,7 +99,7 @@ namespace MGQPhiX {
 }
 
 template<typename FT>
-class QPhiXSpinorT {
+class QPhiXSpinorT : public MG::AbstractSpinor<QPhiXSpinorT<FT>> {
 public:
 
     using GeomT = QPhiXGeomT<FT>;
@@ -116,6 +117,14 @@ public:
     }
 
     ~QPhiXSpinorT() {}
+
+    QPhiXSpinorT<FT>* create_new() const {
+      return new QPhiXSpinorT<FT>(_info, GetNCol());
+    }
+
+    bool is_like(const QPhiXSpinorT<FT>& s) const {
+      return GetInfo().isCompatibleWith(s.GetInfo()) && GetNCol() == s.GetNCol();
+    }
 
     inline IndexType GetNCol() const { return _data.size(); }
 

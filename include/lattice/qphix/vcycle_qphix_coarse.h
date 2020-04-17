@@ -52,7 +52,7 @@ class VCycleQPhiXCoarse2 :
       ZeroVec(out_f);   // out_f = 0
       CopyVec(r,in_f);  //  r  <- in_f
 
-      norm_r = sqrt(Norm2Vec(r));
+      norm_r = aux::sqrt(Norm2Vec(r));
       norm_in = norm_r;
 
       std::vector<double> target(ncol, _param.RsdTarget);
@@ -117,7 +117,7 @@ class VCycleQPhiXCoarse2 :
         YmeqXVec(tmp,r);
 
         if ( _param.VerboseP ) {
-          std::vector<double> norm_pre_presmooth=sqrt(Norm2Vec(r));
+          std::vector<double> norm_pre_presmooth=aux::sqrt(Norm2Vec(r));
           for (int col=0; col < ncol; ++col) {
             if( resid_type == RELATIVE ) {
               MasterLog(INFO, "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
@@ -151,7 +151,7 @@ class VCycleQPhiXCoarse2 :
 
 
         if ( _param.VerboseP ) {
-          std::vector<double> norm_pre_postsmooth=sqrt(Norm2Vec(r));
+          std::vector<double> norm_pre_postsmooth=aux::sqrt(Norm2Vec(r));
           for (int col=0; col < ncol; ++col) {
             if( resid_type == RELATIVE ) {
               MasterLog(INFO, "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
@@ -173,7 +173,7 @@ class VCycleQPhiXCoarse2 :
         YpeqXVec(delta,out_f);
 
         _M_fine(tmp,delta,LINOP_OP);
-        norm_r = sqrt(XmyNorm2Vec(r,tmp));
+        norm_r = aux::sqrt(XmyNorm2Vec(r,tmp));
 
 
         if ( _param.VerboseP ) {
@@ -280,7 +280,7 @@ class VCycleQPhiXCoarseEO2 :
       ZeroVec(out_f);   // out_f = 0
       CopyVec(r,in_f);  //  r  <- in_f
 
-      norm_r = sqrt(Norm2Vec(r));
+      norm_r = aux::sqrt(Norm2Vec(r));
       norm_in = norm_r;
 
       std::vector<double> target(ncol, _param.RsdTarget);
@@ -345,7 +345,7 @@ class VCycleQPhiXCoarseEO2 :
         YmeqXVec(tmp,r);
 
         if ( _param.VerboseP ) {
-          std::vector<double> norm_pre_presmooth=sqrt(Norm2Vec(r));
+          std::vector<double> norm_pre_presmooth=aux::sqrt(Norm2Vec(r));
           for (int col=0; col < ncol; ++col) {
             if( resid_type == RELATIVE ) {
               MasterLog(INFO, "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
@@ -379,7 +379,7 @@ class VCycleQPhiXCoarseEO2 :
 
 
         if ( _param.VerboseP ) {
-          std::vector<double> norm_pre_postsmooth=sqrt(Norm2Vec(r));
+          std::vector<double> norm_pre_postsmooth=aux::sqrt(Norm2Vec(r));
           for (int col=0; col < ncol; ++col) {
             if( resid_type == RELATIVE ) {
               MasterLog(INFO, "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
@@ -401,7 +401,7 @@ class VCycleQPhiXCoarseEO2 :
         YpeqXVec(delta,out_f);
 
         _M_fine.unprecOp(tmp,delta,LINOP_OP);
-        norm_r = sqrt(XmyNorm2Vec(r,tmp));
+        norm_r = aux::sqrt(XmyNorm2Vec(r,tmp));
 
 
         if ( _param.VerboseP ) {
@@ -508,7 +508,7 @@ class VCycleQPhiXCoarseEO3 :
       ZeroVec(out_f);   // out_f = 0
       CopyVec(r,in_f, subset);  //  r  <- in_f
 
-      norm_r = sqrt(Norm2Vec(r,subset));
+      norm_r = aux::sqrt(Norm2Vec(r,subset));
       norm_in = norm_r;
 
       std::vector<double> target(ncol, _param.RsdTarget);
@@ -586,7 +586,7 @@ class VCycleQPhiXCoarseEO3 :
 #endif
 
         if ( _param.VerboseP ) {
-          std::vector<double> norm_pre_presmooth=sqrt(Norm2Vec(r));
+          std::vector<double> norm_pre_presmooth=aux::sqrt(Norm2Vec(r));
           for (int col=0; col < ncol; ++col) {
             if( resid_type == RELATIVE ) {
               MasterLog(INFO, "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
@@ -654,7 +654,7 @@ class VCycleQPhiXCoarseEO3 :
 #endif
 
         if ( _param.VerboseP ) {
-          std::vector<double> norm_pre_postsmooth=sqrt(Norm2Vec(r));
+          std::vector<double> norm_pre_postsmooth=aux::sqrt(Norm2Vec(r));
           for (int col=0; col < ncol; ++col) {
             if( resid_type == RELATIVE ) {
               MasterLog(INFO, "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
@@ -685,7 +685,7 @@ class VCycleQPhiXCoarseEO3 :
 #endif
         YpeqXVec(delta,out_f,subset);
         _M_fine(tmp,delta,LINOP_OP);
-        norm_r = sqrt(XmyNorm2Vec(r,tmp,subset));
+        norm_r = aux::sqrt(XmyNorm2Vec(r,tmp,subset));
 #ifdef MG_ENABLE_TIMERS
         timerAPI->stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 #endif

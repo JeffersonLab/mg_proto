@@ -9,6 +9,7 @@
 #define INCLUDE_LATTICE_SOLVER_H_
 
 #include <vector>
+#include "utils/auxiliary.h"
 
 namespace MG {
 	enum ResiduumType { ABSOLUTE, RELATIVE, INVALID};
@@ -28,7 +29,7 @@ namespace MG {
 
 	/** A solver that solves the unpreconditioned systems */
 	template<typename Spinor, typename Gauge, typename EOSolver>
-	class UnprecLinearSolver : public LinearSolver<Spinor,Gauge> {
+	class UnprecLinearSolver : public LinearSolver<Spinor,Gauge>, public AuxiliarySpinors<Spinor> {
 	public:
 		virtual void SourcePrepare(Spinor& new_source, const Spinor& original_source) const = 0;
 		virtual void InitGuessPrepare(Spinor& new_guess, const Spinor& original_guess) const = 0;
@@ -36,31 +37,29 @@ namespace MG {
 		virtual void ResultReconstruct(Spinor& new_result, const Spinor& original_result) const = 0;
 		virtual ~UnprecLinearSolver() {}
 		virtual const EOSolver& GetEOSolver() const = 0;
-		virtual Spinor& GetTmpSpinorIn() const = 0;
-		virtual Spinor& GetTmpSpinorOut() const = 0;
 
 		std::vector<LinearSolverResults> operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE) const override {
 			std::vector<LinearSolverResults> ret_val;
-			Spinor& tmp_src = GetTmpSpinorIn();
-			Spinor& tmp_out = GetTmpSpinorOut();
+			std::shared_ptr<Spinor> tmp_src = this->tmp(in); 
+			std::shared_ptr<Spinor> tmp_out = this->tmp(in); 
 
 			// Prepare the source: L^{-1} in
 			// In principle, this may change both even and odd parts,
 			// Depending on the preconditioning style.
 			// So worth preserving the prepped source.
-			SourcePrepare(tmp_src,in);
+			SourcePrepare(*tmp_src,in);
 
 			// Solve odd part with Krylov solver
 			// Zero out the Even part of tmp_src for this
 			// It is assumed that the solver will not touch the EVEN part.
-			InitGuessPrepare(tmp_out,out);
+			InitGuessPrepare(*tmp_out,out);
 
-			ret_val = (GetEOSolver())(tmp_out, tmp_src, resid_type);
+			ret_val = (GetEOSolver())(*tmp_out, *tmp_src, resid_type);
 
-			OtherSubsetSolve(tmp_out,tmp_src);
+			OtherSubsetSolve(*tmp_out,*tmp_src);
 
 			// Reconstruct the result
-			ResultReconstruct(out,tmp_out);
+			ResultReconstruct(out,*tmp_out);
 			return ret_val;
 
 		}
@@ -106,7 +105,7 @@ namespace MG {
 
 		/** A solver that solves the unpreconditioned systems */
 		template<typename Spinor, typename Gauge, typename EOSmoother>
-		class UnprecSmoother : public Smoother<Spinor,Gauge> {
+		class UnprecSmoother : public Smoother<Spinor,Gauge>, public AuxiliarySpinors<Spinor> {
 		public:
 			virtual void SourcePrepare(Spinor& new_source, const Spinor& original_source) const = 0;
 			virtual void ResultReconstruct(Spinor& new_result, const Spinor& original_result) const = 0;
@@ -114,24 +113,22 @@ namespace MG {
 			virtual void OtherSubsetSolve(Spinor& new_guess, const Spinor& original_guess) const = 0;
 			virtual ~UnprecSmoother() {}
 			virtual const EOSmoother& GetEOSmoother() const = 0;
-			virtual Spinor& GetTmpSpinorIn() const = 0;
-			virtual Spinor& GetTmpSpinorOut() const = 0;
 			void operator()(Spinor& out, const Spinor& in) const override {
 
-				Spinor& tmp_src = GetTmpSpinorIn();
-				Spinor& tmp_out = GetTmpSpinorOut();
+				std::shared_ptr<Spinor> tmp_src = this->tmp(in); 
+				std::shared_ptr<Spinor> tmp_out = this->tmp(in); 
 
-				SourcePrepare(tmp_src,in);
-				InitGuessPrepare(tmp_out,out);
+				SourcePrepare(*tmp_src,in);
+				InitGuessPrepare(*tmp_out,out);
 
 				// Solve on odd part
-				(GetEOSmoother())(tmp_out, tmp_src);
+				(GetEOSmoother())(*tmp_out, *tmp_src);
 
 				// Solve even part directly
-				OtherSubsetSolve(tmp_out, tmp_src);
+				OtherSubsetSolve(*tmp_out, *tmp_src);
 
 				// Reconstruct the result
-				ResultReconstruct(out,tmp_out);
+				ResultReconstruct(out,*tmp_out);
 			}
 		};
 };

@@ -46,11 +46,11 @@ public:
   {
     const int isign= 1;
     int n_iters;
-    std::vector<double> rsd_sq_final;
     unsigned long site_flops;
     unsigned long mv_apps;
     assert(in.GetNCol() == out.GetNCol());
     IndexType ncol = in.GetNCol();
+    std::vector<double> rsd_sq_final(ncol);
 
     for (int col=0; col < ncol; ++col) {
       (solver_wrapper)(&(out.get(col)),
@@ -106,11 +106,11 @@ public:
     {
       const int isign= 1;
       int n_iters;
-    std::vector<double> rsd_sq_final;
       unsigned long site_flops;
       unsigned long mv_apps;
       assert(in.GetNCol() == out.GetNCol());
       IndexType ncol = in.GetNCol();
+      std::vector<double> rsd_sq_final(ncol);
 
       for (int col=0; col < ncol; ++col) {
         (bicg_solver)(out.getCB(col,ODD).get(),

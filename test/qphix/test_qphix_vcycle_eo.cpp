@@ -45,6 +45,7 @@
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
+using namespace MG::aux;
 
 // Test fixture to save me writing code all the time.
 class VCycleEOTesting : public ::testing::Test {

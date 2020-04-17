@@ -14,13 +14,16 @@
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/thread_limits.h"
 #include "lattice/halo.h"
+#include "utils/auxiliary.h"
 #include "coarse_l1_blas.h"
+#include <memory>
+
 #include <omp.h>
 namespace MG {
 
 
 
-class CoarseDiracOp {
+class CoarseDiracOp : public AuxiliarySpinors<CoarseSpinor> {
 public:
 	CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt = 1);
 
@@ -209,6 +212,7 @@ public:
 			const CoarseSpinor& spinor_in,
 			const int target_cb,
 			const IndexType dagger) const {
+		std::shared_ptr<CoarseSpinor> t = tmp(spinor_in);
 
 #pragma omp parallel
 		{
@@ -216,7 +220,7 @@ public:
 
 			// dagger = LINOP_OP => tmp = A^{-1} D spinor_in
 			// dagger = LINOP_DAGGER => tmp = Gamma_c D A^{-1} Gamma_c spinor in
-			M_AD(_tmpvec,
+			M_AD(*t,
 					gauge_in,
 					spinor_in,
 					1-target_cb,
@@ -233,7 +237,7 @@ public:
 					-1.0,
 					gauge_in,
 					spinor_in,
-					_tmpvec,
+					*t,
 					target_cb,
 					dagger,
 					tid);
@@ -296,9 +300,6 @@ public:
 			return _halo;
 		}
 
-
-
-
 private:
 	const LatticeInfo& _lattice_info;
 	const IndexType _n_color;
@@ -320,7 +321,6 @@ private:
 	const IndexType _n_t;
 
 	mutable  SpinorHaloCB _halo;
-	mutable CoarseSpinor _tmpvec;
 
 };
 

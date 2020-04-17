@@ -147,6 +147,15 @@ public:
 			local_coord[dim] = global_coord[dim] - _lat_origin[dim];
 		}
 	}
+	inline bool isCompatibleWith(const LatticeInfo& l) const {
+		return 
+			GetNumColors() == l.GetNumColors()
+			&& GetNumSpins() == l.GetNumSpins()
+			&& GetNumSites() == l.GetNumSites()
+			&& GetNodeInfo().NodeID() == l.GetNodeInfo().NodeID()
+			&& GetNodeInfo().NumNodes() == l.GetNodeInfo().NumNodes();
+	}
+
 
 private:
 	IndexArray _lat_origin;

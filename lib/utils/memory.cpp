@@ -72,7 +72,7 @@ namespace MG {
 	{
 		void *ret_val = nullptr;
 		// Any thread can allocate but it is a critical
-#pragma omp critical
+#pragma omp critical (mg_memory)
 		{
 			// Allocate from the right Memory Space
 			// The allocators have to abort on failure
@@ -105,7 +105,7 @@ namespace MG {
 
 
 
-#pragma omp critical
+#pragma omp critical (mg_memory)
 		{
 			// Locate the pointer firstin the fast memory
 			auto it = fast_mmap.find(ptr);

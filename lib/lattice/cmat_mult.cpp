@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cfloat>
 #include <iostream>
+#include <cassert>
 
 namespace MG {
 
@@ -38,6 +39,7 @@ namespace {
 			const std::complex<float> *a, LAPACK_BLASINT lda, const std::complex<float> *b,
 			LAPACK_BLASINT ldb, std::complex<float> beta, std::complex<float> *c,
 			LAPACK_BLASINT ldc) {
+		assert(c != a && c != b);
 #ifndef MGPROTO_USE_CBLAS
 		cgemm_(transa, transb, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c, &ldc);
 #else

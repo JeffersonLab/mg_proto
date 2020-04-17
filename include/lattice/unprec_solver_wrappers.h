@@ -19,16 +19,16 @@ namespace MG
 	public:
 		UnprecLinearSolverWrapper(const std::shared_ptr<const EOSolver>& eo_solver,
 					  const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>>& M)
-		: _EOSolver(eo_solver), _EOOperator(M), tmp_src(M->GetInfo()), tmp_out(M->GetInfo()) {}
+		: _EOSolver(eo_solver), _EOOperator(M) {}
 
 		UnprecLinearSolverWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
 				const LinearSolverParamsBase& params) :
-			_EOSolver(std::make_shared<EOSolver>(*M,params)), _EOOperator(M),  tmp_src(M->GetInfo()), tmp_out(M->GetInfo()) {}
+			_EOSolver(std::make_shared<EOSolver>(*M,params)), _EOOperator(M) {}
 
 		UnprecLinearSolverWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
 				const LinearSolverParamsBase& params,
 				const LinearSolver<Spinor,Gauge>* M_prec) :
-					_EOSolver(std::make_shared<EOSolver>(*M,params,M_prec)), _EOOperator(M),  tmp_src(M->GetInfo()), tmp_out(M->GetInfo()) {}
+					_EOSolver(std::make_shared<EOSolver>(*M,params,M_prec)), _EOOperator(M) {}
 
 		void SourcePrepare(Spinor& new_source, const Spinor& original_source) const override
 		{
@@ -46,21 +46,13 @@ namespace MG
 		}
 		void OtherSubsetSolve(Spinor& new_guess, const Spinor& original_guess) const override
 		{
-			_EOOperator->M_ee_inv(tmp_out, tmp_src, LINOP_OP);
-		}
-
-		Spinor& GetTmpSpinorIn(void) const override {
-			return tmp_src;
-		}
-
-		Spinor& GetTmpSpinorOut(void) const override {
-			return tmp_out;
+			_EOOperator->M_ee_inv(new_guess, original_guess, LINOP_OP);
 		}
 
 		const EOSolver& GetEOSolver() const override {
 			return *_EOSolver;
 		}
-
+		
 #if 0
 		LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE) const override {
 				LinearSolverResults ret_val;
@@ -90,8 +82,6 @@ namespace MG
 
 		const std::shared_ptr<const EOSolver> _EOSolver;
 		const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> _EOOperator;
-		mutable Spinor tmp_src;
-		mutable Spinor tmp_out;
 	};
 
 	template<typename Spinor, typename Gauge,  typename EOSmoother>
@@ -99,16 +89,16 @@ namespace MG
 	public:
 		UnprecSmootherWrapper(const std::shared_ptr<const EOSmoother>& eo_smoother,
 				const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>>& linop) :
-					_EOSmoother(eo_smoother), _EOOperator(linop), tmp_src(linop->GetInfo()), tmp_out(linop->GetInfo()) {}
+					_EOSmoother(eo_smoother), _EOOperator(linop) {}
 
 		UnprecSmootherWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
 				const LinearSolverParamsBase& params) :
-					_EOSmoother(std::make_shared<EOSmoother>(*M,params)), _EOOperator(M),  tmp_src(M->GetInfo()), tmp_out(M->GetInfo()) {}
+					_EOSmoother(std::make_shared<EOSmoother>(*M,params)), _EOOperator(M) {}
 
 		UnprecSmootherWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
 				const LinearSolverParamsBase& params,
 				const LinearSolver<Spinor,Gauge>* M_prec) :
-					_EOSmoother(std::make_shared<EOSmoother>(*M,params,M_prec)), _EOOperator(M),  tmp_src(M->GetInfo()), tmp_out(M->GetInfo()) {}
+					_EOSmoother(std::make_shared<EOSmoother>(*M,params,M_prec)), _EOOperator(M) {}
 
 		void SourcePrepare(Spinor& new_source, const Spinor& original_source) const override
 		{
@@ -127,15 +117,7 @@ namespace MG
 		}
 		void OtherSubsetSolve(Spinor& new_guess, const Spinor& original_guess) const override
 		{
-			_EOOperator->M_ee_inv(tmp_out, tmp_src, LINOP_OP);
-		}
-
-		Spinor& GetTmpSpinorIn(void) const override {
-			return tmp_src;
-		}
-
-		Spinor& GetTmpSpinorOut(void) const override {
-			return tmp_out;
+			_EOOperator->M_ee_inv(new_guess, original_guess, LINOP_OP);
 		}
 
 		const EOSmoother& GetEOSmoother() const override {
@@ -175,8 +157,6 @@ namespace MG
 
 		const std::shared_ptr<const EOSmoother> _EOSmoother;
 		const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> _EOOperator;
-		mutable Spinor tmp_src;
-		mutable Spinor tmp_out;
 	};
 }
 
