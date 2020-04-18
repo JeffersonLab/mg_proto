@@ -504,9 +504,7 @@ public:
 
 		int level = _M_fine.GetLevel();
 
-#ifdef MG_ENABLE_TIMERS
-		 timerAPI->startTimer("VCycleCoarseEO2/operator()/level"+std::to_string(level));
-#endif
+		Timer::TimerAPI::startTimer("VCycleCoarseEO2/operator()/level"+std::to_string(level));
 		const LatticeInfo& info=out.GetInfo();
 		{
 			const LatticeInfo& info_in = in.GetInfo();
@@ -561,9 +559,7 @@ public:
 					res[col].resid /= std::sqrt(norm2_r[col]);
 				}
 			}
-#ifdef MG_ENABLE_TIMERS
-			timerAPI->stopTimer("VCycleCoarseEO2/operator()/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::stopTimer("VCycleCoarseEO2/operator()/level"+std::to_string(level));
 			return res;
 		}
 
@@ -593,21 +589,15 @@ public:
 
 
 			CoarseSpinor delta(info, ncol);
-#ifdef MG_ENABLE_TIMERS
-            timerAPI->startTimer("VCycleCoarseEO2/presmooth/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::startTimer("VCycleCoarseEO2/presmooth/level"+std::to_string(level));
 			ZeroVec(delta,subset);
 			// Smoother does not compute a residuum
 			// It is an 'unprec' smoother tho it may use internally a wrapped even-odd
 			_pre_smoother(delta,r);
-#ifdef MG_ENABLE_TIMERS
-            timerAPI->stopTimer("VCycleCoarseEO2/presmooth/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::stopTimer("VCycleCoarseEO2/presmooth/level"+std::to_string(level));
 
 
-#ifdef MG_ENABLE_TIMERS
-            timerAPI->startTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::startTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 			// Update solution
 			// out += delta;
 			YpeqxVec(delta,out,subset);
@@ -615,9 +605,7 @@ public:
 			_M_fine(tmp,delta, LINOP_OP);
 			// r -= tmp;
 			YmeqxVec(tmp,r,subset);
-#ifdef MG_ENABLE_TIMERS
-            timerAPI->stopTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::stopTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 
 			if ( _param.VerboseP ) {
 				std::vector<double> norm2_pre_presmooth=Norm2Vec(r);
@@ -636,38 +624,24 @@ public:
 			}
 
 
-#ifdef MG_ENABLE_TIMERS
-			 timerAPI->startTimer("VCycleCoarseEO2/restrictFrom/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::startTimer("VCycleCoarseEO2/restrictFrom/level"+std::to_string(level));
 			CoarseSpinor coarse_in(_coarse_info, ncol);
 			_Transfer.R(r,ODD,coarse_in);
-#ifdef MG_ENABLE_TIMERS
-			 timerAPI->stopTimer("VCycleCoarseEO2/restrictFrom/level"+std::to_string(level));
-#endif
+			 Timer::TimerAPI::stopTimer("VCycleCoarseEO2/restrictFrom/level"+std::to_string(level));
 			CoarseSpinor coarse_delta(_coarse_info, ncol);
             
-#ifdef MG_ENABLE_TIMERS
-			timerAPI->startTimer("VCycleCoarseEO2/bottom_solve/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::startTimer("VCycleCoarseEO2/bottom_solve/level"+std::to_string(level));
 			ZeroVec(coarse_delta);
 			// Again, this is an unprec solve, tho it may be a wrapped even-odd
 			_bottom_solver(coarse_delta,coarse_in);
-#ifdef MG_ENABLE_TIMERS
-			timerAPI->stopTimer("VCycleCoarseEO2/bottom_solve/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::stopTimer("VCycleCoarseEO2/bottom_solve/level"+std::to_string(level));
 
-#ifdef MG_ENABLE_TIMERS
-			 timerAPI->startTimer("VCycleCoarseEO2/prolongateTo/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::startTimer("VCycleCoarseEO2/prolongateTo/level"+std::to_string(level));
 			// Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
 			_Transfer.P(coarse_delta, ODD, delta);
-#ifdef MG_ENABLE_TIMERS
-			 timerAPI->stopTimer("VCycleCoarseEO2/prolongateTo/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::stopTimer("VCycleCoarseEO2/prolongateTo/level"+std::to_string(level));
 
-#ifdef MG_ENABLE_TIMERS
-			 timerAPI->startTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::startTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 			// Update solution
 			//			out += delta;
 			YpeqxVec(delta,out, subset);
@@ -675,9 +649,7 @@ public:
 			_M_fine(tmp, delta, LINOP_OP);
 			// r -= tmp;
 			YmeqxVec(tmp,r,subset);
-#ifdef MG_ENABLE_TIMERS
-			timerAPI->stopTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::stopTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 
 			if ( _param.VerboseP ) {
 				std::vector<double> norm2_pre_postsmooth=Norm2Vec(r);
@@ -696,19 +668,13 @@ public:
 			}
 
 
-#ifdef MG_ENABLE_TIMERS
-			timerAPI->startTimer("VCycleCoarseEO2/postsmooth/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::startTimer("VCycleCoarseEO2/postsmooth/level"+std::to_string(level));
 			// delta = zero;
 			ZeroVec(delta,subset);
 			_post_smoother(delta,r);
-#ifdef MG_ENABLE_TIMERS
-			timerAPI->stopTimer("VCycleCoarseEO2/postsmooth/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::stopTimer("VCycleCoarseEO2/postsmooth/level"+std::to_string(level));
 
-#ifdef MG_ENABLE_TIMERS
-			timerAPI->startTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::startTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 			// Update full solution
 			// out += delta;
 			YpeqxVec(delta,out,subset);
@@ -716,9 +682,7 @@ public:
 			//r -= tmp;
 			YmeqxVec(tmp,r,subset);
 			norm2_r = Norm2Vec(r,subset);
-#ifdef MG_ENABLE_TIMERS
-			timerAPI->stopTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
-#endif
+			Timer::TimerAPI::stopTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 
 			if( _param.VerboseP ) {
 				for (int col=0; col < ncol; ++col) {
@@ -753,9 +717,7 @@ public:
 
 		// should remain odd throughout
 		//	ZeroVec(out,SUBSET_EVEN); // (keep subset odd)
-#ifdef MG_ENABLE_TIMERS
-		 timerAPI->stopTimer("VCycleCoarseEO2/operator()/level"+std::to_string(level));
-#endif
+		Timer::TimerAPI::stopTimer("VCycleCoarseEO2/operator()/level"+std::to_string(level));
 		return res;
 	}
 
@@ -775,18 +737,15 @@ public:
 					_bottom_solver(bottom_solver),
 					_param(param),
 					_Transfer(my_blocks,vecs) {
-#ifdef MG_ENABLE_TIMERS
-                        int level = _M_fine.GetLevel();
-                        timerAPI = MG::Timer::TimerAPI::getInstance();
-                        timerAPI->addTimer("VCycleCoarseEO2/operator()/level"+std::to_string(level));
-                        timerAPI->addTimer("VCycleCoarseEO2/restrictFrom/level"+std::to_string(level));
-                        timerAPI->addTimer("VCycleCoarseEO2/prolongateTo/level"+std::to_string(level));
-                        timerAPI->addTimer("VCycleCoarseEO2/presmooth/level"+std::to_string(level));
-                        timerAPI->addTimer("VCycleCoarseEO2/postsmooth/level"+std::to_string(level));
-                        timerAPI->addTimer("VCycleCoarseEO2/bottom_solve/level"+std::to_string(level));
-                        timerAPI->addTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
-#endif
-					}
+                                int level = _M_fine.GetLevel();
+                                Timer::TimerAPI::addTimer("VCycleCoarseEO2/operator()/level"+std::to_string(level));
+                                Timer::TimerAPI::addTimer("VCycleCoarseEO2/restrictFrom/level"+std::to_string(level));
+                                Timer::TimerAPI::addTimer("VCycleCoarseEO2/prolongateTo/level"+std::to_string(level));
+                                Timer::TimerAPI::addTimer("VCycleCoarseEO2/presmooth/level"+std::to_string(level));
+                                Timer::TimerAPI::addTimer("VCycleCoarseEO2/postsmooth/level"+std::to_string(level));
+                                Timer::TimerAPI::addTimer("VCycleCoarseEO2/bottom_solve/level"+std::to_string(level));
+                                Timer::TimerAPI::addTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
+			}
 
 
 private:
@@ -799,10 +758,6 @@ private:
 	const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
 	const LinearSolverParamsBase& _param;
 	const CoarseTransfer _Transfer;
-#ifdef MG_ENABLE_TIMERS
-    std::shared_ptr<Timer::TimerAPI> timerAPI;
-#endif
-
 };
 
 

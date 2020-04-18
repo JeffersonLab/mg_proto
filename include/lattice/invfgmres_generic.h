@@ -93,9 +93,6 @@ template<typename ST,typename GT>
      bool VerboseP )
 
  {
-#ifdef MG_ENABLE_TIMERS
-   auto  timerAPI = MG::Timer::TimerAPI::getInstance();
-#endif
    ndim_cycle = 0;
    int level = A.GetLevel();
    const CBSubset& subset = A.GetSubset();
@@ -127,15 +124,11 @@ template<typename ST,typename GT>
            // But I will go through a tmpsolve temporary because
            // a proper unprec solver may overwrite the off checkerboard parts with a reconstruct etc.
            //
-#ifdef MG_ENABLE_TIMERS
-           timerAPI->startTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
-#endif
+           Timer::TimerAPI::startTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
 
            (*M)( *Z[j], *(V[j]), resid_type );  // z_j = M^{-1} v_j
 
-#ifdef MG_ENABLE_TIMERS
-           timerAPI->stopTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
-#endif
+           Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
        }
        else {
            CopyVec(*(Z[j]), *(V[j]), subset);      // Vector assignment " copy "
@@ -147,13 +140,9 @@ template<typename ST,typename GT>
      }
 #endif
 
-#ifdef MG_ENABLE_TIMERS
-           timerAPI->startTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
-#endif
+     Timer::TimerAPI::startTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
      A( w, *(Z[j]), LINOP_OP);  // w  = A z_
-#ifdef MG_ENABLE_TIMERS
-           timerAPI->stopTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
-#endif
+     Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
 
      // Fill out column j
      for(int i=0; i <= j ;  ++i ) {
@@ -249,14 +238,10 @@ template<typename ST, typename GT>
 
     initialize(0);
 
-#ifdef MG_ENABLE_TIMERS
     int level = _A.GetLevel();
-    timerAPI = MG::Timer::TimerAPI::getInstance();
-    timerAPI->addTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
-    timerAPI->addTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
-    timerAPI->addTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
-#endif
-
+    Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
+    Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
+    Timer::TimerAPI::addTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
   }
 
 private:
@@ -332,12 +317,9 @@ public:
   }
 
   std::vector<LinearSolverResults> operator()(ST& out, const ST& in, ResiduumType resid_type = RELATIVE) const override
-
-    {
-        int level = _A.GetLevel();
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->startTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
-#endif
+  {
+      int level = _A.GetLevel();
+      Timer::TimerAPI::startTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
 
       assert(in.GetNCol() == out.GetNCol());
 
@@ -410,10 +392,7 @@ public:
       }
 
       if (all_converged) {
-#ifdef MG_ENABLE_TIMERS
-            timerAPI->stopTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
-#endif
-
+            Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
             return res;
       }
 
@@ -529,10 +508,7 @@ public:
             res[col].resid /= norm_rhs[col];
          }
       }
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
-#endif
-
+      Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
       return res;
     }
 
@@ -602,10 +578,6 @@ public:
 
     mutable std::vector<std::vector<std::complex<double>>> c_;
     mutable std::vector<std::vector<std::complex<double>>> eta_;
-    
-#ifdef MG_ENABLE_TIMERS
-    std::shared_ptr<Timer::TimerAPI> timerAPI;
-#endif
   };
 
 } // namespace FGMRESGeneric

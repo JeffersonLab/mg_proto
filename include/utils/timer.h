@@ -16,6 +16,7 @@
 #include <iostream>
 #include <memory>
 #include "utils/print_utils.h"
+#include "MG_config.h"
 
 namespace MG {
     
@@ -64,28 +65,35 @@ namespace MG {
         
         class TimerAPI {
         public:
-            static std::shared_ptr<TimerAPI> getInstance(){
-                static std::shared_ptr<TimerAPI> instance{new TimerAPI };
-                return instance;
-            };
-            
-            void addTimer(const std::string& key){
+            static void addTimer(const std::string& key){
+#ifdef MG_ENABLE_TIMERS
                 timers[key] = Timer();
-            };
+#endif
+            }
             
-            void startTimer(const std::string& key){
+            static void startTimer(const std::string& key){
+#ifdef MG_ENABLE_TIMERS
                 timers[key].Start();
-            };
+#endif
+            }
             
-            void stopTimer(const std::string& key){
+            static void stopTimer(const std::string& key){
+#ifdef MG_ENABLE_TIMERS
                 timers[key].Stop();
-            };
+#endif
+            }
             
-            void resetTimer(const std::string& key){
+            static void resetTimer(const std::string& key){
+#ifdef MG_ENABLE_TIMERS
                 timers[key].Reset();
-            };
-            
-            void reportAllTimer() const{
+#endif
+            }
+           
+            static void reset() {
+                timers.clear();
+            }
+   
+            static void reportAllTimer() {
                 for(auto const &item : timers) {
                     std::string key = item.first;
                     auto value = item.second;
@@ -95,16 +103,9 @@ namespace MG {
                 }
             }
             
-            //delete some operators
-            TimerAPI(TimerAPI const&) = delete;
-            void operator=(TimerAPI const&) = delete;
-            
+            static std::unordered_map<std::string, Timer> timers;
         private:
-            TimerAPI() {
-
-            	//MasterLog(INFO, "Constructing TimerAPI");
-            }
-            std::unordered_map<std::string, Timer> timers;
+            TimerAPI() {}
         };
     }
 }

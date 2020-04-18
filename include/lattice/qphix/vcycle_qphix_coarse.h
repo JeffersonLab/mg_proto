@@ -486,9 +486,7 @@ class VCycleQPhiXCoarseEO3 :
       IndexType ncol = out.GetNCol();
 
       int level = _M_fine.GetLevel();
-#ifdef MG_ENABLE_TIMERS
-      timerAPI->startTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
-#endif
+      Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
       std::vector<LinearSolverResults> res(ncol);
       auto& subset = _M_fine.GetSubset();
       QPhiXSpinorF in_f(_fine_info, ncol);
@@ -530,9 +528,7 @@ class VCycleQPhiXCoarseEO3 :
             res[col].resid /= norm_r[col];
           }
         }
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
         return res;
       }
 
@@ -563,27 +559,19 @@ class VCycleQPhiXCoarseEO3 :
       while ( iter < _param.MaxIter) {
         ++iter;
 
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->startTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
         ZeroVec(delta,subset);
         // Smoother does not compute a residuum
         _pre_smoother(delta,r);
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
 
         // Update solution
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
         YpeqXVec(delta,out_f,subset);
         // Update residuum: even odd matrix
         _M_fine(tmp, delta, LINOP_OP);
         YmeqXVec(tmp, r, subset);
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 
         if ( _param.VerboseP ) {
           std::vector<double> norm_pre_presmooth=aux::sqrt(Norm2Vec(r));
@@ -601,9 +589,7 @@ class VCycleQPhiXCoarseEO3 :
           }
         }
 
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->startTimer("VCycleQPhiXCoarseEO3/restrictFrom/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/restrictFrom/level"+std::to_string(level));
         // Coarsen r
 
 #if 1
@@ -614,44 +600,30 @@ class VCycleQPhiXCoarseEO3 :
         _Transfer.R(tmp,ODD,coarse_in);
 #endif
 
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("VCycleQPhiXCoarseEO3/restrictFrom/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/restrictFrom/level"+std::to_string(level));
 
 
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->startTimer("VCycleQPhiXCoarseEO3/bottom_solve/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/bottom_solve/level"+std::to_string(level));
         ZeroVec(coarse_delta);
         _bottom_solver(coarse_delta,coarse_in);
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("VCycleQPhiXCoarseEO3/bottom_solve/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/bottom_solve/level"+std::to_string(level));
 
 
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->startTimer("VCycleQPhiXCoarseEO3/prolongateTo/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/prolongateTo/level"+std::to_string(level));
 
         // Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
         _Transfer.P(coarse_delta, ODD, delta);
 
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("VCycleQPhiXCoarseEO3/prolongateTo/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/prolongateTo/level"+std::to_string(level));
 
 
         // Update solution
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
         YpeqXVec(delta,out_f,subset);
         // Update residuum
         _M_fine(tmp, delta, LINOP_OP);
         YmeqXVec(tmp, r,subset);
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 
         if ( _param.VerboseP ) {
           std::vector<double> norm_pre_postsmooth=aux::sqrt(Norm2Vec(r));
@@ -670,25 +642,17 @@ class VCycleQPhiXCoarseEO3 :
         }
 
         //postsmooth
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->startTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
         ZeroVec(delta,subset);
         _post_smoother(delta,r);
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
 
         // Update full solution
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
         YpeqXVec(delta,out_f,subset);
         _M_fine(tmp,delta,LINOP_OP);
         norm_r = aux::sqrt(XmyNorm2Vec(r,tmp,subset));
-#ifdef MG_ENABLE_TIMERS
-        timerAPI->stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
-#endif
+        Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
 
         if ( _param.VerboseP ) {
           for (int col=0; col < ncol; ++col) {
@@ -724,9 +688,7 @@ class VCycleQPhiXCoarseEO3 :
         }
       }
 
-#ifdef MG_ENABLE_TIMERS
-      timerAPI->stopTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
-#endif
+      Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
       return res;
     }
 
@@ -748,17 +710,14 @@ class VCycleQPhiXCoarseEO3 :
       _bottom_solver(bottom_solver),
       _param(param),
       _Transfer(my_blocks,vecs) {
-#ifdef MG_ENABLE_TIMERS
-        int level = _M_fine.GetLevel();
-        timerAPI = MG::Timer::TimerAPI::getInstance();
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3/restrictFrom/level"+std::to_string(level));
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3/prolongateTo/level"+std::to_string(level));
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3/bottom_solve/level"+std::to_string(level));
-        timerAPI->addTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
-#endif
+      int level = _M_fine.GetLevel();
+      Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
+      Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
+      Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/restrictFrom/level"+std::to_string(level));
+      Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/prolongateTo/level"+std::to_string(level));
+      Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
+      Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/bottom_solve/level"+std::to_string(level));
+      Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
       }
 
 
@@ -773,9 +732,6 @@ class VCycleQPhiXCoarseEO3 :
     const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
     const LinearSolverParamsBase& _param;
     const QPhiXTransfer<QPhiXSpinorF> _Transfer;
-#ifdef MG_ENABLE_TIMERS
-    std::shared_ptr<Timer::TimerAPI> timerAPI;
-#endif
 
 };
 

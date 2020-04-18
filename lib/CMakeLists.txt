@@ -11,6 +11,7 @@ LIST(APPEND library_source_list lattice/aggregate_block_coarse.cpp
 			   lattice/nodeinfo.cpp
 			   utils/initialize.cpp
 			   utils/print_utils.cpp
+			   utils/timer.cpp
 			   utils/memory.cpp)
 
 

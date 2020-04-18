@@ -114,6 +114,7 @@ namespace MG
 //			theCLIArgs.init(*argc,*argv);
 #endif
 
+			MG::Timer::TimerAPI::reset();
 			isInitializedP = true;
 		} // if (! isInitiealizedP )
 	}
@@ -128,7 +129,8 @@ namespace MG
 
 #ifdef MG_ENABLE_TIMERS
 		MasterLog(INFO, "Dumping Timers");
-		(MG::Timer::TimerAPI::getInstance())->reportAllTimer();
+		MG::Timer::TimerAPI::reportAllTimer();
+		MG::Timer::TimerAPI::reset();
 #endif
 
 		MasterLog(INFO, "Finalizing Memory");
