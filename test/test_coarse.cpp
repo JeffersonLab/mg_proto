@@ -30,7 +30,7 @@ TEST(CoarseDslash, TestSpeed)
 	const int Nz = 4;
 	const int Nt = 4;
 	const int Nx = 2*Nxh;
-	const int ncol = 1;
+	const int ncol = 3;
 	IndexArray latdims={Nx,Ny,Nz,Nt};
 	NodeInfo node;
 	LatticeInfo linfo(latdims, 2, 24, node);
@@ -50,7 +50,7 @@ TEST(CoarseDslash, TestSpeed)
 	const int N_sites_cb = linfo.GetNumCBSites();
 	const int N = D.GetNumColorSpin();
 
-#pragma omp parallel shared(total_time,x_spinor,y_spinor,gauge)
+#pragma omp parallel
 	{
 		const int tid = omp_get_thread_num();
 		const int n_threads=omp_get_num_threads();
@@ -74,8 +74,8 @@ TEST(CoarseDslash, TestSpeed)
 				for(int row=0; row < n_complex*N; ++row) {
 					for(int col=0; col < N; col++) {
 
-						gauge.GetSiteDirDataPtr(0,site,dir)[ col + n_complex*N*row ] = 0.23;
-						gauge.GetSiteDirDataPtr(1,site,dir)[ col + n_complex*N*row ] = 0.23;
+							gauge.GetSiteDirDataPtr(0,site,dir)[ row + n_complex*N*col ] = 0.23;
+							gauge.GetSiteDirDataPtr(1,site,dir)[ row + n_complex*N*col ] = 0.23;
 					}
 				}
 			}
@@ -86,20 +86,15 @@ TEST(CoarseDslash, TestSpeed)
 
 						// CB=0 Chiral up
 						gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
-						gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
 
 						// CB=0 Chiral down
-						gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
-						gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
+							gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2)*(row + (N/2)) ) ] = 0.12;
 
 						// CB=1 Chiral up
 						gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
-						gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2)*row) ] = 0.12;
 
 						// CB=1 Chiral down
-						gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.23;
-						gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2) + (N/2)*(row + (N/2)) ) ] = 0.12;
-
+							gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2)*(row + (N/2)) ) ] = 0.12;
 
 
 					}
@@ -134,13 +129,14 @@ TEST(CoarseDslash, TestSpeed)
 	double min_time=total_time[0][0];
 	double max_time =total_time[0][0];
 	double avg_time =total_time[0][0];
-	for(int thread=1; thread < 288; ++thread) {
+		for(int thread=1; thread < omp_get_max_threads(); ++thread) {
 		if( total_time[thread][0] > max_time ) max_time = total_time[thread][0];
 		if( total_time[thread][0] < min_time ) min_time = total_time[thread][0];
 		avg_time += total_time[thread][0];
 	}
 	avg_time /= omp_get_max_threads();
 	double outer_time = outer_end_time - outer_start_time;
+		MasterLog(INFO, "== Cols %d ==", ncol);
 	MasterLog(INFO, "Outer time=%16.8e (sec) => GFLOPS=%16.8e", outer_time,gflops/outer_time);
 	MasterLog(INFO, "Average time=%16.8e (sec) => GFLOPs = %16.8e", avg_time, gflops/avg_time);
 	MasterLog(INFO, "Min time=%16.8e (sec) => GFLOPs = %16.8e", min_time, gflops/min_time);

@@ -191,6 +191,7 @@ TEST(Timing, ProlongatorProfile)
 	  std::vector<int> ncols = {1, 4, 16, 64, 256};
 	  for (int ncoli = 0; ncoli < ncols.size(); ncoli++) {
 	    int ncol = ncols[ncoli];
+	    MasterLog(INFO, "== Cols %d ==", ncol);
 	    CoarseSpinor fine(fine_info, ncol);
 	    CoarseSpinor coarse(coarse_info, ncol);
 
