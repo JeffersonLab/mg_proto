@@ -55,6 +55,28 @@ namespace {
 
 namespace FGMRESGeneric {
 
+  inline void showConvergence(const std::vector<double>& residuals, const std::vector<double>& targets,
+      int level, int iter, int n_cycles=-1) {
+    const int ncol = residuals.size();
+    int num_converged = 0;
+    double avg_residual = 1.0, avg_target = 1;
+    for (int col=0; col < ncol; ++col) {
+      avg_residual += std::log(residuals[col]);
+      avg_target += std::log(targets[col]);
+      if (residuals[col] <= targets[col]) num_converged++;
+    }
+    avg_residual = std::exp(avg_residual/ncol); 
+    avg_target = std::exp(avg_target/ncol); 
+    if (n_cycles < 0) {
+      MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Iter=%d avg || r ||=%4.2e converged=%d avg Target=%16.8e",level,
+          iter, avg_residual,num_converged,avg_target);
+    } else {
+      MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Cycles=%d Iter=%d avg || r ||=%4.2e converged=%d avg Target=%16.8e",level,
+          n_cycles, iter, avg_residual,num_converged,avg_target);
+    }
+  }
+
+
 template<typename ST,typename GT>
  void FlexibleArnoldiT(int n_krylov,
      const std::vector<double>& rsd_target,
@@ -125,7 +147,13 @@ template<typename ST,typename GT>
      }
 #endif
 
+#ifdef MG_ENABLE_TIMERS
+           timerAPI->startTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
+#endif
      A( w, *(Z[j]), LINOP_OP);  // w  = A z_
+#ifdef MG_ENABLE_TIMERS
+           timerAPI->stopTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
+#endif
 
      // Fill out column j
      for(int i=0; i <= j ;  ++i ) {
@@ -137,17 +165,17 @@ template<typename ST,typename GT>
 
      }
 
-     std::vector<double> wnorm2=Norm2Vec(w,subset);               //  NORM
+     std::vector<double> wnorm=aux::sqrt(Norm2Vec(w,subset));               //  NORM
 #ifdef DEBUG_SOLVER
-     for (int col=0; col < ncol; ++col) MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%d j=%d wnorm=%16.8e\n", level, j, sqrt(wnorm2[col]));
+     for (int col=0; col < ncol; ++col) MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%d j=%d wnorm=%16.8e\n", level, j, wnorm[col]);
 #endif
 
-     for (int col=0; col < ncol; ++col) H[col](j,j+1) = std::complex<double>(sqrt(wnorm2[col]),0);
+     for (int col=0; col < ncol; ++col) H[col](j,j+1) = std::complex<double>(wnorm[col],0);
 
      // In principle I should check w_norm to be 0, and if it is I should
      // terminate: Code Smell -- get rid of 1.0e-14.
      for (int col=0; col < ncol; ++col) {
-        if (  sqrt( wnorm2[col] ) < 1.0e-14 )  {
+        if (  wnorm[col] < 1.0e-14 )  {
 
            // If wnorm = 0 exactly, then we have converged exactly
            // Replay Givens rots here, how to test?
@@ -160,7 +188,7 @@ template<typename ST,typename GT>
      }
 
      std::vector<double> invwnorm(ncol);
-     for (int col=0; col < ncol; ++col) invwnorm[col] = 1.0/sqrt(wnorm2[col]);
+     for (int col=0; col < ncol; ++col) invwnorm[col] = 1.0/wnorm[col];
      // V[j+1] = invwnorm*w;                           // SCAL
      ZeroVec( *(V[j+1]),subset);
      AxpyVec( invwnorm, w, *(V[j+1]),subset);
@@ -185,21 +213,15 @@ template<typename ST,typename GT>
 
      ndim_cycle = j+1;
      bool all_converged = true;
+     std::vector<double> residuals(ncol);
      for (int col=0; col < ncol; ++col) {
         double accum_resid = fabs(real(c[col][j+1]));
-
-        if ( VerboseP ) {
-           MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Iter=%d col=%d || r || = %16.8e Target=%16.8e",level,
-                 j+1, col, accum_resid,rsd_target[col]);
-
-        }
-        if (  accum_resid <= rsd_target[col]  ) {
-           if ( VerboseP ) {
-              MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d col=%d Cycle Converged at iter = %d",level, col, j+1);
-           }
-        } else {
-           all_converged = false;
-        }
+        residuals[col] = accum_resid;
+        if (  accum_resid > rsd_target[col]  )
+          all_converged = false;
+     }
+     if ( VerboseP ) {
+       showConvergence(residuals, rsd_target, level, j+1);
      }
      if (all_converged) return;
    } // while
@@ -231,6 +253,7 @@ template<typename ST, typename GT>
     int level = _A.GetLevel();
     timerAPI = MG::Timer::TimerAPI::getInstance();
     timerAPI->addTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
+    timerAPI->addTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
     timerAPI->addTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
 #endif
 
@@ -297,6 +320,7 @@ private:
     }
   }
 
+
 public:
   FGMRESSolverGeneric(std::shared_ptr<const LinearOperator<ST,GT>> A,
         const MG::LinearSolverParamsBase& params,
@@ -324,11 +348,11 @@ public:
       std::vector<LinearSolverResults> res(ncol); // Value to return
       for (int col=0; col < ncol; ++col) res[col].resid_type = resid_type;
 
-      std::vector<double> norm2_rhs = Norm2Vec(in,subset);   //  || b ||                      BLAS: NORM2
+      std::vector<double> norm_rhs = aux::sqrt(Norm2Vec(in,subset));   //  || b ||                      BLAS: NORM2
       std::vector<double> target(ncol, _params.RsdTarget);
 
       if ( resid_type == RELATIVE) {
-        for (int col=0; col < ncol; ++col) target[col] *= sqrt(norm2_rhs[col]); // Target  || r || < || b || RsdTarget
+        for (int col=0; col < ncol; ++col) target[col] *= norm_rhs[col]; // Target  || r || < || b || RsdTarget
       }
 
       const LatticeInfo&  in_info = in.GetInfo();
@@ -344,9 +368,9 @@ public:
       ST r( in_info, ncol ); ZeroVec(r,subset);                                                     // BLAS: ZERO
 #ifdef DEBUG_SOLVER
       {
-        std::vector<double> tmp_norm2_r = Norm2Vec(r,subset);
+        std::vector<double> tmp_norm_r = sqrt(Norm2Vec(r,subset));
         for (int col=0; col < ncol; ++col) {
-           MasterLog(MG::DEBUG, "FGMRES: level=%d col=%d norm_rhs=%16.8e r_norm=%16.8e", level, col, sqrt(norm2_rhs[col]), sqrt(tmp_norm2_r[col]));
+           MasterLog(MG::DEBUG, "FGMRES: level=%d col=%d norm_rhs=%16.8e r_norm=%16.8e", level, col, norm_rhs[col], tmp_norm_r[col]);
         }
       }
 #endif
@@ -354,10 +378,10 @@ public:
       CopyVec( r, in , subset);
 #ifdef DEBUG_SOLVER
       {
-        std::vector<double> tmp_norm2_r_in = Norm2Vec(in,subset);
-        std::vector<double> tmp_norm2_r = Norm2Vec(r,subset);
+        std::vector<double> tmp_norm_r_in = aux::sqrt(Norm2Vec(in,subset));
+        std::vector<double> tmp_norm_r = aux::sqrt(Norm2Vec(r,subset));
         for (int col=0; col < ncol; ++col) {
-           MasterLog(MG::DEBUG, "FGMRES: level=%d col=%d After copy: in_norm=%16.8e r_norm=%16.8e", level, col, sqrt(tmp_norm2_in[col]), sqrt(tmp_norm2_r[col]));
+           MasterLog(MG::DEBUG, "FGMRES: level=%d col=%d After copy: in_norm=%16.8e r_norm=%16.8e", level, col, tmp_norm_in[col], tmp_norm_r[col]);
         }
       }
 #endif
@@ -367,32 +391,19 @@ public:
       // r[s] -=tmp;                                                            // BLAS: X=X-Y
       // The current residuum
       //      Double r_norm = sqrt(norm2(r,s));                                      // BLAS: NORM
-      std::vector<double> r_norm2 = XmyNorm2Vec(r,tmp,subset);
+      std::vector<double> r_norm = aux::sqrt(XmyNorm2Vec(r,tmp,subset));
 
       // Initialize iterations
       int iters_total = 0;
       if ( _params.VerboseP ) {
-        for (int col=0; col < ncol; ++col) {
-           MasterLog(INFO,"FGMRES: level=%d col=%d iters=%d || r ||=%16.8e Target || r ||=%16.8e", level, col, iters_total, sqrt(r_norm2[col]),target[col]);
-        }
+        showConvergence(r_norm, target, level, iters_total);
       }
 
       bool all_converged = true;
       for (int col=0; col < ncol; ++col) {
-         if( sqrt(r_norm2[col]) < target[col] )  {
+         if( r_norm[col] < target[col] )  {
             res[col].n_count = 0;
-            res[col].resid = sqrt(r_norm2[col]) ;
-            if( resid_type == ABSOLUTE ) {
-               if( _params.VerboseP ) {
-                  MasterLog(INFO,"FGMRES: level=%d  col=%d Solve Converged: iters=0  Final Absolute || r ||=%16.8e",level,col, res[col].resid);
-               }
-            }
-            else {
-               res[col].resid /= sqrt(norm2_rhs[col]);
-               if( _params.VerboseP ) {
-                  MasterLog(INFO,"FGMRES: level=%d col=%d Solve Converged: iters=0  Final Absolute || r ||/|| b ||=%16.8e", level,col, res[col].resid);
-               }
-            }
+            res[col].resid = r_norm[col];
          } else {
            all_converged = false;
          }
@@ -431,7 +442,7 @@ public:
            for(int j=0; j < c_[col].size(); ++j) {
               c_[col][j] = std::complex<double>(0);
            }
-           c_[col][0] = sqrt(r_norm2[col]);
+           c_[col][0] = r_norm[col];
         }
 
         // Set up initial V[0] = rhs / || r^2 ||
@@ -439,7 +450,7 @@ public:
         // the rhs is 'r'
         //
         std::vector<double> beta_inv(ncol);
-        for (int col=0; col < ncol; ++col) beta_inv[col] = 1.0/sqrt(r_norm2[col]);
+        for (int col=0; col < ncol; ++col) beta_inv[col] = 1.0/r_norm[col];
         //  V_[0] = beta_inv * r;                       // BLAS: VSCAL
         ZeroVec(*(V_[0]),subset);
         AxpyVec(beta_inv,r,*(V_[0]),subset);
@@ -479,14 +490,12 @@ public:
         // Recompute r
         CopyVec(r,in,subset);                                        // BLAS: COPY
         (_A)(tmp, out, LINOP_OP);
-        r_norm2 = XmyNorm2Vec(r,tmp,subset);
+        r_norm = aux::sqrt(XmyNorm2Vec(r,tmp,subset));
 
         // Update total iters
         iters_total += iters_this_cycle;
         if ( _params.VerboseP ) {
-          for (int col=0; col < ncol; ++col) {
-             MasterLog(INFO, "FGMRES: level=%d iter=%d col=%d || r ||=%16.8e target=%16.8e", level, iters_total, col, sqrt(r_norm2[col]), target[col]);
-          }
+          showConvergence(r_norm, target, level, iters_total);
         }
 
         // Init matrices should've initialized this but just in case this is e.g. a second call or something.
@@ -502,33 +511,26 @@ public:
         // Check if all columns are converged
         bool finished = true;
         for (int col=0; col < ncol; ++col)
-           if ( sqrt(r_norm2[col]) > target[col] )
+           if (r_norm[col] > target[col])
             finished = false;
         if (finished) break;
 
       } // Next Cycle...
 
+      if ( _params.VerboseP ) {
+        showConvergence(r_norm, target, level, iters_total, n_cycles);
+      }
+
       // Either we've exceeded max iters, or we have converged in either case set res:
       for (int col=0; col < ncol; ++col) {
          res[col].n_count = iters_total;
-         res[col].resid = sqrt(r_norm2[col]) ;
-         if( resid_type == ABSOLUTE ) {
-            if( _params.VerboseP ) {
-               MasterLog(INFO,"FGMRES: level=%d col=%d Done. Cycles=%d, Iters=%d || r ||=%16.8e",level,col,
-                     n_cycles,iters_total, res[col].resid, _params.RsdTarget);
-            }
-         }
-         else {
-            res[col].resid /= sqrt(norm2_rhs[col]) ;
-            if( _params.VerboseP ) {
-               MasterLog(INFO,"FGMRES: level=%d col=%d Done. Cycles=%d, Iters=%d || r ||/|| b ||=%16.8e",level,col,
-                     n_cycles,iters_total, res[col].resid, _params.RsdTarget);
-            }
+         res[col].resid = r_norm[col];
+         if( resid_type == RELATIVE ) {
+            res[col].resid /= norm_rhs[col];
          }
       }
 #ifdef MG_ENABLE_TIMERS
         timerAPI->stopTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
-
 #endif
 
       return res;
