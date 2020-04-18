@@ -35,7 +35,7 @@ public:
 
 private:
 	void create(IndexType n_cols) {
-		_n_cols = n_col;
+		_n_cols = n_cols;
 		MasterLog(INFO, "Creating HaloCB");
 		const IndexArray& latt_size = _latt_info.GetLatticeDimensions();
 
@@ -69,7 +69,7 @@ private:
 		// Count faces in the non-local-dims
 		for(int mu=0; mu < n_dim; ++mu) {
 			if( ! _local_dir[mu] ) {
-				_face_in_bytes[mu] = _n_face_dir[mu]*_datatype_size*n_col*sizeof(float);
+				_face_in_bytes[mu] = _n_face_dir[mu]*_datatype_size*n_cols*sizeof(float);
 			}
 			else {
 				_face_in_bytes[mu] = 0; // Local
@@ -228,9 +228,10 @@ public:
 	void setNCols(IndexType n_cols) {
 #pragma omp master
 		{
-			if (_n_cols == n_cols) return;
-			destroy();
-			create(n_cols);
+			if (_n_cols != n_cols) {
+				destroy();
+				create(n_cols);
+			}
 		}
 #pragma omp barrier
 	}
@@ -346,7 +347,7 @@ public:
 	}
 
 	inline
-	const size_t& GetDataTypeSize() const
+	const size_t GetDataTypeSize() const
 	{
 		return _datatype_size*_n_cols;
 

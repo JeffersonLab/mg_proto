@@ -42,7 +42,7 @@ void GlobalSum( std::vector<double>& array ) {
 	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
 }
 void GlobalSum( std::vector<std::complex<double>>& array ) {
-	QMP_sum_double_array(&array[0],array.size()*2);
+	QMP_sum_double_array((double*)&array[0],array.size()*2);
 	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
 }
 #else
