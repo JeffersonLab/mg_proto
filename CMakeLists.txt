@@ -176,6 +176,9 @@ if(CMAKE_THREAD_LIBS_INIT)
 LIST(APPEND EXT_LIBS ${CMAKE_THREAD_LIBS_INIT} )
 endif()
 
+# Check BLAS
+find_package(BLAS REQUIRED)
+LIST(APPEND EXT_LIBS ${BLAS_LIBRARIES})
 
 # Add a config.h like file to pass some of the
 # CMake settings to the source
