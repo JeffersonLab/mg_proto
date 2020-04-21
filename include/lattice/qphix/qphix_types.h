@@ -126,6 +126,10 @@ public:
       return GetInfo().isCompatibleWith(s.GetInfo()) && GetNCol() == s.GetNCol();
     }
 
+    bool is_like(const LatticeInfo& info, int ncol) const {
+      return GetInfo().isCompatibleWith(info) && GetNCol() == ncol;
+    }
+
     inline IndexType GetNCol() const { return _data.size(); }
 
     inline

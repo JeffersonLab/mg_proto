@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <lattice/lattice_info.h>
 
 namespace MG {
 	namespace aux {
@@ -26,6 +27,7 @@ namespace MG {
 	class AbstractSpinor {
 	public:
 		virtual bool is_like(const Spinor& s) const = 0;
+		virtual bool is_like(const LatticeInfo& info, int ncol) const = 0;
 		virtual Spinor* create_new() const = 0;
 	};
 
@@ -33,7 +35,7 @@ namespace MG {
 	class AuxiliarySpinors {
 	public:
 		// Return a spinor with a shape like the given one
-		std::shared_ptr<Spinor> tmp(const Spinor& like_this) const {
+		std::shared_ptr<Spinor> tmp(const LatticeInfo& info, int ncol) const {
 			std::shared_ptr<Spinor> s;
 
 			// Find a spinor not being used
@@ -41,8 +43,8 @@ namespace MG {
 				if (it->use_count() <= 1) {
 					// If the free spinor is not like the given
 					// one, replace it with a new one.
-					if (! it->get()->is_like(like_this)) {
-						it->reset(like_this.create_new());
+					if (! it->get()->is_like(info, ncol)) {
+						it->reset(new Spinor(info, ncol));
 					}
 					s = *it;
 					break;
@@ -51,10 +53,15 @@ namespace MG {
 
 			// If every spinor is busy, create a new one
 			if (!s) {
-				s.reset(like_this.create_new());
+				s.reset(new Spinor(info, ncol));
 				_tmp.emplace_back(s);
 			}
 			return s;
+		}
+
+		// Return a spinor with a shape like the given one
+		std::shared_ptr<Spinor> tmp(const Spinor& like_this) const {
+			return tmp(like_this.GetInfo(), like_this.GetNCol());
 		}
 	private:
 		mutable std::vector<std::shared_ptr<Spinor>> _tmp;

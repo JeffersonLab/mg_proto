@@ -144,6 +144,10 @@ namespace MG {
 			return _lattice_info.isCompatibleWith(s._lattice_info) && _n_col == s._n_col;
 		}
 
+		bool is_like(const LatticeInfo& info, int ncol) const {
+			return GetInfo().isCompatibleWith(info) && GetNCol() == ncol;
+		}
+
 		CoarseSpinor* create_new() const {
 			return new CoarseSpinor(GetInfo(), GetNCol());
 		}
