@@ -21,10 +21,7 @@
 #include "lattice/coarse/coarse_transfer.h"
 #include "utils/print_utils.h"
 #include "lattice/coarse/subset.h"
-
-#ifdef MG_ENABLE_TIMERS
 #include "utils/timer.h"
-#endif
 
 namespace MG {
 
@@ -110,8 +107,11 @@ public:
 			ZeroVec(delta);
 
 			// Smoother does not compute a residuum
+			Timer::TimerAPI::startTimer("VCycleCoarse/presmooth/level"+std::to_string(level));
 			_pre_smoother(delta,r);
+			Timer::TimerAPI::stopTimer("VCycleCoarse/presmooth/level"+std::to_string(level));
 
+			Timer::TimerAPI::startTimer("VCycleCoarse/update/level"+std::to_string(level));
 			// Update solution
 			// out += delta;
 			YpeqxVec(delta,out);
@@ -121,6 +121,7 @@ public:
 
 			// r -= tmp;
 			YmeqxVec(tmp,r);
+			Timer::TimerAPI::stopTimer("VCycleCoarse/update/level"+std::to_string(level));
 
 			if ( _param.VerboseP ) {
 				std::vector<double> norm2_pre_presmooth=Norm2Vec(r);
@@ -141,15 +142,22 @@ public:
 			CoarseSpinor coarse_in(_coarse_info, ncol);
 
 			// Coarsen r
+			Timer::TimerAPI::startTimer("VCycleCoarse/restrictFrom/level"+std::to_string(level));
 			_Transfer.R(r,coarse_in);
+			Timer::TimerAPI::stopTimer("VCycleCoarse/restrictFrom/level"+std::to_string(level));
 
 			CoarseSpinor coarse_delta(_coarse_info, ncol);
+			Timer::TimerAPI::startTimer("VCycleCoarse/bottom_solve/level"+std::to_string(level));
 			ZeroVec(coarse_delta);
 			_bottom_solver(coarse_delta,coarse_in);
+			Timer::TimerAPI::stopTimer("VCycleCoarse/bottom_solve/level"+std::to_string(level));
 
 			// Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
+			Timer::TimerAPI::startTimer("VCycleCoarse/prolongateTo/level"+std::to_string(level));
 			_Transfer.P(coarse_delta, delta);
+			Timer::TimerAPI::stopTimer("VCycleCoarse/prolongateTo/level"+std::to_string(level));
 
+			Timer::TimerAPI::startTimer("VCycleCoarse/update/level"+std::to_string(level));
 			// Update solution
 			//			out += delta;
 			YpeqxVec(delta,out);
@@ -158,6 +166,7 @@ public:
 			_M_fine(tmp, delta, LINOP_OP);
 			// r -= tmp;
 			YmeqxVec(tmp,r);
+			Timer::TimerAPI::stopTimer("VCycleCoarse/update/level"+std::to_string(level));
 
 			if ( _param.VerboseP ) {
 				std::vector<double> norm2_pre_postsmooth=Norm2Vec(r);
@@ -176,9 +185,12 @@ public:
 			}
 
 			// delta = zero;
+			Timer::TimerAPI::startTimer("VCycleCoarse/postsmooth/level"+std::to_string(level));
 			ZeroVec(delta);
 			_post_smoother(delta,r);
+			Timer::TimerAPI::stopTimer("VCycleCoarse/postsmooth/level"+std::to_string(level));
 
+			Timer::TimerAPI::startTimer("VCycleCoarse/update/level"+std::to_string(level));
 			// Update full solution
 			// out += delta;
 			YpeqxVec(delta,out);
@@ -186,6 +198,7 @@ public:
 			//r -= tmp;
 			YmeqxVec(tmp,r);
 			norm2_r = Norm2Vec(r);
+			Timer::TimerAPI::stopTimer("VCycleCoarse/update/level"+std::to_string(level));
 
 			if( _param.VerboseP ) {
 				for (int col=0; col < ncol; ++col) {
