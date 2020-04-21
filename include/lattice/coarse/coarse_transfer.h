@@ -28,12 +28,6 @@
 
 namespace MG {
 
-#ifndef MAX_VECS
-#define MAX_VECS 64
-#endif
-
-
-
 	class CoarseTransfer {
 		public:
 
