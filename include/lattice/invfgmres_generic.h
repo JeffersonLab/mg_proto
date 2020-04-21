@@ -19,10 +19,7 @@
 #include <memory>
 #include <cassert>
 #include <algorithm>
-
-#ifdef MG_ENABLE_TIMERS
 #include "utils/timer.h"
-#endif
 
 #undef DEBUG_SOLVER
 
