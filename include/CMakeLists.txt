@@ -36,6 +36,7 @@ install (FILES lattice/coarse/aggregate_block_coarse.h
 install (FILES utils/initialize.h
 			   utils/memory.h 
          utils/timer.h
+         utils/auxiliary.h
 			   utils/print_utils.h 
 		 DESTINATION include/utils)
 		 
