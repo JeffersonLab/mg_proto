@@ -526,7 +526,7 @@ public:
 			AssertCompatible(info, M_info);
 		}
 
-		std::vector<LinearSolverResults> res;
+		std::vector<LinearSolverResults> res(ncol);
 
 		CoarseSpinor tmp(info, ncol);  // Use these to compute residua
 		CoarseSpinor r(info, ncol);    //
