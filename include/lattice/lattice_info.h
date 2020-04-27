@@ -111,7 +111,7 @@ public:
 
 	/*! Convenience function to convert Local Dims to Global dims based on Process grid */
 	inline
-	void LocalDimsToGlobalDims(IndexArray& global_dims, const IndexArray& local_dims)
+	void LocalDimsToGlobalDims(IndexArray& global_dims, const IndexArray& local_dims) const
 	{
 		const IndexArray& pe_dims =_node_info.NodeDims();
 		for(int dim=0; dim < n_dim; ++dim) {
@@ -121,7 +121,7 @@ public:
 
 	/*! Convenience function to convert Local Dims to Global dims based on Process grid */
 	inline
-	void GlobalDimsToLocalDims(IndexArray& local_dims, const IndexArray& global_dims)
+	void GlobalDimsToLocalDims(IndexArray& local_dims, const IndexArray& global_dims) const
 	{
 		const IndexArray& pe_dims=_node_info.NodeDims();
 		for(int dim=0; dim < n_dim; ++dim) {
@@ -134,14 +134,14 @@ public:
 		}
 	}
 
-	inline void LocalCoordToGlobalCoord(IndexArray& global_coord, const IndexArray& local_coord)
+	inline void LocalCoordToGlobalCoord(IndexArray& global_coord, const IndexArray& local_coord) const
 	{
 		for(int dim=0; dim < n_dim; ++dim) {
 			global_coord[dim] = local_coord[dim] + _lat_origin[dim];
 		}
 	}
 
-	inline void GlobalCoordToLocalCoord(IndexArray& local_coord, const IndexArray& global_coord)
+	inline void GlobalCoordToLocalCoord(IndexArray& local_coord, const IndexArray& global_coord) const
 	{
 		for(int dim=0; dim < n_dim; ++dim) {
 			local_coord[dim] = global_coord[dim] - _lat_origin[dim];

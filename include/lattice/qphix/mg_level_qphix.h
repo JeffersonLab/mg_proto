@@ -13,6 +13,7 @@
 #include <memory>
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/coarse/block.h"
+#include "lattice/coarse/coarse_op.h"
 #include "lattice/mg_level_coarse.h"
 #include "lattice/solver.h"
 #include "utils/timer.h"
@@ -172,6 +173,13 @@ namespace MG {
 
 
     coarse_level.M = std::make_shared< const typename CoarseLevelT::LinOp>(coarse_level.gauge,1);
+
+    const char *coarse_prefix_name = std::getenv("MG_COARSE_FILENAME");
+    if (coarse_prefix_name != nullptr && std::strlen(coarse_prefix_name) > 0) {
+      std::string filename = std::string(coarse_prefix_name) + "_level1.bin";
+      MasterLog(INFO, "CoarseEOCloverLinearOperator: Writing coarse operator in %s", filename.c_str());
+      CoarseDiracOp::write(*(coarse_level.gauge), filename); 
+    }
 
   }
 
