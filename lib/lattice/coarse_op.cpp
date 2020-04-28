@@ -813,6 +813,8 @@ CoarseDiracOp::CoarseDiracOp(const LatticeInfo& l_info, IndexType n_smt)
 void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename)
 {
 	IndexType n_colorspin = gauge.GetNumColorSpin();
+	IndexArray lattice_dims;
+	gauge.GetInfo().LocalDimsToGlobalDims(lattice_dims, gauge.GetInfo().GetLatticeDimensions());
 	IndexType nxh = gauge.GetNxh();
 	IndexType nx = gauge.GetNx();
 	IndexType ny = gauge.GetNy();
@@ -824,7 +826,6 @@ void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename)
 	MPI_File fh;
 	MPI_File_open(MPI_COMM_WORLD, filename.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);
 	if (offset == 0) {
-		const IndexArray& lattice_dims = gauge.GetInfo().GetLatticeDimensions();
 		float header[6] = {4, (float)lattice_dims[0], (float)lattice_dims[1], (float)lattice_dims[2], (float)lattice_dims[3], (float)n_colorspin};
 		MPI_Status status;
 		MPI_File_write(fh, header, n_dim+2, MPI_FLOAT, &status);
@@ -835,33 +836,6 @@ void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename)
 	const int n_sites_cb = gauge.GetInfo().GetNumCBSites();
 	for(IndexType site_cb=0; site_cb < n_sites_cb;++site_cb) {
 		for(int target_cb=0; target_cb < 2;++target_cb) {
-
-			// Turn site into x,y,z,t coords assuming we run as
-			//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
-
-			IndexType tmp_yzt = site_cb / nxh;
-			IndexType xcb = site_cb - nxh * tmp_yzt;
-			IndexType tmp_zt = tmp_yzt / ny;
-			IndexType y = tmp_yzt - ny * tmp_zt;
-			IndexType t = tmp_zt / nz;
-			IndexType z = tmp_zt - nz * t;
-
-			// Neighbouring spinors
-			IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
-
-			// Boundaries -- we can indirect here to
-			// some face buffers if needs be
-			IndexType x_plus = (x < nx-1 ) ? (x + 1) : 0;
-			IndexType x_minus = ( x > 0 ) ?  (x - 1) : nx-1;
-
-			IndexType y_plus = ( y < ny - 1) ? y+1 : 0;
-			IndexType y_minus = ( y > 0 ) ? y-1 : ny - 1;
-
-			IndexType z_plus = ( z < nz - 1) ? z+1 : 0;
-			IndexType z_minus = ( z > 0 ) ? z-1 : nz - 1;
-
-			IndexType t_plus = ( t < nt - 1) ? t+1 : 0;
-			IndexType t_minus = ( t > 0 ) ? t-1 : nt - 1;
 
 			const float* gauge_base = gauge.GetSiteDirDataPtr(target_cb,site_cb,0);
 			const IndexType gdir_offset = gauge.GetLinkOffset();
@@ -878,24 +852,41 @@ void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename)
 				gauge_base+6*gdir_offset,      // T forward
 				gauge_base+7*gdir_offset };    // T backward
 
-			const IndexArray coors[9] = {
-				{x      , y      , z      , t      },
-				{x_plus , y      , z      , t      },
-				{x_minus, y      , z      , t      },
-				{x      , y_plus , z      , t      },
-				{x      , y_minus, z      , t      },
-				{x      , y      , z_plus , t      },
-				{x      , y      , z_minus, t      },
-				{x      , y      , z      , t_plus },
-				{x      , y      , z      , t_minus}
-			};
+			// Turn site into x,y,z,t coords assuming we run as
+			//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
 
+			IndexType tmp_yzt = site_cb / nxh;
+			IndexType xcb = site_cb - nxh * tmp_yzt;
+			IndexType tmp_zt = tmp_yzt / ny;
+			IndexType y = tmp_yzt - ny * tmp_zt;
+			IndexType t = tmp_zt / nz;
+			IndexType z = tmp_zt - nz * t;
+
+			// Neighbouring spinors
+			IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
+
+			// Compute global coordinate
+			const IndexArray local_site_coor = {x, y, z, t};
 			IndexArray global_site_coor;
-			gauge.GetInfo().LocalCoordToGlobalCoord(global_site_coor, coors[0]);
+			gauge.GetInfo().LocalCoordToGlobalCoord(global_site_coor, local_site_coor);
+			
+			IndexArray coors[9];
+			coors[0] = global_site_coor;
+			for(int i=0,j=1; i<4; i++) {
+				// Forward
+				global_site_coor[i] = (global_site_coor[i] + 1) % lattice_dims[i];
+				coors[j++] = global_site_coor;
+
+				// Backward
+				global_site_coor[i] = (global_site_coor[i] + lattice_dims[i] - 2) % lattice_dims[i];
+				coors[j++] = global_site_coor;
+
+				// Restore
+				global_site_coor[i] = (global_site_coor[i] + 1) % lattice_dims[i];
+			}
+
 			for (int i=0; i<9; i++) {
-				IndexArray gcoor;
-				gauge.GetInfo().LocalCoordToGlobalCoord(gcoor, coors[i]);
-				float coords[8] = {(float)global_site_coor[0], (float)global_site_coor[1], (float)global_site_coor[2], (float)global_site_coor[3], (float)gcoor[0], (float)gcoor[1], (float)gcoor[2], (float)gcoor[3]};
+				float coords[8] = {(float)coors[0][0], (float)coors[0][1], (float)coors[0][2], (float)coors[0][3], (float)coors[i][0], (float)coors[i][1], (float)coors[i][2], (float)coors[i][3]};
 				MPI_Status status;
 				MPI_File_write(fh, coords, 8, MPI_FLOAT, &status);
 				MPI_File_write(fh, gauge_links[i], n_complex*n_colorspin*n_colorspin, MPI_FLOAT, &status);
