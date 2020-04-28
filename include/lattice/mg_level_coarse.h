@@ -10,7 +10,7 @@
 
 #include <lattice/coarse/invbicgstab_coarse.h>
 #include <memory>
-#include <string>
+#include <cstring>
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/block.h"
 #include "lattice/coarse/coarse_op.h"
