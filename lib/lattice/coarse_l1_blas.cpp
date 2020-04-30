@@ -10,6 +10,7 @@
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/coarse_l1_blas.h"
+#include "utils/timer.h"
 
 #include "MG_config.h"
 
@@ -25,36 +26,17 @@ namespace MG
 namespace GlobalComm {
 
 #ifdef MG_QMP_COMMS
-void GlobalSum( double& my_summand )
-{
-	double result = my_summand;
-	QMP_sum_double(&result);
-	my_summand = result;
-	return; // Return Summand Unchanged -- MPI version should use an MPI_ALLREDUCE
-
-}
-void GlobalSum( double* array, int array_length ) {
-	QMP_sum_double_array(array,array_length);
-	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
-}
-void GlobalSum( std::vector<double>& array ) {
+void GlobalSum( std::vector<double>& array, const CoarseSpinor& ref) {
+	Timer::TimerAPI::startTimer("CoarseSpinor/globalsum/sp"+std::to_string(ref.GetNumColorSpin()));
 	QMP_sum_double_array(&array[0],array.size());
-	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
+	Timer::TimerAPI::stopTimer("CoarseSpinor/globalsum/sp"+std::to_string(ref.GetNumColorSpin()));
 }
-void GlobalSum( std::vector<std::complex<double>>& array ) {
+void GlobalSum( std::vector<std::complex<double>>& array, const CoarseSpinor& ref ) {
+	Timer::TimerAPI::startTimer("CoarseSpinor/globalsum/sp"+std::to_string(ref.GetNumColorSpin()));
 	QMP_sum_double_array((double*)&array[0],array.size()*2);
-	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
+	Timer::TimerAPI::stopTimer("CoarseSpinor/globalsum/sp"+std::to_string(ref.GetNumColorSpin()));
 }
 #else
-void GlobalSum( double& my_summand )
-{
-	return; // Return Summand Unchanged -- MPI version should use an MPI_ALLREDUCE
-
-}
-void GlobalSum( double* array, int array_length ) {
-	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
-}
-
 void GlobalSum( std::vector<double>& array ) {
 	return;  // Single Node for now. Return the untouched array. -- MPI Version should use allreduce
 }
@@ -127,7 +109,7 @@ std::vector<double> XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y, const CB
 	} // End of Parallel for reduction
 
 	// I would probably need some kind of global reduction here  over the nodes which for now I will ignore.
-	MG::GlobalComm::GlobalSum(norm_diff);
+	MG::GlobalComm::GlobalSum(norm_diff, x);
 
 	return norm_diff;
 }
@@ -176,7 +158,7 @@ std::vector<double> Norm2Vec(const CoarseSpinor& x, const CBSubset& subset)
 	} // End of Parallel for reduction
 
 	// I would probably need some kind of global reduction here  over the nodes which for now I will ignore.
-	MG::GlobalComm::GlobalSum(norm_sq);
+	MG::GlobalComm::GlobalSum(norm_sq, x);
 
 	return norm_sq;
 }
@@ -232,7 +214,7 @@ std::vector<std::complex<double>> InnerProductVec(const CoarseSpinor& x, const C
 	} // End of Parallel for reduction
 
 	// Global Reduce
-	MG::GlobalComm::GlobalSum(ipprod);
+	MG::GlobalComm::GlobalSum(ipprod, x);
 
 	return ipprod;
 }

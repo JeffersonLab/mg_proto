@@ -12,6 +12,7 @@
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/lattice_info.h"
 #include "lattice/geometry_utils.h"
+#include "utils/timer.h"
 #include <omp.h>
 #if defined(MG_QMP_COMMS)
 #include "lattice/halo_container_qmp.h"
@@ -115,6 +116,7 @@ void
 CommunicateHaloSyncInOMPParallel(HaloContainer<T>& halo, const T& in, const int target_cb)
 {
 
+	Timer::TimerAPI::startTimer("CommunicateHaloSync/sp"+std::to_string(in.GetNumColorSpin()));
 	halo.setNCols(in.GetNCol());
 	if( halo.NumNonLocalDirs() > 0 ) {
 		for(int mu=0; mu < n_dim; ++mu) {
@@ -140,6 +142,7 @@ CommunicateHaloSyncInOMPParallel(HaloContainer<T>& halo, const T& in, const int 
 	// Barrier after comms to sync master with other threads
 #pragma omp barrier
 	}
+	Timer::TimerAPI::stopTimer("CommunicateHaloSync/sp"+std::to_string(in.GetNumColorSpin()));
 }
 
 
