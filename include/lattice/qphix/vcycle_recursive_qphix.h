@@ -18,6 +18,8 @@
 #include "lattice/qphix/invfgmres_qphix.h"
 #include "lattice/coarse/invmr_coarse.h"
 #include "lattice/coarse/invfgmres_coarse.h"
+#include "lattice/coarse/coarse_deflation.h"
+
 using namespace QDP;
 
 namespace MG {
