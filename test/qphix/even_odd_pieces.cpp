@@ -19,6 +19,7 @@
 #include "lattice/fine_qdpxx/mg_params_qdpxx.h"
 #include "lattice/qphix/mg_level_qphix.h"
 #include "lattice/qphix/vcycle_recursive_qphix.h"
+#include "utils/timer.h"
 
 // f#include <ittnotify.h>
 
@@ -29,63 +30,65 @@ using namespace MG::aux;
 
 TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 {
-	IndexArray latdims={{32,32,32,32}};
+	//IndexArray latdims={{32,32,32,32}};
+	// IndexArray latdims={{8,8,8,8}};
 
 
 
-	initQDPXXLattice(latdims);
+	// initQDPXXLattice(latdims);
 
-	QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
+	// QDPIO::cout << "QDP++ Testcase Initialized" << std::endl;
 
-	IndexArray node_orig=NodeInfo().NodeCoords();
-	for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
+	// IndexArray node_orig=NodeInfo().NodeCoords();
+	// for(int mu=0; mu < n_dim; ++mu) node_orig[mu]*=latdims[mu];
 
-	float m_q = 0.01;
-	float c_sw = 1.25;
+	// float m_q = 0.01;
+	// float c_sw = 1.25;
 
-	int t_bc=-1; // Antiperiodic t BCs
-
-
-	multi1d<LatticeColorMatrix> u(Nd);
-	for(int mu=0; mu < Nd; ++mu) {
-		//u[mu]=1;
-		gaussian(u[mu]);
-		reunit(u[mu]);
-	}
-	// Move to QPhiX space:
-	LatticeInfo fine_info(node_orig,latdims,4,3,NodeInfo());
-
-	MasterLog(INFO,"Creating M");
-
-	// Create float prec linop for preconditioner
-	std::shared_ptr<QPhiXWilsonCloverLinearOperatorF> M_f=
-			std::make_shared<QPhiXWilsonCloverLinearOperatorF>(fine_info, m_q, c_sw, t_bc,u);
-
-	// Create full prec linop for solver
-	QPhiXWilsonCloverLinearOperator M(fine_info,m_q, c_sw, t_bc,u);
-
-	SetupParams level_setup_params = {
-			3,       // Number of levels
-			{24,32},   // Null vecs on L0, L1
-			{
-					{4,4,4,4},  // Block Size from L0->L1
-					{2,2,2,2}   // Block Size from L1->L2
-			},
-			{500,500},          // Max Nullspace Iters
-			{5e-6,5e-6},        // Nullspace Target Resid
-			{false,false}
-	};
+	// int t_bc=-1; // Antiperiodic t BCs
 
 
-	QPhiXMultigridLevels mg_levels;
-	MasterLog(INFO,"Calling Level setup");
-	SetupQPhiXMGLevels(level_setup_params, mg_levels, M_f);
+	// multi1d<LatticeColorMatrix> u(Nd);
+	// for(int mu=0; mu < Nd; ++mu) {
+	// 	//u[mu]=1;
+	// 	gaussian(u[mu]);
+	// 	reunit(u[mu]);
+	// }
+	// // Move to QPhiX space:
+	// LatticeInfo fine_info(node_orig,latdims,4,3,NodeInfo());
+
+	// MasterLog(INFO,"Creating M");
+
+	// // Create float prec linop for preconditioner
+	// std::shared_ptr<QPhiXWilsonCloverLinearOperatorF> M_f=
+	// 		std::make_shared<QPhiXWilsonCloverLinearOperatorF>(fine_info, m_q, c_sw, t_bc,u);
+
+	// // Create full prec linop for solver
+	// QPhiXWilsonCloverLinearOperator M(fine_info,m_q, c_sw, t_bc,u);
+
+	// SetupParams level_setup_params = {
+	// 		3,       // Number of levels
+	// 		{24,32},   // Null vecs on L0, L1
+	// 		{
+	// 				{2,2,2,2},  // Block Size from L0->L1
+	// 				{2,2,2,2}   // Block Size from L1->L2
+	// 		},
+	// 		{500,500},          // Max Nullspace Iters
+	// 		{5e-6,5e-6},        // Nullspace Target Resid
+	// 		{false,false}
+	// };
+
+
+	// QPhiXMultigridLevels mg_levels;
+	// MasterLog(INFO,"Calling Level setup");
+	// SetupQPhiXMGLevels(level_setup_params, mg_levels, M_f);
 }
 
 #if 1
 TEST(QPhiXTestRecursiveVCycle, TestVCycle2Level)
 {
-	IndexArray latdims={{32,32,32,32}};
+	//IndexArray latdims={{32,32,32,32}};
+	IndexArray latdims={{8,8,16,16}};
 
 
 
@@ -100,7 +103,7 @@ TEST(QPhiXTestRecursiveVCycle, TestVCycle2Level)
 	float c_sw = 1.25;
 
 	int t_bc=-1; // Antiperiodic t BCs
-
+	double tol=5e-7;
 
 	multi1d<LatticeColorMatrix> u(Nd);
 	for(int mu=0; mu < Nd; ++mu) {
@@ -121,14 +124,13 @@ TEST(QPhiXTestRecursiveVCycle, TestVCycle2Level)
 	QPhiXWilsonCloverLinearOperator M(fine_info,m_q, c_sw, t_bc,u);
 
 	SetupParams level_setup_params = {
-			3,       // Number of levels
-			{24,32},   // Null vecs on L0, L1
+			2,       // Number of levels
+			{24},   // Null vecs on L0, L1
 			{
-					{4,4,4,4},  // Block Size from L0->L1
-					{2,2,2,2}   // Block Size from L1->L2
+					{2,2,2,2},  // Block Size from L0->L1
 			},
-			{500,500},          // Max Nullspace Iters
-			{5e-6,5e-6},        // Nullspace Target Resid
+			{500},          // Max Nullspace Iters
+			{5e-6},        // Nullspace Target Resid
 			{false,false}
 	};
 
@@ -174,7 +176,7 @@ TEST(QPhiXTestRecursiveVCycle, TestVCycle2Level)
 				M_v[0],M_v[1],M_v[2],M_v[3], fine_M_nc,fine_M_ns, num_vecs);
 	}
 	// V Cycle parametere
-	std::vector<VCycleParams> v_params(2);
+	std::vector<VCycleParams> v_params(1);
 
 	for(int level=0; level < mg_levels.n_levels-1; level++) {
 		MasterLog(INFO,"Level = %d",level);
@@ -205,7 +207,7 @@ TEST(QPhiXTestRecursiveVCycle, TestVCycle2Level)
 
 	FGMRESParams fine_solve_params;
 	fine_solve_params.MaxIter=200;
-	fine_solve_params.RsdTarget=1.0e-13;
+	fine_solve_params.RsdTarget=tol;
 	fine_solve_params.VerboseP = true;
 	fine_solve_params.NKrylov = 5;
 
@@ -214,37 +216,45 @@ TEST(QPhiXTestRecursiveVCycle, TestVCycle2Level)
 
 	MasterLog(INFO, "*** Recursive VCycle Structure + Solver Created");
 
-	int ncol = 1;
-	QPhiXSpinor psi_in(fine_info, ncol);
-	QPhiXSpinor chi_out(fine_info, ncol);
-	Gaussian(psi_in);
-	ZeroVec(chi_out);
-	std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
-	for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
+	std::vector<int> ncols = {1, 4, 16, 64};
+	for (int ncoli = 0; ncoli < ncols.size(); ncoli++) {
+		int ncol = ncols[ncoli];
+		MasterLog(INFO, "== Cols %d ==", ncol);
 
-	QDP::StopWatch swatch;
-	swatch.reset();
-	// __itt_resume();
-	swatch.start();
-	std::vector<LinearSolverResults> res=FGMRESOuter(chi_out, psi_in);
-	swatch.stop();
-	// __itt_pause();
+		QPhiXSpinor psi_in(fine_info, ncol);
+		QPhiXSpinor chi_out(fine_info, ncol);
+		Gaussian(psi_in);
+		ZeroVec(chi_out);
+		std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
+		std::vector<double> inv_psi_norm(ncol);
+		for (int col=0; col<ncol; ++col) inv_psi_norm[col] = 1/psi_norm[col];
+		AxVec(inv_psi_norm, psi_in);
 
-	MasterLog(INFO, "Solve time is %16.8e sec.", swatch.getTimeInSeconds());
+		QDP::StopWatch swatch;
+		swatch.reset();
+		// __itt_resume();
+		swatch.start();
+		std::vector<LinearSolverResults> res=FGMRESOuter(chi_out, psi_in);
+		swatch.stop();
+		// __itt_pause();
 
-	// Compute true residuum
-	QPhiXSpinor Ax(fine_info, ncol);
-	M(Ax,chi_out,LINOP_OP);
-	std::vector<double> diff = sqrt(XmyNorm2Vec(psi_in,Ax));
-	for (int col=0; col < ncol; ++col){
-		 double diff_rel = diff[col]/psi_norm[col];
-		 MasterLog(INFO,"|| b - A x || = %16.8e", diff[col]);
-		 MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
+		MasterLog(INFO, "Solve time is %16.8e sec.", swatch.getTimeInSeconds());
 
-		 ASSERT_EQ( res[col].resid_type, RELATIVE);
-		 ASSERT_LT( res[col].resid, 1.0e-13);
-		 ASSERT_LT( toDouble(diff_rel), 1.0e-13);
+		// Compute true residuum
+		QPhiXSpinor Ax(fine_info, ncol);
+		M(Ax,chi_out,LINOP_OP);
+		std::vector<double> diff = sqrt(XmyNorm2Vec(psi_in,Ax));
+		for (int col=0; col < ncol; ++col){
+			double diff_rel = diff[col]/psi_norm[col];
+			// MasterLog(INFO,"|| b - A x || = %16.8e", diff[col]);
+			// MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
+
+			ASSERT_EQ( res[col].resid_type, RELATIVE);
+			ASSERT_LT( res[col].resid, tol);
+			ASSERT_LT( toDouble(diff_rel), tol);
+		}
 	}
+    Timer::TimerAPI::reportAllTimer();
 }
 #endif
 

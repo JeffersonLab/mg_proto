@@ -56,6 +56,9 @@ public:
 				// Bottom level There is only a bottom solver.
 				_bottom_solver[coarse_idx] = std::make_shared< const BottomSolverT >(this_level_linop,_vcycle_params[coarse_idx].bottom_solver_params,nullptr);
 
+				MasterLog(INFO, "Computing deflation for level %d", coarse_idx);
+				CoarseSpinor defl(this_level_linop->GetInfo(), 512);
+				computeDeflation(defl, *this_level_linop);
 			}
 			else{
 

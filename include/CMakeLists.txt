@@ -20,6 +20,7 @@ install (FILES lattice/array2d.h
 install (FILES lattice/coarse/aggregate_block_coarse.h
                lattice/coarse/block.h
                lattice/coarse/coarse_l1_blas.h
+               lattice/coarse/coarse_deflation.h
                lattice/coarse/coarse_op.h
                lattice/coarse/coarse_types.h 
                lattice/coarse/coarse_transfer.h

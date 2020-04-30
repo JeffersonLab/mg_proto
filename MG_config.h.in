@@ -29,4 +29,6 @@
 
 #cmakedefine MG_WRITE_COARSE
 
+#cmakedefine MG_USE_PRIMME
+
 #endif

@@ -28,14 +28,17 @@ namespace MG {
 	public:
 		virtual bool is_like(const Spinor& s) const = 0;
 		virtual bool is_like(const LatticeInfo& info, int ncol) const = 0;
-		virtual Spinor* create_new() const = 0;
 	};
 
 	template<typename Spinor>
 	class AuxiliarySpinors {
 	public:
+		AuxiliarySpinors(const AuxiliarySpinors<Spinor>* subrogate_=nullptr) : subrogate(subrogate_) {}
+
 		// Return a spinor with a shape like the given one
 		std::shared_ptr<Spinor> tmp(const LatticeInfo& info, int ncol) const {
+			if (subrogate) return subrogate->tmp(info, ncol);
+
 			std::shared_ptr<Spinor> s;
 
 			// Find a spinor not being used
@@ -65,6 +68,7 @@ namespace MG {
 		}
 	private:
 		mutable std::vector<std::shared_ptr<Spinor>> _tmp;
+		const AuxiliarySpinors<Spinor>* subrogate;
 	};
 }
 

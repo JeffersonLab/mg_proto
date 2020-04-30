@@ -661,6 +661,98 @@ void XmyzVec(const CoarseSpinor&x, const CoarseSpinor& y,
 	} // End of Parallel for region
 }
 
+void GetColumns(const CoarseSpinor& x, const CBSubset& subset, float *y, size_t ld) {
+	const LatticeInfo& x_info = x.GetInfo();
+
+	IndexType num_cbsites = x_info.GetNumCBSites();
+	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
+	int cb0 = subset.start;
+
+#pragma omp parallel for collapse(3) schedule(static)
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
+
+				// Identify the site and the column
+				const float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+
+				// Do over the colorspins
+#pragma omp simd
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
+
+
+					y[ RE + n_complex*cspin + ((cb-cb0)*num_cbsites + cbsite)*num_colorspin*n_complex + ld*col] = x_site_data[ RE + n_complex*cspin];
+					y[ IM + n_complex*cspin + ((cb-cb0)*num_cbsites + cbsite)*num_colorspin*n_complex + ld*col] = x_site_data[ IM + n_complex*cspin];
+
+				}
+
+			}
+		}
+	} // End of Parallel for region
+}
+
+void PutColumns(const float* y, size_t ld, CoarseSpinor& x, const CBSubset& subset) {
+	const LatticeInfo& x_info = x.GetInfo();
+
+	IndexType num_cbsites = x_info.GetNumCBSites();
+	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
+	int cb0 = subset.start;
+
+#pragma omp parallel for collapse(3) schedule(static)
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
+
+				// Identify the site and the column
+				float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+
+				// Do over the colorspins
+#pragma omp simd
+				for(int cspin=0; cspin < num_colorspin; ++cspin) {
+
+
+					x_site_data[ RE + n_complex*cspin] = y[ RE + n_complex*cspin + ((cb-cb0)*num_cbsites + cbsite)*num_colorspin*n_complex + ld*col];
+					x_site_data[ IM + n_complex*cspin] = y[ IM + n_complex*cspin + ((cb-cb0)*num_cbsites + cbsite)*num_colorspin*n_complex + ld*col];
+
+				}
+
+			}
+		}
+	} // End of Parallel for region
+}
+
+void Gamma5Vec(CoarseSpinor& x, const CBSubset& subset) {
+	const LatticeInfo& x_info = x.GetInfo();
+
+	IndexType num_cbsites = x_info.GetNumCBSites();
+	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType ncol = x.GetNCol();
+
+#pragma omp parallel for collapse(3) schedule(static)
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
+
+				// Identify the site and the column
+				float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
+
+				// Do over the colorspins
+#pragma omp simd
+				for(int cspin=num_colorspin/2; cspin < num_colorspin; ++cspin) {
+
+
+					x_site_data[ RE + n_complex*cspin] *= -1;
+					x_site_data[ IM + n_complex*cspin] *= -1;
+
+				}
+
+			}
+		}
+	} // End of Parallel for region
+}
+
 
 
 /**** NOT 100% sure how to test this easily ******/

@@ -139,6 +139,10 @@ if( MG_USE_QDPXX )
 	endif(${QDPXX_PARALLEL_ARCH} STREQUAL "parscalar" )
 endif(MG_USE_QDPXX)
 
+#PRIMME
+set(MG_USE_PRIMME OFF CACHE BOOL "build primme interface")
+set(PRIMME_HOME "" CACHE PATH "path to primme")
+
 # Deal with threads 
 find_package(Threads REQUIRED)
 
@@ -177,6 +181,23 @@ if(CMAKE_THREAD_LIBS_INIT)
 LIST(APPEND EXT_LIBS ${CMAKE_THREAD_LIBS_INIT} )
 endif()
 
+
+if(MG_USE_PRIMME)
+  find_package(BLAS REQUIRED)
+  find_package(LAPACK REQUIRED)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(PRIMME QUIET primme)
+  if(NOT PRIMME_FOUND OR PRIMME_HOME)
+    find_library(PRIMME primme PATH ${PRIMME_HOME}/lib)
+  else()
+    find_library(PRIMME ${PRIMME_LIBRARIES} PATH ${PRIMME_LIBRARY_DIRS})
+  endif()
+  include_directories(SYSTEM ${PRIMME_HOME}/include)
+  LIST(APPEND EXT_LIBS ${PRIMME} ${LAPACK})
+endif(MG_USE_PRIMME)
+
+
+
 # Check BLAS
 find_package(BLAS REQUIRED)
 LIST(APPEND EXT_LIBS ${BLAS_LIBRARIES})
@@ -204,4 +225,6 @@ add_subdirectory(include)
 # Add the lib subdirectory to make the lib
 add_subdirectory(external)
 add_subdirectory(lib)
-add_subdirectory(test)
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()

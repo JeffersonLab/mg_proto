@@ -897,7 +897,7 @@ void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename)
 	MPI_File_close(&fh);
 }
 #else
-void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename) const
+void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename)
 {
 }
 #endif // MG_WRITE

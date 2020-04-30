@@ -29,7 +29,7 @@ class CoarseEOWilsonCloverLinearOperator : public EOLinearOperator<CoarseSpinor,
 public:
 	// Hardwire n_smt=1 for now.
 	CoarseEOWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : _u(gauge_in),
-	 _the_op( gauge_in->GetInfo(), 1), _level(level)
+	 _the_op( gauge_in->GetInfo(), 1), _level(level), AuxiliarySpinors<CoarseSpinor>(&_the_op)
 	{
 		MasterLog(INFO, "Creating Coarse CoarseEOWilsonCloverLinearOperator LinOp");
 	}

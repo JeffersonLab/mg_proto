@@ -11,6 +11,7 @@
 #include <random>
 #include "MG_config.h"
 #include "../test_env.h"
+#include "../mock_nodeinfo.h"
 
 #include <omp.h>
 #include <cstdio>
@@ -23,13 +24,16 @@ using namespace MGTesting;
 
 #include "../vol_and_block_args.h"
 
-VolAndBlockArgs args({{8,8,8,8}},{{2,2,2,2}},24,24,1,1000);
+VolAndBlockArgs args({{16,16,16,16}},{{2,2,2,2}},24,24,1,10);
 
 TEST(CoarseDslash, TestSpeed)
 {
 	IndexArray latdims=args.ldims;
-	NodeInfo node;
-	LatticeInfo linfo(latdims, 2, args.fine_colors, node);
+	IndexArray pe_dims={{1,1,1,1}};  // Pretend 32 nodes
+	IndexArray pe_coords={{0,0,0,0}};
+	MockNodeInfo mock_node(pe_dims, pe_coords);
+	//LatticeInfo linfo(latdims, 2, args.fine_colors, mock_node);
+	LatticeInfo linfo(latdims, 2, 6, mock_node);
 	std::vector<int> ncols = {1, 4, 16, 64, 256};
 	for (int ncoli = 0; ncoli < ncols.size(); ncoli++) {
 		int ncol = ncols[ncoli];
@@ -110,7 +114,7 @@ TEST(CoarseDslash, TestSpeed)
 			double start_time = omp_get_wtime();
 
 			for(int iter = 0; iter < N_iter; ++iter) {
-				D.unprecOp(y_spinor,gauge,x_spinor,0,LINOP_OP,tid);
+				D.unprecOp(y_spinor,gauge,x_spinor,0,LINOP_DAGGER,tid);
 			} // iter
 
 			double end_time = omp_get_wtime();
