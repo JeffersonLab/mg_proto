@@ -139,6 +139,9 @@ namespace MG {
 
 	void InitMemory(int *argc, char ***argv)
 	{
+		(void)argc;
+		(void)argv;
+
 #pragma omp master
 		{
 			regular_mmap.clear();

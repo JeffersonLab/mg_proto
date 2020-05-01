@@ -148,4 +148,4 @@ void dslash(LatticeFermionD& chi,
   dslash_a<LatticeFermionD, LatticeHalfFermionD, LatticeColorMatrixD>(chi, u, psi, isign, cb);
 }
 
-};
+}

@@ -570,5 +570,5 @@ void prolongateSpinorCoarseToQDPXXFine( const multi1d<LatticeFermion>& v, const 
 	}
 
 }
-};
+}
 

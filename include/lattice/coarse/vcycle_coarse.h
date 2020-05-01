@@ -286,7 +286,6 @@ public:
 		CoarseSpinor r(info, ncol);    //
 
 		int level = _M_fine.GetLevel();
-		const CBSubset& subset = _M_fine.GetSubset();
 
 		std::vector<double> norm2_in, norm2_r;
 
@@ -750,6 +749,7 @@ public:
 					_bottom_solver(bottom_solver),
 					_param(param),
 					_Transfer(my_blocks,vecs) {
+                                (void)apply_clover;
                                 int level = _M_fine.GetLevel();
                                 Timer::TimerAPI::addTimer("VCycleCoarseEO2/operator()/level"+std::to_string(level));
                                 Timer::TimerAPI::addTimer("VCycleCoarseEO2/restrictFrom/level"+std::to_string(level));

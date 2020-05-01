@@ -19,6 +19,6 @@ void dslash(LatticeFermionD& chi,
 	    const multi1d<LatticeColorMatrixD>& u, 
 	    const LatticeFermionD& psi,
 	    int isign, int cb);
-};
+}
 
 #endif /* TEST_QDPXX_DSLASH_M_W_H_ */

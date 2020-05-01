@@ -277,11 +277,8 @@ void restrictSpinor( const std::vector<Block>& blocklist, const std::vector< std
 
 	const IndexType num_fine_spins = fine_info.GetNumSpins();
 	const IndexType num_fine_colors =fine_info.GetNumColors();
-	const IndexType num_fine_colorspins = num_fine_spins*num_fine_colors;
 
-	const IndexType num_coarse_spins = coarse_info.GetNumSpins();
 	const IndexType num_coarse_colors = coarse_info.GetNumColors();
-	const IndexType num_coarse_colorspins = num_coarse_spins*num_coarse_colors;
 
 	const IndexType num_coarse_cbsites = coarse_info.GetNumCBSites();
 
@@ -384,11 +381,8 @@ void prolongateSpinor(const std::vector<Block>& blocklist,
 
 		const IndexType num_fine_spins = fine_info.GetNumSpins();
 		const IndexType num_fine_colors =fine_info.GetNumColors();
-		const IndexType num_fine_colorspins = num_fine_spins*num_fine_colors;
 
-		const IndexType num_coarse_spins = coarse_info.GetNumSpins();
 		const IndexType num_coarse_colors = coarse_info.GetNumColors();
-		const IndexType num_coarse_colorspins = num_coarse_spins*num_coarse_colors;
 
 	// Prolongate in here
 	IndexType num_coarse_cbsites=coarse_info.GetNumCBSites();
@@ -502,8 +496,6 @@ void dslashTripleProductDir(const CoarseDiracOp& D_op,
 
 	// I will need to make a vector of spinors, to which I will have applied
 	// Dslash Dir. These need the info
-	const LatticeInfo& coarse_info = u_coarse.GetInfo();
-
 
 	std::vector<std::shared_ptr<CoarseSpinor> > out_vecs(num_coarse_colorspin);
 	for (int j = 0; j < num_coarse_colorspin; ++j) {
@@ -989,6 +981,8 @@ inline
 const float*
 InvDiagAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, int dir, int fb)
 {
+    (void)dir;
+    (void)fb;
     return in.GetSiteInvDiagDataPtr(cb,cbsite);
 }
 
@@ -1052,5 +1046,5 @@ void multInvClovOffDiagRight(CoarseGauge& u)
 	} // checkerboards
 }
 
-}; // Namespace
+} // Namespace
 

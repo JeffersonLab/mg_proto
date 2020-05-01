@@ -338,11 +338,6 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist,
 	int num_coarse_cbsites = u_coarse.GetInfo().GetNumCBSites();
 	const int n_chiral = 2;
 	const int num_spincolor_per_chiral = (Nc*Ns)/n_chiral;
-	const int num_spin_per_chiral = Ns/n_chiral;
-
-	const LatticeInfo& c_info=u_coarse.GetInfo();
-	IndexArray coarse_dims = c_info.GetLatticeDimensions();
-
 
 	// in vecs has size Ncolor_c = num_coarse_colorspin/2
 	// But this mixes both upper and lower spins
@@ -788,5 +783,5 @@ void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPClover
 
 
 
-};
+}
 

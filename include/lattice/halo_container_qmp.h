@@ -178,8 +178,8 @@ private:
 		_n_cols = 0;
 
 		// Free the combined
-		if( _mh_send_all ) QMP_free_msghandle( _mh_send_all ); _mh_send_all=nullptr;
-		if( _mh_recv_all ) QMP_free_msghandle( _mh_recv_all ); _mh_recv_all=nullptr;
+		if( _mh_send_all ) { QMP_free_msghandle( _mh_send_all ); _mh_send_all=nullptr; }
+		if( _mh_recv_all ) { QMP_free_msghandle( _mh_recv_all ); _mh_recv_all=nullptr; }
 		// Free the underlying individuals
 
 	#if 0
@@ -347,7 +347,7 @@ public:
 	}
 
 	inline
-	const size_t GetDataTypeSize() const
+	size_t GetDataTypeSize() const
 	{
 		return _datatype_size*_n_cols;
 

@@ -288,4 +288,4 @@ CoarseGaugeLinkToQDPProp(const CoarseGauge& coarse_in,
 
 
 
-};
+}

@@ -207,7 +207,7 @@ namespace QDPFGMRES {
  			 }
  		 }
  	 }
-}; //namespace fgmres
+} //namespace fgmres
 
 FGMRESSolverQDPXX::FGMRESSolverQDPXX(const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix> >& A,
 			 const MG::LinearSolverParamsBase& params,
@@ -308,10 +308,6 @@ FGMRESSolverQDPXX::operator()(LatticeFermion& out, const LatticeFermion& in, Res
 	}
 
 	int n_cycles = 0;
-	int prev_dim = _params.NKrylov; // This is the default previous dimension
-
-
-
 
 	// We are done if norm is sufficiently accurate,
 	bool finished = toBool( r_norm <= target ) ;
@@ -398,7 +394,6 @@ FGMRESSolverQDPXX::operator()(LatticeFermion& out, const LatticeFermion& in, Res
 
 		// Check if we are done either via convergence, or runnign out of iterations
 		finished = toBool( r_norm <= target ) || (iters_total >= _params.MaxIter);
-		prev_dim = dim;
 
     	// Init matrices should've initialized this but just in case this is e.g. a second call or something.
     	for(int j=0; j < _params.NKrylov; ++j) {
@@ -468,4 +463,4 @@ FGMRESSolverQDPXX::LeastSquaresSolve(const multi2d<DComplex>& H,
 }
 
 
-}; // namespace MG
+} // namespace MG

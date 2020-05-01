@@ -131,7 +131,7 @@ namespace MG {
 				ResultReconstruct(out,*tmp_out);
 			}
 		};
-};
+}
 
 
 

@@ -68,24 +68,32 @@ namespace MG {
             static void addTimer(const std::string& key){
 #ifdef MG_ENABLE_TIMERS
                 timers[key] = Timer();
+#else
+		(void)key;
 #endif
             }
             
             static void startTimer(const std::string& key){
 #ifdef MG_ENABLE_TIMERS
                 timers[key].Start();
+#else
+		(void)key;
 #endif
             }
             
             static void stopTimer(const std::string& key){
 #ifdef MG_ENABLE_TIMERS
                 timers[key].Stop();
+#else
+		(void)key;
 #endif
             }
             
             static void resetTimer(const std::string& key){
 #ifdef MG_ENABLE_TIMERS
                 timers[key].Reset();
+#else
+		(void)key;
 #endif
             }
            
@@ -97,7 +105,6 @@ namespace MG {
                 for(auto const &item : timers) {
                     std::string key = item.first;
                     auto value = item.second;
-                    // std::cout << "INFO: TIMING " << key << " = " << value.getTotalDuration().count() << std::endl;
                     MasterLog(INFO, "TIMING %s = %lf (sec.)", key.c_str(), value.getTotalDuration().count());
 
                 }

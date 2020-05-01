@@ -29,9 +29,6 @@ namespace {
 			const float* neigh_spinors[8],
 			IndexType ncol=1)
 	{
-		int N_color = N_colorspin/2;
-
-
 		// This is the same as for the dagger because we have G_5 I G_5 = G_5 G_5 I = I
 		// D is the diagonal
 		if (initop == add) {
@@ -124,25 +121,6 @@ void CoarseDiracOp::unprecOp(CoarseSpinor& spinor_out,
 		// Neighbouring spinors
 		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
 
-		// Boundaries -- we can indirect here to
-		// some face buffers if needs be
-		IndexType x_plus = (x < _n_x-1 ) ? (x + 1) : 0;
-		IndexType x_minus = ( x > 0 ) ?  (x - 1) : _n_x-1;
-
-
-
-		IndexType y_plus = ( y < _n_y - 1) ? y+1 : 0;
-		IndexType y_minus = ( y > 0 ) ? y-1 : _n_y - 1;
-
-		IndexType z_plus = ( z < _n_z - 1) ? z+1 : 0;
-		IndexType z_minus = ( z > 0 ) ? z-1 : _n_z - 1;
-
-		IndexType t_plus = ( t < _n_t - 1) ? t+1 : 0;
-		IndexType t_minus = ( t > 0 ) ? t-1 : _n_t - 1;
-
-
-		x_plus /= 2; // Convert to checkerboard
-		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
 				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
@@ -221,7 +199,6 @@ void CoarseDiracOp::M_D_xpay(CoarseSpinor& spinor_out,
 			const IndexType dagger,
 			const IndexType tid) const
 {
-	const int N_colorspin = spinor_in.GetNumColorSpin();
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
@@ -247,7 +224,6 @@ void CoarseDiracOp::M_D_xpay(CoarseSpinor& spinor_out,
 
 		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* gauge_base = gauge_clov_in.GetSiteDirDataPtr(target_cb,site,0);
-		const float* spinor_cb = spinor_in.GetSiteDataPtr(0, target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
 		const float *gauge_links[8]={ gauge_base,                    // X forward
@@ -263,25 +239,6 @@ void CoarseDiracOp::M_D_xpay(CoarseSpinor& spinor_out,
 		// Neighbouring spinors
 		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
 
-		// Boundaries -- we can indirect here to
-		// some face buffers if needs be
-		IndexType x_plus = (x < _n_x-1 ) ? (x + 1) : 0;
-		IndexType x_minus = ( x > 0 ) ?  (x - 1) : _n_x-1;
-
-
-
-		IndexType y_plus = ( y < _n_y - 1) ? y+1 : 0;
-		IndexType y_minus = ( y > 0 ) ? y-1 : _n_y - 1;
-
-		IndexType z_plus = ( z < _n_z - 1) ? z+1 : 0;
-		IndexType z_minus = ( z > 0 ) ? z-1 : _n_z - 1;
-
-		IndexType t_plus = ( t < _n_t - 1) ? t+1 : 0;
-		IndexType t_minus = ( t > 0 ) ? t-1 : _n_t - 1;
-
-
-		x_plus /= 2; // Convert to checkerboard
-		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
 				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
@@ -295,7 +252,7 @@ void CoarseDiracOp::M_D_xpay(CoarseSpinor& spinor_out,
 		};
 
 
-		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, 1.0, gauge_links, dagger, output, neigh_spinors, ncol);
+		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, alpha, gauge_links, dagger, output, neigh_spinors, ncol);
 	}
 
 }
@@ -309,7 +266,6 @@ void CoarseDiracOp::M_AD_xpayz(CoarseSpinor& spinor_out,
 			const IndexType dagger,
 			const IndexType tid) const
 {
-	const int N_colorspin = spinor_in_cb.GetNumColorSpin();
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
@@ -354,25 +310,6 @@ void CoarseDiracOp::M_AD_xpayz(CoarseSpinor& spinor_out,
 		// Neighbouring spinors
 		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
 
-		// Boundaries -- we can indirect here to
-		// some face buffers if needs be
-		IndexType x_plus = (x < _n_x-1 ) ? (x + 1) : 0;
-		IndexType x_minus = ( x > 0 ) ?  (x - 1) : _n_x-1;
-
-
-
-		IndexType y_plus = ( y < _n_y - 1) ? y+1 : 0;
-		IndexType y_minus = ( y > 0 ) ? y-1 : _n_y - 1;
-
-		IndexType z_plus = ( z < _n_z - 1) ? z+1 : 0;
-		IndexType z_minus = ( z > 0 ) ? z-1 : _n_z - 1;
-
-		IndexType t_plus = ( t < _n_t - 1) ? t+1 : 0;
-		IndexType t_minus = ( t > 0 ) ? t-1 : _n_t - 1;
-
-
-		x_plus /= 2; // Convert to checkerboard
-		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
 				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in_od,x,y,z,t,source_cb),
@@ -400,7 +337,6 @@ void CoarseDiracOp::M_DA_xpayz(CoarseSpinor& spinor_out,
 			const IndexType dagger,
 			const IndexType tid) const
 {
-	const int N_colorspin = spinor_cb.GetNumColorSpin();
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
@@ -443,25 +379,6 @@ void CoarseDiracOp::M_DA_xpayz(CoarseSpinor& spinor_out,
 		// Neighbouring spinors
 		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
 
-		// Boundaries -- we can indirect here to
-		// some face buffers if needs be
-		IndexType x_plus = (x < _n_x-1 ) ? (x + 1) : 0;
-		IndexType x_minus = ( x > 0 ) ?  (x - 1) : _n_x-1;
-
-
-
-		IndexType y_plus = ( y < _n_y - 1) ? y+1 : 0;
-		IndexType y_minus = ( y > 0 ) ? y-1 : _n_y - 1;
-
-		IndexType z_plus = ( z < _n_z - 1) ? z+1 : 0;
-		IndexType z_minus = ( z > 0 ) ? z-1 : _n_z - 1;
-
-		IndexType t_plus = ( t < _n_t - 1) ? t+1 : 0;
-		IndexType t_minus = ( t > 0 ) ? t-1 : _n_t - 1;
-
-
-		x_plus /= 2; // Convert to checkerboard
-		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
 				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
@@ -488,7 +405,6 @@ void CoarseDiracOp::M_AD(CoarseSpinor& spinor_out,
 			const IndexType dagger,
 			const IndexType tid) const
 {
-	const int N_colorspin = spinor_in.GetNumColorSpin();
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
@@ -515,7 +431,6 @@ void CoarseDiracOp::M_AD(CoarseSpinor& spinor_out,
 		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* gauge_base =(dagger == LINOP_OP)? gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0)
 				: gauge_clov_in.GetSiteDirDADataPtr(target_cb,site,0);
-		const float* spinor_cb = spinor_in.GetSiteDataPtr(0, target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
 		const float *gauge_links[8]={ gauge_base,                    // X forward
@@ -529,26 +444,6 @@ void CoarseDiracOp::M_AD(CoarseSpinor& spinor_out,
 
 		// Neighbouring spinors
 		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
-
-		// Boundaries -- we can indirect here to
-		// some face buffers if needs be
-		IndexType x_plus = (x < _n_x-1 ) ? (x + 1) : 0;
-		IndexType x_minus = ( x > 0 ) ?  (x - 1) : _n_x-1;
-
-
-
-		IndexType y_plus = ( y < _n_y - 1) ? y+1 : 0;
-		IndexType y_minus = ( y > 0 ) ? y-1 : _n_y - 1;
-
-		IndexType z_plus = ( z < _n_z - 1) ? z+1 : 0;
-		IndexType z_minus = ( z > 0 ) ? z-1 : _n_z - 1;
-
-		IndexType t_plus = ( t < _n_t - 1) ? t+1 : 0;
-		IndexType t_minus = ( t > 0 ) ? t-1 : _n_t - 1;
-
-
-		x_plus /= 2; // Convert to checkerboard
-		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
 				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
@@ -575,7 +470,6 @@ void CoarseDiracOp::M_DA(CoarseSpinor& spinor_out,
 			const IndexType dagger,
 			const IndexType tid) const
 {
-	const int N_colorspin = spinor_in.GetNumColorSpin();
 	IndexType min_site = _thread_limits[tid].min_site;
 	IndexType max_site = _thread_limits[tid].max_site;
 
@@ -602,7 +496,6 @@ void CoarseDiracOp::M_DA(CoarseSpinor& spinor_out,
 		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
 		const float* gauge_base = (dagger == LINOP_OP) ? gauge_clov_in.GetSiteDirDADataPtr(target_cb,site,0)
 					: gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0);
-		const float* spinor_cb = spinor_in.GetSiteDataPtr(0, target_cb,site);
 		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
 		const float *gauge_links[8]={ gauge_base,                    // X forward
@@ -618,25 +511,6 @@ void CoarseDiracOp::M_DA(CoarseSpinor& spinor_out,
 		// Neighbouring spinors
 		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
 
-		// Boundaries -- we can indirect here to
-		// some face buffers if needs be
-		IndexType x_plus = (x < _n_x-1 ) ? (x + 1) : 0;
-		IndexType x_minus = ( x > 0 ) ?  (x - 1) : _n_x-1;
-
-
-
-		IndexType y_plus = ( y < _n_y - 1) ? y+1 : 0;
-		IndexType y_minus = ( y > 0 ) ? y-1 : _n_y - 1;
-
-		IndexType z_plus = ( z < _n_z - 1) ? z+1 : 0;
-		IndexType z_minus = ( z > 0 ) ? z-1 : _n_z - 1;
-
-		IndexType t_plus = ( t < _n_t - 1) ? t+1 : 0;
-		IndexType t_minus = ( t > 0 ) ? t-1 : _n_t - 1;
-
-
-		x_plus /= 2; // Convert to checkerboard
-		x_minus /=2; // Covert to checkerboard
 		const IndexType source_cb = 1 - target_cb;
 		const float *neigh_spinors[8] = {
 				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
@@ -899,6 +773,8 @@ void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename)
 #else
 void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename)
 {
+	(void)gauge;
+	(void)filename;
 }
 #endif // MG_WRITE
 

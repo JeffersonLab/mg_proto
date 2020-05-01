@@ -59,6 +59,6 @@ void dslashTripleProduct12x12SiteDirQDPXX(int dir, const multi1d<LatticeColorMat
 //! Coarsen one direction of the clover term, but the vector space is strictly 12x12 per site and is held in a propagator -- for testing
 void clovTripleProduct12cx12SiteQDPXX(const QDPCloverTerm& clov, const LatticePropagator& in_prop, LatticePropagator& out_prop);
 
-};
+}
 
 #endif /* TEST_QDPXX_AGGREGATE_QDPXX_H_ */

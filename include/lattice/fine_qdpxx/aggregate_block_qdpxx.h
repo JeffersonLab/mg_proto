@@ -53,6 +53,6 @@ void dslashTripleProductDirQDPXX(const std::vector<Block>& blocklist, int dir, c
 //! Coarsen the clover term (1 block = 1 site )
 void clovTripleProductQDPXX(const std::vector<Block>& blocklist, const QDPCloverTerm& clov,const multi1d<LatticeFermion>& in_vecs, CoarseGauge& cl_coarse);
 
-};
+}
 
 #endif /* TEST_QDPXX_AGGREGATE_QDPXX_H_ */

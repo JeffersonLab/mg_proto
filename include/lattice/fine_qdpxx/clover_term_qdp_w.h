@@ -303,6 +303,8 @@ void QDPCloverTermT<T,U>::create(const multi1d<U>& u_,
     inline 
     void makeClovSiteLoop(int lo, int hi, int myId, QDPCloverMakeClovArg<U> *a)
     {
+      (void)myId;
+
       typedef typename QDPCloverMakeClovArg<U>::RealT RealT;
       typedef typename QDPCloverMakeClovArg<U>::REALT REALT;
       
@@ -491,6 +493,8 @@ void QDPCloverTermT<T,U>::create(const multi1d<U>& u_,
     inline 
     void LDagDLInvSiteLoop(int lo, int hi, int myId, LDagDLInvArgs<U>* a) 
     {
+      (void)myId;
+
       typedef typename LDagDLInvArgs<U>::REALT REALT;
       typedef typename LDagDLInvArgs<U>::LatticeRealT LatticeRealT;
 
@@ -884,6 +888,7 @@ void QDPCloverTermT<T,U>::create(const multi1d<U>& u_,
 		       ApplyArgs<T>* arg)
       
     {
+      (void)MyId;
       
       // This is essentially the body of the previous "Apply"
       // but now the args are handed in through user arg struct...
@@ -1437,7 +1442,7 @@ void QDPCloverTermT<T,U>::create(const multi1d<U>& u_,
   void QDPCloverTermT<T,U>::apply(T& chi, const T& psi, 
 			    int isign, int cb) const
   {
-    
+    assert(isign >= 0);
     
     if ( Ns != 4 ) {
       QDPIO::cerr << __func__ << ": CloverTerm::apply requires Ns==4" << std::endl;

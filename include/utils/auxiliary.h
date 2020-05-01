@@ -26,8 +26,8 @@ namespace MG {
 	template<typename Spinor>
 	class AbstractSpinor {
 	public:
-		virtual bool is_like(const Spinor& s) const = 0;
-		virtual bool is_like(const LatticeInfo& info, int ncol) const = 0;
+		// virtual bool is_like(const Spinor& s) const = 0;
+		// virtual bool is_like(const LatticeInfo& info, int ncol) const = 0;
 	};
 
 	template<typename Spinor>

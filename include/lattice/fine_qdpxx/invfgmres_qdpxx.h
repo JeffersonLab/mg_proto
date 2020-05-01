@@ -139,7 +139,7 @@ namespace MG {
 
   };
 
-};
+}
 
 
 

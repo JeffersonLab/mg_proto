@@ -24,7 +24,7 @@ namespace MG
 
 		MasterLog(INFO, "Constructing Recursive VCycle");
 
-		if ( vcycle_params.size() != mg_levels.n_levels-1 ) {
+		if ( (int)vcycle_params.size() != mg_levels.n_levels-1 ) {
 			MasterLog(ERROR, "Params provided for %d levels, but with %d levels %d are needed",
 						vcycle_params.size(), mg_levels.n_levels, mg_levels.n_levels-1);
 		}

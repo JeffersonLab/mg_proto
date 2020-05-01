@@ -50,7 +50,7 @@ template <typename FT>
 constexpr int get_veclen()
 {
   return 0;
-};
+}
 
 #if defined(QPHIX_MIC_SOURCE) || defined(QPHIX_AVX512_SOURCE)
 template <>

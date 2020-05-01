@@ -180,8 +180,6 @@ namespace MG {
 
 				const int num_coarse_cbsites = out.GetInfo().GetNumCBSites();
 
-				const int num_coarse_colorspin = 2*num_coarse_color;
-
 				// Sanity check. The number of sites in the coarse spinor
 				// Has to equal the number of blocks
 				//  assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );

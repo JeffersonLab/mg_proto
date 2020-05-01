@@ -27,8 +27,8 @@ class CoarseWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor,Coar
                                          public AuxiliarySpinors<CoarseSpinor> {
 public:
 	// Hardwire n_smt=1 for now.
-	CoarseWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : _u(gauge_in),
-	 _the_op( gauge_in->GetInfo(), 1), _level(level), AuxiliarySpinors<CoarseSpinor>(&_the_op)
+	CoarseWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : AuxiliarySpinors<CoarseSpinor>(&_the_op), _u(gauge_in),
+	 _the_op( gauge_in->GetInfo(), 1), _level(level)
 	{
 		MasterLog(INFO, "Creating Coarse **NON-EO** CoarseWilsonCloverLinearOperator LinOp");
 	}
@@ -60,9 +60,6 @@ public:
 
 	void generateCoarse(const std::vector<Block>& blocklist, const std::vector< std::shared_ptr<CoarseSpinor> > in_vecs, CoarseGauge& u_coarse) const
 	{
-		const LatticeInfo& info = u_coarse.GetInfo();
-		int num_colorspin = info.GetNumColorSpins();
-
 		// Generate the triple products directly into the u_coarse
 		ZeroGauge(u_coarse);
 		for(int mu=0; mu < 8; ++mu) {
@@ -99,7 +96,7 @@ private:
 
 };
 
-};
+}
 
 
 

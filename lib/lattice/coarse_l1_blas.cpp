@@ -295,7 +295,7 @@ void CopyVec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
 void ScaleVec(const std::vector<float>& alpha, CoarseSpinor& x, const CBSubset& subset)
 {
 
-	assert(alpha.size() == x.GetNCol());
+	assert(alpha.size() == (size_t)x.GetNCol());
 	const LatticeInfo& x_info = x.GetInfo();
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
@@ -791,7 +791,6 @@ void ZeroGauge(CoarseGauge& gauge)
 {
 	const LatticeInfo& info = gauge.GetInfo();
 	const int num_cbsites=info.GetNumCBSites();
-	const int num_colorspins = gauge.GetNumColorSpin();
 
 
 	// diag_data
@@ -861,6 +860,6 @@ void ZeroGauge(CoarseGauge& gauge)
 }
 
 
-};
+}
 
 

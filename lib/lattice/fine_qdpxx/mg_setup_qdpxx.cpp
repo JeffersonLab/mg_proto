@@ -35,6 +35,8 @@ void SetupQDPXXToCoarse(const SetupParams& p, std::shared_ptr<const QDPWilsonClo
 void SetupQDPXXToCoarseGenerateVecs(const SetupParams& p, std::shared_ptr<const QDPWilsonCloverLinearOperator> M_fine,
     MGLevelQDPXX& fine_level, MGLevelCoarse& coarse_level)
 {
+    (void)coarse_level;
+
     if( ! M_fine ) {
       MasterLog(ERROR, "%s: M_fine is null", __FUNCTION__);
     }

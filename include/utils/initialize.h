@@ -24,7 +24,7 @@ namespace MG {
 	void InitCLIArgs(int *argc, char ***argv);
 #endif
 
-};
+}
 
 
 

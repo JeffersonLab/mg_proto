@@ -201,7 +201,9 @@ void AssertCompatible(const LatticeInfo& l, const LatticeInfo& r)
 	if ( l.GetNumSites() != r.GetNumSites() ) { MasterLog(ERROR, "Lattices incompatible. NumSites don't match \n"); }
 	if ( l.GetNodeInfo().NodeID() != r.GetNumNodes().NodeID() ) { MasterLog(ERROR, "Lattices incompatible. NodeIDs don't match\n"); }
 	if ( l.GetNodeInfo().NumNodes() != r.GetNumNodes().NumNodes() ) { MasterLog(ERROR, "Lattices incompatible. NumNodes don't match\n"); }
-
+#else
+	(void)l;
+	(void)r;
 #endif
 }
 

@@ -34,7 +34,7 @@ struct SetupParams {
 
 };
 
-}; // Namespace
+} // Namespace
 
 
 #endif /* INCLUDE_LATTICE_FINE_QDPXX_MG_PARAMS_QDPXX_H_ */

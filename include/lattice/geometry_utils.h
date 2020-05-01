@@ -94,25 +94,6 @@ namespace MG {
 		}
 
 
-		inline
-		unsigned int CoordsToIndex3(const IndexArray& coords,
-									const int mu,
-									const IndexArray& dims)
-		{
-
-			int pos=0;
-			int coords3[3];
-			int dims3[3];
-			for(int d=0; d < n_dim; ++d) {
-				if( d != mu ) {
-					coords3[pos] = coords[d];
-					dims3[pos]=coords[d];
-					pos++;
-				}
-			}
-			return coords3[0]+dims3[0]*(coords3[1]+dims3[1]*coords3[2]);
-		}
-
 	inline
 	void CBIndexToCoords(const int cbsite, const int cb, const IndexArray& lattice_size, IndexArray& coords)
 	{

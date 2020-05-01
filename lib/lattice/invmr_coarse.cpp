@@ -30,14 +30,6 @@ namespace {
 		return std::all_of(x.begin(), x.end(), [](bool b){return !b;});
 	}
 
-	/** castToFloat
-	 *
-	 * 	Cast all elements to float
-	 */
-	std::vector<std::complex<float>> castToFloat(const std::vector<std::complex<double>>& x) {
-		return std::vector<std::complex<float>>(x.begin(), x.end());
-	}
-
 	/** negate
 	 *
 	 * 	Flip sign on all elements
@@ -333,7 +325,7 @@ MRSmootherCoarse::operator()(CoarseSpinor& out, const CoarseSpinor& in) const {
 			_params.MaxIter, LINOP_OP,  ABSOLUTE, _params.VerboseP , false );
 }
 
-}; // Namespace
+} // Namespace
 
 
 

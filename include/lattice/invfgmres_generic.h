@@ -30,14 +30,6 @@
 namespace MG {
 
 namespace {
-	/** castToFloat
-	 *
-	 * 	Cast all elements to float
-	 */
-	std::vector<std::complex<float>> castToFloat(const std::vector<std::complex<double>>& x) {
-		return std::vector<std::complex<float>>(x.begin(), x.end());
-	}
-
 	/** negate
 	 *
 	 * 	Flip sign on all elements
@@ -95,9 +87,9 @@ template<typename ST,typename GT>
    const CBSubset& subset = A.GetSubset();
    IndexType ncol = V[0]->GetNCol();    
    assert(ncol == w.GetNCol());
-   assert(ncol == H.size());
-   assert(ncol == givens_rots.size());
-   assert(ncol == c.size());
+   assert((unsigned int)ncol == H.size());
+   assert((unsigned int)ncol == givens_rots.size());
+   assert((unsigned int)ncol == c.size());
 
    if( VerboseP ) {
      MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Flexible Arnoldi Cycle: ",level);
@@ -244,7 +236,7 @@ template<typename ST, typename GT>
 private:
 
   void initialize(IndexType ncol) const {  
-    if (H_.size() == ncol) return;
+    if ((int)H_.size() == ncol) return;
 
     destroy();
 
@@ -293,10 +285,10 @@ private:
   }
 
   void destroy() const {
-    for(int i=0; i < V_.size(); ++i) {
+    for(unsigned int i=0; i < V_.size(); ++i) {
       delete V_[i];
       delete Z_[i];
-      for (int col=0; col < H_.size(); ++col)  {
+      for (unsigned int col=0; col < H_.size(); ++col)  {
            if( givens_rots_[col][i] != nullptr ) delete givens_rots_[col][i];
       }
     }
@@ -415,7 +407,7 @@ public:
         // NB: We will have a copy of this called 'g' onto which we will
         // apply Givens rotations to get an inline estimate of the residuum
         for (int col=0; col < ncol; ++col) {
-           for(int j=0; j < c_[col].size(); ++j) {
+           for(unsigned int j=0; j < c_[col].size(); ++j) {
               c_[col][j] = std::complex<double>(0);
            }
            c_[col][0] = r_norm[col];

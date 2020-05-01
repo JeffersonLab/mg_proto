@@ -18,5 +18,5 @@ class MRSolverParams : public MG::LinearSolverParamsBase {
 
   };
 
-};
+}
 #endif /* TEST_QDPXX_MR_PARAMS_H_ */

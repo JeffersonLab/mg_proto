@@ -37,6 +37,8 @@ inline
 const float*
 CoarseAccessor<CoarseSpinor>::get(const CoarseSpinor& in, int cb, int cbsite, int dir, int fb)
 {
+	(void)dir;
+	(void)fb;
 	return in.GetSiteDataPtr(0,cb,cbsite);
 }
 
@@ -100,7 +102,7 @@ packFace( HaloContainer<T>& halo, const T& in, IndexType cb,  IndexType dir, Ind
 		// This is likely to be done in a thread, so
 		// use SIMD if you can.
 #pragma omp simd
-		for(int cspin_idx=0; cspin_idx < halo.GetDataTypeSize(); ++cspin_idx) {
+		for(unsigned int cspin_idx=0; cspin_idx < halo.GetDataTypeSize(); ++cspin_idx) {
 			buffersite[cspin_idx] = bodysite[cspin_idx];
 		} // Finish copying
 

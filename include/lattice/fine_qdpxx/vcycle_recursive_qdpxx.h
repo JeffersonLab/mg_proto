@@ -42,5 +42,5 @@ private:
 
 };
 
-};
+}
 #endif /* INCLUDE_LATTICE_FINE_QDPXX_VCYCLE_RECURSIVE_QDPXX_H_ */

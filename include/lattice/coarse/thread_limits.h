@@ -24,7 +24,7 @@ struct ThreadLimits {
 	IndexType max_site;
 	unsigned char pad[MG_DEFAULT_CACHE_LINE_SIZE-4*sizeof(IndexType)]; // Cache line pad
 };
-};
+}
 
 
 

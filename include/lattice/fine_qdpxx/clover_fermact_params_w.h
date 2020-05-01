@@ -52,5 +52,5 @@ struct CloverFermActParams
   AnisoParam_t anisoParam;
 };
 
-};
+}
 #endif /* TEST_QDPXX_CLOVER_FERMACT_PARAMS_W_H_ */

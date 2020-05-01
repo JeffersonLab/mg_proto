@@ -74,6 +74,6 @@ void multInvClovOffDiagLeft(CoarseGauge& u);
 
 void multInvClovOffDiagRight(CoarseGauge& u);
 
-};
+}
 
 #endif /* TEST_QDPXX_AGGREGATE_QDPXX_H_ */

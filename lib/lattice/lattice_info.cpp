@@ -105,4 +105,4 @@ LatticeInfo::LatticeInfo(const IndexArray& lat_dims) :
  */
 LatticeInfo::~LatticeInfo() {}
 
-};
+}

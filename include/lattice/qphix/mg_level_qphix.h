@@ -52,6 +52,8 @@ namespace MG {
                 MGLevelQPhiXT<SpinorT,SolverT,LinOpT>& fine_level,
   			  CoarseLevelT& coarse_level)
   {
+    (void)coarse_level;
+
     // Check M
     if ( !M_fine ) {
       MasterLog(ERROR, "%s: M_fine is null...", __FUNCTION__);
@@ -127,7 +129,7 @@ namespace MG {
     }
 
     int num_vecs = p.n_vecs[0];
-    if ( num_vecs != fine_level.null_vecs.size()) {
+    if ( num_vecs != (int)fine_level.null_vecs.size()) {
       MasterLog(ERROR, "Expected %d vecs but got %d", num_vecs, fine_level.null_vecs.size());
     }
 

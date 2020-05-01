@@ -18,6 +18,7 @@ namespace MG
 
 	void regular_free(void *ptr, size_t size)
 	{
+		(void)size;
 		free(ptr);
 	}
 
@@ -29,6 +30,7 @@ namespace MG
 
 	void fast_free(void *ptr, size_t size)
 	{
+		(void)size;
 		free(ptr);
 	}
 

@@ -29,9 +29,6 @@ void axBlockAggrT(const double alpha, QT& v, const Block& block, int aggr)
   assert(v.GetNCol() == 1);
   auto block_sitelist = block.getCBSiteList();
   int num_sites = block.getNumSites();
-  const LatticeInfo& info = v.GetInfo();
-
-  const int num_color = info.GetNumColors();
 
   const int min_spin = 2*aggr;
   const int max_spin = min_spin + 2;
@@ -74,8 +71,6 @@ void caxpyBlockAggrT(const std::complex<double>& alpha, const QS& x, QS& y,  con
 
   AssertCompatible( x.GetInfo(), y.GetInfo() );
 
-  const LatticeInfo& info = y.GetInfo();
-
   const int min_spin = 2*aggr;
   const int max_spin = min_spin + 2;
 
@@ -115,7 +110,6 @@ double norm2BlockAggrT(const QS& v, const Block& block, int aggr)
   auto block_sitelist = block.getCBSiteList();
   int num_sites = block.getNumSites();
 
-  const LatticeInfo& info = v.GetInfo();
   const int min_spin = 2*aggr;
   const int max_spin = min_spin+2;
 
@@ -162,7 +156,6 @@ innerProductBlockAggrT(const QS& left, const QS& right, const Block& block, int 
 
   AssertCompatible( left.GetInfo(), right.GetInfo() );
 
-  const LatticeInfo& info = right.GetInfo();
   const int min_spin = 2*aggr;
   const int max_spin = min_spin + 2;
 
@@ -356,7 +349,7 @@ void restrictSpinorT( const std::vector<Block>& blocklist, const std::vector< st
 	//  assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
 
 	// The number of vectors has to eaqual the number of coarse colors
-	assert( fine_vecs.size() == num_coarse_color );
+	assert( (int)fine_vecs.size() == num_coarse_color );
 
 	// This will be a loop over blocks
 
@@ -403,10 +396,6 @@ void restrictSpinorT( const std::vector<Block>& blocklist, const std::vector< st
 
 		  				// Find the fine site
 		  				const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
-		  				const int fine_site = (rb[ fine_cbsite.cb ].siteTable())[fine_cbsite.site ];
-
-
-
 
 		  				// Aggregate the spins for the site.
 		  				for(int spin=0; spin < Ns/2; ++spin ) {
@@ -453,7 +442,7 @@ void restrictSpinor2T( const std::vector<Block>& blocklist, const std::vector< s
 	//  assert( n_checkerboard*num_coarse_cbsites == static_cast<const int>(blocklist.size()) );
 
 	// The number of vectors has to eaqual the number of coarse colors
-	assert( fine_vecs.size() == num_coarse_color );
+	assert( (int)fine_vecs.size() == num_coarse_color );
 
 	// This will be a loop over blocks
 #pragma omp parallel for collapse(3)
@@ -492,7 +481,6 @@ void restrictSpinor2T( const std::vector<Block>& blocklist, const std::vector< s
 
           // Find the fine site
           const CBSite& fine_cbsite = block_sitelist[fine_site_idx];
-          const int fine_site = (rb[ fine_cbsite.cb ].siteTable())[fine_cbsite.site ];
 
           // for each site we will loop over Ns/2 * Ncolor
           for(int spin=0; spin < 2; ++spin) {
@@ -618,10 +606,9 @@ void prolongateSpinorT(const std::vector<Block>& blocklist,
 
             int chiral = fine_spin < (Ns/2) ? 0 : 1;
 
-            for(int fine_site_idx = 0; fine_site_idx < num_fine_sitelist; ++fine_site_idx) {
+            for(unsigned int fine_site_idx = 0; fine_site_idx < num_fine_sitelist; ++fine_site_idx) {
 
               const CBSite& fine_cbsite = fine_sitelist[fine_site_idx];
-              int qdpsite = (rb[fine_cbsite.cb].siteTable())[ fine_cbsite.site ] ;
 
               // fine_out(fine_cbsite.cb, fine_cbsite.site,fine_spin,fine_color,RE) = 0;
               // fine_out(fine_cbsite.cb, fine_cbsite.site,fine_spin,fine_color,IM) = 0;
@@ -692,10 +679,6 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
 	int num_coarse_cbsites = u_coarse.GetInfo().GetNumCBSites();
 	const int n_chiral = 2;
 	const int num_spincolor_per_chiral = (Nc*Ns)/n_chiral;
-	const int num_spin_per_chiral = Ns/n_chiral;
-
-	const LatticeInfo& c_info=u_coarse.GetInfo();
-	IndexArray coarse_dims = c_info.GetLatticeDimensions();
 
 	const LatticeInfo& fine_info = in_vecs[0]->GetInfo();
 
@@ -705,7 +688,7 @@ void dslashTripleProductDirT(const DiracOperator& D_op,
 	// Once we deal with those separately we will need num_coarse_colorspin results
 	// And we will need to apply the 'DslashDir' separately to each aggregate
 
-	assert( in_vecs.size() == num_coarse_colors);
+	assert( (int)in_vecs.size() == num_coarse_colors);
 	std::vector<std::shared_ptr<QS> > out_vecs(num_coarse_colorspin);
 	for (int j = 0; j < num_coarse_colorspin; ++j) {
 		out_vecs[j] = std::make_shared<QS>(fine_info);
@@ -976,7 +959,7 @@ void clovTripleProductT(const DiracOpType& D_op,
   // Once we deal with those separately we will need Ncolorspin_c results
   // And we will need to apply the 'DslashDir' separately to each aggregate
 
-  assert( in_vecs.size() == num_coarse_colors );
+  assert( (int)in_vecs.size() == num_coarse_colors );
   assert( num_chiral_components == 2);
 
   // out_vecs is the result of applying clover term to in_vecs
@@ -1031,7 +1014,6 @@ void clovTripleProductT(const DiracOpType& D_op,
     		 // Inner product loop
 
     		 const CBSite& fine_cbsite = block_sitelist[ fine_site_idx ];
-    		 int site = rb[ fine_cbsite.cb ].siteTable()[ fine_cbsite.site ];
 
     		 for(int chiral =0; chiral < num_chiral_components; ++chiral) {
     			 for(int matmul_row=0; matmul_row < num_coarse_colors; ++matmul_row) {
