@@ -102,7 +102,7 @@ namespace MG {
       // Function of the M
     coarse_level.info = std::make_shared<LatticeInfo>(blocked_lattice_orig,
                               blocked_lattice_dims,
-                              2, num_vecs, NodeInfo());
+                              2, num_vecs, fine_info.GetNodeInfo());
 
     coarse_level.gauge = std::make_shared<CoarseGauge>(*(coarse_level.info));
 

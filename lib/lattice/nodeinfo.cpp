@@ -33,12 +33,4 @@ namespace MG {
 
 		return (*this);
 	}
-
-
-
-#
-
 }
-
-
-

@@ -45,12 +45,6 @@ public:
 				const NodeInfo& node);
 
 
-	/** Delegating Constructor
-	 *  Local origin assumed to be ( lat_dims[0]*node_coord[0], lat_dims[1]*node_coord[1], lat_dims[2]*node_coord[2], lat_dims[3]*node_coord[3] )
-	 *  n_spin = 4, n_color = 3, NodeInfo instantiated on demand
-	 */
-	LatticeInfo(const IndexArray& lat_dims);
-
 	~LatticeInfo();
 
 	inline

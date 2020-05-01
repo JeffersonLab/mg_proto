@@ -62,7 +62,7 @@ namespace MG {
     fine_level.M = M_fine;
 
     // OK we will need the level for this info
-    fine_level.info = std::make_shared<LatticeInfo>((M_fine->GetInfo()).GetLatticeDimensions());
+    fine_level.info = std::make_shared<LatticeInfo>(M_fine->GetInfo());
 
 
     // Null solver is BiCGStabF. Let us make a parameter struct for it.
@@ -111,7 +111,7 @@ namespace MG {
   {
     // Check M
     if ( ! fine_level.info ) {
-      fine_level.info = std::make_shared<LatticeInfo>(M_fine->GetInfo().GetLatticeDimensions());
+      fine_level.info = std::make_shared<LatticeInfo>(M_fine->GetInfo());
     }
 
     if ( ! fine_level.M ) {
@@ -165,7 +165,7 @@ namespace MG {
       // Function of the M
     coarse_level.info = std::make_shared<const LatticeInfo>(blocked_lattice_orig,
                               blocked_lattice_dims,
-                              2, num_vecs, NodeInfo());
+                              2, num_vecs, fine_level.info->GetNodeInfo());
 
     coarse_level.gauge = std::make_shared<CoarseGauge>(*(coarse_level.info));
 

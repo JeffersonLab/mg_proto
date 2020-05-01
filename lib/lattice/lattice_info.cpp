@@ -97,10 +97,6 @@ LatticeInfo::LatticeInfo(const IndexArray& lat_dims,
 			const NodeInfo& node) : LatticeInfo::LatticeInfo( ComputeOriginCoords(lat_dims,node), lat_dims, n_spin, n_color, node) {}
 
 
-LatticeInfo::LatticeInfo(const IndexArray& lat_dims) :
-		LatticeInfo::LatticeInfo(lat_dims, 4, 3, NodeInfo()) {}
-
-
 /** Destructor for the lattice class
  */
 LatticeInfo::~LatticeInfo() {}

@@ -83,7 +83,8 @@ void SetupQDPXXToCoarseVecsIn(const SetupParams& p, std::shared_ptr<const QDPWil
   }
 
   if ( ! fine_level.info ) {
-    fine_level.info = std::make_shared<LatticeInfo>(latdims,4,3,NodeInfo());
+    // FIXME: new NodeInfo is never free
+    fine_level.info = std::make_shared<LatticeInfo>(latdims,4,3,*new NodeInfo());
   }
 
   if(! fine_level.M ) {
@@ -132,7 +133,7 @@ void SetupQDPXXToCoarseVecsIn(const SetupParams& p, std::shared_ptr<const QDPWil
     // Function of the M
   coarse_level.info = std::make_shared<const LatticeInfo>(blocked_lattice_orig,
                             blocked_lattice_dims,
-                            2, num_vecs, NodeInfo());
+                            2, num_vecs, fine_level.info->GetNodeInfo());
 
   coarse_level.gauge = std::make_shared<CoarseGauge>(*(coarse_level.info));
 

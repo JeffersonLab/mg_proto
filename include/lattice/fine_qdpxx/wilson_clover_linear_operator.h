@@ -51,7 +51,8 @@ public:
 								QDP::Layout::subgridLattSize()[2],
 								QDP::Layout::subgridLattSize()[3] }};
 
-		_info = new LatticeInfo( latdims, 4,3,NodeInfo());
+		_node = new NodeInfo();
+		_info = new LatticeInfo( latdims, 4,3,*_node);
 	}
 
 	QDPWilsonCloverLinearOperator(double m_q, double u0, double xi0, double nu, double c_sw_r, double c_sw_t,
@@ -98,10 +99,12 @@ public:
 								QDP::Layout::subgridLattSize()[2],
 								QDP::Layout::subgridLattSize()[3] }};
 
-		_info = new LatticeInfo(latdims,4, 3, NodeInfo());
+		_node = new NodeInfo();
+		_info = new LatticeInfo( latdims, 4,3,*_node);
 	}
 
 	~QDPWilsonCloverLinearOperator() {
+		delete _node;
 		delete _info;
 	}
 
@@ -230,6 +233,7 @@ private:
 	MG::QDPCloverTerm _clov;
 	MG::QDPCloverTerm _invclov;
 
+	NodeInfo *_node;
 	LatticeInfo *_info;
 
 	inline
