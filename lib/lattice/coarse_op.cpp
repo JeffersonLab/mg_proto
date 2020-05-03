@@ -698,6 +698,7 @@ void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename)
 	MPI_Scan(&num_sites, &offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
 	offset -= num_sites;
 	MPI_File fh;
+	MPI_File_delete(filename.c_str(), MPI_INFO_NULL);
 	MPI_File_open(MPI_COMM_WORLD, filename.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);
 	if (offset == 0) {
 		float header[6] = {4, (float)lattice_dims[0], (float)lattice_dims[1], (float)lattice_dims[2], (float)lattice_dims[3], (float)n_colorspin};
@@ -726,24 +727,15 @@ void CoarseDiracOp::write(const CoarseGauge& gauge, std::string& filename)
 				gauge_base+6*gdir_offset,      // T forward
 				gauge_base+7*gdir_offset };    // T backward
 
-			// Turn site into x,y,z,t coords assuming we run as
-			//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
-
-			IndexType tmp_yzt = site_cb / nxh;
-			IndexType xcb = site_cb - nxh * tmp_yzt;
-			IndexType tmp_zt = tmp_yzt / ny;
-			IndexType y = tmp_yzt - ny * tmp_zt;
-			IndexType t = tmp_zt / nz;
-			IndexType z = tmp_zt - nz * t;
-
-			// Neighbouring spinors
-			IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
+			// Turn site into x,y,z,t coords
+			IndexArray local_site_coor;
+			CBIndexToCoords(site_cb, target_cb, gauge.GetInfo().GetLatticeDimensions(), gauge.GetInfo().GetLatticeOrigin(), local_site_coor);
 
 			// Compute global coordinate
-			const IndexArray local_site_coor = {x, y, z, t};
 			IndexArray global_site_coor;
 			gauge.GetInfo().LocalCoordToGlobalCoord(global_site_coor, local_site_coor);
-			
+		
+			// Compute neighbors	
 			IndexArray coors[9];
 			coors[0] = global_site_coor;
 			for(int i=0,j=1; i<4; i++) {
