@@ -9,6 +9,7 @@
 #define INCLUDE_UTILS_TIMER_H_
 
 #include <cstdlib>
+#include <cstdint>
 #include <chrono>
 #include <assert.h>
 #include <string.h>
@@ -29,13 +30,9 @@ namespace MG {
             };
             
             void Reset(){
-         //       tDeltaTotal = std::chrono::duration<double>(0);
-           //     tDeltaMin = std::chrono::duration<double>(0);
-             //   tDeltaMax = std::chrono::duration<double>(0);
             	tDeltaTotal = std::chrono::duration<double>::zero();
-            	tDeltaMin = std::chrono::duration<double>::zero();
-            	tDeltaMax = std::chrono::duration<double>::zero();
                 isStarted = false;
+		num_calls = 0;
             };
             
             void Start(){ 
@@ -51,16 +48,22 @@ namespace MG {
                 tDeltaTotal += dur;
                 //reset started
                 isStarted = false;
+		num_calls++;
             };
             
-            std::chrono::duration<double> getTotalDuration() const{
-                return tDeltaTotal;
+            double getTotalDuration() const{
+                return tDeltaTotal.count();
+            }
+
+            double getAvgDuration() const{
+                return tDeltaTotal.count() / num_calls;
             }
             
         private:
             std::chrono::high_resolution_clock::time_point tStart, tEnd;
             bool isStarted;
-            std::chrono::duration<double> tDeltaTotal, tDeltaMin, tDeltaMax;
+            std::chrono::duration<double> tDeltaTotal;
+	    std::uint64_t num_calls;
         };
         
         class TimerAPI {
@@ -105,7 +108,7 @@ namespace MG {
                 for(auto const &item : timers) {
                     std::string key = item.first;
                     auto value = item.second;
-                    MasterLog(INFO, "TIMING %s = %lf (sec.)", key.c_str(), value.getTotalDuration().count());
+                    MasterLog(INFO, "TIMING %s = %lf s  avg per call %1f", key.c_str(), value.getTotalDuration(), value.getAvgDuration());
 
                 }
             }
