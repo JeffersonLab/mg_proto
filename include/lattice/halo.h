@@ -118,9 +118,13 @@ void
 CommunicateHaloSyncInOMPParallel(HaloContainer<T>& halo, const T& in, const int target_cb)
 {
 
-	Timer::TimerAPI::startTimer("CommunicateHaloSync/sp"+std::to_string(in.GetNumColorSpin()));
-	halo.setNCols(in.GetNCol());
 	if( halo.NumNonLocalDirs() > 0 ) {
+#pragma omp master
+		{
+			Timer::TimerAPI::startTimer("CommunicateHaloSync/sp"+std::to_string(in.GetNumColorSpin()));
+			halo.setNCols(in.GetNCol());
+		}
+
 		for(int mu=0; mu < n_dim; ++mu) {
 			// Pack face usese omp for internally
 			if ( ! halo.LocalDir(mu) ) {
@@ -139,12 +143,12 @@ CommunicateHaloSyncInOMPParallel(HaloContainer<T>& halo, const T& in, const int 
 			halo.StartAllSends();
 			halo.FinishAllSends();
 			halo.FinishAllRecvs();
+			Timer::TimerAPI::stopTimer("CommunicateHaloSync/sp"+std::to_string(in.GetNumColorSpin()));
 		}
 
 	// Barrier after comms to sync master with other threads
 #pragma omp barrier
 	}
-	Timer::TimerAPI::stopTimer("CommunicateHaloSync/sp"+std::to_string(in.GetNumColorSpin()));
 }
 
 

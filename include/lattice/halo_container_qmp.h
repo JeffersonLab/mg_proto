@@ -226,14 +226,10 @@ private:
 public:
 
 	void setNCols(IndexType n_cols) {
-#pragma omp master
-		{
-			if (_n_cols != n_cols) {
-				destroy();
-				create(n_cols);
-			}
+		if (_n_cols != n_cols) {
+			destroy();
+			create(n_cols);
 		}
-#pragma omp barrier
 	}
 
 	bool
