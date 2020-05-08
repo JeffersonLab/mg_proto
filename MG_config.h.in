@@ -31,4 +31,6 @@
 
 #cmakedefine MG_USE_PRIMME
 
+#cmakedefine MG_HACK_QPHIX_TRANSFER
+
 #endif

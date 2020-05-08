@@ -9,6 +9,7 @@
 #define INCLUDE_LATTICE_QPHIX_MG_LEVEL_QPHIX_H_
 
 
+#include <MG_config.h>
 #include <lattice/qphix/invbicgstab_qphix.h>
 #include <memory>
 #include "lattice/qphix/qphix_types.h"
@@ -197,9 +198,21 @@ namespace MG {
 
 
   template<typename SpinorT, typename SolverT, typename LinOpT, typename CoarseLevelT>
-  void SetupQPhiXMGLevelsT(const SetupParams& p, QPhiXMultigridLevelsT<SpinorT,SolverT,LinOpT,CoarseLevelT>& mg_levels,
+  void SetupQPhiXMGLevelsT(const SetupParams& p0, QPhiXMultigridLevelsT<SpinorT,SolverT,LinOpT,CoarseLevelT>& mg_levels,
  			  const std::shared_ptr< LinOpT >& M_fine)
  	  {
+
+		// Hack: add extra blocking of 1 1 1 1 to transfer the QPhiX operator as CoarseDiracOp
+
+		SetupParams p = p0;
+#ifdef MG_HACK_QPHIX_TRANSFER
+		p.n_levels++;
+		p.n_vecs.insert(p.n_vecs.begin(), 6);
+		p.block_sizes.insert(p.block_sizes.begin(), {{1,1,1,1}});
+		p.null_solver_max_iter.insert(p.null_solver_max_iter.begin(), 1);
+		p.null_solver_rsd_target.insert(p.null_solver_rsd_target.begin(), 0.1);
+		p.null_solver_verboseP.insert(p.null_solver_verboseP.begin(), false);
+#endif
 
  		  mg_levels.n_levels = p.n_levels;
  		  if( mg_levels.n_levels < 2 ){

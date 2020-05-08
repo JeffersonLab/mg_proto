@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <memory>
+#include <MG_config.h>
 #include "lattice/solver.h"
 #include "lattice/qphix/vcycle_qphix_coarse.h"
 #include "lattice/coarse/vcycle_coarse.h"
@@ -27,14 +28,44 @@ template<typename QPhiXMGLevelsT, typename Fine2CoarseVCycleT, typename Coarse2C
 class VCycleRecursiveQPhiXT :  public LinearSolver<QPhiXSpinor, QPhiXGauge >
 {
 public:
-	VCycleRecursiveQPhiXT( const std::vector<VCycleParams>& vcycle_params,
-						  const QPhiXMGLevelsT& mg_levels )  : _vcycle_params(vcycle_params), _mg_levels(mg_levels) {
+	static std::vector<VCycleParams> hackVcycle(const std::vector<VCycleParams>& vcycle_params0) {
+		std::vector<VCycleParams> vcycle_params(vcycle_params0);
+
+#ifdef MG_HACK_QPHIX_TRANSFER
+		// Hack vcycle_params
+		VCycleParams dummy_vcycle_params;
+		dummy_vcycle_params.pre_smoother_params.MaxIter=0;
+		dummy_vcycle_params.pre_smoother_params.RsdTarget=1.0;
+		dummy_vcycle_params.pre_smoother_params.VerboseP = false;
+		dummy_vcycle_params.pre_smoother_params.Omega = 1.0;
+
+		dummy_vcycle_params.post_smoother_params.MaxIter=0;
+		dummy_vcycle_params.post_smoother_params.RsdTarget=1.0;
+		dummy_vcycle_params.post_smoother_params.VerboseP = false;
+		dummy_vcycle_params.post_smoother_params.Omega = 1.0;
+
+		dummy_vcycle_params.bottom_solver_params.MaxIter= 1;
+		dummy_vcycle_params.bottom_solver_params.NKrylov = 1;
+		dummy_vcycle_params.bottom_solver_params.RsdTarget= 0.1;
+		dummy_vcycle_params.bottom_solver_params.VerboseP = false;
+
+		dummy_vcycle_params.cycle_params.MaxIter=1;
+		dummy_vcycle_params.cycle_params.RsdTarget=0.1;
+		dummy_vcycle_params.cycle_params.VerboseP = false;
+		vcycle_params.insert(vcycle_params.begin(), dummy_vcycle_params);
+#endif
+
+		return vcycle_params;
+	}
+
+	VCycleRecursiveQPhiXT( const std::vector<VCycleParams>& vcycle_params0,
+						  const QPhiXMGLevelsT& mg_levels )  : _vcycle_params(hackVcycle(vcycle_params0)), _mg_levels(mg_levels) {
 
 		MasterLog(INFO, "Constructing Recursive EvenOdd VCycle");
 
-		if ( vcycle_params.size() != mg_levels.n_levels-1 ) {
+		if ( _vcycle_params.size() != mg_levels.n_levels-1 ) {
 			MasterLog(ERROR, "Params provided for %d levels, but with %d levels %d are needed",
-						vcycle_params.size(), mg_levels.n_levels, mg_levels.n_levels-1);
+						_vcycle_params.size(), mg_levels.n_levels, mg_levels.n_levels-1);
 		}
 		int n_levels = _mg_levels.n_levels;
 		MasterLog(INFO, "There are %d levels", n_levels);
@@ -85,7 +116,7 @@ public:
 
 				MasterLog(INFO, "Creating Bottom Solver For level: %d, using VCycle Preconditioner from level %d", coarse_idx+1, coarse_idx+1);
 				// This becomes a wrapper
-				_bottom_solver[coarse_idx] = std::make_shared<const BottomSolverT>(this_level_linop,vcycle_params[coarse_idx].bottom_solver_params,_coarse_vcycle[coarse_idx].get());
+				_bottom_solver[coarse_idx] = std::make_shared<const BottomSolverT>(this_level_linop,_vcycle_params[coarse_idx].bottom_solver_params,_coarse_vcycle[coarse_idx].get());
 
 
 
