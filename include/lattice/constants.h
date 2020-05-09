@@ -16,8 +16,8 @@ namespace MG {
   const IndexType T_DIR = 3;
 
   const IndexType n_forw_back = 2; 	/*!< There are two dirs: one forward one back */
-  const IndexType MG_BACKWARD=0;
-  const IndexType MG_FORWARD=1;
+  const IndexType MG_BACKWARD=1;
+  const IndexType MG_FORWARD=0;
 
   const IndexType LINOP_OP=0;
   const IndexType LINOP_DAGGER = 1;

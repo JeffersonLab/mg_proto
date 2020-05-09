@@ -973,16 +973,14 @@ void multInvClovOffDiagLeft(CoarseGauge& u)
 template<typename T>
 struct InvDiagAccessor {
 	static
-	inline const float* get(const T& in, int cb, int cbsite, int dir, int fb);
+	inline const float* get(const T& in, int cb, int cbsite);
 };
 
 template<>
 inline
 const float*
-InvDiagAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite, int dir, int fb)
+InvDiagAccessor<CoarseGauge>::get(const CoarseGauge& in, int cb, int cbsite)
 {
-    (void)dir;
-    (void)fb;
     return in.GetSiteInvDiagDataPtr(cb,cbsite);
 }
 

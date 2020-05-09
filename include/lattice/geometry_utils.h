@@ -9,6 +9,7 @@ blbl * lattice_utils.h
 #define INCLUDE_LATTICE_GEOMETRY_UTILS_H_
 
 #include <vector>
+#include <cassert>
 #include "lattice/constants.h"
 #include "utils/print_utils.h"
 
@@ -95,58 +96,39 @@ namespace MG {
 
 
 	inline
-	void CBIndexToCoords(const int cbsite, const int cb, const IndexArray& lattice_size, IndexArray& coords)
-	{
-		IndexArray cb_lattice_size(lattice_size); cb_lattice_size[0] /= 2; // Size of checkberboarded lattice
-		IndexToCoords( cbsite, cb_lattice_size, coords);
-		coords[0] *= 2; // Convert to noncheckerboarded
-#if 0
-		// See if we need to offset this
-		int tmpcb = (coords[0]+coords[1]+coords[2]+coords[3])&1;
-		if (tmpcb != cb ) coords[0] += 1;
-#endif
-		coords[0] += (cb + coords[1]+coords[2]+coords[3])&1;
-
-	}
-
-	inline
 	void CBIndexToCoords(const int cbsite, const int cb, const IndexArray& lattice_size, const IndexArray& origin, IndexArray& coords)
 	{
-		IndexArray cb_lattice_size(lattice_size); cb_lattice_size[0] /= 2; // Size of checkberboarded lattice
+		IndexArray cb_lattice_size(lattice_size);
+		int i;
+		for (i=0; i<n_dim && lattice_size[i] % 2 != 0; ++i);
+		assert(i < n_dim);
+		cb_lattice_size[i] /= 2; // Size of checkberboarded lattice
+
 		IndexToCoords( cbsite, cb_lattice_size, coords);
-		coords[0] *= 2; // Convert to noncheckerboarded
+		coords[i] *= 2; // Convert to noncheckerboarded
 #if 0
 		// See if we need to offset this
 		int tmpcb = (coords[0]+coords[1]+coords[2]+coords[3])&1;
 		if (tmpcb != cb ) coords[0] += 1;
 #endif
-		coords[0] += (cb + coords[1]+coords[2]+coords[3]+origin[0]+origin[1]+origin[2]+origin[3])&1;
+		coords[i] += (cb + coords[1]+coords[2]+coords[3]+origin[0]+origin[1]+origin[2]+origin[3])&1;
 
 	}
 	// Coords and Dims are uncheckerboarded.
 	inline
-	void CoordsToCBIndex(const IndexArray& coords, const IndexArray& dims, int& cb, int &cbsite)
-	{
-		cb = (coords[0]+coords[1]+coords[2]+coords[3]) & 1;
-
-		IndexArray cb_dims(dims); cb_dims[0] /= 2;
-		IndexArray cb_coords(coords); cb_coords[0] /= 2;
-
-		cbsite = CoordsToIndex(cb_coords, cb_dims);
-
-	}
-
-	// Coords and Dims are uncheckerboarded.
-	inline
-	void CoordsToCBIndex(const IndexArray& coords, const IndexArray& dims, const IndexArray& origin, int& cb, int &cbsite)
+	void CoordsToCBIndex(const IndexArray& coords, const IndexArray& lattice_size, const IndexArray& origin, int& cb, int &cbsite)
 	{
 
 		cb = (coords[0]+coords[1]+coords[2]+coords[3] + origin[0] + origin[1]+origin[2]+origin[3]) & 1;
 
-		IndexArray cb_dims(dims); cb_dims[0] /= 2;
-		IndexArray cb_coords(coords); cb_coords[0] /= 2;
+		int i;
+		IndexArray cb_lattice_size(lattice_size);
+		for (i=0; i<n_dim && lattice_size[i] % 2 != 0; ++i);
+		assert(i < n_dim);
+		cb_lattice_size[i] /= 2; // Size of checkberboarded lattice
+		IndexArray cb_coords(coords); cb_coords[i] /= 2;
 
-		cbsite = CoordsToIndex(cb_coords, cb_dims);
+		cbsite = CoordsToIndex(cb_coords, cb_lattice_size);
 
 	}
 

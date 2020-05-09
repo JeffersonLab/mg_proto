@@ -18,15 +18,56 @@ namespace MG {
 
 namespace {
 	enum InitOp { zero, add };
-	
+
+	typedef std::array<const float*,8> Neigh_spinors;
+	typedef std::array<const float*,8> Gauge_links;
+
+	Neigh_spinors get_neigh_spinors(const HaloContainer<CoarseSpinor>& halo, const CoarseSpinor& in, int target_cb, int cbsite) {
+		Neigh_spinors neigh_spinor;
+		for (int mu=0; mu<8; mu++) {
+			neigh_spinor[mu] = GetNeighborDir<CoarseSpinor,CoarseAccessor>(halo, in, mu, target_cb, cbsite);
+		}
+		return neigh_spinor;
+	}
+
+	Gauge_links get_gauge_links(const CoarseGauge& in, int target_cb, int cbsite) {
+		const float* gauge_base = in.GetSiteDirDataPtr(target_cb,cbsite,0);
+		const IndexType gdir_offset = in.GetLinkOffset();
+		return Gauge_links({{
+			gauge_base,                    // X forward
+			gauge_base+gdir_offset,        // X backward
+			gauge_base+2*gdir_offset,      // Y forward
+			gauge_base+3*gdir_offset,      // Y backward
+			gauge_base+4*gdir_offset,      // Z forward
+			gauge_base+5*gdir_offset,      // Z backward
+			gauge_base+6*gdir_offset,      // T forward
+			gauge_base+7*gdir_offset }});       // T backward
+	}
+
+	Gauge_links get_gauge_ad_links(const CoarseGauge& in, int target_cb, int cbsite, int dagger) {
+		const float* gauge_base = ((dagger == LINOP_OP) ?
+				in.GetSiteDirADDataPtr(target_cb,cbsite,0)
+				: in.GetSiteDirDADataPtr(target_cb,cbsite,0));
+		const IndexType gdir_offset = in.GetLinkOffset();
+		return Gauge_links({{
+			gauge_base,                    // X forward
+			gauge_base+gdir_offset,        // X backward
+			gauge_base+2*gdir_offset,      // Y forward
+			gauge_base+3*gdir_offset,      // Y backward
+			gauge_base+4*gdir_offset,      // Z forward
+			gauge_base+5*gdir_offset,      // Z backward
+			gauge_base+6*gdir_offset,      // T forward
+			gauge_base+7*gdir_offset }});       // T backward
+	}
+
 	void genericSiteOffDiagXPayz(int N_colorspin,
 			InitOp initop,
 			float *output,
 			const float alpha,
-			const float* gauge_links[8],
+			const Gauge_links& gauge_links,
 			IndexType dagger, 
 			const float* spinor_cb,
-			const float* neigh_spinors[8],
+			const Neigh_spinors& neigh_spinors,
 			IndexType ncol=1)
 	{
 		// This is the same as for the dagger because we have G_5 I G_5 = G_5 G_5 I = I
@@ -89,55 +130,16 @@ void CoarseDiracOp::unprecOp(CoarseSpinor& spinor_out,
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
-		// Turn site into x,y,z,t coords assuming we run as
-		//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
-
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-
-
 		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
-		const float* gauge_base = gauge_clov_in.GetSiteDirDataPtr(target_cb,site,0);
 
 		const float* spinor_cb = spinor_in.GetSiteDataPtr(0, target_cb,site);
-		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
-
 		const float* clov = gauge_clov_in.GetSiteDiagDataPtr(target_cb,site);
-
-		const float *gauge_links[8]={ gauge_base,                    // X forward
-							gauge_base+gdir_offset,        // X backward
-							gauge_base+2*gdir_offset,      // Y forward
-							gauge_base+3*gdir_offset,      // Y backward
-							gauge_base+4*gdir_offset,      // Z forward
-							gauge_base+5*gdir_offset,      // Z backward
-							gauge_base+6*gdir_offset,      // T forward
-							gauge_base+7*gdir_offset };       // T backward
-
-		// Neighbouring spinors
-		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
-
-		const IndexType source_cb = 1 - target_cb;
-		const float *neigh_spinors[8] = {
-				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
-				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
-				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb)
-		};
-
-
 		siteApplyClover(GetNumColorSpin(), output,clov,spinor_cb,dagger, ncol);
+
+		const Gauge_links gauge_links = get_gauge_links(gauge_clov_in, target_cb, site);
+		const Neigh_spinors neigh_spinors = get_neigh_spinors(_halo,spinor_in,target_cb,site);
 		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, 1.0, gauge_links, dagger, output, neigh_spinors, ncol);
 	}
-
 }
 
 
@@ -210,48 +212,10 @@ void CoarseDiracOp::M_D_xpay(CoarseSpinor& spinor_out,
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
-		// Turn site into x,y,z,t coords assuming we run as
-		//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
-
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-
-
 		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
-		const float* gauge_base = gauge_clov_in.GetSiteDirDataPtr(target_cb,site,0);
-		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
 
-		const float *gauge_links[8]={ gauge_base,                    // X forward
-							gauge_base+gdir_offset,        // X backward
-							gauge_base+2*gdir_offset,      // Y forward
-							gauge_base+3*gdir_offset,      // Y backward
-							gauge_base+4*gdir_offset,      // Z forward
-							gauge_base+5*gdir_offset,      // Z backward
-							gauge_base+6*gdir_offset,      // T forward
-							gauge_base+7*gdir_offset };      // T backward
-
-
-		// Neighbouring spinors
-		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
-
-		const IndexType source_cb = 1 - target_cb;
-		const float *neigh_spinors[8] = {
-				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
-				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
-				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb)
-		};
-
-
+		const Gauge_links gauge_links = get_gauge_links(gauge_clov_in, target_cb, site);
+		const Neigh_spinors neigh_spinors = get_neigh_spinors(_halo,spinor_in,target_cb,site);
 		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, alpha, gauge_links, dagger, output, neigh_spinors, ncol);
 	}
 
@@ -277,52 +241,10 @@ void CoarseDiracOp::M_AD_xpayz(CoarseSpinor& spinor_out,
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
-		// Turn site into x,y,z,t coords assuming we run as
-		//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
-
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-
-
 		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
-		const float* gauge_base = ((dagger == LINOP_OP) ?
-					gauge_in.GetSiteDirADDataPtr(target_cb,site,0)
-					: gauge_in.GetSiteDirDADataPtr(target_cb,site,0)) ;
-
 		const float* spinor_cb = spinor_in_cb.GetSiteDataPtr(0, target_cb,site);
-		const IndexType gdir_offset = gauge_in.GetLinkOffset();
-
-		const float *gauge_links[8]={ gauge_base,                    // X forward
-							gauge_base+gdir_offset,        // X backward
-							gauge_base+2*gdir_offset,      // Y forward
-							gauge_base+3*gdir_offset,      // Y backward
-							gauge_base+4*gdir_offset,      // Z forward
-							gauge_base+5*gdir_offset,      // Z backward
-							gauge_base+6*gdir_offset,      // T forward
-							gauge_base+7*gdir_offset };      // T backward
-
-
-		// Neighbouring spinors
-		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
-
-		const IndexType source_cb = 1 - target_cb;
-		const float *neigh_spinors[8] = {
-				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in_od,x,y,z,t,source_cb),
-				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in_od,x,y,z,t,source_cb),
-				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in_od,xcb,y,z,t,source_cb),
-				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in_od,xcb,y,z,t,source_cb),
-				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in_od,xcb,y,z,t,source_cb),
-				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in_od,xcb,y,z,t,source_cb),
-				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in_od,xcb,y,z,t,source_cb),
-				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in_od,xcb,y,z,t,source_cb)
-		};
-
-
+		const Gauge_links gauge_links = get_gauge_ad_links(gauge_in, target_cb, site, dagger);
+		const Neigh_spinors neigh_spinors = get_neigh_spinors(_halo,spinor_in_od,target_cb,site);
 		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, alpha, gauge_links, dagger, spinor_cb, neigh_spinors, ncol);
 	}
 
@@ -348,50 +270,10 @@ void CoarseDiracOp::M_DA_xpayz(CoarseSpinor& spinor_out,
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
-		// Turn site into x,y,z,t coords assuming we run as
-		//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
-
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-
-
 		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
-		const float* gauge_base = (dagger == LINOP_OP ) ? gauge_clov_in.GetSiteDirDADataPtr(target_cb,site,0) :
-				gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0);
-
+		const Gauge_links gauge_links = get_gauge_ad_links(gauge_clov_in, target_cb, site, dagger == LINOP_OP ? LINOP_DAGGER : LINOP_OP);
+		const Neigh_spinors neigh_spinors = get_neigh_spinors(_halo,spinor_in,target_cb,site);
 		const float* in_cb = spinor_cb.GetSiteDataPtr(0, target_cb,site);
-		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
-
-		const float *gauge_links[8]={ gauge_base,                    // X forward
-							gauge_base+gdir_offset,        // X backward
-							gauge_base+2*gdir_offset,      // Y forward
-							gauge_base+3*gdir_offset,      // Y backward
-							gauge_base+4*gdir_offset,      // Z forward
-							gauge_base+5*gdir_offset,      // Z backward
-							gauge_base+6*gdir_offset,      // T forward
-							gauge_base+7*gdir_offset };       // T backward
-
-		// Neighbouring spinors
-		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
-
-		const IndexType source_cb = 1 - target_cb;
-		const float *neigh_spinors[8] = {
-				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
-				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
-				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb)
-		};
-
-
 		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, alpha, gauge_links, dagger, in_cb, neigh_spinors, ncol);
 	}
 
@@ -416,47 +298,9 @@ void CoarseDiracOp::M_AD(CoarseSpinor& spinor_out,
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
-		// Turn site into x,y,z,t coords assuming we run as
-		//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
-
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-
-
+		const Gauge_links gauge_links = get_gauge_ad_links(gauge_clov_in, target_cb, site, dagger);
+		const Neigh_spinors neigh_spinors = get_neigh_spinors(_halo,spinor_in,target_cb,site);
 		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
-		const float* gauge_base =(dagger == LINOP_OP)? gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0)
-				: gauge_clov_in.GetSiteDirDADataPtr(target_cb,site,0);
-		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
-
-		const float *gauge_links[8]={ gauge_base,                    // X forward
-							gauge_base+gdir_offset,        // X backward
-							gauge_base+2*gdir_offset,      // Y forward
-							gauge_base+3*gdir_offset,      // Y backward
-							gauge_base+4*gdir_offset,      // Z forward
-							gauge_base+5*gdir_offset,      // Z backward
-							gauge_base+6*gdir_offset,      // T forward
-							gauge_base+7*gdir_offset };     // T backward
-
-		// Neighbouring spinors
-		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
-		const IndexType source_cb = 1 - target_cb;
-		const float *neigh_spinors[8] = {
-				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
-				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
-				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb)
-		};
-
-
 		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::zero, output, 1.0, gauge_links, dagger, output, neigh_spinors, ncol);
 	}
 
@@ -481,52 +325,11 @@ void CoarseDiracOp::M_DA(CoarseSpinor& spinor_out,
 	// Site is output site
 	for(IndexType site=min_site; site < max_site;++site) {
 
-		// Turn site into x,y,z,t coords assuming we run as
-		//  site = x_cb + Nxh*( y + Ny*( z + Nz*t ) ) )
-
-		IndexType tmp_yzt = site / _n_xh;
-		IndexType xcb = site - _n_xh * tmp_yzt;
-		IndexType tmp_zt = tmp_yzt / _n_y;
-		IndexType y = tmp_yzt - _n_y * tmp_zt;
-		IndexType t = tmp_zt / _n_z;
-		IndexType z = tmp_zt - _n_z * t;
-
-
-
+		const Gauge_links gauge_links = get_gauge_ad_links(gauge_clov_in, target_cb, site, dagger == LINOP_OP ? LINOP_DAGGER : LINOP_OP);
+		const Neigh_spinors neigh_spinors = get_neigh_spinors(_halo,spinor_in,target_cb,site);
 		float* output = spinor_out.GetSiteDataPtr(0, target_cb, site);
-		const float* gauge_base = (dagger == LINOP_OP) ? gauge_clov_in.GetSiteDirDADataPtr(target_cb,site,0)
-					: gauge_clov_in.GetSiteDirADDataPtr(target_cb,site,0);
-		const IndexType gdir_offset = gauge_clov_in.GetLinkOffset();
-
-		const float *gauge_links[8]={ gauge_base,                    // X forward
-							gauge_base+gdir_offset,        // X backward
-							gauge_base+2*gdir_offset,      // Y forward
-							gauge_base+3*gdir_offset,      // Y backward
-							gauge_base+4*gdir_offset,      // Z forward
-							gauge_base+5*gdir_offset,      // Z backward
-							gauge_base+6*gdir_offset,      // T forward
-							gauge_base+7*gdir_offset };      // T backward
-
-
-		// Neighbouring spinors
-		IndexType x = 2*xcb + ((target_cb+y+z+t)&0x1);  // Global X
-
-		const IndexType source_cb = 1 - target_cb;
-		const float *neigh_spinors[8] = {
-				GetNeighborXPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
-				GetNeighborXMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,x,y,z,t,source_cb),
-				GetNeighborYPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborYMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborZPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborZMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborTPlus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb),
-				GetNeighborTMinus<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,xcb,y,z,t,source_cb)
-		};
-
-
 		genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::zero, output, 1.0, gauge_links, dagger, output, neigh_spinors, ncol);
 	}
-
 }
 
 
@@ -546,19 +349,18 @@ void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
 	IndexType max_site = _thread_limits[tid].max_site;
 	const int N_colorspin = GetNumColorSpin();
 
-	int dir_4 = dir/2;
-	int fb = (dir %2 == 0) ? MG_BACKWARD : MG_FORWARD;
-	int bf = ( fb == MG_BACKWARD ) ? MG_FORWARD : MG_BACKWARD;
-	if( ! _halo.LocalDir(dir_4) ) {
+	// The opposite direction
+	int opp_dir = dir/2*2 + 1-dir%2;
+	if( ! _halo.LocalDir(dir/2) ) {
 		// Prepost receive
 #pragma omp master
 		{
-			// Start recv from e.g. back
-			_halo.StartRecvFromDir(2*dir_4+bf);
+			// Start receiving from this direction
+			_halo.StartRecvFromDir(dir);
 		}
 		// No need for barrier here
-		// Pack face forward
-		packFace<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,1-target_cb,dir_4,fb);
+		// Pack the opposite direction
+		packFace<CoarseSpinor,CoarseAccessor>(_halo,spinor_in,1-target_cb,opp_dir);
 
 		/// Need barrier to make sure all threads finished packing
 #pragma omp barrier
@@ -566,12 +368,14 @@ void CoarseDiracOp::DslashDir(CoarseSpinor& spinor_out,
 		// Master calls MPI stuff
 #pragma omp master
 		{
-			// Start send to forwartd
-			_halo.StartSendToDir(2*dir_4+fb);
-			_halo.FinishSendToDir(2*dir_4+fb);
-			_halo.FinishRecvFromDir(2*dir_4+bf);
+			// Send the opposite direction
+			_halo.StartSendToDir(opp_dir);
+			_halo.FinishSendToDir(opp_dir);
+
+			// Finish receiving from this direction
+			_halo.FinishRecvFromDir(dir);
 		}
-		// Threads oughtnt start until finish is complete
+		// Threads oughtn't start until finish is complete
 #pragma omp barrier
 	}
 

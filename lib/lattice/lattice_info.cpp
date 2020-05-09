@@ -26,33 +26,25 @@ LatticeInfo::LatticeInfo(
 
 	/* Sanity check the volume. Right now I have the requirement that
 	 * at least 2 dimensions be even for checkerboarding with equal
-	 * sites in the forward and backward faces. Further I require local
-	 * X to be even a la the chroma conventions
+	 * sites in the forward and backward faces.
 	 */
 
 #pragma omp master
 	{
 
-		// Check minimum length of X for X checkerboarding.
-		// Check X is divisible by 2
-		if( (lat_dims[0] < 2) || (lat_dims[0] % 2 != 0 ) ) {
-			MasterLog(ERROR, "X-dimension must be divisible by 2. It is %u\n", lat_dims[0]);
-		}
-
-		// Check that other dimensions are nonzero
-		// Count other even dimensions
-		unsigned int even_others = 0;
-		for(IndexType mu=1; mu  < n_dim; ++mu ) {
+		// Check that all dimensions are nonzero and at least two are even
+		unsigned int even_mu = 0;
+		for(IndexType mu=0; mu  < n_dim; ++mu ) {
 			if ( lat_dims[mu] == 0 ) {
 				MasterLog(ERROR, "Dimension %u has zero length\n", lat_dims[mu]);
 			}
 
 			// Count even dims
-			if( lat_dims[mu] % 2 == 0 ) even_others++;
+			if( lat_dims[mu] % 2 == 0 ) even_mu++;
 		}
 
-		if( even_others == 0 ) {
-			MasterLog(ERROR, "Need at least one more dimension beside X being even to have the same number of face sites for each checkerboard");
+		if( even_mu < 2 ) {
+			MasterLog(ERROR, "Need at least two dimension being even to have the same number of face sites for each checkerboard");
 		}
 	} // omp master
 #pragma omp barrier

@@ -116,11 +116,11 @@ private:
 				_msgmem_recv_from_dir[2*mu + MG_BACKWARD] = QMP_declare_msgmem(_recv_from_dir[2*mu+MG_BACKWARD], _face_in_bytes[mu]);
 				_msgmem_recv_from_dir[2*mu+ MG_FORWARD] = QMP_declare_msgmem(_recv_from_dir[2*mu+MG_FORWARD], _face_in_bytes[mu]);
 
-				_mh_recv_from_dir[2*mu+MG_BACKWARD] = QMP_declare_receive_relative(_msgmem_recv_from_dir[2*mu+MG_BACKWARD],mu,0,0);
+				_mh_recv_from_dir[2*mu+MG_BACKWARD] = QMP_declare_receive_relative(_msgmem_recv_from_dir[2*mu+MG_BACKWARD],mu,-1,0);
 
 				_mh_recv_from_dir[2*mu+MG_FORWARD] = QMP_declare_receive_relative(_msgmem_recv_from_dir[2*mu+MG_FORWARD],mu,1, 0);
 
-				_mh_send_to_dir[2*mu+MG_BACKWARD] = QMP_declare_send_relative(_msgmem_send_to_dir[2*mu+MG_BACKWARD],mu,0, 0);
+				_mh_send_to_dir[2*mu+MG_BACKWARD] = QMP_declare_send_relative(_msgmem_send_to_dir[2*mu+MG_BACKWARD],mu,-1, 0);
 
 
 				_mh_send_to_dir[2*mu+MG_FORWARD] = QMP_declare_send_relative(_msgmem_send_to_dir[2*mu+MG_FORWARD],mu,1,0);
@@ -138,7 +138,7 @@ private:
 				_nonlocal_dir[ _num_nonlocal_dir ] = mu;
 
 				_mh_recv_all_dir[2*_num_nonlocal_dir+MG_BACKWARD] = QMP_declare_receive_relative(_msgmem_recv_from_dir[2*mu+MG_BACKWARD],
-						mu, 0,0 );
+						mu, -1,0 );
 
 				_mh_send_all_dir[2*_num_nonlocal_dir+MG_FORWARD] = QMP_declare_send_relative(_msgmem_send_to_dir[2*mu+MG_FORWARD],
 									mu,1,0);
@@ -147,7 +147,7 @@ private:
 						mu,1, 0);
 
 				_mh_send_all_dir[2*_num_nonlocal_dir+MG_BACKWARD] = QMP_declare_send_relative(_msgmem_send_to_dir[2*mu+MG_BACKWARD],
-						mu,0, 0);
+						mu,-1, 0);
 
 
 
