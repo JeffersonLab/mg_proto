@@ -106,14 +106,10 @@ namespace MG {
 
 		IndexToCoords( cbsite, cb_lattice_size, coords);
 		coords[i] *= 2; // Convert to noncheckerboarded
-#if 0
-		// See if we need to offset this
-		int tmpcb = (coords[0]+coords[1]+coords[2]+coords[3])&1;
-		if (tmpcb != cb ) coords[0] += 1;
-#endif
-		coords[i] += (cb + coords[1]+coords[2]+coords[3]+origin[0]+origin[1]+origin[2]+origin[3])&1;
+		coords[i] += (cb + coords[0]+coords[1]+coords[2]+coords[3] + origin[0]+origin[1]+origin[2]+origin[3])&1;
 
 	}
+
 	// Coords and Dims are uncheckerboarded.
 	inline
 	void CoordsToCBIndex(const IndexArray& coords, const IndexArray& lattice_size, const IndexArray& origin, int& cb, int &cbsite)
