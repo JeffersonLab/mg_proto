@@ -154,10 +154,13 @@ namespace MG {
 
 	}
 }
+
 #else
 
+namespace MG {
   	template<typename LinOpT>
-	void MG::computeDeflation(CoarseSpinor &defl, const LinOpT& M) {}
+	void computeDeflation(CoarseSpinor &defl, const LinOpT& M) {}
+}
 
 #endif // MG_USE_PRIMME
 
