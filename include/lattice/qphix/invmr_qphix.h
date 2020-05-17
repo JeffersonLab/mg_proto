@@ -42,25 +42,29 @@ public:
                                 ResiduumType resid_type = RELATIVE ) const
   {
     const int isign= 1;
-    int n_iters;
-    unsigned long site_flops;
-    unsigned long mv_apps;
+    int n_iters=0;
+    unsigned long site_flops=0;
+    unsigned long mv_apps=0;
     assert(in.GetNCol() == out.GetNCol());
     IndexType ncol = in.GetNCol();
     std::vector<double> rsd_sq_final(ncol);
 
-    for (int col=0; col < ncol; ++col) {
-      (solver_wrapper)(&(out.get(col)),
-          &(in.get(col)),
-          _params.RsdTarget,
-          n_iters,
-          rsd_sq_final[col],
-          site_flops,
-          mv_apps,
-          isign,
-          _params.VerboseP,
-          ODD,
-          resid_type == MG::RELATIVE ? QPhiX::RELATIVE : QPhiX::ABSOLUTE);
+    if (_params.MaxIter <= 0) {
+      CopyVec(out, in, SUBSET_ODD);
+    } else {
+      for (int col=0; col < ncol; ++col) {
+        (solver_wrapper)(&(out.get(col)),
+            &(in.get(col)),
+            _params.RsdTarget,
+            n_iters,
+            rsd_sq_final[col],
+            site_flops,
+            mv_apps,
+            isign,
+            _params.VerboseP,
+            ODD,
+            resid_type == MG::RELATIVE ? QPhiX::RELATIVE : QPhiX::ABSOLUTE);
+      }
     }
 
     std::vector<LinearSolverResults> ret_val(ncol);
@@ -108,24 +112,28 @@ public:
                                 const QPhiXSpinorT<FT>& in) const
   {
     const int isign= 1;
-    int n_iters;
-    double rsd_sq_final;
-    unsigned long site_flops;
-    unsigned long mv_apps;
+    int n_iters=0;
+    double rsd_sq_final=0;
+    unsigned long site_flops=0;
+    unsigned long mv_apps=0;
     assert(in.GetNCol() == out.GetNCol());
     IndexType ncol = in.GetNCol();
 
-    for (int col=0; col < ncol; ++col) {
-      (solver_wrapper)(&(out.get(col)),
-          &(in.get(col)),
-          _params.RsdTarget,
-          n_iters,
-          rsd_sq_final,
-          site_flops,
-          mv_apps,
-          isign,
-          _params.VerboseP,
-          ODD);
+    if (_params.MaxIter <= 0) {
+      CopyVec(out, in, SUBSET_ODD);
+    } else {
+      for (int col=0; col < ncol; ++col) {
+        (solver_wrapper)(&(out.get(col)),
+            &(in.get(col)),
+            _params.RsdTarget,
+            n_iters,
+            rsd_sq_final,
+            site_flops,
+            mv_apps,
+            isign,
+            _params.VerboseP,
+            ODD);
+      }
     }
 
   }
@@ -163,24 +171,28 @@ public:
                                   const QPhiXSpinorT<FT>& in) const
     {
       const int isign= 1;
-      int n_iters;
-      double rsd_sq_final;
-      unsigned long site_flops;
-      unsigned long mv_apps;
+      int n_iters=0;
+      double rsd_sq_final=0;
+      unsigned long site_flops=0;
+      unsigned long mv_apps=0;
       assert(out.GetNCol() == in.GetNCol());
       IndexType ncol = out.GetNCol();
 
-      for (int col=0; col < ncol; ++col)
-        (mr_smoother)(out.getCB(col,ODD).get(),
-          in.getCB(col,ODD).get(),
-          _params.RsdTarget,
-          n_iters,
-          rsd_sq_final,
-          site_flops,
-          mv_apps,
-          isign,
-          _params.VerboseP,
-          ODD);
+      if (_params.MaxIter <= 0) {
+        CopyVec(out, in, SUBSET_ODD);
+      } else {
+        for (int col=0; col < ncol; ++col)
+          (mr_smoother)(out.getCB(col,ODD).get(),
+            in.getCB(col,ODD).get(),
+            _params.RsdTarget,
+            n_iters,
+            rsd_sq_final,
+            site_flops,
+            mv_apps,
+            isign,
+            _params.VerboseP,
+            ODD);
+      }
 
     }
 
