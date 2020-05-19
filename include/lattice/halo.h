@@ -107,6 +107,7 @@ CommunicateHaloSyncInOMPParallel(HaloContainer<T>& halo, const T& in, const int 
 			Timer::TimerAPI::startTimer("CommunicateHaloSync/sp"+std::to_string(in.GetNumColorSpin()));
 			halo.setNCols(in.GetNCol());
 		}
+#pragma omp barrier
 
 		for(int mu=0; mu < 8; ++mu) {
 			// Pack face; uses omp internally
