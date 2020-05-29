@@ -23,11 +23,7 @@ namespace {
 	typedef std::array<const float*,8> Gauge_links;
 
 	Neigh_spinors get_neigh_spinors(const HaloContainer<CoarseSpinor>& halo, const CoarseSpinor& in, int target_cb, int cbsite) {
-		Neigh_spinors neigh_spinor;
-		for (int mu=0; mu<8; mu++) {
-			neigh_spinor[mu] = GetNeighborDir<CoarseSpinor,CoarseAccessor>(halo, in, mu, target_cb, cbsite);
-		}
-		return neigh_spinor;
+		return GetNeighborDirs<CoarseSpinor,CoarseAccessor>(halo, in, target_cb, cbsite, true);
 	}
 
 	Gauge_links get_gauge_links(const CoarseGauge& in, int target_cb, int cbsite) {

@@ -165,7 +165,7 @@ GetNeighborDir(const HaloContainer<T>& halo, const T& in, int dir, int target_cb
 {
 	// Local lattice size and its origin
 	const IndexArray& lattice_dims = halo.GetInfo().GetLatticeDimensions();
-	const IndexArray& orig = halo.GetInfo().GetLatticeOrigin();
+	const IndexType cborig = halo.GetInfo().GetCBOrigin();
 
 	// Global lattice dimensions
 	IndexArray global_lattice_dims;
@@ -173,7 +173,7 @@ GetNeighborDir(const HaloContainer<T>& halo, const T& in, int dir, int target_cb
 
 	// Get the local coordinates of the site
 	IndexArray coor;
-	CBIndexToCoords(cbsite, target_cb, lattice_dims, orig, coor);
+	CBIndexToCoords(cbsite, target_cb, lattice_dims, cborig, coor);
 
 	// Get the local coordinates of the neighbor in direction dir
 	coor[dir/2] += 1 - 2*(dir % 2);
@@ -185,7 +185,7 @@ GetNeighborDir(const HaloContainer<T>& halo, const T& in, int dir, int target_cb
 
 		// Get the index of the site
 		int source_cb, source_site;
-		CoordsToCBIndex(coor, lattice_dims, orig, source_cb, source_site);
+		CoordsToCBIndex(coor, lattice_dims, cborig, source_cb, source_site);
 		assert(source_cb == 1 - target_cb);
 
 		// Get the data from 'in'
@@ -198,19 +198,82 @@ GetNeighborDir(const HaloContainer<T>& halo, const T& in, int dir, int target_cb
 	// Dimensions and origin of the face in direction 'dir'
 	IndexArray face_dims(lattice_dims);
 	face_dims[dir/2] = 1;
-	IndexArray face_orig(orig);
-	face_orig[dir/2] += global_lattice_dims[dir/2] + lattice_dims[dir/2]*(1 - dir % 2) - (dir % 2);
+	IndexType face_cborig = cborig + global_lattice_dims[dir/2] + lattice_dims[dir/2]*(1 - dir % 2) - (dir % 2);
 
 	// Get coordinates of the site on the face
 	coor[dir/2] = 0;
 
 	// Get index of the site on the face
 	int source_cb, source_site;
-	CoordsToCBIndex(coor, face_dims, face_orig, source_cb, source_site);
+	CoordsToCBIndex(coor, face_dims, face_cborig, source_cb, source_site);
 	assert(source_cb == 1 - target_cb);
 
 	// Grab the data from the halo buffer
 	return &( halo.GetRecvFromDirBuf(dir)[halo.GetDataTypeSize()*source_site] );
+}
+
+template<typename T, template <typename> class Accessor>
+inline std::array<const float*,8>
+GetNeighborDirs(const HaloContainer<T>& halo, const T& in, int target_cb, int cbsite, bool raw=false)
+{
+	// Local lattice size and its origin
+	const IndexArray& lattice_dims = halo.GetInfo().GetLatticeDimensions();
+	const IndexType cborig = halo.GetInfo().GetCBOrigin();
+
+	// Global lattice dimensions
+	IndexArray global_lattice_dims;
+	halo.GetInfo().LocalDimsToGlobalDims(global_lattice_dims, lattice_dims);
+
+	// Get the local coordinates of the site
+	IndexArray coor;
+	CBIndexToCoords(cbsite, target_cb, lattice_dims, cborig, coor);
+
+	std::array<const float*,8> neigbors;
+
+	for (int dir=0; dir<8; ++dir) {
+		IndexType coor_at_dir = coor[dir/2];
+
+		// Get the local coordinates of the neighbor in direction dir
+		coor[dir/2] += 1 - 2*(dir % 2);
+
+		// If the neighbor is on the local lattice, get the data from 'in'
+		if (halo.LocalDir(dir/2) || (0 <= coor[dir/2] && coor[dir/2] < lattice_dims[dir/2])) {
+			// Avoid negative values on coordinates
+			coor[dir/2] = (coor[dir/2] + lattice_dims[dir/2]) % lattice_dims[dir/2];
+
+			// Get the index of the site
+			int source_cb, source_site;
+			CoordsToCBIndex(coor, lattice_dims, cborig, source_cb, source_site);
+			assert(source_cb == 1 - target_cb);
+
+			// Get the data from 'in'
+			neigbors[dir] = Accessor<T>::get(in, source_cb, source_site);
+		} else {
+			// Otherwise, get the data from halo exchanged data
+			// (This matches how packFace orders the sites)
+
+			// Dimensions and origin of the face in direction 'dir'
+			IndexArray face_dims(lattice_dims);
+			face_dims[dir/2] = 1;
+			IndexType face_cborig = cborig + global_lattice_dims[dir/2] + lattice_dims[dir/2]*(1 - dir % 2) - (dir % 2);
+
+			// Get coordinates of the site on the face
+			coor[dir/2] = 0;
+
+			// Get index of the site on the face
+			int source_cb, source_site;
+			CoordsToCBIndex(coor, face_dims, face_cborig, source_cb, source_site);
+			assert(source_cb == 1 - target_cb);
+
+			// Grab the data from the halo buffer
+			neigbors[dir] = &( halo.GetRecvFromDirBuf(dir)[halo.GetDataTypeSize()*source_site] );
+		}
+
+		// Correct back the original coordinate
+		coor[dir/2] = coor_at_dir;
+	}
+
+	return neigbors;
 }
 
 

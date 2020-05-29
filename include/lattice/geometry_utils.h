@@ -51,7 +51,7 @@ namespace MG {
 		unsigned int rem=index;
 		for(unsigned int mu=0; mu <= n_dim-2; ++mu) {
 			unsigned int tmp = rem/dims[mu];
-			coords[mu]=rem-tmp*dims[mu];
+			coords[mu] = rem % dims[mu];
 			rem = tmp;
 		}
 		coords[n_dim-1] = rem;
@@ -94,30 +94,35 @@ namespace MG {
 
 		}
 
-
 	inline
-	void CBIndexToCoords(const int cbsite, const int cb, const IndexArray& lattice_size, const IndexArray& origin, IndexArray& coords)
+	void CBIndexToCoords(const int cbsite, const int cb, const IndexArray& lattice_size, const IndexType cborigin, IndexArray& coords)
 	{
 		IndexArray cb_lattice_size(lattice_size);
-		int i;
+		int i=0;
 		for (i=0; i<n_dim && lattice_size[i] % 2 != 0; ++i);
 		assert(i < n_dim);
 		cb_lattice_size[i] /= 2; // Size of checkberboarded lattice
 
 		IndexToCoords( cbsite, cb_lattice_size, coords);
 		coords[i] *= 2; // Convert to noncheckerboarded
-		coords[i] += (cb + coords[0]+coords[1]+coords[2]+coords[3] + origin[0]+origin[1]+origin[2]+origin[3])&1;
-
+		coords[i] += (cb + coords[0]+coords[1]+coords[2]+coords[3] + cborigin)&1;
 	}
+
+	inline
+	void CBIndexToCoords(const int cbsite, const int cb, const IndexArray& lattice_size, const IndexArray& origin, IndexArray& coords)
+	{
+		CBIndexToCoords(cbsite, cb, lattice_size, origin[0]+origin[1]+origin[2]+origin[3], coords);
+	}
+
 
 	// Coords and Dims are uncheckerboarded.
 	inline
-	void CoordsToCBIndex(const IndexArray& coords, const IndexArray& lattice_size, const IndexArray& origin, int& cb, int &cbsite)
+	void CoordsToCBIndex(const IndexArray& coords, const IndexArray& lattice_size, const IndexType cborigin, int& cb, int &cbsite)
 	{
 
-		cb = (coords[0]+coords[1]+coords[2]+coords[3] + origin[0] + origin[1]+origin[2]+origin[3]) & 1;
+		cb = (coords[0]+coords[1]+coords[2]+coords[3] + cborigin) & 1;
 
-		int i;
+		int i=0;
 		IndexArray cb_lattice_size(lattice_size);
 		for (i=0; i<n_dim && lattice_size[i] % 2 != 0; ++i);
 		assert(i < n_dim);
@@ -125,7 +130,12 @@ namespace MG {
 		IndexArray cb_coords(coords); cb_coords[i] /= 2;
 
 		cbsite = CoordsToIndex(cb_coords, cb_lattice_size);
+	}
 
+	inline
+	void CoordsToCBIndex(const IndexArray& coords, const IndexArray& lattice_size, const IndexArray& origin, int& cb, int &cbsite)
+	{
+		CoordsToCBIndex(coords, lattice_size, origin[0]+origin[1]+origin[2]+origin[3], cb, cbsite);
 	}
 
 }
