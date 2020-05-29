@@ -33,8 +33,8 @@ TEST(CoarseDslash, TestSpeed)
 	IndexArray pe_coords={{0,0,0,0}};
 	MockNodeInfo mock_node(pe_dims, pe_coords);
 	//LatticeInfo linfo(latdims, 2, args.fine_colors, mock_node);
-	LatticeInfo linfo(latdims, 2, 6, mock_node);
-	std::vector<int> ncols = {1, 4, 16, 64, 256};
+	LatticeInfo linfo(latdims, 2, 12, mock_node);
+	std::vector<int> ncols = {1, 2, 4, 5, 16, 64, 256};
 	for (int ncoli = 0; ncoli < ncols.size(); ncoli++) {
 		int ncol = ncols[ncoli];
 
@@ -66,8 +66,8 @@ TEST(CoarseDslash, TestSpeed)
 				// Fill spinors with some junk
 				for (int col=0; col < ncol; ++col) {
 					for(int j=0; j < n_complex*N; ++j) {
-						x_spinor.GetSiteDataPtr(col, (IndexType)0,site)[j] = 0.5;
-						x_spinor.GetSiteDataPtr(col, (IndexType)1,site)[j] = 0.5;
+						x_spinor.GetSiteDataPtr(col, (IndexType)0,site)[j] = j*ncol + col + site;
+						x_spinor.GetSiteDataPtr(col, (IndexType)1,site)[j] = -(j*ncol + col);
 						y_spinor.GetSiteDataPtr(col, (IndexType)0,site)[j] = 0;
 						y_spinor.GetSiteDataPtr(col, (IndexType)1,site)[j] = 0;
 					}
@@ -77,35 +77,38 @@ TEST(CoarseDslash, TestSpeed)
 					for(int row=0; row < n_complex*N; ++row) {
 						for(int col=0; col < N; col++) {
 
-							gauge.GetSiteDirDataPtr(0,site,dir)[ row + n_complex*N*col ] = 0.23;
-							gauge.GetSiteDirDataPtr(1,site,dir)[ row + n_complex*N*col ] = 0.23;
+							gauge.GetSiteDirDataPtr(0,site,dir)[ row + n_complex*N*col ] = (dir + row*8 + col*8*n_complex*N + site) % 97;
+							gauge.GetSiteDirDataPtr(1,site,dir)[ row + n_complex*N*col ] = (dir + row*8 + col*8*n_complex*N + site) % 101;
 						}
 					}
 				}
 
+				for(int dir=0; dir < 8; ++dir) {
 				for(int row=0; row < (N/2); ++row) {
 					for(int col=0; col < N; col++) {
 						for(int z=0; z < n_complex; ++z ) {
 
 							// CB=0 Chiral up
-							gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
+							gauge.GetSiteDirADDataPtr(0,site,dir)[ z + n_complex*(col + (N/2)*row) ] = (z + col*n_complex + row*n_complex*N + site) % 97;
 
 							// CB=0 Chiral down
-							gauge.GetSiteDiagDataPtr(0,site)[ z + n_complex*(col + (N/2)*(row + (N/2)) ) ] = 0.12;
+							gauge.GetSiteDirADDataPtr(0,site,dir)[ z + n_complex*(col + (N/2)*(row + (N/2)) ) ] = (z + col*n_complex + row*n_complex*N + site) % 97;
 
 							// CB=1 Chiral up
-							gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2)*row) ] = 0.23;
+							gauge.GetSiteDirADDataPtr(1,site,dir)[ z + n_complex*(col + (N/2)*row) ] = (z + col*n_complex + row*n_complex*N + site) % 97;
 
 							// CB=1 Chiral down
-							gauge.GetSiteDiagDataPtr(1,site)[ z + n_complex*(col + (N/2)*(row + (N/2)) ) ] = 0.12;
+							gauge.GetSiteDirADDataPtr(1,site,dir)[ z + n_complex*(col + (N/2)*(row + (N/2)) ) ] = (z + col*n_complex + row*n_complex*N + site) % 97;
 
 
 						}
 					}
 				}
+				}
 			}
 		}
 
+		//Gaussian(x_spinor, SUBSET_ALL);
 		double outer_start_time = omp_get_wtime();
 #pragma omp parallel shared(x_spinor,y_spinor, gauge)	// Make sure all the data has been filled.
 		{
