@@ -53,18 +53,17 @@ namespace MG {
 			 *        of the inverse of the coarse operator.
 			 */
 
-			MGDeflation(const std::shared_ptr<LatticeInfo> info, const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF>& M_fine, SetupParams p, FGMRESParams solver_params, EigsParams eigs_params)
+			MGDeflation(const std::shared_ptr<LatticeInfo> info, const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF> M_fine, SetupParams p, FGMRESParams solver_params, EigsParams eigs_params)
 				: _info(info), _M_fine(M_fine)
 			{
 				// Setup multigrid
 				SetupQPhiXMGLevels(p, _mg_levels, _M_fine);
 				if (_mg_levels.coarse_levels.size() <= 0)
 					return;
-				int n_levels = _mg_levels.coarse_levels.size()+2;
 
 				// Generate the prolongators and restrictiors
 				_Transfer_coarse_level.resize(_mg_levels.coarse_levels.size() - 1);
-				for(int coarse_idx=n_levels-2; coarse_idx >= 0; --coarse_idx) {
+				for(int coarse_idx=_mg_levels.coarse_levels.size()-2; coarse_idx >= 0; --coarse_idx) {
 					_Transfer_coarse_level[coarse_idx] = std::make_shared<CoarseTransfer>(_mg_levels.coarse_levels[coarse_idx].blocklist, _mg_levels.coarse_levels[coarse_idx].null_vecs);
 				}
 				_Transfer_fine_level = std::make_shared<QPhiXTransfer<QPhiXSpinorF>>(_mg_levels.fine_level.blocklist, _mg_levels.fine_level.null_vecs);
@@ -294,7 +293,7 @@ namespace MG {
 			}
 
 			const std::shared_ptr<LatticeInfo> _info;
-			const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF>& _M_fine;
+			const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF> _M_fine;
 			QPhiXMultigridLevelsEO _mg_levels;
 			std::shared_ptr<CoarseSpinor> _eigenvectors; // eigenvectors of \gamma_5 * inv(A)
 			std::vector<float> _eigenvalues; // eigenvalues of \gamma_5 * inv(A)
