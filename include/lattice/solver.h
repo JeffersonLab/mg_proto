@@ -8,8 +8,10 @@
 #ifndef INCLUDE_LATTICE_SOLVER_H_
 #define INCLUDE_LATTICE_SOLVER_H_
 
-#include <vector>
+#include "lattice/lattice_info.h"
+#include "lattice/coarse/subset.h"
 #include "utils/auxiliary.h"
+#include <vector>
 
 namespace MG {
 	enum ResiduumType { ABSOLUTE, RELATIVE, INVALID};
@@ -21,15 +23,17 @@ namespace MG {
 	};
 
 	template<typename Spinor, typename Gauge>
-	class LinearSolver {
+	class LinearSolver : public AuxiliarySpinors<Spinor> {
 	public:
 		virtual std::vector<LinearSolverResults> operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const=0;
+		virtual const LatticeInfo& GetInfo() const = 0;
+		virtual const CBSubset& GetSubset() const = 0;
 		virtual ~LinearSolver(){}
 	};
 
 	/** A solver that solves the unpreconditioned systems */
 	template<typename Spinor, typename Gauge, typename EOSolver>
-	class UnprecLinearSolver : public LinearSolver<Spinor,Gauge>, public AuxiliarySpinors<Spinor> {
+	class UnprecLinearSolver : public LinearSolver<Spinor,Gauge> {
 	public:
 		virtual void SourcePrepare(Spinor& new_source, const Spinor& original_source) const = 0;
 		virtual void InitGuessPrepare(Spinor& new_guess, const Spinor& original_guess) const = 0;
@@ -61,10 +65,11 @@ namespace MG {
 			// Reconstruct the result
 			ResultReconstruct(out,*tmp_out);
 			return ret_val;
-
 		}
 
+		const CBSubset& GetSubset() const override { return SUBSET_ALL; }
 
+		const LatticeInfo& GetInfo() const override { return GetEOSolver().GetInfo(); }
 	};
 
 

@@ -107,6 +107,9 @@ namespace MG {
 			multi1d<DComplex>& eta,
 			int n_cols) const;
 
+    const LatticeInfo& GetInfo() const { return _A.GetInfo(); }
+    const CBSubset& GetSubset() const { return _A.GetSubset(); }
+
   private:
     const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix>>& _A;
     const FGMRESParams _params;

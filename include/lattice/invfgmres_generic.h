@@ -233,6 +233,9 @@ template<typename ST, typename GT>
     Timer::TimerAPI::addTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
   }
 
+  const LatticeInfo& GetInfo() const { return _info; }
+  const CBSubset& GetSubset() const { return _A.GetSubset(); }
+
 private:
 
   void initialize(IndexType ncol) const {  

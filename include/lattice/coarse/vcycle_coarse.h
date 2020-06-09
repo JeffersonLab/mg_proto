@@ -250,6 +250,8 @@ public:
 															_param(param),
 															_Transfer(my_blocks,vecs){}
 
+	const LatticeInfo& GetInfo() const { return _M_fine.GetInfo(); }
+	const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
 private:
 	const LatticeInfo& _coarse_info;
@@ -493,6 +495,8 @@ public:
 															_param(param),
 															_Transfer(my_blocks,vecs){}
 
+	const LatticeInfo& GetInfo() const { return _M_fine.GetInfo(); }
+	const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
 private:
 	const LatticeInfo& _coarse_info;
@@ -760,6 +764,8 @@ public:
                                 Timer::TimerAPI::addTimer("VCycleCoarseEO2/update/level"+std::to_string(level));
 			}
 
+	const LatticeInfo& GetInfo() const { return _M_fine.GetInfo(); }
+	const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
 private:
 	const LatticeInfo& _coarse_info;

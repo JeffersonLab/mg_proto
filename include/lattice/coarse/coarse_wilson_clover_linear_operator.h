@@ -23,13 +23,15 @@
 
 namespace MG {
 
-class CoarseWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor,CoarseGauge >,
-                                         public AuxiliarySpinors<CoarseSpinor> {
+class CoarseWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor,CoarseGauge >
+{
 public:
 	// Hardwire n_smt=1 for now.
-	CoarseWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : AuxiliarySpinors<CoarseSpinor>(&_the_op), _u(gauge_in),
+	CoarseWilsonCloverLinearOperator(const std::shared_ptr<Gauge>& gauge_in, int level) : _u(gauge_in),
 	 _the_op( gauge_in->GetInfo(), 1), _level(level)
 	{
+		subrogateTo(&_the_op);
+
 		MasterLog(INFO, "Creating Coarse **NON-EO** CoarseWilsonCloverLinearOperator LinOp");
 	}
 

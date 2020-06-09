@@ -26,6 +26,9 @@ public:
 
 	std::vector<LinearSolverResults> operator()(LatticeFermion& out, const LatticeFermion& in, ResiduumType resid_type = RELATIVE ) const;
 
+	const LatticeInfo& GetInfo() const { return *_mg_levels.fine_level.info; }
+	const CBSubset& GetSubset() const { return SUBSET_ALL; }
+
 private:
 
 	const std::vector<VCycleParams> _vcycle_params;

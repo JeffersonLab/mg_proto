@@ -33,7 +33,19 @@ namespace MG {
 	template<typename Spinor>
 	class AuxiliarySpinors {
 	public:
-		AuxiliarySpinors(const AuxiliarySpinors<Spinor>* subrogate_=nullptr) : subrogate(subrogate_) {}
+		AuxiliarySpinors() : subrogate(nullptr) {}
+		AuxiliarySpinors(const AuxiliarySpinors<Spinor>* subrogate_) : subrogate(subrogate_) {}
+
+		// Subrogate the calls to another instance
+		void subrogateTo(AuxiliarySpinors<Spinor>* a) {
+			subrogateTo((const AuxiliarySpinors<Spinor>*)a);
+		}
+
+		void subrogateTo(const AuxiliarySpinors<Spinor>* a) {
+			a->_tmp.insert(a->_tmp.end(), _tmp.begin(), _tmp.end());
+			_tmp.clear();
+			subrogate = a;
+		}
 
 		// Return a spinor with a shape like the given one
 		std::shared_ptr<Spinor> tmp(const LatticeInfo& info, int ncol) const {

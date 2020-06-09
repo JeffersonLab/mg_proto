@@ -3,6 +3,7 @@ install (FILES lattice/array2d.h
 			   lattice/constants.h
 			   lattice/givens.h
 			   lattice/fgmres_common.h 
+			   lattice/eigs_common.h 
 			   lattice/geometry_utils.h   
 			   lattice/invfgmres_generic.h
          	   lattice/lattice_info.h 
@@ -65,6 +66,7 @@ install (FILES lattice/qphix/qphix_types.h
 						   lattice/qphix/qphix_clover_linear_operator.h
 						   lattice/qphix/qphix_eo_clover_linear_operator.h
 						   lattice/qphix/qphix_blas_wrappers.h
+						   lattice/qphix/qphix_mgdeflation.h
 						   lattice/qphix/invfgmres_qphix.h
 						   lattice/qphix/invbicgstab_qphix.h
 						   lattice/qphix/invmr_qphix.h

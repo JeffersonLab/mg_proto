@@ -3,6 +3,7 @@
 #define INCLUDE_LATTICE_COARSE_PRIMME_H_
 
 #include <complex>
+#include <stdexcept>
 
 #include "lattice/coarse/coarse_op.h"
 #include "lattice/cmat_mult.h"
@@ -10,6 +11,7 @@
 #include "utils/print_utils.h"
 #include "MG_config.h"
 #include "lattice/geometry_utils.h"
+#include "lattice/eigs_common.h"
 
 #ifdef MG_USE_PRIMME
 
@@ -62,15 +64,11 @@ namespace MG {
 	}
 
   	template<typename LinOpT>
-	void computeDeflation(CoarseSpinor &defl, const LinOpT& M)
+	void computeDeflation(const LatticeInfo& info, const LinOpT& M, EigsParams eigs_params, std::shared_ptr<CoarseSpinor>& defl, std::vector<float>& values)
 	{
-    		const LatticeInfo& info = defl.GetInfo();
-		AssertCompatible(info, M.GetInfo());
-		IndexType num_cbsites = info.GetNumCBSites();
-		IndexType num_colorspin = defl.GetNumColorSpin();
-		const CBSubset& cbsubset = M.GetSubset();
-		size_t nLocal = (size_t)defl.GetNumColorSpin()*info.GetNumCBSites()*(cbsubset.end - cbsubset.start);
-		IndexType nEv = defl.GetNCol();
+		const CBSubset& cbsubset = SUBSET_ALL;
+		size_t nLocal = (size_t)info.GetNumColorSpins()*info.GetNumCBSites()*(cbsubset.end - cbsubset.start);
+		IndexType nEv = eigs_params.MaxNumEvals;
 
 		// Initialize PRIMME configuration
 		primme_params primme;
@@ -88,11 +86,15 @@ namespace MG {
 		primme.nLocal = nLocal;   /* set local problem dimension */
 
 		primme.numEvals = nEv;   /* Number of wanted eigenpairs */
-		primme.eps = 1e-2;      /* ||r|| <= eps * ||matrix|| */
-		//primme.maxBasisSize = eig_param->nKr - eig_param->nEv;
+		primme.eps = eigs_params.RsdTarget;      /* ||r|| <= eps * ||matrix|| */
+		if (eigs_params.MaxRestartSize > 0)
+			primme.maxBasisSize = eigs_params.MaxRestartSize;
+		if (eigs_params.MaxIter > 0)
+			primme.maxMatvecs = eigs_params.MaxIter;
 
 		// Create evals. For twisted operators, gamma * operator is not Hermitian, but normal.
-		float *evals = new float[nEv];
+		values.resize(nEv);
+		float *evals = values.data();
 
 		// Create residual norms
 		float *rnorms = new float[nEv];
@@ -120,17 +122,18 @@ namespace MG {
 		// inverter applications. Otherwise use an strategy that minimizes orthogonalization time.
 		primme_set_method(PRIMME_DEFAULT_MIN_MATVECS, &primme);
 
-		// Display PRIMME configuration struct (optional)
-		if (primme.procID == 0)
-			primme_display_params(primme);
-
-		primme.printLevel = 3;
+		primme.printLevel = eigs_params.VerboseP ? 3 : 1;
 
 		// Call primme
+		// Display PRIMME configuration struct (optional)
+		if (primme.procID == 0 && primme.printLevel > 1)
+			primme_display_params(primme);
+
 		int ret = cprimme(evals, evecs, rnorms, &primme);
 
 		if (1) {
-			MasterLog(INFO, "Time to solve problem using PRIMME  = %e\n", primme.stats.elapsedTime);
+			MasterLog(INFO, "Converged pairs       using PRIMME  = %d\n", primme.initSize);
+			MasterLog(INFO, "Time to solve problem               = %e\n", primme.stats.elapsedTime);
 			MasterLog(INFO, "Time spent in matVec                = %e  %.1f%%\n", primme.stats.timeMatvec,
 					100 * primme.stats.timeMatvec / primme.stats.elapsedTime);
 			MasterLog(INFO, "Time spent in orthogonalization     = %e  %.1f%% (%.1f GFLOPS)\n", primme.stats.timeOrtho,
@@ -144,14 +147,16 @@ namespace MG {
 		}
 
 		// Copy evecs to defl
-		PutColumns((const float*)evecs, nLocal*2, defl, M.GetSubset());
+		defl = std::make_shared<CoarseSpinor>(info, primme.initSize);
+		PutColumns((const float*)evecs, nLocal*2, *defl, cbsubset);
+
+		// Resize evals
+		values.resize(primme.initSize);
 
 		// Local clean-up
 		delete [] rnorms;
-		delete [] evals;
 		delete evecs;
 		primme_free(&primme);
-
 	}
 }
 
@@ -159,7 +164,15 @@ namespace MG {
 
 namespace MG {
   	template<typename LinOpT>
-	void computeDeflation(CoarseSpinor &defl, const LinOpT& M) {}
+	void computeDeflation(const LatticeInfo& info, const LinOpT& M, EigsParams eigs_params, std::shared_ptr<CoarseSpinor>& defl, std::vector<float>& values) {
+		(void)info;
+		(void)M;
+		(void)eigs_params;
+		(void)defl;
+		(void)values;
+
+		throw std::runtime_error("deflation is not available: mg_proto was built without PRIMME");
+	}
 }
 
 #endif // MG_USE_PRIMME

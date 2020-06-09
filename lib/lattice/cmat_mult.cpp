@@ -15,7 +15,6 @@
 namespace MG {
 
 namespace {
-	typedef int LAPACK_BLASINT;
 #ifndef MGPROTO_USE_CBLAS
 	extern "C" void cgemm_(const char *transa, const char *transb,
 			LAPACK_BLASINT *m, LAPACK_BLASINT *n,
@@ -34,18 +33,19 @@ namespace {
 	}
 #endif
 
-	void XGEMM(const char *transa, const char *transb, LAPACK_BLASINT m,
-			LAPACK_BLASINT n, LAPACK_BLASINT k, std::complex<float> alpha,
-			const std::complex<float> *a, LAPACK_BLASINT lda, const std::complex<float> *b,
-			LAPACK_BLASINT ldb, std::complex<float> beta, std::complex<float> *c,
-			LAPACK_BLASINT ldc) {
-		assert(c != a && c != b);
+}
+
+void XGEMM(const char *transa, const char *transb, LAPACK_BLASINT m,
+		LAPACK_BLASINT n, LAPACK_BLASINT k, std::complex<float> alpha,
+		const std::complex<float> *a, LAPACK_BLASINT lda, const std::complex<float> *b,
+		LAPACK_BLASINT ldb, std::complex<float> beta, std::complex<float> *c,
+		LAPACK_BLASINT ldc) {
+	assert(c != a && c != b);
 #ifndef MGPROTO_USE_CBLAS
-		cgemm_(transa, transb, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c, &ldc);
+	cgemm_(transa, transb, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c, &ldc);
 #else
-		cblas_cgemm(CblasColMajor, toTrans(transa), toTrans(transb), m, n, k, &alpha, a, lda, b, ldb, &beta, c, ldc);
+	cblas_cgemm(CblasColMajor, toTrans(transa), toTrans(transb), m, n, k, &alpha, a, lda, b, ldb, &beta, c, ldc);
 #endif
-	}
 }
 
 void CMatMultNaive(float* y,

@@ -20,9 +20,12 @@ namespace MG {
 std::vector<double> XmyNorm2Vec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset=SUBSET_ALL);
 std::vector<double> Norm2Vec(const CoarseSpinor& x, const CBSubset& subset = SUBSET_ALL);
 std::vector<std::complex<double>> InnerProductVec(const CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset = SUBSET_ALL);
+std::vector<std::complex<double>> InnerProductMat(const CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset = SUBSET_ALL);
+void UpdateVecs(const CoarseSpinor& x, const std::vector<std::complex<double>>& ip, CoarseSpinor& y, const CBSubset& subset = SUBSET_ALL);
 
 void ZeroVec(CoarseSpinor& x, const CBSubset& subset=SUBSET_ALL);
 void CopyVec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset=SUBSET_ALL);
+void CopyVec(CoarseSpinor& x, int xcol0, int xcol1, const CoarseSpinor& y, int ycol0, const CBSubset& subset=SUBSET_ALL);
 void ScaleVec(const std::vector<float>& alpha, CoarseSpinor& x, const CBSubset& subset=SUBSET_ALL);
 void ScaleVec(const std::vector<std::complex<float>>& alpha, CoarseSpinor& x, const CBSubset& subset=SUBSET_ALL);
 void AxpyVec(const std::vector<std::complex<float>>& alpha, const CoarseSpinor& x, CoarseSpinor& y, const CBSubset& subset=SUBSET_ALL);

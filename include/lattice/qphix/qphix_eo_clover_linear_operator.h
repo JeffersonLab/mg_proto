@@ -32,8 +32,7 @@
 namespace MG {
 
 template<typename FT>
-class QPhiXWilsonCloverEOLinearOperatorT : public EOLinearOperator<QPhiXSpinorT<FT>,QPhiXGaugeT<FT> >,
-                                           public AuxiliarySpinors<QPhiXSpinorT<FT>> {
+class QPhiXWilsonCloverEOLinearOperatorT : public EOLinearOperator<QPhiXSpinorT<FT>,QPhiXGaugeT<FT> > {
 public:
   using QDPGauge = QDP::multi1d<QDP::LatticeColorMatrix>;
   using Spinor = QPhiXSpinorT<FT>;

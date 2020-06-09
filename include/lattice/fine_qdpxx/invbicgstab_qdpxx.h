@@ -24,7 +24,11 @@ public:
 	BiCGStabSolverQDPXX(const LinearOperator<Spinor,Gauge>& M, const LinearSolverParamsBase& params) : _M(M),
 	  _params(params){}
 
-	  std::vector<LinearSolverResults> operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const;
+	std::vector<LinearSolverResults> operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const;
+
+	const LatticeInfo& GetInfo() const { return _M.GetInfo(); }
+	const CBSubset& GetSubset() const { return _M.GetSubset(); }
+
  private:
 	  const LinearOperator<Spinor,Gauge>& _M;
 	  const LinearSolverParamsBase& _params;

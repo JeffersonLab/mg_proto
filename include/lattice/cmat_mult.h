@@ -55,6 +55,12 @@ inline int MinInt(const int& a, const int& b)
  * NB: precondition, N is minimally 8
  */
 
+	typedef int LAPACK_BLASINT;
+	void XGEMM(const char *transa, const char *transb, LAPACK_BLASINT m,
+			LAPACK_BLASINT n, LAPACK_BLASINT k, std::complex<float> alpha,
+			const std::complex<float> *a, LAPACK_BLASINT lda, const std::complex<float> *b,
+			LAPACK_BLASINT ldb, std::complex<float> beta, std::complex<float> *c,
+			LAPACK_BLASINT ldc);
 
 /* Same as CMatMult, but passing in the min and max vrows
  * -- caller computes, and possibly stores in a ThreadInfo structure

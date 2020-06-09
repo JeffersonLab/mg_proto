@@ -12,11 +12,13 @@
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/subset.h"
 #include "utils/print_utils.h"
+#include "utils/auxiliary.h"
+
 namespace MG {
 
 /*! Abstract Linear Operator Class */
 template<typename Spinor_t, typename Gauge_t>
-class LinearOperator {
+class LinearOperator : public AuxiliarySpinors<Spinor_t> {
 public:
 
 	// Export your traits...

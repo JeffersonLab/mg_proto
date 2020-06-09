@@ -17,6 +17,7 @@
 #include "lattice/qphix/qphix_eo_clover_linear_operator.h"
 #include "qphix/invbicgstab.h"
 #include <memory>
+#include <stdexcept>
 
 namespace MG {
 
@@ -75,6 +76,9 @@ public:
     return ret_val;
 
   }
+
+  const LatticeInfo& GetInfo() const { throw std::runtime_error("Not implemented!"); }
+  const CBSubset& GetSubset() const { return SUBSET_ODD; }
 
  private:
 

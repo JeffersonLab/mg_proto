@@ -10,6 +10,8 @@
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
 #include "lattice/coarse/coarse_types.h"
+#include "lattice/lattice_info.h"
+#include "lattice/coarse/subset.h"
 #include <memory>
 
 namespace MG {
@@ -22,6 +24,9 @@ public:
 	BiCGStabSolverCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M, const LinearSolverParamsBase& params);
 	BiCGStabSolverCoarse(const std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M, const LinearSolverParamsBase& params);
 	  std::vector<LinearSolverResults> operator()(CoarseSpinor& out, const CoarseSpinor& in, ResiduumType resid_type = RELATIVE ) const;
+
+	const LatticeInfo& GetInfo() const { return _M.GetInfo(); }
+	const CBSubset& GetSubset() const { return _M.GetSubset(); }
 
  private:
 	  const LinearOperator<CoarseSpinor,CoarseGauge>& _M;

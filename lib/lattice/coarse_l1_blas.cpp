@@ -10,6 +10,7 @@
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/coarse_l1_blas.h"
+#include "lattice/cmat_mult.h"
 #include "utils/timer.h"
 
 #include "MG_config.h"
@@ -52,6 +53,11 @@ void GlobalSum( std::vector<std::complex<double>>& array ) {
 			(std::transform(omp_out->begin(), omp_out->end(), omp_in->begin(), omp_out->begin(), std::plus<double>()), \
 			 delete omp_in)) \
 			initializer(omp_priv = new std::vector<double>(omp_orig->size()))
+
+#pragma omp declare reduction(vec_cfloat_plus : std::vector<std::complex<float>>* : \
+			(std::transform(omp_out->begin(), omp_out->end(), omp_in->begin(), omp_out->begin(), std::plus<std::complex<float>>()), \
+			 delete omp_in)) \
+			initializer(omp_priv = new std::vector<std::complex<float>>(omp_orig->size()))
 
 #pragma omp declare reduction(vec_cdouble_plus : std::vector<std::complex<double>>* : \
 			(std::transform(omp_out->begin(), omp_out->end(), omp_in->begin(), omp_out->begin(), std::plus<std::complex<double>>()), \
@@ -163,7 +169,7 @@ std::vector<double> Norm2Vec(const CoarseSpinor& x, const CBSubset& subset)
 	return norm_sq;
 }
 
-/** returns < x | y > = x^H . y
+/** returns < x[i] | y[i] > = x[i]^H . y[i]
  * @param x  - CoarseSpinor ref
  * @param y  - CoarseSpinor ref
  * @return   double containing the square norm of the difference
@@ -220,6 +226,95 @@ std::vector<std::complex<double>> InnerProductVec(const CoarseSpinor& x, const C
 }
 
 
+/** returns v_ij = < x[i] | y[j] > = x[i]^H . y[j]
+ * @param x  - CoarseSpinor ref
+ * @param y  - CoarseSpinor ref
+ * @return  matrix containing the inner products in column-major
+ *
+ */
+std::vector<std::complex<double>> InnerProductMat(const CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
+{
+
+	const LatticeInfo& x_info = x.GetInfo();
+	const LatticeInfo& y_info = y.GetInfo();
+	AssertCompatible(x_info, y_info);
+
+	IndexType num_cbsites = x_info.GetNumCBSites();
+	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType xncol = x.GetNCol();
+	IndexType yncol = y.GetNCol();
+
+	std::vector<std::complex<float>> ipprod(xncol * yncol), *ipprod_ptr = &ipprod;
+
+	// Loop over the sites and sum up the norm
+#pragma omp parallel for collapse(2) reduction(vec_cfloat_plus:ipprod_ptr) schedule(static)
+	for(int xcb=subset.start; xcb < subset.end; ++xcb ) {
+		for(int xcbsite = 0; xcbsite < num_cbsites; ++xcbsite ) {
+
+			const std::complex<float>* x_site_data = reinterpret_cast<const std::complex<float>*>(x.GetSiteDataPtr(0,xcb,xcbsite));
+
+			for(int ycb=subset.start; ycb < subset.end; ++ycb ) {
+				for(int ycbsite = 0; ycbsite < num_cbsites; ++ycbsite ) {
+
+					// Identify the site and the column
+					const std::complex<float>* y_site_data = reinterpret_cast<const std::complex<float>*>(y.GetSiteDataPtr(0,ycb,ycbsite));
+
+					// ipprod += x_site_data^* * y_site_data
+					XGEMM("C", "N", xncol, yncol, num_colorspin, 1.0, x_site_data, num_colorspin, y_site_data, num_colorspin, 1.0, ipprod_ptr->data(), xncol);
+				}
+			}
+		}
+	} // End of Parallel for reduction
+
+	// Global Reduce
+	std::vector<std::complex<double>> ipprod_d(ipprod.size());
+	for (unsigned int i=0; i<ipprod.size(); ++i) ipprod_d[i] = std::complex<double>(ipprod[i]);
+	MG::GlobalComm::GlobalSum(ipprod_d, x);
+
+	return ipprod_d;
+}
+
+/** returns y[i] = \sum_j x[j] * ip[j,i]
+ * @param x  - CoarseSpinor ref
+ * @param y  - CoarseSpinor ref
+ * @return  CoarseSpinor
+ *
+ */
+void UpdateVecs(const CoarseSpinor& x, const std::vector<std::complex<double>>& ip, CoarseSpinor& y, const CBSubset& subset)
+{
+
+	const LatticeInfo& x_info = x.GetInfo();
+	const LatticeInfo& y_info = y.GetInfo();
+	AssertCompatible(x_info, y_info);
+
+	IndexType num_cbsites = x_info.GetNumCBSites();
+	IndexType num_colorspin = x.GetNumColorSpin();
+	IndexType xncol = x.GetNCol();
+	IndexType yncol = y.GetNCol();
+	assert(xncol * yncol == ip.size());
+
+	std::vector<std::complex<float>> ip_f(ip.size());
+	for (unsigned int i=0; i<ip.size(); ++i) ip_f[i] = std::complex<float>(ip[i]);
+
+	ZeroVec(y);
+
+	// Loop over the sites and sum up the norm
+#pragma omp parallel for collapse(2) schedule(static)
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+
+			// Identify the site and the column
+			const std::complex<float>* x_site_data = reinterpret_cast<const std::complex<float>*>(x.GetSiteDataPtr(0,cb,cbsite));
+			std::complex<float>* y_site_data = reinterpret_cast<std::complex<float>*>(y.GetSiteDataPtr(0,cb,cbsite));
+
+			// y_site_data = x_site_data * ip
+			XGEMM("C", "N", num_colorspin, yncol, xncol, 1.0, x_site_data, num_colorspin, ip_f.data(), xncol, 1.0, y_site_data, num_colorspin);
+		}
+	} // End of Parallel for reduction
+}
+
+
+
 void ZeroVec(CoarseSpinor& x, const CBSubset& subset)
 {
 	const LatticeInfo& x_info = x.GetInfo();
@@ -252,9 +347,12 @@ void ZeroVec(CoarseSpinor& x, const CBSubset& subset)
 
 }
 
-
-
 void CopyVec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
+{
+	CopyVec(x, 0, x.GetNCol(), y, 0, subset);
+}
+
+void CopyVec(CoarseSpinor& x, int xcol0, int xcol1, const CoarseSpinor& y, int ycol0, const CBSubset& subset)
 {
 
 	const LatticeInfo& x_info = x.GetInfo();
@@ -263,7 +361,10 @@ void CopyVec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
 
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
-	IndexType ncol = x.GetNCol();
+	IndexType xncol = x.GetNCol();
+	assert(xcol1 <= xncol);
+	IndexType ncol = std::max(0, xcol1 - xcol0);
+	assert(ycol0 + ncol <= y.GetNCol());
 
 #pragma omp parallel for collapse(3) schedule(static)
 	for(int cb=subset.start; cb < subset.end; ++cb ) {
@@ -272,8 +373,8 @@ void CopyVec(CoarseSpinor& x, const CoarseSpinor& y, const CBSubset& subset)
 
 
 				// Identify the site and the column
-				float* x_site_data = x.GetSiteDataPtr(col,cb,cbsite);
-				const float* y_site_data = y.GetSiteDataPtr(col,cb,cbsite);
+				float* x_site_data = x.GetSiteDataPtr(xcol0+col,cb,cbsite);
+				const float* y_site_data = y.GetSiteDataPtr(ycol0+col,cb,cbsite);
 
 				// Do copies over the colorspins
 #pragma omp simd

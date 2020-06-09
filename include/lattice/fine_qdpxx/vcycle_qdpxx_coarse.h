@@ -195,6 +195,9 @@ public:
 															_param(param) {}
 
 
+	const LatticeInfo& GetInfo() const { return _M_fine.GetInfo(); }
+	const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
+
 private:
 	const LatticeInfo& _coarse_info;
 	const std::vector<Block>& _my_blocks;

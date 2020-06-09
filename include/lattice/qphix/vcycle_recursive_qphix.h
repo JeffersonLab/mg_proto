@@ -90,8 +90,8 @@ public:
 				_bottom_solver[coarse_idx] = std::make_shared< const BottomSolverT >(this_level_linop,_vcycle_params[coarse_idx].bottom_solver_params,nullptr);
 
 				MasterLog(INFO, "Computing deflation for level %d", coarse_idx);
-				CoarseSpinor defl(this_level_linop->GetInfo(), 512);
-				computeDeflation(defl, *this_level_linop);
+				//CoarseSpinor defl(this_level_linop->GetInfo(), 512);
+				//computeDeflation(defl, *this_level_linop);
 			}
 			else{
 
@@ -146,6 +146,9 @@ public:
 		{
 			return (*_toplevel_vcycle )( out, in, resid_type );
 		}
+
+	const LatticeInfo& GetInfo() const { return *_mg_levels.fine_level.info; }
+	const CBSubset& GetSubset() const { return SUBSET_ALL; }
 
 private:
 

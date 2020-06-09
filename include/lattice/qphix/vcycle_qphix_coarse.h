@@ -30,6 +30,7 @@ class VCycleQPhiXCoarse2 :
   public LinearSolver<QPhiXSpinor, QPhiXGauge >,
   public AuxiliarySpinors<QPhiXSpinorF>
 {
+    using AuxQF = AuxiliarySpinors<QPhiXSpinorF>;
   public:
     std::vector<LinearSolverResults> operator()(QPhiXSpinor& out,
         const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE ) const
@@ -42,7 +43,7 @@ class VCycleQPhiXCoarse2 :
       std::vector<LinearSolverResults> res(ncol);
 
       Timer::TimerAPI::startTimer("VCycleQPhiXCoarse2/convert()/level0");
-      std::shared_ptr<QPhiXSpinorF> r = tmp(_fine_info, ncol);
+      std::shared_ptr<QPhiXSpinorF> r = AuxQF::tmp(_fine_info, ncol);
       ConvertSpinor(in,*r);
       Timer::TimerAPI::stopTimer("VCycleQPhiXCoarse2/convert()/level0");
 
@@ -50,7 +51,7 @@ class VCycleQPhiXCoarse2 :
       // But this is just a preconditioner.
       // So try SP for now
       Timer::TimerAPI::startTimer("VCycleQPhiXCoarse2/norm()/level0");
-      std::shared_ptr<QPhiXSpinorF> out_f = tmp(_fine_info, ncol);
+      std::shared_ptr<QPhiXSpinorF> out_f = AuxQF::tmp(_fine_info, ncol);
       Timer::TimerAPI::stopTimer("VCycleQPhiXCoarse2/norm()/level0");
 
       int level = _M_fine.GetLevel();
@@ -103,8 +104,8 @@ class VCycleQPhiXCoarse2 :
       int iter = 0;
 
       Timer::TimerAPI::startTimer("VCycleQPhiXCoarse2/norm()/level0");
-      std::shared_ptr<QPhiXSpinorF> delta = tmp(_fine_info, ncol);
-      std::shared_ptr<QPhiXSpinorF> t = tmp(_fine_info, ncol);
+      std::shared_ptr<QPhiXSpinorF> delta = AuxQF::tmp(_fine_info, ncol);
+      std::shared_ptr<QPhiXSpinorF> t = AuxQF::tmp(_fine_info, ncol);
       CoarseSpinor coarse_in(_coarse_info, ncol);
       CoarseSpinor coarse_delta(_coarse_info, ncol);
       Timer::TimerAPI::stopTimer("VCycleQPhiXCoarse2/norm()/level0");
@@ -266,6 +267,8 @@ class VCycleQPhiXCoarse2 :
 
     }
 
+    const LatticeInfo& GetInfo() const { return _M_fine.GetInfo(); }
+    const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
   private:
     const LatticeInfo& _fine_info;
@@ -495,6 +498,8 @@ class VCycleQPhiXCoarseEO2 :
       _param(param),
       _Transfer(my_blocks,vecs) {}
 
+    const LatticeInfo& GetInfo() const { return _M_fine.GetInfo(); }
+    const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
   private:
     const LatticeInfo& _fine_info;
@@ -756,6 +761,8 @@ class VCycleQPhiXCoarseEO3 :
       Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/update/level"+std::to_string(level));
       }
 
+    const LatticeInfo& GetInfo() const { return _M_fine.GetInfo(); }
+    const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
   private:
     const LatticeInfo& _fine_info;
