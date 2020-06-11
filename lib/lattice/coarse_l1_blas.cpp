@@ -248,23 +248,16 @@ std::vector<std::complex<double>> InnerProductMat(const CoarseSpinor& x, const C
 
 	// Loop over the sites and sum up the norm
 #pragma omp parallel for collapse(2) reduction(vec_cfloat_plus:ipprod_ptr) schedule(static)
-	for(int xcb=subset.start; xcb < subset.end; ++xcb ) {
-		for(int xcbsite = 0; xcbsite < num_cbsites; ++xcbsite ) {
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
 
-			const std::complex<float>* x_site_data = reinterpret_cast<const std::complex<float>*>(x.GetSiteDataPtr(0,xcb,xcbsite));
+			const std::complex<float>* x_site_data = reinterpret_cast<const std::complex<float>*>(x.GetSiteDataPtr(0,cb,cbsite));
+			const std::complex<float>* y_site_data = reinterpret_cast<const std::complex<float>*>(y.GetSiteDataPtr(0,cb,cbsite));
 
-			for(int ycb=subset.start; ycb < subset.end; ++ycb ) {
-				for(int ycbsite = 0; ycbsite < num_cbsites; ++ycbsite ) {
-
-					// Identify the site and the column
-					const std::complex<float>* y_site_data = reinterpret_cast<const std::complex<float>*>(y.GetSiteDataPtr(0,ycb,ycbsite));
-
-					// ipprod += x_site_data^* * y_site_data
-					XGEMM("C", "N", xncol, yncol, num_colorspin, 1.0, x_site_data, num_colorspin, y_site_data, num_colorspin, 1.0, ipprod_ptr->data(), xncol);
-				}
-			}
+			// ipprod += x_site_data^* * y_site_data
+			XGEMM("C", "N", xncol, yncol, num_colorspin, 1.0, x_site_data, num_colorspin, y_site_data, num_colorspin, 1.0, ipprod_ptr->data(), xncol);
 		}
-	} // End of Parallel for reduction
+	}
 
 	// Global Reduce
 	std::vector<std::complex<double>> ipprod_d(ipprod.size());
@@ -308,7 +301,7 @@ void UpdateVecs(const CoarseSpinor& x, const std::vector<std::complex<double>>& 
 			std::complex<float>* y_site_data = reinterpret_cast<std::complex<float>*>(y.GetSiteDataPtr(0,cb,cbsite));
 
 			// y_site_data = x_site_data * ip
-			XGEMM("C", "N", num_colorspin, yncol, xncol, 1.0, x_site_data, num_colorspin, ip_f.data(), xncol, 1.0, y_site_data, num_colorspin);
+			XGEMM("N", "N", num_colorspin, yncol, xncol, 1.0, x_site_data, num_colorspin, ip_f.data(), xncol, 0.0, y_site_data, num_colorspin);
 		}
 	} // End of Parallel for reduction
 }
@@ -781,6 +774,7 @@ void PutColumns(const float* y, size_t ld, CoarseSpinor& x, const CBSubset& subs
 	IndexType num_cbsites = x_info.GetNumCBSites();
 	IndexType num_colorspin = x.GetNumColorSpin();
 	IndexType ncol = x.GetNCol();
+	assert(ld >= n_complex * num_colorspin * num_cbsites * (subset.end - subset.start));
 	int cb0 = subset.start;
 
 #pragma omp parallel for collapse(3) schedule(static)

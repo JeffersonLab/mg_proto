@@ -51,8 +51,9 @@ namespace MG {
 				std::shared_ptr<CoarseSpinor> ys = M->tmp(M->GetInfo(), *blockSize);
 
 				PutColumns((const float*)x, *ldx*2, *xs, M->GetSubset());
+				ZeroVec(*ys, M->GetSubset());
 				(*M)(*ys, *xs);
-				Gamma5Vec(*ys);
+				Gamma5Vec(*ys, M->GetSubset());
 				GetColumns(*ys, M->GetSubset(), (float*)y, *ldy*2);
 
 				// We're good!
@@ -63,10 +64,28 @@ namespace MG {
 
 	}
 
+	/*
+	 * Compute an approximate invariant subspace of a \gamma_5-Hermitian operator
+	 *
+	 * \param info: lattice info
+	 * \param M: operator to compute the invariant subspace
+	 * \param eigs_params: parameters to control the eigensolver
+	 * \param V: returned eigenvectors, V[i]
+	 * \param values: returned eigenvalues, values[i]
+	 *
+	 * The routine compute the largest eigenvalues/singular values of the
+	 * \gamma_5-Hermitian operator M. The returned V and lambda satisfy:
+	 *
+	 *    ||\gamma_5 * M * V[i] - V[i] * values[i]||_2 <= eigs_params.RsdTarget * ||M||_2.
+	 *
+	 * The returned V is also the right singular vectors of M, \gamma_5*V[i]*sign(values[i])
+	 * are the left singular vectors, and |values[i]| are the singular value.
+	 */
+
   	template<typename LinOpT>
-	void computeDeflation(const LatticeInfo& info, const LinOpT& M, EigsParams eigs_params, std::shared_ptr<CoarseSpinor>& defl, std::vector<float>& values)
+	void computeDeflation(const LatticeInfo& info, const LinOpT& M, EigsParams eigs_params, std::shared_ptr<CoarseSpinor>& V, std::vector<float>& values)
 	{
-		const CBSubset& cbsubset = SUBSET_ALL;
+		const CBSubset& cbsubset = M.GetSubset();
 		size_t nLocal = (size_t)info.GetNumColorSpins()*info.GetNumCBSites()*(cbsubset.end - cbsubset.start);
 		IndexType nEv = eigs_params.MaxNumEvals;
 
@@ -146,9 +165,10 @@ namespace MG {
 					100 * timeComm / primme.stats.elapsedTime);
 		}
 
-		// Copy evecs to defl
-		defl = std::make_shared<CoarseSpinor>(info, primme.initSize);
-		PutColumns((const float*)evecs, nLocal*2, *defl, cbsubset);
+		// Copy evecs to V
+		V = std::make_shared<CoarseSpinor>(info, primme.initSize);
+		ZeroVec(*V);
+		PutColumns((const float*)evecs, nLocal*2, *V, cbsubset);
 
 		// Resize evals
 		values.resize(primme.initSize);
@@ -157,6 +177,24 @@ namespace MG {
 		delete [] rnorms;
 		delete evecs;
 		primme_free(&primme);
+
+		// Check solution
+		if (1) {
+			unsigned int nEv = V->GetNCol();
+			std::vector<double> Vnorms2 = Norm2Vec(*V, cbsubset);
+			for (unsigned int i=0; i<nEv; i++)
+				assert(fabs(std::sqrt(Vnorms2[i]) - 1.0) <= 1e-5);
+			std::shared_ptr<CoarseSpinor> MV = M.tmp(info, nEv);
+			ZeroVec(*MV);
+			M(*MV, *V);
+			Gamma5Vec(*MV, cbsubset);
+			std::shared_ptr<CoarseSpinor> Vvalues = M.tmp(info, nEv);
+			ZeroVec(*Vvalues);
+			AxpyVec(values, *V, *Vvalues, cbsubset);
+			std::vector<double> resnorms2 = XmyNorm2Vec(*MV, *Vvalues, cbsubset);
+			for (unsigned int i=0; i<nEv; i++)
+				assert(std::sqrt(resnorms2[i]) <= fabs(values[0]) * eigs_params.RsdTarget * 6);
+		}
 	}
 }
 
@@ -164,11 +202,11 @@ namespace MG {
 
 namespace MG {
   	template<typename LinOpT>
-	void computeDeflation(const LatticeInfo& info, const LinOpT& M, EigsParams eigs_params, std::shared_ptr<CoarseSpinor>& defl, std::vector<float>& values) {
+	void computeDeflation(const LatticeInfo& info, const LinOpT& M, EigsParams eigs_params, std::shared_ptr<CoarseSpinor>& V, std::vector<float>& values) {
 		(void)info;
 		(void)M;
 		(void)eigs_params;
-		(void)defl;
+		(void)V;
 		(void)values;
 
 		throw std::runtime_error("deflation is not available: mg_proto was built without PRIMME");

@@ -27,12 +27,14 @@ namespace MG {
 	/*
 	 * Deflate an approximate invariant subspace of the multigrid prolongator
 	 *
-	 * If V is a subset of the multigrid prolongator at the coarsest level on a
+	 * If V is a subset of the multigrid prolongatori P at the coarsest level on a
 	 * linear operator A, then MGDeflation::operator()(out, in) does:
 	 *
-	 *   out = V * inv(V^H * A * V) * V^H * A * in,
+	 *   out = \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * A * in,
 	 *
-	 * where V^H * A * V is numerically close to a diagonal matrix. 
+	 * where V^H * A * \gamma_5 * V is numerically close to a diagonal matrix.
+	 * This is achieved by computing the right singular vectors of inv(P^H * A * P), X, with
+	 * MG::computeDeflation and setting V as P * X.
 	 */
 
 	class MGDeflation : public AuxiliarySpinors<QPhiXSpinorF>, public AuxiliarySpinors<CoarseSpinor>
@@ -72,9 +74,9 @@ namespace MG {
 				auto this_level_linop = _mg_levels.coarse_levels.back().M;
 				solver_params.RsdTarget = std::min(solver_params.RsdTarget, eigs_params.RsdTarget*0.6);
 				UnprecFGMRESSolverCoarseWrapper solver(this_level_linop, solver_params, nullptr);
-				//FGMRESSolverCoarse solver(this_level_linop, solver_params, nullptr);
 
-				// Compute the left singular vectors, the right singular are \gamma_5 * left singular vectors
+				// Compute the largest right singular vectors of inv(P^H * A * P), that is,
+				// inv(P^H * A * P)*_eigenvectors[i] == \gamma_5 * _eigenvector[i] * _eigenvalue[i]
 				MasterLog(INFO, "Computing deflation for level %d", _mg_levels.coarse_levels.size());
 				computeDeflation(*_mg_levels.coarse_levels.back().info, solver, eigs_params, _eigenvectors, _eigenvalues);
 			}
@@ -87,7 +89,7 @@ namespace MG {
 			 *
 			 * It applies the deflation on the input vectors and return the results on 'out':
 			 *
-			 *   out = V * inv(V^H * A * V) * V^H * A * in,
+			 *   out = \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * A * in,
 			 */
 
 			void VVA(QPhiXSpinor& out, const QPhiXSpinor& in) const {
@@ -102,7 +104,7 @@ namespace MG {
 			 *
 			 * It applies the deflation on the input vectors and return the results on 'out':
 			 *
-			 *   out = A * V * inv(V^H * A * V) * V^H * in,
+			 *   out = A * \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * in,
 			 */
 
 			void AVV(QPhiXSpinor& out, const QPhiXSpinor& in) const {
@@ -117,7 +119,7 @@ namespace MG {
 			 *
 			 * It applies the deflation on the input vectors and return the results on 'out':
 			 *
-			 *   out = V * inv(V^H * A * V) * V^H * A * in,
+			 *   out = \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * A * in,
 			 */
 
 			void operator()(QPhiXSpinor& out, const QPhiXSpinor& in) const {
@@ -130,9 +132,9 @@ namespace MG {
 			 * \param out: returned vectors
 			 * \param in: input vectors
 			 * \param do_VVA: if true, 
-			 *          out = V * inv(V^H * A * V) * V^H * A * in,
+			 *          out = \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * A * in,
 			 *        otherwise
-			 *          out = A * V * inv(V^H * A * V) * V^H * in.
+			 *          out = A * \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * in.
 			 *
 			 * It applies the deflation on the input vectors and return the results on 'out'.
 			 */
@@ -150,7 +152,8 @@ namespace MG {
 				std::shared_ptr<QPhiXSpinorF> Ain_f;
 				if (do_VVA) {
 					Ain_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
-					(*_M_fine)(*Ain_f, *in_f, LINOP_OP);
+					ZeroVec(*Ain_f, SUBSET_ALL);
+					_M_fine->unprecOp(*Ain_f, *in_f, LINOP_OP);
 				} else {
 					Ain_f = in_f;
 				}
@@ -164,14 +167,11 @@ namespace MG {
 				// Transfer to the deepest level
 				for(int coarse_idx=1; coarse_idx < _mg_levels.coarse_levels.size(); coarse_idx++) {
 					std::shared_ptr<CoarseSpinor> in_level = AuxC::tmp(*_mg_levels.coarse_levels[coarse_idx].info, ncol);
-					_Transfer_coarse_level[coarse_idx]->R(*coarse_in, *in_level);
+					_Transfer_coarse_level[coarse_idx-1]->R(*coarse_in, *in_level);
 					coarse_in = in_level;
 				}
 
-				// Apply gamma_5
-				Gamma5Vec(*coarse_in);
-
-				// Apply deflation at the coarsest level
+				// Compute course_out = \gamma_5 * inv(V^H * A * \gamma_5 * V) * coarse_in
 				std::shared_ptr<CoarseSpinor> coarse_out = AuxC::tmp(*_mg_levels.coarse_levels.back().info, ncol);
 				project_coarse_level(*coarse_out, *coarse_in);
 				coarse_in.reset();
@@ -193,7 +193,8 @@ namespace MG {
 					Aout_f = out_f;
 				} else {
 					Aout_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
-					(*_M_fine)(*Aout_f, *out_f, LINOP_OP);
+					ZeroVec(*Aout_f, SUBSET_ALL);
+					_M_fine->unprecOp(*Aout_f, *out_f, LINOP_OP);
 				}
 				out_f.reset();
 
@@ -231,29 +232,47 @@ namespace MG {
 				ConvertSpinor(*out_f, out);
 			}
 
+			/*
+			 * Return the columns of \gamma_5 * V starting from i-th column.
+			 *
+			 * \param i: index of the first column to return
+			 * \param out: output vectors
+			 */
+
+			void g5V(unsigned int i, QPhiXSpinor& out) const {
+				assert(out.GetNCol() + i <= _eigenvectors->GetNCol());
+				IndexType ncol = out.GetNCol();
+
+				// Apply deflation at the coarsest level
+				std::shared_ptr<CoarseSpinor> coarse_out = AuxC::tmp(*_mg_levels.coarse_levels.back().info, ncol);
+				CopyVec(*coarse_out, 0, ncol, *_eigenvectors, i);
+				Gamma5Vec(*coarse_out);
+
+				// Transfer to the first coarse level
+				for(int coarse_idx=_mg_levels.coarse_levels.size()-2; coarse_idx >= 0; coarse_idx--) {
+					std::shared_ptr<CoarseSpinor> out_level = AuxC::tmp(*_mg_levels.coarse_levels[coarse_idx].info, ncol);
+					_Transfer_coarse_level[coarse_idx]->P(*coarse_out, *out_level);
+					coarse_out = out_level;
+				}
+
+				// Transfer to the fine level
+				std::shared_ptr<QPhiXSpinorF> out_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
+				_Transfer_fine_level->P(*coarse_out, *out_f);
+
+				// Convert back to double
+				ConvertSpinor(*out_f, out);
+			}
+
 
 			/*
-			 * Return the diagonal of inv(X'*P' * A * P*X)
-			 *
-			 * If P is the multigrid prolongator at the deepest coarse level on a
-			 * linear operator A. Then MGDeflation::operator()(out, in) does:
-			 *
-			 *   out = in - P*X * inv(X'*P' * \gamma_5 * A * P*X) * X'*P' * \gamma_5 * A * in,
-			 *
-			 * where X are the eigenvectors of the largest eigenvalues on the coarse operator,
-			 * P' * \gamma_5 * A * P.
+			 * Return the diagonal of inv(V^H * A \* V)
 			 */
 
 			std::vector<std::complex<double>> GetDiagInvCoarse() const {
-				// Compute \gamma_5 * _eigenvectors	
-				std::shared_ptr<CoarseSpinor> g5_eigenvectors = AuxC::tmp(*_mg_levels.coarse_levels.back().info, _eigenvectors->GetNCol());
-				CopyVec(*_eigenvectors, *g5_eigenvectors);
-				Gamma5Vec(*g5_eigenvectors);
 
-				// Compute d .* _eigenvalues
-				std::vector<std::complex<double>> d = InnerProductVec(*_eigenvectors, *g5_eigenvectors);
+				std::vector<std::complex<double>> d(_eigenvalues.size());
 				for (unsigned int i=0; i<d.size(); i++)
-					d[i] *= _eigenvalues[i];
+					d[i] = _eigenvalues[i];
 
 				return d;
 			}
@@ -265,17 +284,21 @@ namespace MG {
 		private:
 
 			/*
-			 * Multiply by the restricted coarsest operator.
+			 * Solver on the restricted coarsest operator, \gamma_5 * X * \Lambda * X^H * in
 			 *
 			 * \param out: returned vectors
 			 * \param in: input vectors
 			 *
-			 * Return the :
+			 * Return out = \gamma_5 * X * \Lambda * X^H * in, where \lambda[i] and X[i] are the
+			 * _eigenvalues[i] and _eigenvectors[i] of \gamma_5 * inv(P^H * A * P), where P is
+			 * the coarsest restrictor. If \lambda[i] and X[i] are the exact eigenpairs then,
 			 *
-			 *   out = X * \Lambda * X' * in,
+			 *  out = \gamma_5 * X * \Lambda * X^H * in
+			 *      = \gamma_5 * X * inv(X^H * P^H * A * P * \gamma_5 * X) * X^H * in
+			 *      = \gamma_5 * X * inv(V^H * A * \gamma_5 * V)*X^H
 			 */
 
-			void project_coarse_level(CoarseSpinor& out, CoarseSpinor& in) const {
+			void project_coarse_level(CoarseSpinor& out, const CoarseSpinor& in) const {
 				assert(out.GetNCol() == in.GetNCol());
 				IndexType ncol = out.GetNCol();
 
@@ -290,6 +313,9 @@ namespace MG {
 
 				// out = X * ip
 				UpdateVecs(*_eigenvectors, ip, out);
+
+				// Apply gamma_5
+				Gamma5Vec(out);
 			}
 
 			const std::shared_ptr<LatticeInfo> _info;
