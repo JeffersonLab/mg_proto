@@ -148,21 +148,23 @@ namespace MG {
 		if (primme.procID == 0 && primme.printLevel > 1)
 			primme_display_params(primme);
 
-		int ret = cprimme(evals, evecs, rnorms, &primme);
+		if (nEv > 0) {
+			int ret = cprimme(evals, evecs, rnorms, &primme);
 
-		if (1) {
-			MasterLog(INFO, "Converged pairs       using PRIMME  = %d\n", primme.initSize);
-			MasterLog(INFO, "Time to solve problem               = %e\n", primme.stats.elapsedTime);
-			MasterLog(INFO, "Time spent in matVec                = %e  %.1f%%\n", primme.stats.timeMatvec,
-					100 * primme.stats.timeMatvec / primme.stats.elapsedTime);
-			MasterLog(INFO, "Time spent in orthogonalization     = %e  %.1f%% (%.1f GFLOPS)\n", primme.stats.timeOrtho,
-					100 * primme.stats.timeOrtho / primme.stats.elapsedTime,
-					primme.stats.numOrthoInnerProds * primme.n / primme.stats.timeOrtho / 1e9);
-			MasterLog(INFO, "Time spent in dense operations      = %e  %.1f%% (%.1f GFLOPS)\n", primme.stats.timeDense,
-					100 * primme.stats.timeDense / primme.stats.elapsedTime, primme.stats.flopsDense / primme.stats.timeDense / 1e9);
-			double timeComm = primme.stats.timeGlobalSum + primme.stats.timeBroadcast;
-			MasterLog(INFO, "Time spent in communications        = %e  %.1f%%\n", timeComm,
-					100 * timeComm / primme.stats.elapsedTime);
+			if (1) {
+				MasterLog(INFO, "Converged pairs       using PRIMME  = %d\n", primme.initSize);
+				MasterLog(INFO, "Time to solve problem               = %e\n", primme.stats.elapsedTime);
+				MasterLog(INFO, "Time spent in matVec                = %e  %.1f%%\n", primme.stats.timeMatvec,
+						100 * primme.stats.timeMatvec / primme.stats.elapsedTime);
+				MasterLog(INFO, "Time spent in orthogonalization     = %e  %.1f%% (%.1f GFLOPS)\n", primme.stats.timeOrtho,
+						100 * primme.stats.timeOrtho / primme.stats.elapsedTime,
+						primme.stats.numOrthoInnerProds * primme.n / primme.stats.timeOrtho / 1e9);
+				MasterLog(INFO, "Time spent in dense operations      = %e  %.1f%% (%.1f GFLOPS)\n", primme.stats.timeDense,
+						100 * primme.stats.timeDense / primme.stats.elapsedTime, primme.stats.flopsDense / primme.stats.timeDense / 1e9);
+				double timeComm = primme.stats.timeGlobalSum + primme.stats.timeBroadcast;
+				MasterLog(INFO, "Time spent in communications        = %e  %.1f%%\n", timeComm,
+						100 * timeComm / primme.stats.elapsedTime);
+			}
 		}
 
 		// Copy evecs to V

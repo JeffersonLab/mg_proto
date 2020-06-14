@@ -41,6 +41,13 @@ void XGEMM(const char *transa, const char *transb, LAPACK_BLASINT m,
 		LAPACK_BLASINT ldb, std::complex<float> beta, std::complex<float> *c,
 		LAPACK_BLASINT ldc) {
 	assert(c != a && c != b);
+	if (m == 0 || n == 0) return;
+	if (k == 0) {
+		for (int j=0; j<n; j++)
+			for (int i=0; i<m; i++)
+				c[i + ldc*j] *= beta;
+		return;
+	}
 #ifndef MGPROTO_USE_CBLAS
 	cgemm_(transa, transb, &m, &n, &k, &alpha, a, &lda, b, &ldb, &beta, c, &ldc);
 #else
