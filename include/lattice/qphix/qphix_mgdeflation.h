@@ -79,6 +79,18 @@ namespace MG {
 				// inv(P^H * A * P)*_eigenvectors[i] == \gamma_5 * _eigenvector[i] * _eigenvalue[i]
 				MasterLog(INFO, "Computing deflation for level %d", _mg_levels.coarse_levels.size());
 				computeDeflation(*_mg_levels.coarse_levels.back().info, solver, eigs_params, _eigenvectors, _eigenvalues);
+
+				// Check eigendecomposition: (P^H * A *P) * \gamma_5 * _eigenvector[i] * _eigenvalue[i] == _eigenvector[i]
+				const LatticeInfo &Minfo = *_mg_levels.coarse_levels.back().info;
+				CoarseSpinor g5eigenvector(Minfo, _eigenvectors->GetNCol()), Mg5eigenvector_lambda(Minfo, _eigenvectors->GetNCol());
+				CopyVec(g5eigenvector, *_eigenvectors);
+				Gamma5Vec(g5eigenvector);
+				ZeroVec(Mg5eigenvector_lambda);
+				this_level_linop->unprecOp(Mg5eigenvector_lambda, g5eigenvector);
+				ScaleVec(_eigenvalues, Mg5eigenvector_lambda);
+				std::vector<double> rnorms2 = XmyNorm2Vec(Mg5eigenvector_lambda, *_eigenvectors);
+				for (unsigned int i=0; i<rnorms2.size(); ++i)
+					MasterLog(INFO, "Eigenpair error %d  %g", i, sqrt(rnorms2[i]));
 			}
 
 			/*
@@ -278,6 +290,8 @@ namespace MG {
 			}
 
 			const LatticeInfo& GetInfo() { return *_info; }
+
+			const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF> GetM() const { return _M_fine; }
 
 			unsigned int GetRank() { return _eigenvalues.size(); }
 
