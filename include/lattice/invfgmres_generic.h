@@ -544,7 +544,7 @@ public:
 
   private:
     const LinearOperator<ST,GT>& _A;
-    const LatticeInfo& _info;
+    const LatticeInfo _info;
     const FGMRESParams _params;
     const LinearSolver<ST,GT>* _M_prec;
 

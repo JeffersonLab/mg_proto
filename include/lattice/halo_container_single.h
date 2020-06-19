@@ -66,7 +66,7 @@ public:
 
 
 private:
-	const LatticeInfo& _info;
+	const LatticeInfo _info;
 	size_t _datatype_size;
 
 }; // Halo class

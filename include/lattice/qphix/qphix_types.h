@@ -185,7 +185,7 @@ public:
        return (_data[col].get()->getCBData(cb))[osite][color][spin][cmpx][isite];
      }
 private:
-    const LatticeInfo& _info;
+    const LatticeInfo _info;
 
     std::vector<std::unique_ptr<QPhiXFullSpinorT<FT>>> _data;
 };
@@ -236,7 +236,7 @@ public:
      }
 
 private:
-     const LatticeInfo& _info;
+     const LatticeInfo _info;
      std::unique_ptr<QPhiXCBGaugeT<FT>> _data[2];
 };
 
@@ -297,7 +297,7 @@ public:
        return _info;
      }
 private:
-   const LatticeInfo& _info;
+   const LatticeInfo _info;
    std::unique_ptr<QPhiXCBCloverT<FT>> _data[2];
    std::unique_ptr<QPhiXCBCloverT<FT>> _inv;
 };

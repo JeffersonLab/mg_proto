@@ -254,7 +254,7 @@ public:
 	const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
 private:
-	const LatticeInfo& _coarse_info;
+	const LatticeInfo _coarse_info;
 	const std::vector<Block>& _my_blocks;
 	const std::vector< std::shared_ptr<CoarseSpinor> >& _vecs;
 	const LinearOperator< CoarseSpinor, CoarseGauge>& _M_fine;
@@ -499,7 +499,7 @@ public:
 	const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
 private:
-	const LatticeInfo& _coarse_info;
+	const LatticeInfo _coarse_info;
 	const std::vector<Block>& _my_blocks;
 	const std::vector< std::shared_ptr<CoarseSpinor> >& _vecs;
 	const EOLinearOperator< CoarseSpinor, CoarseGauge>& _M_fine;
@@ -768,7 +768,7 @@ public:
 	const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
 private:
-	const LatticeInfo& _coarse_info;
+	const LatticeInfo _coarse_info;
 	const std::vector<Block>& _my_blocks;
 	const std::vector< std::shared_ptr<CoarseSpinor> >& _vecs;
 	const EOLinearOperator< CoarseSpinor, CoarseGauge>& _M_fine;

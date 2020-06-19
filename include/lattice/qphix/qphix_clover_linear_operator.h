@@ -286,7 +286,7 @@ private:
   // This will be hidden
   typename QPhiXGeomT<FT>::SU3MatrixBlock *qphix_gauge[2] ;
   typename QPhiXGeomT<FT>::CloverBlock *qphix_clover[2];
-  const LatticeInfo& _info;
+  const LatticeInfo _info;
 
   std::unique_ptr<QPhiXClovOpT<FT>> QPhiXEOClov;
 

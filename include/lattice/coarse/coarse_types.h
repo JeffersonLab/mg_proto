@@ -153,7 +153,7 @@ namespace MG {
 		}
 
 	private:
-		const LatticeInfo& _lattice_info;
+		const LatticeInfo _lattice_info;
 		float* data[2];  // Even and odd checkerboards
 
 		const IndexType _n_color;
@@ -456,7 +456,7 @@ namespace MG {
 		const IndexType& GetNt() const { return _n_t; }
 
 	private:
-		const LatticeInfo& _lattice_info;
+		const LatticeInfo _lattice_info;
 		float* data[2];        // Even and odd checkerboards off diagonal data (D)
 		float* diag_data[2];   // Diagonal data (Clov, or A)
 		float* invdiag_data[2]; // Inverse Clover (A^{-1})

@@ -303,7 +303,7 @@ public:
 	static void write(const CoarseGauge& gauge_clov_in, std::string& filename);
 	
 private:
-	const LatticeInfo& _lattice_info;
+	const LatticeInfo _lattice_info;
 	const IndexType _n_color;
 	const IndexType _n_spin;
 	const IndexType _n_colorspin;

@@ -351,7 +351,7 @@ public:
 
 private:
 
-	const LatticeInfo& _latt_info;
+	const LatticeInfo _latt_info;
 	const NodeInfo& _node_info;
 	const size_t _datatype_size;
 	int _n_face_dir[4];

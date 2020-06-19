@@ -271,8 +271,8 @@ class VCycleQPhiXCoarse2 :
     const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
   private:
-    const LatticeInfo& _fine_info;
-    const LatticeInfo& _coarse_info;
+    const LatticeInfo _fine_info;
+    const LatticeInfo _coarse_info;
     const std::vector<Block>& _my_blocks;
     const std::vector<std::shared_ptr<QPhiXSpinorF>>& _vecs;
     LinearOperator<QPhiXSpinorF, QPhiXGaugeF>& _M_fine;
@@ -502,8 +502,8 @@ class VCycleQPhiXCoarseEO2 :
     const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
   private:
-    const LatticeInfo& _fine_info;
-    const LatticeInfo& _coarse_info;
+    const LatticeInfo _fine_info;
+    const LatticeInfo _coarse_info;
     const std::vector<Block>& _my_blocks;
     const std::vector<std::shared_ptr<QPhiXSpinorF>>& _vecs;
     EOLinearOperator<QPhiXSpinorF, QPhiXGaugeF>& _M_fine;
@@ -765,8 +765,8 @@ class VCycleQPhiXCoarseEO3 :
     const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
 
   private:
-    const LatticeInfo& _fine_info;
-    const LatticeInfo& _coarse_info;
+    const LatticeInfo _fine_info;
+    const LatticeInfo _coarse_info;
     const std::vector<Block>& _my_blocks;
     const std::vector<std::shared_ptr<QPhiXSpinorF>>& _vecs;
     EOLinearOperator<QPhiXSpinorF, QPhiXGaugeF>& _M_fine;

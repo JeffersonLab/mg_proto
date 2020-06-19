@@ -157,7 +157,7 @@ private:
 	IndexArray _cb_lat_dims;
 	IndexType _n_color;
 	IndexType _n_spin;
-	const NodeInfo& _node_info;			   	   // The Node Info -- copied in
+	const NodeInfo _node_info;			   	   // The Node Info -- copied in
 	IndexType _n_sites;                          // The total number of sites
 	IndexType _n_cb_sites;
 	IndexType _sum_orig_coords;
