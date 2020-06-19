@@ -18,6 +18,7 @@
 #include "lattice/mg_level_coarse.h"
 #include "lattice/solver.h"
 #include "utils/timer.h"
+#include "lattice/coarse/coarse_deflation.h"
 
 #include "lattice/qphix/qphix_clover_linear_operator.h"
 #include "lattice/qphix/qphix_eo_clover_linear_operator.h"
@@ -91,17 +92,36 @@ namespace MG {
     }
 
 
-    for(int k=0; k < num_vecs; ++k ) {
-      std::vector<LinearSolverResults> res = (*(fine_level.null_solver))(*(fine_level.null_vecs[k]),b, ABSOLUTE);
-      assert(res.size() == 1);
+    if (params.RsdTarget > 0) {
+      for(int k=0; k < num_vecs; ++k ) {
+        std::vector<LinearSolverResults> res = (*(fine_level.null_solver))(*(fine_level.null_vecs[k]),b, ABSOLUTE);
+        assert(res.size() == 1);
 
-      double norm2_cb0 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_EVEN)[0]);
-      double norm2_cb1 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_ODD)[0]);
+        double norm2_cb0 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_EVEN)[0]);
+        double norm2_cb1 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_ODD)[0]);
 
-      MasterLog(INFO,"MG Level 0: BiCGStab Solver Took: %d iterations: || v_e ||=%16.8e || v_o ||=%16.8e",res[0].n_count,
-    		  norm2_cb0, norm2_cb1);
+        MasterLog(INFO,"MG Level 0: BiCGStab Solver Took: %d iterations: || v_e ||=%16.8e || v_o ||=%16.8e",res[0].n_count,
+      		  norm2_cb0, norm2_cb1);
+      }
+    } else {
+      params.RsdTarget = fabs(params.RsdTarget);
+      std::vector<float> vals;
+      EigsParams eigs_params;
+      eigs_params.MaxIter = 0;
+      eigs_params.MaxNumEvals = num_vecs;
+      eigs_params.RsdTarget = params.RsdTarget;
+      eigs_params.VerboseP = true;
+      std::shared_ptr<SpinorT> x;
+      computeDeflation(*(fine_level.info), *fine_level.null_solver, eigs_params, x, vals);
+      for(int k=0; k < num_vecs; ++k ) {
+        CopyVec(*fine_level.null_vecs[k], 0, 1, *x, k, SUBSET_ALL);
+        double norm2_cb0 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_EVEN)[0]);
+        double norm2_cb1 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_ODD)[0]);
+
+        MasterLog(INFO,"MG Level 0: BiCGStab Solver Took: %d iterations: || v_e ||=%16.8e || v_o ||=%16.8e", -1,
+      		  norm2_cb0, norm2_cb1);
+      }
     }
-
 
   }
 

@@ -20,6 +20,7 @@
 #include "utils/timer.h"
 #include "lattice/coarse/coarse_wilson_clover_linear_operator.h"
 #include "lattice/coarse/coarse_eo_wilson_clover_linear_operator.h"
+#include "lattice/coarse/coarse_deflation.h"
 
 namespace MG {
   template<typename SolverT, typename LinOpT>
@@ -59,27 +60,40 @@ namespace MG {
     params.VerboseP = p.null_solver_verboseP[fine_level_id];
 
 
-    fine_level.null_solver = std::make_shared<typename CoarseLevelT::Solver>(M_fine, params);
-
     // Zero RHS and randomize the initial guess
     const LatticeInfo& fine_info = *(fine_level.info);
     int num_vecs = p.n_vecs[fine_level_id];
 
-    CoarseSpinor b(fine_info, num_vecs);
-    ZeroVec(b);
-    CoarseSpinor x(fine_info, num_vecs);
-    Gaussian(x);
+    std::shared_ptr<CoarseSpinor> x;
+    if (params.RsdTarget > 0) {
+      x = std::make_shared<CoarseSpinor>(fine_info, num_vecs);
+      CoarseSpinor b(fine_info, num_vecs);
+      ZeroVec(b);
+      Gaussian(*x);
 
-    // Solve the linear systems
-    std::vector<LinearSolverResults> res = (*(fine_level.null_solver))(x,b, ABSOLUTE);
-    assert(res.size() == num_vecs);
+      fine_level.null_solver = std::make_shared<typename CoarseLevelT::Solver>(M_fine, params);
+
+      // Solve the linear systems
+      std::vector<LinearSolverResults> res = (*(fine_level.null_solver))(*x,b, ABSOLUTE);
+      assert(res.size() == num_vecs);
+      if (num_vecs > 0) MasterLog(INFO, "Level %d: Solver Took: %d iterations",fine_level_id, res[0].n_count);
+    } else {
+      params.RsdTarget = fabs(params.RsdTarget);
+      fine_level.null_solver = std::make_shared<typename CoarseLevelT::Solver>(M_fine, params);
+      std::vector<float> vals;
+      EigsParams eigs_params;
+      eigs_params.MaxIter = 0;
+      eigs_params.MaxNumEvals = num_vecs;
+      eigs_params.RsdTarget = params.RsdTarget;
+      eigs_params.VerboseP = true;
+      computeDeflation(fine_info, *fine_level.null_solver, eigs_params, x, vals);
+    }
 
     // Generate individual vectors
     fine_level.null_vecs.resize(num_vecs);
     for(int k=0; k < num_vecs; ++k) {
       fine_level.null_vecs[k] = std::make_shared<CoarseSpinor>(fine_info);
-      CopyVec(*fine_level.null_vecs[k], 0, 1, x, k, SUBSET_ALL);
-      MasterLog(INFO, "Level %d: Solver Took: %d iterations",fine_level_id, res[k].n_count);
+      CopyVec(*fine_level.null_vecs[k], 0, 1, *x, k, SUBSET_ALL);
     }
 
     IndexArray blocked_lattice_dims;
