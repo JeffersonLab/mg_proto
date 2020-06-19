@@ -84,6 +84,7 @@ public:
 
  private:
 
+    const LatticeInfo& _info;
     const LinearSolverParamsBase& _params;
     QPhiXBiCGStabT<FT> bicg_solver;
     QPhiXUnprecSolverT<FT> solver_wrapper;
