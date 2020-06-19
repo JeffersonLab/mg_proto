@@ -27,7 +27,8 @@ class BiCGStabSolverQPhiXT : public LinearSolver<QPhiXSpinorT<FT>,QPhiXGaugeT<FT
 public:
 
   BiCGStabSolverQPhiXT(QPhiXWilsonCloverLinearOperatorT<FT>& M,
-                       const LinearSolverParamsBase& params) : _params(params),
+                       const LinearSolverParamsBase& params) :
+                           _info(M.GetInfo()), _params(params),
                            bicg_solver( M.getQPhiXOp(),params.MaxIter),
                            solver_wrapper(bicg_solver,M.getQPhiXOp())
 
@@ -35,7 +36,8 @@ public:
   {}
 
   BiCGStabSolverQPhiXT(QPhiXWilsonCloverEOLinearOperatorT<FT>& M,
-                        const LinearSolverParamsBase& params) : _params(params),
+                        const LinearSolverParamsBase& params) :
+                            _info(M.GetInfo()), _params(params),
                             bicg_solver( M.getQPhiXOp(),params.MaxIter),
                             solver_wrapper(bicg_solver,M.getQPhiXOp())
 
@@ -77,8 +79,8 @@ public:
 
   }
 
-  const LatticeInfo& GetInfo() const { throw std::runtime_error("Not implemented!"); }
-  const CBSubset& GetSubset() const { return SUBSET_ODD; }
+  const LatticeInfo& GetInfo() const { return _info; }
+  const CBSubset& GetSubset() const { return SUBSET_ALL; }
 
  private:
 
