@@ -35,7 +35,7 @@ namespace MG {
 		}
 
 		// Auxiliary function for the matvec
-		template<typename LinOpT> struct PrimmeMatrixMatvec {
+		template<typename Spinor, typename LinOpT> struct PrimmeMatrixMatvec {
 			static void fun(void *x, PRIMME_INT *ldx, void *y, PRIMME_INT *ldy,
 					int *blockSize, primme_params *primme, int *ierr)
 			{
@@ -47,8 +47,8 @@ namespace MG {
 
 				LinOpT *M = (LinOpT*)primme->matrix;
 
-				std::shared_ptr<CoarseSpinor> xs = M->tmp(M->GetInfo(), *blockSize);
-				std::shared_ptr<CoarseSpinor> ys = M->tmp(M->GetInfo(), *blockSize);
+				std::shared_ptr<Spinor> xs = M->tmp(M->GetInfo(), *blockSize);
+				std::shared_ptr<Spinor> ys = M->tmp(M->GetInfo(), *blockSize);
 
 				PutColumns((const float*)x, *ldx*2, *xs, M->GetSubset());
 				ZeroVec(*ys, M->GetSubset());
@@ -82,8 +82,8 @@ namespace MG {
 	 * are the left singular vectors, and |values[i]| are the singular value.
 	 */
 
-  	template<typename LinOpT>
-	void computeDeflation(const LatticeInfo& info, const LinOpT& M, EigsParams eigs_params, std::shared_ptr<CoarseSpinor>& V, std::vector<float>& values)
+  	template<typename Spinor, typename LinOpT>
+	void computeDeflation(const LatticeInfo& info, const LinOpT& M, EigsParams eigs_params, std::shared_ptr<Spinor>& V, std::vector<float>& values)
 	{
 		const CBSubset& cbsubset = M.GetSubset();
 		size_t nLocal = (size_t)info.GetNumColorSpins()*info.GetNumCBSites()*(cbsubset.end - cbsubset.start);
@@ -130,7 +130,7 @@ namespace MG {
 		primme.numTargetShifts = 1;
 
 		// Set operator
-		primme.matrixMatvec = PrimmeMatrixMatvec<LinOpT>::fun;
+		primme.matrixMatvec = PrimmeMatrixMatvec<Spinor,LinOpT>::fun;
 		primme.matrix = (void*)&M;
 
 		// primme.locking = 0;
@@ -168,7 +168,7 @@ namespace MG {
 		}
 
 		// Copy evecs to V
-		V = std::make_shared<CoarseSpinor>(info, primme.initSize);
+		V = std::make_shared<Spinor>(info, primme.initSize);
 		ZeroVec(*V);
 		PutColumns((const float*)evecs, nLocal*2, *V, cbsubset);
 
@@ -186,11 +186,11 @@ namespace MG {
 			std::vector<double> Vnorms2 = Norm2Vec(*V, cbsubset);
 			for (unsigned int i=0; i<nEv; i++)
 				assert(fabs(std::sqrt(Vnorms2[i]) - 1.0) <= 1e-5);
-			std::shared_ptr<CoarseSpinor> MV = M.tmp(info, nEv);
+			std::shared_ptr<Spinor> MV = M.tmp(info, nEv);
 			ZeroVec(*MV);
 			M(*MV, *V);
 			Gamma5Vec(*MV, cbsubset);
-			std::shared_ptr<CoarseSpinor> Vvalues = M.tmp(info, nEv);
+			std::shared_ptr<Spinor> Vvalues = M.tmp(info, nEv);
 			ZeroVec(*Vvalues);
 			AxpyVec(values, *V, *Vvalues, cbsubset);
 			std::vector<double> resnorms2 = XmyNorm2Vec(*MV, *Vvalues, cbsubset);
@@ -203,8 +203,8 @@ namespace MG {
 #else
 
 namespace MG {
-  	template<typename LinOpT>
-	void computeDeflation(const LatticeInfo& info, const LinOpT& M, EigsParams eigs_params, std::shared_ptr<CoarseSpinor>& V, std::vector<float>& values) {
+  	template<typename Spinor, typename LinOpT>
+	void computeDeflation(const LatticeInfo& info, const LinOpT& M, EigsParams eigs_params, std::shared_ptr<Spinor>& V, std::vector<float>& values) {
 		(void)info;
 		(void)M;
 		(void)eigs_params;
