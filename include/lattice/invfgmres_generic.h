@@ -220,7 +220,7 @@ template<typename ST, typename GT>
   FGMRESSolverGeneric(const LinearOperator<ST,GT>& A,
       const MG::LinearSolverParamsBase& params,
       const LinearSolver<ST,GT>* M_prec=nullptr)  : _A(A), _info(A.GetInfo()),
-      _params(static_cast<const FGMRESParams&>(params)), _M_prec(M_prec)
+      _params(set_params_defaults(params)), _M_prec(M_prec)
   {
 
     const CBSubset& subset = A.GetSubset();
@@ -237,6 +237,14 @@ template<typename ST, typename GT>
   const CBSubset& GetSubset() const { return _A.GetSubset(); }
 
 private:
+
+  static LinearSolverParamsBase set_params_defaults(const LinearSolverParamsBase& params) {
+    LinearSolverParamsBase p(params);
+    if (p.MaxIter < 0) p.MaxIter = 100;
+    if (p.NKrylov <= 0) p.NKrylov = 8;
+    if (p.RsdTarget <= 0) p.RsdTarget = 1e-3;
+    return p;
+  }
 
   void initialize(IndexType ncol) const {  
     if ((int)H_.size() == ncol) return;
@@ -447,7 +455,10 @@ public:
             resid_type);
 
         int iters_this_cycle = dim;
-        for (int col=0; col < ncol; ++col) LeastSquaresSolve(H_[col],c_[col],eta_[col], dim); // Solve Least Squares System
+        assert(dim > 0);
+        if (dim > 0)
+          for (int col=0; col < ncol; ++col)
+            LeastSquaresSolve(H_[col],c_[col],eta_[col], dim); // Solve Least Squares System
 
         // Compute the correction dx = sum_j  eta_j Z_j
         //LatticeFermion dx = zero;                         // BLAS: ZERO
@@ -545,7 +556,7 @@ public:
   private:
     const LinearOperator<ST,GT>& _A;
     const LatticeInfo _info;
-    const FGMRESParams _params;
+    const LinearSolverParamsBase _params;
     const LinearSolver<ST,GT>* _M_prec;
 
     // These can become state variables, as they will need to be

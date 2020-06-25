@@ -211,7 +211,7 @@ namespace QDPFGMRES {
 
 FGMRESSolverQDPXX::FGMRESSolverQDPXX(const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix> >& A,
 			 const MG::LinearSolverParamsBase& params,
-			 const LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix>>* M_prec) : _A(A), _params(static_cast<const FGMRESParams&>(params)), _M_prec(M_prec)
+			 const LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix>>* M_prec) : _A(A), _params(params), _M_prec(M_prec)
   {
 	// Initialize stuff
 	InitMatrices();

@@ -42,10 +42,7 @@ void SetupQDPXXToCoarseGenerateVecs(const SetupParams& p, std::shared_ptr<const 
     }
   // Null solver is BiCGStab. Let us make a parameter struct for it.
     fine_level.M = M_fine;
-    LinearSolverParamsBase params;
-    params.MaxIter = p.null_solver_max_iter[0];
-    params.RsdTarget = p.null_solver_rsd_target[0];
-    params.VerboseP = p.null_solver_verboseP[0];
+    LinearSolverParamsBase params = p.null_solver_params[0];
 
     fine_level.null_solver = std::make_shared<BiCGStabSolverQDPXX>(*M_fine, params);
 
@@ -92,12 +89,7 @@ void SetupQDPXXToCoarseVecsIn(const SetupParams& p, std::shared_ptr<const QDPWil
   }
 
   if( ! fine_level.null_solver ) {
-    LinearSolverParamsBase params;
-    params.MaxIter = p.null_solver_max_iter[0];
-    params.RsdTarget = p.null_solver_rsd_target[0];
-    params.VerboseP = p.null_solver_verboseP[0];
-
-    fine_level.null_solver = std::make_shared<BiCGStabSolverQDPXX>(*M_fine, params);
+    fine_level.null_solver = std::make_shared<BiCGStabSolverQDPXX>(*M_fine, p.null_solver_params[0]);
   }
 
 

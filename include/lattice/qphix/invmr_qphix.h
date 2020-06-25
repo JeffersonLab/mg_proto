@@ -96,7 +96,7 @@ public:
                            mr_solver( M.getQPhiXOp(), params.MaxIter, params.Omega),
                            solver_wrapper(mr_solver, M.getQPhiXOp()) {}
 
-  MRSmootherQPhiXT(std::shared_ptr<QPhiXWilsonCloverLinearOperatorT<FT>> M, const MRSolverParams& params) : _params(params),
+  MRSmootherQPhiXT(const std::shared_ptr<const QPhiXWilsonCloverLinearOperatorT<FT>>& M, const MRSolverParams& params) : _params(params),
           mr_solver( M->getQPhiXOp(), params.MaxIter, params.Omega),
           solver_wrapper(mr_solver, M->getQPhiXOp()) {}
 
@@ -104,7 +104,7 @@ public:
                            mr_solver( M.getQPhiXOp(), params.MaxIter, params.Omega),
                            solver_wrapper(mr_solver, M.getQPhiXOp()) {}
 
-  MRSmootherQPhiXT(std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorT<FT>> M, const MRSolverParams& params)  : _params(params),
+  MRSmootherQPhiXT(const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorT<FT>>& M, const MRSolverParams& params)  : _params(params),
           mr_solver( M->getQPhiXOp(), params.MaxIter, params.Omega),
           solver_wrapper(mr_solver, M->getQPhiXOp()) {}
 
@@ -163,7 +163,7 @@ public:
     MRSmootherQPhiXTEO(QPhiXWilsonCloverEOLinearOperatorT<FT>& M, const MRSolverParams& params) : _params(params),
                              mr_smoother( M.getQPhiXOp(), params.MaxIter, params.Omega) {}
 
-    MRSmootherQPhiXTEO(const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorT<FT>> M, const MRSolverParams& params) : _params(params),
+    MRSmootherQPhiXTEO(const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorT<FT>> M, const MRSolverParams& params) : _params(params),
                                mr_smoother( M->getQPhiXOp(), params.MaxIter, params.Omega) {}
 
 

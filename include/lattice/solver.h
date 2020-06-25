@@ -79,10 +79,12 @@ namespace MG {
 		double RsdTarget;
 		int MaxIter;
 		bool VerboseP;
+		int NKrylov;
 		LinearSolverParamsBase() {
+			RsdTarget = 0.0;
 			MaxIter=-1;
 			VerboseP=false;
-
+			NKrylov = 0;
 		}
 	};
 

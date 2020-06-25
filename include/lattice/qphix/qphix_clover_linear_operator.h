@@ -226,11 +226,10 @@ public:
       QPhiXEOClov->DslashDir(spinor_out.get(col),spinor_in.get(col),dir);
   }
 
-  QPhiXClovOpT<FT>& getQPhiXOp()
+  QPhiXClovOpT<FT>& getQPhiXOp() const
   {
     return *QPhiXEOClov;
   }
-
 
   void generateCoarse(const std::vector<Block>& blocklist,
       const std::vector<std::shared_ptr<Spinor>>& in_vecs,

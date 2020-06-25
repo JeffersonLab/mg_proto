@@ -8,10 +8,13 @@
 #ifndef INCLUDE_LATTICE_QPHIX_INVFGMRES_QPHIX_H_
 #define INCLUDE_LATTICE_QPHIX_INVFGMRES_QPHIX_H_
 
-#include  "lattice/qphix/qphix_types.h"
-#include  "lattice/qphix/qphix_blas_wrappers.h"
-#include  "lattice/invfgmres_generic.h"
-#include  "lattice/unprec_solver_wrappers.h"
+#include "lattice/qphix/qphix_types.h"
+#include "lattice/qphix/qphix_blas_wrappers.h"
+#include "lattice/invfgmres_generic.h"
+#include "lattice/unprec_solver_wrappers.h"
+#include "lattice/qphix/qphix_clover_linear_operator.h"
+#include "lattice/qphix/qphix_eo_clover_linear_operator.h"
+#include <memory>
 
 namespace MG {
 
@@ -21,6 +24,20 @@ namespace MG {
   using UnprecFGMRESSolverQPhiXWrapper =  UnprecLinearSolverWrapper<QPhiXSpinor,QPhiXGauge,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor,QPhiXGauge>>;
   using UnprecFGMRESSolverQPhiXFWrapper =  UnprecLinearSolverWrapper<QPhiXSpinorF,QPhiXGaugeF,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor,QPhiXGauge>>;
 
+  // Null space solvers
+  template<typename LinOp> class NullSolverFGMRES;
+
+  template<typename FT> class NullSolverFGMRES<QPhiXWilsonCloverLinearOperatorT<FT>> : public FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>> {
+    public:
+    NullSolverFGMRES<QPhiXWilsonCloverLinearOperatorT<FT>>(const std::shared_ptr<const QPhiXWilsonCloverLinearOperatorT<FT>>& M_fine, const LinearSolverParamsBase& params) :
+      FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>(M_fine, params) {}
+  };
+
+  template<typename FT> class NullSolverFGMRES<QPhiXWilsonCloverEOLinearOperatorT<FT>> : public UnprecLinearSolverWrapper<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>> {
+    public:
+    NullSolverFGMRES<QPhiXWilsonCloverEOLinearOperatorT<FT>>(const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorT<FT>>& M_fine, const LinearSolverParamsBase& params) :
+      UnprecLinearSolverWrapper<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>>(M_fine, params) {}
+  };
 }
 
 

@@ -243,7 +243,7 @@ class VCycleQPhiXCoarse2 :
         const LatticeInfo& coarse_info,
         const std::vector<Block>& my_blocks,
         const std::vector<std::shared_ptr<QPhiXSpinorF>>& vecs,
-        LinearOperator<QPhiXSpinorF,QPhiXGaugeF>& M_fine,
+        const LinearOperator<QPhiXSpinorF,QPhiXGaugeF>& M_fine,
         const Smoother<QPhiXSpinorF,QPhiXGaugeF>& pre_smoother,
         const Smoother<QPhiXSpinorF,QPhiXGaugeF>& post_smoother,
         const LinearSolver<CoarseSpinor,CoarseGauge>& bottom_solver,
@@ -275,7 +275,7 @@ class VCycleQPhiXCoarse2 :
     const LatticeInfo _coarse_info;
     const std::vector<Block>& _my_blocks;
     const std::vector<std::shared_ptr<QPhiXSpinorF>>& _vecs;
-    LinearOperator<QPhiXSpinorF, QPhiXGaugeF>& _M_fine;
+    const LinearOperator<QPhiXSpinorF, QPhiXGaugeF>& _M_fine;
     const Smoother<QPhiXSpinorF,QPhiXGaugeF>& _pre_smoother;
     const Smoother<QPhiXSpinorF,QPhiXGaugeF>& _post_smoother;
     const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
@@ -483,7 +483,7 @@ class VCycleQPhiXCoarseEO2 :
         const LatticeInfo& coarse_info,
         const std::vector<Block>& my_blocks,
         const std::vector<std::shared_ptr<QPhiXSpinorF>>& vecs,
-        EOLinearOperator<QPhiXSpinorF,QPhiXGaugeF>& M_fine,
+        const EOLinearOperator<QPhiXSpinorF,QPhiXGaugeF>& M_fine,
         const Smoother<QPhiXSpinorF,QPhiXGaugeF>& pre_smoother,
         const Smoother<QPhiXSpinorF,QPhiXGaugeF>& post_smoother,
         const LinearSolver<CoarseSpinor,CoarseGauge>& bottom_solver,
@@ -506,7 +506,7 @@ class VCycleQPhiXCoarseEO2 :
     const LatticeInfo _coarse_info;
     const std::vector<Block>& _my_blocks;
     const std::vector<std::shared_ptr<QPhiXSpinorF>>& _vecs;
-    EOLinearOperator<QPhiXSpinorF, QPhiXGaugeF>& _M_fine;
+    const EOLinearOperator<QPhiXSpinorF, QPhiXGaugeF>& _M_fine;
     const Smoother<QPhiXSpinorF,QPhiXGaugeF>& _pre_smoother;
     const Smoother<QPhiXSpinorF,QPhiXGaugeF>& _post_smoother;
     const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
@@ -737,7 +737,7 @@ class VCycleQPhiXCoarseEO3 :
         const LatticeInfo& coarse_info,
         const std::vector<Block>& my_blocks,
         const std::vector<std::shared_ptr<QPhiXSpinorF>>& vecs,
-        EOLinearOperator<QPhiXSpinorF,QPhiXGaugeF>& M_fine,
+        const EOLinearOperator<QPhiXSpinorF,QPhiXGaugeF>& M_fine,
         const Smoother<QPhiXSpinorF,QPhiXGaugeF>& pre_smoother,
         const Smoother<QPhiXSpinorF,QPhiXGaugeF>& post_smoother,
         const LinearSolver<CoarseSpinor,CoarseGauge>& bottom_solver,
@@ -769,7 +769,7 @@ class VCycleQPhiXCoarseEO3 :
     const LatticeInfo _coarse_info;
     const std::vector<Block>& _my_blocks;
     const std::vector<std::shared_ptr<QPhiXSpinorF>>& _vecs;
-    EOLinearOperator<QPhiXSpinorF, QPhiXGaugeF>& _M_fine;
+    const EOLinearOperator<QPhiXSpinorF, QPhiXGaugeF>& _M_fine;
     const Smoother<QPhiXSpinorF,QPhiXGaugeF>& _pre_smoother;
     const Smoother<QPhiXSpinorF,QPhiXGaugeF>& _post_smoother;
     const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;

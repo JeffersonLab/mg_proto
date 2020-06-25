@@ -11,6 +11,7 @@
 
 #include <MG_config.h>
 #include <lattice/qphix/invbicgstab_qphix.h>
+#include <lattice/qphix/invfgmres_qphix.h>
 #include <memory>
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/coarse/block.h"
@@ -33,7 +34,7 @@ namespace MG {
     std::vector<std::shared_ptr<SpinorT> > null_vecs; // NULL Vectors -- in single prec
     std::vector<Block> blocklist;
     std::shared_ptr<  const SolverT > null_solver;           // Solver for NULL on this level;
-    std::shared_ptr<  LinOpT> M;
+    std::shared_ptr< const LinOpT> M;
 
   ~MGLevelQPhiXT() {}
   };
@@ -50,7 +51,7 @@ namespace MG {
 
 
   template<typename SpinorT, typename SolverT, typename LinOpT, typename CoarseLevelT>
-  void SetupQPhiXToCoarseGenerateVecsT(const SetupParams& p,  std::shared_ptr<LinOpT> M_fine,
+  void SetupQPhiXToCoarseGenerateVecsT(const SetupParams& p,  std::shared_ptr<const LinOpT> M_fine,
                 MGLevelQPhiXT<SpinorT,SolverT,LinOpT>& fine_level,
   			  CoarseLevelT& coarse_level)
   {
@@ -68,12 +69,7 @@ namespace MG {
 
 
     // Null solver is BiCGStabF. Let us make a parameter struct for it.
-    LinearSolverParamsBase params;
-    params.MaxIter = p.null_solver_max_iter[0];
-    params.RsdTarget = p.null_solver_rsd_target[0];
-    params.VerboseP = p.null_solver_verboseP[0];
-
-    fine_level.null_solver = std::make_shared<const SolverT>(*M_fine, params);
+    LinearSolverParamsBase params = p.null_solver_params[0];
 
     // Zero RHS
     SpinorT b(*(fine_level.info));
@@ -93,6 +89,8 @@ namespace MG {
 
 
     if (params.RsdTarget > 0) {
+      fine_level.null_solver = std::make_shared<const SolverT>(*M_fine, params);
+
       for(int k=0; k < num_vecs; ++k ) {
         std::vector<LinearSolverResults> res = (*(fine_level.null_solver))(*(fine_level.null_vecs[k]),b, ABSOLUTE);
         assert(res.size() == 1);
@@ -105,6 +103,8 @@ namespace MG {
       }
     } else {
       params.RsdTarget = fabs(params.RsdTarget);
+      //UnprecLinearSolverWrapper<QPhiXSpinorF,QPhiXGaugeF,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorF,QPhiXGaugeF>> null_solver(M_fine, params, nullptr);
+      NullSolverFGMRES<LinOpT> null_solver(M_fine, params);
       std::vector<float> vals;
       EigsParams eigs_params;
       eigs_params.MaxIter = 0;
@@ -112,7 +112,7 @@ namespace MG {
       eigs_params.RsdTarget = params.RsdTarget;
       eigs_params.VerboseP = true;
       std::shared_ptr<SpinorT> x;
-      computeDeflation(*(fine_level.info), *fine_level.null_solver, eigs_params, x, vals);
+      computeDeflation(*fine_level.info, null_solver, eigs_params, x, vals);
       for(int k=0; k < num_vecs; ++k ) {
         CopyVec(*fine_level.null_vecs[k], 0, 1, *x, k, SUBSET_ALL);
         double norm2_cb0 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_EVEN)[0]);
@@ -126,7 +126,7 @@ namespace MG {
   }
 
   template<typename SpinorT, typename SolverT, typename LinOpT, typename CoarseLevelT>
-  void SetupQPhiXToCoarseVecsInT(const SetupParams& p,  std::shared_ptr<LinOpT> M_fine,
+  void SetupQPhiXToCoarseVecsInT(const SetupParams& p,  std::shared_ptr<const LinOpT> M_fine,
                 MGLevelQPhiXT<SpinorT,SolverT,LinOpT>& fine_level,
                 CoarseLevelT& coarse_level)
   {
@@ -141,12 +141,7 @@ namespace MG {
 
     if( ! fine_level.null_solver) {
       // Null solver is BiCGStabF. Let us make a parameter struct for it.
-       LinearSolverParamsBase params;
-       params.MaxIter = p.null_solver_max_iter[0];
-       params.RsdTarget = p.null_solver_rsd_target[0];
-       params.VerboseP = p.null_solver_verboseP[0];
-
-       fine_level.null_solver = std::make_shared<const SolverT>(*M_fine, params);
+       fine_level.null_solver = std::make_shared<const SolverT>(*M_fine, p.null_solver_params[0]);
     }
 
     int num_vecs = p.n_vecs[0];
@@ -208,7 +203,7 @@ namespace MG {
 
   template<typename SpinorT, typename SolverT, typename LinOpT, typename CoarseLevelT>
   void SetupQPhiXToCoarseT(const SetupParams& p,
-  		  	  const std::shared_ptr<LinOpT>& M_fine,
+  		  	  const std::shared_ptr<const LinOpT>& M_fine,
                  MGLevelQPhiXT<SpinorT, SolverT, LinOpT>& fine_level,
   			   CoarseLevelT& coarse_level)
     {
@@ -219,7 +214,7 @@ namespace MG {
 
   template<typename SpinorT, typename SolverT, typename LinOpT, typename CoarseLevelT>
   void SetupQPhiXMGLevelsT(const SetupParams& p0, QPhiXMultigridLevelsT<SpinorT,SolverT,LinOpT,CoarseLevelT>& mg_levels,
- 			  const std::shared_ptr< LinOpT >& M_fine)
+ 			  const std::shared_ptr<const LinOpT >& M_fine)
  	  {
 
 		// Hack: add extra blocking of 1 1 1 1 to transfer the QPhiX operator as CoarseDiracOp
@@ -229,9 +224,11 @@ namespace MG {
 		p.n_levels++;
 		p.n_vecs.insert(p.n_vecs.begin(), 6);
 		p.block_sizes.insert(p.block_sizes.begin(), {{1,1,1,1}});
-		p.null_solver_max_iter.insert(p.null_solver_max_iter.begin(), 1);
-		p.null_solver_rsd_target.insert(p.null_solver_rsd_target.begin(), 0.1);
-		p.null_solver_verboseP.insert(p.null_solver_verboseP.begin(), false);
+		LinearSolverParamsBase lsparams;
+		lsparams.MaxIter = 1;
+		lsparams.RsdTarget = 0.1;
+		lsparams.VerboseP = false;
+		p.null_solver_params.insert(p.null_solver_params.begin(), lsparams);
 #endif
 
  		  mg_levels.n_levels = p.n_levels;
@@ -266,11 +263,11 @@ namespace MG {
    // Bodies in the .cpp file to avoid duplicate symbols
    void SetupQPhiXMGLevels(const SetupParams& p,
     		  QPhiXMultigridLevels& mg_levels,
-              const std::shared_ptr<QPhiXWilsonCloverLinearOperatorF>& M_fine);
+              const std::shared_ptr<const QPhiXWilsonCloverLinearOperatorF>& M_fine);
 
    void SetupQPhiXMGLevels(const SetupParams& p,
     		  QPhiXMultigridLevelsEO& mg_levels,
-              const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF>& M_fine);
+              const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF>& M_fine);
 
 
 }

@@ -318,7 +318,7 @@ public:
       QPhiXEOClov->DslashDir(spinor_out.get(col),spinor_in.get(col),dir);
   }
 
-  QPhiXClovOpT<FT>& getQPhiXOp()
+  QPhiXClovOpT<FT>& getQPhiXOp() const
   {
     return *QPhiXEOClov;
   }

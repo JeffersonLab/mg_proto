@@ -26,7 +26,7 @@ template<typename FT>
 class BiCGStabSolverQPhiXT : public LinearSolver<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>> {
 public:
 
-  BiCGStabSolverQPhiXT(QPhiXWilsonCloverLinearOperatorT<FT>& M,
+  BiCGStabSolverQPhiXT(const QPhiXWilsonCloverLinearOperatorT<FT>& M,
                        const LinearSolverParamsBase& params) :
                            _info(M.GetInfo()), _params(params),
                            bicg_solver( M.getQPhiXOp(),params.MaxIter),
@@ -35,7 +35,7 @@ public:
 
   {}
 
-  BiCGStabSolverQPhiXT(QPhiXWilsonCloverEOLinearOperatorT<FT>& M,
+  BiCGStabSolverQPhiXT(const QPhiXWilsonCloverEOLinearOperatorT<FT>& M,
                         const LinearSolverParamsBase& params) :
                             _info(M.GetInfo()), _params(params),
                             bicg_solver( M.getQPhiXOp(),params.MaxIter),
@@ -99,11 +99,11 @@ public:
   class BiCGStabSolverQPhiXTEO : public LinearSolver<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>> {
   public:
 
-    BiCGStabSolverQPhiXTEO(QPhiXWilsonCloverLinearOperatorT<FT>& M,
+    BiCGStabSolverQPhiXTEO(const QPhiXWilsonCloverLinearOperatorT<FT>& M,
                          const LinearSolverParamsBase& params) : _params(params),
                              bicg_solver( M.getQPhiXOp(),params.MaxIter)    {}
 
-    BiCGStabSolverQPhiXTEO(QPhiXWilsonCloverEOLinearOperatorT<FT>& M,
+    BiCGStabSolverQPhiXTEO(const QPhiXWilsonCloverEOLinearOperatorT<FT>& M,
                           const LinearSolverParamsBase& params) : _params(params),
                               bicg_solver( M.getQPhiXOp(),params.MaxIter)     {}
 

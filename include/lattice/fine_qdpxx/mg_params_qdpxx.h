@@ -18,7 +18,7 @@ namespace MG {
 struct VCycleParams {
 	// Pre Smoother Params
 	MRSolverParams pre_smoother_params;
-	FGMRESParams bottom_solver_params;
+	LinearSolverParamsBase bottom_solver_params;
 	MRSolverParams post_smoother_params;
 	LinearSolverParamsBase cycle_params;
 };
@@ -26,12 +26,8 @@ struct VCycleParams {
 struct SetupParams {
 	int n_levels;
 	std::vector<int> n_vecs;
-	std::vector< IndexArray > block_sizes;
-	std::vector< int > null_solver_max_iter;
-	std::vector< double > null_solver_rsd_target;
-	std::vector< bool > null_solver_verboseP;
-
-
+	std::vector<IndexArray> block_sizes;
+	std::vector<LinearSolverParamsBase> null_solver_params;
 };
 
 } // Namespace

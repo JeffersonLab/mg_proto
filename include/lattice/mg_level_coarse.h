@@ -53,12 +53,7 @@ namespace MG {
     // Info should already be created
 
     // Null solver is BiCGStab. Let us make a parameter struct for it.
-    LinearSolverParamsBase params;
-    params.MaxIter = p.null_solver_max_iter[fine_level_id];
-
-    params.RsdTarget = p.null_solver_rsd_target[fine_level_id];
-    params.VerboseP = p.null_solver_verboseP[fine_level_id];
-
+    LinearSolverParamsBase params = p.null_solver_params[fine_level_id];
 
     // Zero RHS and randomize the initial guess
     const LatticeInfo& fine_info = *(fine_level.info);

@@ -12,20 +12,4 @@
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
 
-namespace MG {
-
-//! Params for FGMRESDR inverter
- /*! \ingroup invert */
- struct FGMRESParams : public MG::LinearSolverParamsBase {
- public:
-	 int NKrylov;
- };
-
-
-
-}
-
-
-
-
 #endif /* TEST_QDPXX_FGMRES_COMMON_H_ */

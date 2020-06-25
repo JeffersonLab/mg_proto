@@ -14,7 +14,7 @@
 #include <memory>
 #include "lattice/qphix/qphix_eo_clover_linear_operator.h" // QPhiXWilsonCloverEOLinearOperatorF
 #include "lattice/eigs_common.h" // EigsParams
-#include "lattice/fine_qdpxx/mg_params_qdpxx.h" // SetupParams, FGMRESParams
+#include "lattice/fine_qdpxx/mg_params_qdpxx.h" // SetupParams
 #include "lattice/qphix/mg_level_qphix.h" // QPhiXMultigridLevels
 #include "lattice/coarse/invfgmres_coarse.h" // UnprecFGMRESSolverCoarseWrapper
 #include "lattice/qphix/qphix_types.h" // QPhiXSpinorF
@@ -55,7 +55,7 @@ namespace MG {
 			 *        of the inverse of the coarse operator.
 			 */
 
-			MGDeflation(const std::shared_ptr<LatticeInfo> info, const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF> M_fine, SetupParams p, FGMRESParams solver_params, EigsParams eigs_params)
+			MGDeflation(const std::shared_ptr<LatticeInfo> info, const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> M_fine, SetupParams p, LinearSolverParamsBase solver_params, EigsParams eigs_params)
 				: _info(info), _M_fine(M_fine)
 			{
 				// Setup multigrid
@@ -291,7 +291,7 @@ namespace MG {
 
 			const LatticeInfo& GetInfo() { return *_info; }
 
-			const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF> GetM() const { return _M_fine; }
+			const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> GetM() const { return _M_fine; }
 
 			unsigned int GetRank() { return _eigenvalues.size(); }
 
@@ -333,7 +333,7 @@ namespace MG {
 			}
 
 			const std::shared_ptr<LatticeInfo> _info;
-			const std::shared_ptr<QPhiXWilsonCloverEOLinearOperatorF> _M_fine;
+			const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> _M_fine;
 			QPhiXMultigridLevelsEO _mg_levels;
 			std::shared_ptr<CoarseSpinor> _eigenvectors; // eigenvectors of \gamma_5 * inv(A)
 			std::vector<float> _eigenvalues; // eigenvalues of \gamma_5 * inv(A)

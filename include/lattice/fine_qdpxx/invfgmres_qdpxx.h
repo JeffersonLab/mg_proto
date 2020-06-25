@@ -112,7 +112,7 @@ namespace MG {
 
   private:
     const LinearOperator<LatticeFermion,multi1d<LatticeColorMatrix>>& _A;
-    const FGMRESParams _params;
+    const LinearSolverParamsBase _params;
     const LinearSolver<LatticeFermion,multi1d<LatticeColorMatrix>>* _M_prec;
 
     // These can become state variables, as they will need to be
