@@ -16,6 +16,7 @@
 #include <lattice/coarse/coarse_types.h>
 #include <lattice/qphix/qphix_aggregate.h>
 #include <lattice/qphix/qphix_transfer.h>
+#include <stdexcept>
 #include "utils/auxiliary.h"
 #include "utils/timer.h"
 
@@ -28,12 +29,25 @@ namespace MG
 
 class VCycleQPhiXCoarse2 :
   public LinearSolver<QPhiXSpinor, QPhiXGauge >,
-  public AuxiliarySpinors<QPhiXSpinorF>
+  public LinearSolver<QPhiXSpinorF, QPhiXGaugeF >
 {
     using AuxQF = AuxiliarySpinors<QPhiXSpinorF>;
   public:
     std::vector<LinearSolverResults> operator()(QPhiXSpinor& out,
-        const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE ) const
+        const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE ) const override
+    {
+      return apply(out, in, resid_type);
+    }
+
+    std::vector<LinearSolverResults> operator()(QPhiXSpinorF& out,
+        const QPhiXSpinorF& in, ResiduumType resid_type = RELATIVE ) const override
+    {
+      return apply(out, in, resid_type);
+    }
+
+    template <class Spinor>
+    std::vector<LinearSolverResults> apply(Spinor& out,
+        const Spinor& in, ResiduumType resid_type = RELATIVE ) const
     {
       Timer::TimerAPI::startTimer("VCycleQPhiXCoarse2/()/level0");
 
@@ -291,11 +305,25 @@ class VCycleQPhiXCoarse2 :
 //
 
 class VCycleQPhiXCoarseEO2 :
-  public LinearSolver<QPhiXSpinor, QPhiXGauge >
+  public LinearSolver<QPhiXSpinor, QPhiXGauge >,
+  public LinearSolver<QPhiXSpinorF, QPhiXGaugeF >
 {
   public:
     std::vector<LinearSolverResults> operator()(QPhiXSpinor& out,
-        const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE ) const
+        const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE ) const override
+    {
+      return apply(out, in, resid_type);
+    }
+
+    std::vector<LinearSolverResults> operator()(QPhiXSpinorF& out,
+        const QPhiXSpinorF& in, ResiduumType resid_type = RELATIVE ) const override
+    {
+      return apply(out, in, resid_type);
+    }
+
+    template <class Spinor>
+    std::vector<LinearSolverResults> apply(Spinor& out,
+        const Spinor& in, ResiduumType resid_type = RELATIVE ) const
     {
       assert(out.GetNCol() == in.GetNCol());
       IndexType ncol = out.GetNCol();
@@ -517,11 +545,25 @@ class VCycleQPhiXCoarseEO2 :
 
 
 class VCycleQPhiXCoarseEO3 :
-  public LinearSolver<QPhiXSpinor, QPhiXGauge >
+  public LinearSolver<QPhiXSpinor, QPhiXGauge >,
+  public LinearSolver<QPhiXSpinorF, QPhiXGaugeF >
 {
   public:
     std::vector<LinearSolverResults> operator()(QPhiXSpinor& out,
-        const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE ) const
+        const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE ) const override
+    {
+      return apply(out, in, resid_type);
+    }
+
+    std::vector<LinearSolverResults> operator()(QPhiXSpinorF& out,
+        const QPhiXSpinorF& in, ResiduumType resid_type = RELATIVE ) const override
+    {
+      return apply(out, in, resid_type);
+    }
+
+    template <class Spinor>
+    std::vector<LinearSolverResults> apply(Spinor& out,
+        const Spinor& in, ResiduumType resid_type = RELATIVE ) const
     {
       assert(out.GetNCol() == in.GetNCol());
       IndexType ncol = out.GetNCol();

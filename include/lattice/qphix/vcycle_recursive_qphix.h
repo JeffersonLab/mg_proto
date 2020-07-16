@@ -25,7 +25,8 @@ using namespace QDP;
 
 namespace MG {
 template<typename QPhiXMGLevelsT, typename Fine2CoarseVCycleT, typename Coarse2CoarseVCycleT, typename FineSmootherT, typename CoarseSmootherT, typename BottomSolverT>
-class VCycleRecursiveQPhiXT :  public LinearSolver<QPhiXSpinor, QPhiXGauge >
+class VCycleRecursiveQPhiXT :  public LinearSolver<QPhiXSpinor, QPhiXGauge>, public LinearSolver<QPhiXSpinorF, QPhiXGaugeF>
+
 {
 public:
 	static std::vector<VCycleParams> hackVcycle(const std::vector<VCycleParams>& vcycle_params0) {
@@ -146,6 +147,13 @@ public:
 		{
 			return (*_toplevel_vcycle )( out, in, resid_type );
 		}
+
+	std::vector<LinearSolverResults> operator()(QPhiXSpinorF& out, const QPhiXSpinorF& in,
+	    ResiduumType resid_type = RELATIVE ) const
+		{
+			return (*_toplevel_vcycle )( out, in, resid_type );
+		}
+
 
 	const LatticeInfo& GetInfo() const { return *_mg_levels.fine_level.info; }
 	const CBSubset& GetSubset() const { return SUBSET_ALL; }

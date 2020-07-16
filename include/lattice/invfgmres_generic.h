@@ -307,7 +307,7 @@ private:
 
 
 public:
-  FGMRESSolverGeneric(std::shared_ptr<const LinearOperator<ST,GT>> A,
+  FGMRESSolverGeneric(const std::shared_ptr<const LinearOperator<ST,GT>> A,
         const MG::LinearSolverParamsBase& params,
         const LinearSolver<ST,GT>* M_prec=nullptr)  : FGMRESSolverGeneric(*A,params,M_prec) {}
 

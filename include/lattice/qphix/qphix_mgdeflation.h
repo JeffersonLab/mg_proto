@@ -27,7 +27,7 @@ namespace MG {
 	/*
 	 * Deflate an approximate invariant subspace of the multigrid prolongator
 	 *
-	 * If V is a subset of the multigrid prolongatori P at the coarsest level on a
+	 * If V is a subset of the multigrid prolongator P at the coarsest level on a
 	 * linear operator A, then MGDeflation::operator()(out, in) does:
 	 *
 	 *   out = \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * A * in,
@@ -59,6 +59,7 @@ namespace MG {
 				: _info(info), _M_fine(M_fine)
 			{
 				// Setup multigrid
+				p.purpose = SetupParams::INVARIANT_SPACE;
 				SetupQPhiXMGLevels(p, _mg_levels, _M_fine);
 				if (_mg_levels.coarse_levels.size() <= 0)
 					return;
@@ -104,7 +105,8 @@ namespace MG {
 			 *   out = \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * A * in,
 			 */
 
-			void VVA(QPhiXSpinor& out, const QPhiXSpinor& in) const {
+			template<class Spinor>
+			void VVA(Spinor& out, const Spinor& in) const {
 				apply(out, in, true);
 			}
 
@@ -119,7 +121,8 @@ namespace MG {
 			 *   out = A * \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * in,
 			 */
 
-			void AVV(QPhiXSpinor& out, const QPhiXSpinor& in) const {
+			template<class Spinor>
+			void AVV(Spinor& out, const Spinor& in) const {
 				apply(out, in, false);
 			}
 
@@ -134,8 +137,25 @@ namespace MG {
 			 *   out = \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * A * in,
 			 */
 
-			void operator()(QPhiXSpinor& out, const QPhiXSpinor& in) const {
+			template<class Spinor>
+			void operator()(Spinor& out, const Spinor& in) const {
 				VVA(out, in);
+			}
+
+			/*
+			 * Apply the A^{-1} * P * in or P * A^{-1} * in.
+			 *
+			 * \param out: returned vectors
+			 * \param in: input vectors
+			 *
+			 * Return the results on 'out':
+			 *
+			 *   out = \gamma_5 * V * inv(V^H * A * \gamma_5 * V) * V^H * in,
+			 */
+
+			template<class Spinor>
+			void VV(Spinor& out, const Spinor& in) const {
+				apply(out, in, false, false);
 			}
 
 			/*
@@ -151,7 +171,8 @@ namespace MG {
 			 * It applies the deflation on the input vectors and return the results on 'out'.
 			 */
 
-			void apply(QPhiXSpinor& out, const QPhiXSpinor& in, bool do_VVA=true) const {
+			template<class Spinor>
+			void apply(Spinor& out, const Spinor& in, bool do_VVA=true, bool apply_A=true) const {
 				assert(out.GetNCol() == in.GetNCol());
 				IndexType ncol = out.GetNCol();
 
@@ -162,7 +183,7 @@ namespace MG {
 
 				// Ain = A * in if do_VVA else in
 				std::shared_ptr<QPhiXSpinorF> Ain_f;
-				if (do_VVA) {
+				if (apply_A && do_VVA) {
 					Ain_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
 					ZeroVec(*Ain_f, SUBSET_ALL);
 					_M_fine->unprecOp(*Ain_f, *in_f, LINOP_OP);
@@ -201,7 +222,7 @@ namespace MG {
 
 				// Aout_f = out_f if do_VVA else A*out_f
 				std::shared_ptr<QPhiXSpinorF> Aout_f;
-				if (do_VVA) {
+				if (!apply_A || do_VVA) {
 					Aout_f = out_f;
 				} else {
 					Aout_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
@@ -221,7 +242,8 @@ namespace MG {
 			 * \param out: output vectors
 			 */
 
-			void V(unsigned int i, QPhiXSpinor& out) const {
+			template<class Spinor>
+			void V(unsigned int i, Spinor& out) const {
 				assert(out.GetNCol() + i <= _eigenvectors->GetNCol());
 				IndexType ncol = out.GetNCol();
 
@@ -251,7 +273,8 @@ namespace MG {
 			 * \param out: output vectors
 			 */
 
-			void g5V(unsigned int i, QPhiXSpinor& out) const {
+			template<class Spinor>
+			void g5V(unsigned int i, Spinor& out) const {
 				assert(out.GetNCol() + i <= _eigenvectors->GetNCol());
 				IndexType ncol = out.GetNCol();
 

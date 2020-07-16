@@ -132,9 +132,9 @@ void CopyVec(QPhiXSpinor& x, int xcol0, int xcol1, const QPhiXSpinor& y, int yco
 void CopyVec(QPhiXSpinorF& x, int xcol0, int xcol1, const QPhiXSpinorF& y, int ycol0, const CBSubset& subset ) { CopyVecT(x, xcol0, xcol1, y, ycol0, subset); }
 
 
-template<typename ST>
+template<typename T, typename ST>
 inline
-void AxVecT(const std::vector<double> alpha, ST& x, const CBSubset& subset )
+void AxVecT(const std::vector<T>& alpha, ST& x, const CBSubset& subset )
 {
   const typename ST::GeomT& geom = x.getGeom();
   int n_blas_simt = geom.getNSIMT();
@@ -143,8 +143,10 @@ void AxVecT(const std::vector<double> alpha, ST& x, const CBSubset& subset )
     axSpinor<>(alpha[col], x.get(col),geom,n_blas_simt, subset.start, subset.end);
 }
 
-void AxVec(const std::vector<double> alpha, QPhiXSpinor& x,const CBSubset& subset) { AxVecT(alpha,x,subset); }
-void AxVec(const std::vector<double> alpha, QPhiXSpinorF& x, const CBSubset& subset) { AxVecT(alpha,x,subset); }
+void AxVec(const std::vector<double>& alpha, QPhiXSpinor& x,const CBSubset& subset) { AxVecT(alpha,x,subset); }
+void AxVec(const std::vector<double>& alpha, QPhiXSpinorF& x, const CBSubset& subset) { AxVecT(alpha,x,subset); }
+void AxVec(const std::vector<float>& alpha, QPhiXSpinor& x,const CBSubset& subset) { AxVecT(alpha,x,subset); }
+void AxVec(const std::vector<float>& alpha, QPhiXSpinorF& x, const CBSubset& subset) { AxVecT(alpha,x,subset); }
 
 
 template<typename ST, typename T>
@@ -232,6 +234,7 @@ void ConvertSpinorT(const S1& in, S2& out, const CBSubset& subset)
   const typename S2::GeomT& geom_out = out.getGeom();
   const double scale_factor = 1;
   const int n_blas_threads = geom_out.getNSIMT();
+  assert(in.GetNCol() == out.GetNCol());
   IndexType ncol = in.GetNCol();
 
   for (int col=0; col < ncol; ++col) {
@@ -253,6 +256,66 @@ void ConvertSpinor(const QPhiXSpinorF& in, QPhiXSpinor& out, const CBSubset& sub
   ConvertSpinorT(in,out,subset);
 }
 
+void ConvertSpinor(const QPhiXSpinorF& in, QPhiXSpinorF& out, const CBSubset& subset)
+{
+  CopyVec(out,in,subset);
+}
+
+void ConvertSpinor(const QPhiXSpinor& in, QPhiXSpinor& out, const CBSubset& subset)
+{
+  CopyVec(out,in,subset);
+}
+
+template<typename S1, typename S2>
+inline
+void ConvertCoarseSpinorT(const S1& in, S2& out, const CBSubset& subset)
+{
+  assert(in.GetNCol() == out.GetNCol());
+	const LatticeInfo& info = in.GetInfo();
+
+	IndexType num_cbsites = info.GetNumCBSites();
+	IndexType num_color = info.GetNumColors();
+	IndexType num_spin = info.GetNumSpins();
+	IndexType num_colorspin = num_color*num_spin;
+	IndexType ncol = in.GetNCol();
+
+#pragma omp parallel for collapse(3) schedule(static)
+	for(int cb=subset.start; cb < subset.end; ++cb ) {
+		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite ) {
+			for(int col = 0; col < ncol; ++col ) {
+
+				// Do over the colorspins
+#pragma omp simd
+				for(int color=0; color < num_color; ++color) {
+					for(int spin=0; spin < num_spin; ++spin) {
+						 out(col,cb,cbsite,spin,color,0) = in(col,cb,cbsite,spin,color,0);
+						 out(col,cb,cbsite,spin,color,1) = in(col,cb,cbsite,spin,color,1);
+					}
+				}
+			}
+		}
+	}
+}
+
+void ConvertSpinor(const CoarseSpinor& in, QPhiXSpinor& out, const CBSubset& subset)
+{
+  ConvertCoarseSpinorT(in, out, subset);
+}
+
+void ConvertSpinor(const CoarseSpinor& in, QPhiXSpinorF& out, const CBSubset& subset)
+{
+  ConvertCoarseSpinorT(in, out, subset);
+}
+
+void ConvertSpinor(const QPhiXSpinor& in, CoarseSpinor& out, const CBSubset& subset)
+{
+  ConvertCoarseSpinorT(in, out, subset);
+}
+
+void ConvertSpinor(const QPhiXSpinorF& in, CoarseSpinor& out, const CBSubset& subset)
+{
+  ConvertCoarseSpinorT(in, out, subset);
+}
 
 template<typename ST>
 inline

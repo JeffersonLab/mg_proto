@@ -82,6 +82,9 @@ namespace MG {
       eigs_params.RsdTarget = params.RsdTarget;
       eigs_params.VerboseP = true;
       computeDeflation(fine_info, *fine_level.null_solver, eigs_params, x, vals);
+      if (p.purpose == SetupParams::INVERT) {
+        ScaleVec(vals, *x);
+      }
     }
 
     // Generate individual vectors

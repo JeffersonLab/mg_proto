@@ -19,6 +19,29 @@ using namespace MG;
 
 namespace MG {
 
+	namespace {
+		/** Return the spin-color index
+		 *  \param num_spin: number of spins
+		 *  \param spin: spin index
+		 *  \param color: color index
+		 */
+
+		IndexType toColorSpin(IndexType num_spin, IndexType spin, IndexType color) {
+			return num_spin * color + spin;
+		}
+
+		/** Return the spin and color index from the spin-color index
+		 *  \param num_spin: number of spins
+		 *  \param colorspin: the spin-color index
+		 *  \param spin: (out) spin index
+		 *  \param color: (out) color index
+		 */
+
+		void fromColorSpin(IndexType num_spin, IndexType colorspin, IndexType& spin, IndexType& color) {
+			color = colorspin / num_spin;
+			spin = colorspin % num_spin;
+		}
+	}
 
 	/** Coarse Spinor
 	 *  \param LatticeInfo
@@ -91,7 +114,15 @@ namespace MG {
 				return &data[cb][site*_n_site_offset+col*_n_col_offset];
 			}
 
-		~CoarseSpinor()
+		inline const float& operator()(IndexType col, IndexType cb, IndexType cbsite, IndexType spin, IndexType color, int REIM) const {
+			return GetSiteDataPtr(col, cb, cbsite)[REIM + n_complex*toColorSpin(_n_spin, spin, color)];
+		}
+
+		inline float& operator()(IndexType col, IndexType cb, IndexType cbsite, IndexType spin, IndexType color, int REIM) {
+			return GetSiteDataPtr(col, cb, cbsite)[REIM + n_complex*toColorSpin(_n_spin, spin, color)];
+		}
+
+	~CoarseSpinor()
 		{
 			MemoryFree(data[0]);
 			MemoryFree(data[1]);
@@ -367,6 +398,15 @@ namespace MG {
 		{
 			return &diag_data[cb][site*_n_link_offset];
 		}
+
+		inline const float& GetSiteDiagData(IndexType cb, IndexType cbsite, IndexType col_spin, IndexType col_color, IndexType spin, IndexType color, int REIM) const {
+			return GetSiteDiagDataPtr(cb, cbsite)[REIM + n_complex*toColorSpin(_n_spin, spin, color) + _n_colorspin*n_complex*toColorSpin(_n_spin, col_spin, col_color)];
+		}
+
+		inline float& GetSiteDiagData(IndexType cb, IndexType cbsite, IndexType col_spin, IndexType col_color, IndexType spin, IndexType color, int REIM) {
+			return GetSiteDiagDataPtr(cb, cbsite)[REIM + n_complex*toColorSpin(_n_spin, spin, color) + _n_colorspin*n_complex*toColorSpin(_n_spin, col_spin, col_color)];
+		}
+
 
 		inline
 		float *GetSiteInvDiagDataPtr(IndexType cb, IndexType site)

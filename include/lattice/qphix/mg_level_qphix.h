@@ -103,7 +103,6 @@ namespace MG {
       }
     } else {
       params.RsdTarget = fabs(params.RsdTarget);
-      //UnprecLinearSolverWrapper<QPhiXSpinorF,QPhiXGaugeF,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorF,QPhiXGaugeF>> null_solver(M_fine, params, nullptr);
       NullSolverFGMRES<LinOpT> null_solver(M_fine, params);
       std::vector<float> vals;
       EigsParams eigs_params;
@@ -113,6 +112,9 @@ namespace MG {
       eigs_params.VerboseP = true;
       std::shared_ptr<SpinorT> x;
       computeDeflation(*fine_level.info, null_solver, eigs_params, x, vals);
+      if (p.purpose == SetupParams::INVERT) {
+        AxVec(vals, *x);
+      }
       for(int k=0; k < num_vecs; ++k ) {
         CopyVec(*fine_level.null_vecs[k], 0, 1, *x, k, SUBSET_ALL);
         double norm2_cb0 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_EVEN)[0]);

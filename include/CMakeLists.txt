@@ -1,5 +1,6 @@
 install (FILES lattice/array2d.h
 			   lattice/cmat_mult.h
+			   lattice/coloring.h
 			   lattice/constants.h
 			   lattice/givens.h
 			   lattice/fgmres_common.h 
@@ -74,6 +75,7 @@ install (FILES lattice/qphix/qphix_types.h
 						   lattice/qphix/qphix_aggregate.h
 						   lattice/qphix/qphix_transfer.h
 						   lattice/qphix/vcycle_qphix_coarse.h
+						   lattice/qphix/qphix_ali.h
 						   lattice/qphix/vcycle_recursive_qphix.h
 				 DESTINATION include/lattice/qphix)
 				 

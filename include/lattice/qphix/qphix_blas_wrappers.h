@@ -10,6 +10,8 @@
 
 #include "lattice/qphix/qphix_types.h"
 #include "lattice/coarse/subset.h"
+#include "lattice/coarse/coarse_types.h"
+
 namespace MG
 {
 
@@ -22,7 +24,8 @@ void ZeroVec(QPhiXSpinor& x, const CBSubset& subset = SUBSET_ALL);
 void CopyVec(QPhiXSpinor& x, const QPhiXSpinor& y, const CBSubset& subset = SUBSET_ALL);
 void CopyVec(QPhiXSpinor& x, int xcol0, int xcol1, const QPhiXSpinor& y, int ycol0, const CBSubset& subset = SUBSET_ALL);
 void CopyVec(QPhiXSpinorF& x, int xcol0, int xcol1, const QPhiXSpinorF& y, int ycol0, const CBSubset& subset = SUBSET_ALL);
-void AxVec(const std::vector<double> alpha, QPhiXSpinor& x,const CBSubset& subset = SUBSET_ALL);
+void AxVec(const std::vector<double>& alpha, QPhiXSpinor& x,const CBSubset& subset = SUBSET_ALL);
+void AxVec(const std::vector<float>& alpha, QPhiXSpinor& x,const CBSubset& subset = SUBSET_ALL);
 void AxpyVec(const std::vector<double>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y, const CBSubset& subset = SUBSET_ALL);
 void AxpyVec(const std::vector<std::complex<float>>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y,const CBSubset& subset = SUBSET_ALL);
 void AxpyVec(const std::vector<std::complex<double>>& alpha, const QPhiXSpinor& x, QPhiXSpinor& y,const CBSubset& subset = SUBSET_ALL);
@@ -38,7 +41,8 @@ std::vector<std::complex<double>> InnerProductVec(const QPhiXSpinorF& x, const Q
 void ZeroVec(QPhiXSpinorF& x,const CBSubset& subset = SUBSET_ALL);
 
 void CopyVec(QPhiXSpinorF& x, const QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
-void AxVec(const std::vector<double> alpha, QPhiXSpinorF& x,const CBSubset& subset = SUBSET_ALL);
+void AxVec(const std::vector<double>& alpha, QPhiXSpinorF& x,const CBSubset& subset = SUBSET_ALL);
+void AxVec(const std::vector<float>& alpha, QPhiXSpinorF& x,const CBSubset& subset = SUBSET_ALL);
 void AxpyVec(const std::vector<std::complex<float>>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
 void AxpyVec(const std::vector<std::complex<double>>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
 void AxpyVec(const std::vector<double>& alpha, const QPhiXSpinorF& x, QPhiXSpinorF& y,const CBSubset& subset = SUBSET_ALL);
@@ -53,10 +57,14 @@ void PutColumns(const double* y, size_t ld, QPhiXSpinor& x, const CBSubset& subs
 void Gamma5Vec(QPhiXSpinorF& x, const CBSubset& subset = SUBSET_ALL);
 void Gamma5Vec(QPhiXSpinor& x, const CBSubset& subset = SUBSET_ALL);
 
-
-// Use overloading
 void ConvertSpinor(const QPhiXSpinor& in, QPhiXSpinorF& out, const CBSubset& subset = SUBSET_ALL);
 void ConvertSpinor(const QPhiXSpinorF& in, QPhiXSpinor& out, const CBSubset& subset = SUBSET_ALL);
+void ConvertSpinor(const CoarseSpinor& in, QPhiXSpinor& out, const CBSubset& subset = SUBSET_ALL);
+void ConvertSpinor(const CoarseSpinor& in, QPhiXSpinorF& out, const CBSubset& subset = SUBSET_ALL);
+void ConvertSpinor(const QPhiXSpinor& in, CoarseSpinor& out, const CBSubset& subset = SUBSET_ALL);
+void ConvertSpinor(const QPhiXSpinorF& in, CoarseSpinor& out, const CBSubset& subset = SUBSET_ALL);
+void ConvertSpinor(const QPhiXSpinorF& in, QPhiXSpinorF& out, const CBSubset& subset = SUBSET_ALL);
+void ConvertSpinor(const QPhiXSpinor& in, QPhiXSpinor& out, const CBSubset& subset = SUBSET_ALL);
 
 }
 

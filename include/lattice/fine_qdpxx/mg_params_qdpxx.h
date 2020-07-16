@@ -28,6 +28,8 @@ struct SetupParams {
 	std::vector<int> n_vecs;
 	std::vector<IndexArray> block_sizes;
 	std::vector<LinearSolverParamsBase> null_solver_params;
+	enum { INVERT, INVARIANT_SPACE } purpose;
+	SetupParams() : n_levels(0), purpose(INVERT) {}
 };
 
 } // Namespace
