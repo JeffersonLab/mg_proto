@@ -12,6 +12,7 @@
 #include <MG_config.h>
 #include <cassert>
 #include <memory>
+#include <stdexcept>
 #include "lattice/qphix/qphix_mgdeflation.h" // MGDeflation
 #include "lattice/qphix/qphix_eo_clover_linear_operator.h" // QPhiXWilsonCloverEOLinearOperatorF
 #include "lattice/eigs_common.h" // EigsParams
@@ -23,8 +24,7 @@
 #include "lattice/qphix/qphix_transfer.h" // QPhiXTransfer
 #include "lattice/coarse/coarse_deflation.h" // computeDeflation
 #include "lattice/qphix/vcycle_recursive_qphix.h" // VCycleRecursiveQPhiXEO2
-#include "lattice/qphix/qphix_ali.h" // ALIPrec
-#include "lattice/coloring_base.h" // Coloring
+#include "lattice/coloring.h" // Coloring
 
 namespace MG {
 
@@ -66,12 +66,17 @@ namespace MG {
 			 * that remove contributions from up to 'probing_distance' sites.
 			 */
 
-			ALIPrec(const std::shared_ptr<LatticeInfo> info, const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> M_fine, SetupParams defl_p, LinearSolverParamsBase defl_solver_params, EigsParams defl_eigs_params, SetupParams prec_p, std::vector<MG::VCycleParams> prec_vcycle_params, LinearSolverParamsBase prec_solver_params,unsigned int K_distance, unsigned int probing_distance, const CBSubset subset) :
-				_info(info), _M_fine(M_fine), _op(*info), _subset(subset)
+			ALIPrec(const std::shared_ptr<LatticeInfo> info, const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> M_fine,
+			        SetupParams defl_p, LinearSolverParamsBase defl_solver_params, EigsParams defl_eigs_params, SetupParams prec_p,
+			        std::vector<MG::VCycleParams> prec_vcycle_params, LinearSolverParamsBase prec_solver_params,
+			        unsigned int K_distance, unsigned int probing_distance, const CBSubset subset) :
+				_info(info), _M_fine(M_fine), _K_distance(K_distance), _op(*info), _subset(subset)
 			{
-
 				// Create projector
 				_mg_deflation = std::make_shared<MGDeflation>(_info, _M_fine, defl_p, defl_solver_params, defl_eigs_params);
+
+				// Build K
+				build_K(prec_p, prec_vcycle_params, prec_solver_params, K_distance, probing_distance);
 			}
 
 			/*
@@ -121,7 +126,13 @@ namespace MG {
 
 		private:
 
-			void build_K(SetupParams p, std::vector<MG::VCycleParams> vcycle_params, LinearSolverParamsBase solver_params, unsigned int probing_distance, unsigned int blocking=32) {
+			void build_K(SetupParams p, std::vector<MG::VCycleParams> vcycle_params, LinearSolverParamsBase solver_params,
+			             unsigned int K_distance, unsigned int probing_distance, unsigned int blocking=32)
+			{
+				if (K_distance == 0) return;
+				if (K_distance > 1)
+					throw std::runtime_error("Not implemented 'K_distance' > 1");
+
 				IndexType num_colorspin = _info->GetNumColorSpins();
 
 				QPhiXMultigridLevelsEO mg_levels;
@@ -209,24 +220,49 @@ namespace MG {
 			void applyK(QPhiXSpinor& out, const QPhiXSpinor& in) const {
 				assert(out.GetNCol() == in.GetNCol());
 				int ncol = in.GetNCol();
-				std::shared_ptr<CoarseSpinor> in_c = AuxC::tmp(*_info, ncol);
-				std::shared_ptr<CoarseSpinor> out_c = AuxC::tmp(*_info, ncol);
-				ConvertSpinor(in, *in_c);
-#pragma omp parallel
-				{
-					int tid = omp_get_thread_num();
-					for(int cb = _subset.start; cb < _subset.end; ++cb) {
-						_op.M_diag(*out_c,*_K_vals,*in_c,cb,LINOP_OP,tid);
-					}
-				}
 
-				ConvertSpinor(*out_c, out);
+				if (_K_distance == 0) {
+					// If no K, copy 'in' into 'out'
+					CopyVec(out, in);
+
+				} else if (_K_distance == 1) {
+					// Apply the diagonal of K
+					std::shared_ptr<CoarseSpinor> in_c = AuxC::tmp(*_info, ncol);
+					std::shared_ptr<CoarseSpinor> out_c = AuxC::tmp(*_info, ncol);
+					ConvertSpinor(in, *in_c);
+#pragma omp parallel
+					{
+						int tid = omp_get_thread_num();
+						for(int cb = _subset.start; cb < _subset.end; ++cb) {
+							_op.M_diag(*out_c,*_K_vals,*in_c,cb,LINOP_OP,tid);
+						}
+					}
+					ConvertSpinor(*out_c, out);
+
+				} else if (_K_distance == 2) {
+					// Apply the whole operator
+					std::shared_ptr<CoarseSpinor> in_c = AuxC::tmp(*_info, ncol);
+					std::shared_ptr<CoarseSpinor> out_c = AuxC::tmp(*_info, ncol);
+					ConvertSpinor(in, *in_c);
+#pragma omp parallel
+					{
+						int tid = omp_get_thread_num();
+						for(int cb = _subset.start; cb < _subset.end; ++cb) {
+							_op.unprecOp(*out_c,*_K_vals,*in_c,cb,LINOP_OP,tid);
+						}
+					}
+					ConvertSpinor(*out_c, out);
+
+				} else {
+					assert(false);
+				}
 			}
 	
 			const std::shared_ptr<LatticeInfo> _info;
 			const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> _M_fine;
 			std::shared_ptr<MGDeflation> _mg_deflation;
 			std::shared_ptr<CoarseGauge> _K_vals;
+			unsigned int _K_distance;
 			const CoarseDiracOp _op;
 			const CBSubset _subset;
 	};

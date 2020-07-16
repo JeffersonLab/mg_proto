@@ -85,7 +85,7 @@ namespace MG {
 			 *  \param col_color: (out) the color index
 			 */
 
-			void SpinColorColorComponents(unsigned int sp_color, IndexType node_color, IndexType& col_spin, IndexType& col_color) {
+			void SpinColorColorComponents(unsigned int sp_color, IndexType node_color, IndexType& col_spin, IndexType& col_color) const {
 				node_color = sp_color / _info->GetNumColorSpins();
 				unsigned int colorspin = sp_color % _info->GetNumColorSpins();
 				col_color = colorspin / _info->GetNumSpins();
