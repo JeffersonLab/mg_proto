@@ -6,9 +6,9 @@
 #include "lattice/fine_qdpxx/clover_fermact_params_w.h"
 #include "lattice/fine_qdpxx/mesfield.h"
 
-using namespace QDP;
-
 namespace MG {
+
+using namespace QDP;
 
 //! Special structure used for triangular objects
 template<typename R>

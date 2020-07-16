@@ -14,9 +14,6 @@
 #include "utils/auxiliary.h"
 #include "utils/print_utils.h"
 
-
-using namespace MG;
-
 namespace MG {
 
 	namespace {

@@ -12,7 +12,6 @@
 #include <vector>
 #include "lattice/coarse/coarse_types.h"
 #include "lattice/coarse/subset.h"
-using namespace MG;
 
 namespace MG {
 
