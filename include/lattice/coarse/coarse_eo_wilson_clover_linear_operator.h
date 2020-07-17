@@ -42,14 +42,20 @@ public:
 		return SUBSET_ODD;
 	}
 
+	/**
+	 * y_o = dagger(I - M_oo^{-1} * M_oe * M_ee^{-1} * M_eo) * x_o
+	 *
+	 * \param out: (in/out) return vector
+	 * \param in: input vector
+	 * \param type: apply direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+	 */
+
 	void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override {
-
-			_the_op.EOPrecOp(out,      // Output Spinor
-								(*_u),    // Gauge Field
-								in,
-								ODD,
-								type);
-
+		_the_op.EOPrecOp(out,      // Output Spinor
+				(*_u),    // Gauge Field
+				in,
+				ODD,
+				type);
 	}
 
 	void unprecOp(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override {

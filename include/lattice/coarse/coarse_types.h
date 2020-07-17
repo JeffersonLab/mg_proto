@@ -65,13 +65,6 @@ namespace MG {
 				_n_col( n_col ),
 				_n_col_offset(n_complex*_n_colorspin)
 		{
-#if 1
-			// Check That we have 2 spins
-			if( lattice_info.GetNumSpins() != 2 ) {
-				MasterLog(ERROR, "Attempting to Create CoarseSpinor with num_spins != 2");
-			}
-#endif
-
 			// Allocate Data
 			IndexType num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_site_offset;
 
@@ -217,12 +210,6 @@ namespace MG {
 				_n_z( lattice_info.GetLatticeDimensions()[2] ),
 				_n_t( lattice_info.GetLatticeDimensions()[3] )
 		{
-			// Check That we have 2 spins
-			if( lattice_info.GetNumSpins() != 2 ) {
-				MasterLog(ERROR, "Attempting to Create CoarseSpinor with num_spins != 2");
-			}
-
-
 			// Allocate Data - data, AD data and DA data are the off-diagonal links - 8 links per site (use n_site_iffset)
 			IndexType offdiag_num_floats_per_cb = _lattice_info.GetNumCBSites()*_n_site_offset;
 

@@ -13,6 +13,7 @@
 #include <cassert>
 #include <memory>
 #include <stdexcept>
+#include "lattice/coarse/coarse_op.h"
 #include "lattice/qphix/qphix_mgdeflation.h" // MGDeflation
 #include "lattice/qphix/qphix_eo_clover_linear_operator.h" // QPhiXWilsonCloverEOLinearOperatorF
 #include "lattice/eigs_common.h" // EigsParams
@@ -87,7 +88,7 @@ namespace MG {
 			 *
 			 * It applies the deflation on the input vectors and return the results on 'out'.
 			 *
-			 * out = A^{-1}*P*in + K*(I-P)*in
+			 * out = (A^{-1}*P + K*(I-P)) * diag(A) * x
 			 */
 
 			std::vector<LinearSolverResults> operator()(QPhiXSpinor& out, const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE) const override {
@@ -96,24 +97,35 @@ namespace MG {
 				assert(out.GetNCol() == in.GetNCol());
 				IndexType ncol = out.GetNCol();
 
-				// in_minus_Pin = in - P*in
-				std::shared_ptr<QPhiXSpinor> P_in = AuxQ::tmp(*_info, ncol);
-				_mg_deflation->AVV(*P_in, in);
-				std::shared_ptr<QPhiXSpinor> in_minus_P_in = AuxQ::tmp(*_info, ncol);
-				CopyVec(*in_minus_P_in, in);
-				YmeqXVec(*P_in, *in_minus_P_in);
-				P_in.reset();
+				// A_in = A*in
+				std::shared_ptr<QPhiXSpinorF> in_f = AuxQF::tmp(*_info, ncol);
+				std::shared_ptr<QPhiXSpinorF> A_in_f = AuxQF::tmp(*_info, ncol);
+				ConvertSpinor(in, *in_f);
+				_M_fine->M_diag(*A_in_f, *in_f, EVEN);
+				_M_fine->M_diag(*A_in_f, *in_f, ODD);
+				std::shared_ptr<QPhiXSpinor> A_in = AuxQ::tmp(*_info, ncol);
+				ConvertSpinor(*A_in_f, *A_in);
+				in_f.reset();
+				A_in_f.reset();
+
+				// Ain_minus_PAin = A*in - P*A*in
+				std::shared_ptr<QPhiXSpinor> PA_in = AuxQ::tmp(*_info, ncol);
+				_mg_deflation->AVV(*PA_in, *A_in);
+				std::shared_ptr<QPhiXSpinor> Ain_minus_PA_in = AuxQ::tmp(*_info, ncol);
+				CopyVec(*Ain_minus_PA_in, *A_in);
+				YmeqXVec(*PA_in, *Ain_minus_PA_in);
+				PA_in.reset();
 			
 				// out = K * in_minus_P_in
-				applyK(out, *in_minus_P_in);
-				in_minus_P_in.reset();
+				applyK(out, *Ain_minus_PA_in);
+				Ain_minus_PA_in.reset();
 
-				// invAP_in = A^{-1} * in
-				std::shared_ptr<QPhiXSpinor> invAP_in = AuxQ::tmp(*_info, ncol);
-				_mg_deflation->VV(*invAP_in, in);
+				// invAPA_in = A^{-1} * P * A * in
+				std::shared_ptr<QPhiXSpinor> invAPA_in = AuxQ::tmp(*_info, ncol);
+				_mg_deflation->VV(*invAPA_in, *A_in);
 
-				// out += invAP_in
-				YpeqXVec(*invAP_in, out);
+				// out += invAPA_in
+				YpeqXVec(*invAPA_in, out);
 
 				return std::vector<LinearSolverResults>(ncol, LinearSolverResults());
 			}
@@ -126,6 +138,33 @@ namespace MG {
 
 		private:
 
+			/**
+			 * Return inv(M) * (I-P) * in
+			 *
+			 * \param eo_solver: invertor on _M_fine
+			 * \param out: (out) output vector
+			 * \param in: input vector
+			 */
+
+			void apply_invM_after_defl(const FGMRESSolverQPhiXF& eo_solver, QPhiXSpinorF& out, const QPhiXSpinorF& in) {
+				assert(in.GetNCol() == out.GetNCol());
+				int ncol = in.GetNCol();
+				
+				// P_in = P * in
+				std::shared_ptr<QPhiXSpinorF> P_in = AuxQF::tmp(*_info, ncol);
+				_mg_deflation->AVV(*P_in, in);
+
+				// in_minus_P_in = in - P_in
+				std::shared_ptr<QPhiXSpinorF> in_minus_P_in = AuxQF::tmp(*_info, ncol);
+				CopyVec(*in_minus_P_in, in);
+				YmeqXVec(*P_in, *in_minus_P_in);
+				P_in.reset();
+
+				// out = inv(M_fine) * in_minus_P_in
+				ZeroVec(out);
+				std::vector<MG::LinearSolverResults> res = eo_solver(out, *in_minus_P_in, RELATIVE);
+			}
+
 			void build_K(SetupParams p, std::vector<MG::VCycleParams> vcycle_params, LinearSolverParamsBase solver_params,
 			             unsigned int K_distance, unsigned int probing_distance, unsigned int blocking=32)
 			{
@@ -133,53 +172,33 @@ namespace MG {
 				if (K_distance > 1)
 					throw std::runtime_error("Not implemented 'K_distance' > 1");
 
-				IndexType num_colorspin = _info->GetNumColorSpins();
-
 				QPhiXMultigridLevelsEO mg_levels;
 				SetupQPhiXMGLevels(p, mg_levels, _M_fine);
 				VCycleRecursiveQPhiXEO2 vcycle(vcycle_params, mg_levels);
 				FGMRESSolverQPhiXF eo_solver(*_M_fine, solver_params, &vcycle);
 
-				Coloring coloring(_info, probing_distance);
-				unsigned int num_probing_vecs = coloring.GetNumSpinColorColors();
+				std::shared_ptr<Coloring> coloring = get_good_coloring(eo_solver, probing_distance, solver_params.RsdTarget * 4);
+				unsigned int num_probing_vecs = coloring->GetNumSpinColorColors();
 				for (unsigned int col=0, nc=std::min(num_probing_vecs, blocking); col < num_probing_vecs; col+=nc, nc=std::min(num_probing_vecs - col, blocking)) {
 
 					// p(i) is the probing vector for the color col+i
 					std::shared_ptr<QPhiXSpinorF> p = AuxQF::tmp(*_info, nc);
-					coloring.GetProbingVectors(*p, col);
+					coloring->GetProbingVectors(*p, col);
 
-					// Pp = P * p
-					std::shared_ptr<QPhiXSpinorF> Pp = AuxQF::tmp(*_info, nc);
-					_mg_deflation->AVV(*Pp, *p);
-
-					// p_minus_Pp = p - Pp
-					std::shared_ptr<QPhiXSpinorF> p_minus_Pp = AuxQF::tmp(*_info, nc);
-					CopyVec(*p_minus_Pp, *p);
-					YmeqXVec(*Pp, *p_minus_Pp);
-					p.reset();
-					Pp.reset();
-					
-					// sol = inv(M_fine) * p_minus_Pp
+					// sol = inv(M_fine) * (I-P) * p
 					std::shared_ptr<QPhiXSpinorF> sol = AuxQF::tmp(*_info, nc);
-					std::vector<MG::LinearSolverResults> res = eo_solver(*sol, *p_minus_Pp, RELATIVE);
-					p_minus_Pp.reset();
+					apply_invM_after_defl(eo_solver, *sol, *p);
+					p.reset();
 
 					// Update K from sol
-					update_K_from_probing_vecs(coloring, col, sol);
+					update_K_from_probing_vecs(*coloring, col, sol);
 				}
 			}
 
 			void update_K_from_probing_vecs(const Coloring& coloring, unsigned int c0, const std::shared_ptr<QPhiXSpinorF> sol) {
 				if (!_K_vals) _K_vals = std::make_shared<CoarseGauge>(*_info);
 
-				// Local lattice size and its origin
-				const IndexArray& lattice_dims = _info->GetLatticeDimensions();
-				const IndexType cborig = _info->GetCBOrigin();
-				IndexArray global_lattice_dims;
-				_info->LocalDimsToGlobalDims(global_lattice_dims, lattice_dims);
-
 				IndexType num_cbsites = _info->GetNumCBSites();
-				IndexType num_colorspin = _info->GetNumColorSpins();
 				IndexType num_color = _info->GetNumColors();
 				IndexType num_spin = _info->GetNumSpins();
 				IndexType ncol = sol->GetNCol();
@@ -208,6 +227,65 @@ namespace MG {
 						}
 					}
 				}
+			}
+
+			std::shared_ptr<Coloring> get_good_coloring(const FGMRESSolverQPhiXF& eo_solver, unsigned int probing_distance, double tol) {
+				// Returned coloring
+				std::shared_ptr<Coloring> coloring;
+
+				// Build probing vectors to get the exact first columns for ODD site 0
+				std::shared_ptr<QPhiXSpinorF> e = AuxQF::tmp(*_info, _info->GetNumColorSpins());
+				ZeroVec(*e);
+				for(int color=0; color < _info->GetNumColors(); ++color) {
+					for(int spin=0; spin < _info->GetNumSpins(); ++spin) {
+						int sc = color * _info->GetNumSpins() + spin;
+						(*e)(sc,ODD,0,spin,color,0) = 1.0;
+					}
+				}
+
+				// sol_e = inv(M_fine) * (I-P) * e
+				std::shared_ptr<QPhiXSpinorF> sol_e = AuxQF::tmp(*_info, _info->GetNumColorSpins());
+				apply_invM_after_defl(eo_solver, *sol_e, *e);
+
+				while(true) {
+					// Create coloring
+					coloring = std::make_shared<Coloring>(_info, probing_distance);
+
+					// Get the probing vectors for the ODD site 0
+					unsigned int color_node = coloring->GetColorCBIndex(ODD, 0);
+					std::shared_ptr<QPhiXSpinorF> p = AuxQF::tmp(*_info, _info->GetNumColorSpins());
+					coloring->GetProbingVectors(*p, coloring->GetSpinColorColor(color_node, 0, 0));
+
+					// sol_p = inv(M_fine) * (I-P) * p
+					std::shared_ptr<QPhiXSpinorF> sol_p = AuxQF::tmp(*_info, _info->GetNumColorSpins());
+					apply_invM_after_defl(eo_solver, *sol_p, *p);
+
+					// Compute ||sol[0] - K[0,0]||_F / ||sol[0]||_F
+					double sol_F = 0.0, diff_F = 0.0;
+					for(int colorj=0; colorj < _info->GetNumColors(); ++colorj) {
+						for(int spinj=0; spinj < _info->GetNumSpins(); ++spinj) {
+							int sc_e_j = colorj * _info->GetNumSpins() + spinj;
+							int sc_p_j = coloring->GetSpinColorColor(0, spinj, colorj);
+							for(int color=0; color < _info->GetNumColors(); ++color) {
+								for(int spin=0; spin < _info->GetNumSpins(); ++spin) {
+									std::complex<float> sol_e_ij((*sol_e)(sc_e_j,ODD,0,spin,color,0), (*sol_e)(sc_e_j,ODD,0,spin,color,1));
+									std::complex<float> sol_p_ij((*sol_p)(sc_p_j,ODD,0,spin,color,0), (*sol_p)(sc_p_j,ODD,0,spin,color,1));
+									sol_F += (sol_e_ij * std::conj(sol_e_ij)).real();
+									std::complex<float> diff_ij = sol_e_ij - sol_p_ij;
+									diff_F += (diff_ij * std::conj(diff_ij)).real();
+								}
+							}
+						}
+					}
+
+					MasterLog(INFO, "K probing error with %d distance coloring: %g", probing_distance, sqrt(diff_F / sol_F));
+
+					if (diff_F <= sol_F * tol * tol) break;
+
+					probing_distance++;
+				}
+
+				return coloring;
 			}
 
 			/*

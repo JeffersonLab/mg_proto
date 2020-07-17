@@ -85,11 +85,21 @@ namespace MG {
 			 *  \param col_color: (out) the color index
 			 */
 
-			void SpinColorColorComponents(unsigned int sp_color, IndexType node_color, IndexType& col_spin, IndexType& col_color) const {
+			void SpinColorColorComponents(unsigned int sp_color, IndexType& node_color, IndexType& col_spin, IndexType& col_color) const {
 				node_color = sp_color / _info->GetNumColorSpins();
 				unsigned int colorspin = sp_color % _info->GetNumColorSpins();
 				col_color = colorspin / _info->GetNumSpins();
 				col_spin = colorspin % _info->GetNumSpins();
+			}
+
+			/** Get spin-color color index from the color components
+			 *  \param node_color: the node color
+			 *  \param col_spin: the spin index
+			 *  \param col_color: the color index
+			 */
+
+			unsigned int GetSpinColorColor(IndexType node_color, IndexType col_spin, IndexType col_color) const {
+				return node_color * _info->GetNumColorSpins() + col_color * _info->GetNumSpins() + col_spin;
 			}
 
 			// Get color of a site

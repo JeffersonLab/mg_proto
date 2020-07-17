@@ -53,31 +53,6 @@ namespace MG
 			return *_EOSolver;
 		}
 		
-#if 0
-		LinearSolverResults operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE) const override {
-				LinearSolverResults ret_val;
-
-			// Prepare the source: L^{-1} in
-			// In principle, this may change both even and odd parts,
-			// Depending on the preconditioning style.
-			// So worth preserving the prepped source.
-			SourcePrepare(tmp_src,in);
-
-			// Solve odd part with Krylov solver
-			// Zero out the Even part of tmp_src for this
-			// It is assumed that the solver will not touch the EVEN part.
-			InitGuessPrepare(tmp_out,out);
-
-			ret_val = (*_EOSolver)(tmp_out, tmp_src, resid_type);
-
-			OtherSubsetSolve(tmp_out,tmp_src);
-
-			// Reconstruct the result
-			ResultReconstruct(out,tmp_out);
-			return ret_val;
-
-		}
-#endif
 	private:
 
 		const std::shared_ptr<const EOSolver> _EOSolver;

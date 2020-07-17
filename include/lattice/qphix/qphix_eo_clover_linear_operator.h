@@ -280,7 +280,7 @@ public:
       QPhiXEOClov->M_diag(out.get(col),in.get(col),1,cb);
   }
 
-  void M_oo(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const  {
+ void M_oo(Spinor& out, const Spinor& in, IndexType type=LINOP_OP) const  {
      int isign = (type == LINOP_OP) ? 1 : -1;
     assert(out.GetNCol() == in.GetNCol());
     IndexType ncol = out.GetNCol();
