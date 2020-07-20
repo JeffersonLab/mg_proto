@@ -75,6 +75,7 @@ namespace MG {
 				auto this_level_linop = _mg_levels.coarse_levels.back().M;
 				solver_params.RsdTarget = std::min(solver_params.RsdTarget, eigs_params.RsdTarget*0.6);
 				UnprecFGMRESSolverCoarseWrapper solver(this_level_linop, solver_params, nullptr);
+				test_coarse_solver(solver);
 
 				// Compute the largest right singular vectors of inv(P^H * A * P), that is,
 				// inv(P^H * A * P)*_eigenvectors[i] == \gamma_5 * _eigenvector[i] * _eigenvalue[i]
@@ -171,8 +172,7 @@ namespace MG {
 			 * It applies the deflation on the input vectors and return the results on 'out'.
 			 */
 
-			template<class Spinor>
-			void apply(Spinor& out, const Spinor& in, bool do_VVA=true, bool apply_A=true) const {
+			void apply(QPhiXSpinor& out, const QPhiXSpinor& in, bool do_VVA=true, bool apply_A=true) const {
 				assert(out.GetNCol() == in.GetNCol());
 				IndexType ncol = out.GetNCol();
 
@@ -181,16 +181,27 @@ namespace MG {
 				ZeroVec(*in_f, SUBSET_ALL);
 				ConvertSpinor(in,*in_f);
 
+				// apply
+				std::shared_ptr<QPhiXSpinorF> out_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
+				apply(*out_f, *in_f, do_VVA, apply_A);
+
+				// Convert back to double
+				ConvertSpinor(*out_f, out);
+			}
+
+			void apply(QPhiXSpinorF& out, const QPhiXSpinorF& in_f, bool do_VVA=true, bool apply_A=true) const {
+				assert(out.GetNCol() == in_f.GetNCol());
+				IndexType ncol = out.GetNCol();
+
 				// Ain = A * in if do_VVA else in
-				std::shared_ptr<QPhiXSpinorF> Ain_f;
+				std::shared_ptr<QPhiXSpinorF> Ain_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
 				if (apply_A && do_VVA) {
 					Ain_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
 					ZeroVec(*Ain_f, SUBSET_ALL);
-					_M_fine->unprecOp(*Ain_f, *in_f, LINOP_OP);
+					_M_fine->unprecOp(*Ain_f, in_f, LINOP_OP);
 				} else {
-					Ain_f = in_f;
+					CopyVec(*Ain_f, in_f);
 				}
-				in_f.reset();
 
 				// Transfer to first coarse level
 				std::shared_ptr<CoarseSpinor> coarse_in = AuxC::tmp(*_mg_levels.coarse_levels[0].info, ncol);
@@ -220,19 +231,13 @@ namespace MG {
 				std::shared_ptr<QPhiXSpinorF> out_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
 				_Transfer_fine_level->P(*coarse_out, *out_f);
 
-				// Aout_f = out_f if do_VVA else A*out_f
-				std::shared_ptr<QPhiXSpinorF> Aout_f;
+				// out = out_f if do_VVA else A*out_f
 				if (!apply_A || do_VVA) {
-					Aout_f = out_f;
+					CopyVec(out, *out_f);
 				} else {
-					Aout_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
-					ZeroVec(*Aout_f, SUBSET_ALL);
-					_M_fine->unprecOp(*Aout_f, *out_f, LINOP_OP);
+					ZeroVec(out, SUBSET_ALL);
+					_M_fine->unprecOp(out, *out_f, LINOP_OP);
 				}
-				out_f.reset();
-
-				// Convert back to double
-				ConvertSpinor(*Aout_f, out);
 			}
 
 			/*
@@ -353,6 +358,54 @@ namespace MG {
 
 				// Apply gamma_5
 				Gamma5Vec(out);
+			}
+
+			template<typename Solver>
+			void test_coarse_solver(const Solver& solver) const {
+				// x = Gaussian
+				int ncol = 1;
+				std::shared_ptr<CoarseSpinor> x = AuxC::tmp(*_mg_levels.coarse_levels.back().info, ncol);
+				Gaussian(*x);
+
+				// Transfer to the first coarse level
+				std::shared_ptr<CoarseSpinor> coarse_out = x;
+				for(int coarse_idx=_mg_levels.coarse_levels.size()-2; coarse_idx >= 0; coarse_idx--) {
+					std::shared_ptr<CoarseSpinor> out_level = AuxC::tmp(*_mg_levels.coarse_levels[coarse_idx].info, ncol);
+					_Transfer_coarse_level[coarse_idx]->P(*coarse_out, *out_level);
+					coarse_out = out_level;
+				}
+
+				// Transfer to the fine level
+				std::shared_ptr<QPhiXSpinorF> out_f = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
+				_Transfer_fine_level->P(*coarse_out, *out_f);
+				coarse_out.reset();
+
+				// Ax = A*out_f
+				std::shared_ptr<QPhiXSpinorF> Ax = AuxQ::tmp(*_mg_levels.fine_level.info, ncol);
+				ZeroVec(*Ax, SUBSET_ALL);
+				_M_fine->unprecOp(*Ax, *out_f, LINOP_OP);
+				out_f.reset();
+
+				// Transfer to first coarse level
+				std::shared_ptr<CoarseSpinor> coarse_in = AuxC::tmp(*_mg_levels.coarse_levels[0].info, ncol);
+				_Transfer_fine_level->R(*Ax, *coarse_in);
+				Ax.reset();
+
+				// Transfer to the deepest level
+				for(int coarse_idx=1; coarse_idx < _mg_levels.coarse_levels.size(); coarse_idx++) {
+					std::shared_ptr<CoarseSpinor> in_level = AuxC::tmp(*_mg_levels.coarse_levels[coarse_idx].info, ncol);
+					_Transfer_coarse_level[coarse_idx-1]->R(*coarse_in, *in_level);
+					coarse_in = in_level;
+				}
+
+				// y = solve(coarse_in)
+				std::shared_ptr<CoarseSpinor> y = AuxC::tmp(*_mg_levels.coarse_levels.back().info, ncol);
+				ZeroVec(*y);
+				solver(*y, *coarse_in);
+
+				double n_x = Norm2Vec(*x)[0];
+				double n_diff = XmyNorm2Vec(*y, *x)[0];
+				MasterLog(INFO, "MGDeflation: coarsest operator error %g", n_diff/n_x);
 			}
 
 			const std::shared_ptr<LatticeInfo> _info;
