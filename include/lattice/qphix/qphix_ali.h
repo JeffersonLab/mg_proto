@@ -171,7 +171,10 @@ namespace MG {
 				assert(in.GetNCol() == out.GetNCol());
 				int ncol = in.GetNCol();
 
-				_mg_deflation->VV(out, in);
+				Spinor in0(*_info, ncol);
+				ZeroVec(in0, SUBSET_ALL);
+				CopyVec(in0, in, SUBSET_ODD);
+				_mg_deflation->VV(out, in0);
 				ZeroVec(out, SUBSET_EVEN);
 			}
 
@@ -238,9 +241,6 @@ namespace MG {
 			 */
 
 			void apply_invM_after_defl(const FGMRESSolverQPhiXF& eo_solver, QPhiXSpinorF& out, const QPhiXSpinorF& in) {
-				// TEMP!!!!
-				_M_fine->test_operator(in);
-
 				assert(in.GetNCol() == out.GetNCol());
 				int ncol = in.GetNCol();
 				
