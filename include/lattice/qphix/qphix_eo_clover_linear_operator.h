@@ -153,6 +153,7 @@ public:
   }
 
   // The predoncidioned operator
+  // out = (M_oo - M_oe * M_ee^{-1} * M_eo) * in
   void operator()(Spinor& out, const Spinor& in, IndexType type = LINOP_OP) const override{
     int isign = (type == LINOP_OP) ? 1 : -1;
     assert(out.GetNCol() == in.GetNCol());
@@ -170,6 +171,35 @@ public:
       QPhiXEOClov->M_unprec(out.get(col),in.get(col),isign);
   }
 
+  void test_operator(const Spinor& in) const {
+    IndexType ncol = in.GetNCol();
+    
+    std::shared_ptr<Spinor> M_eo_in = this->tmp(in);
+    std::shared_ptr<Spinor> M_ee_inv_M_eo_in = this->tmp(in);
+    std::shared_ptr<Spinor> tmp = this->tmp(in);
+    std::shared_ptr<Spinor> M_oo_in = this->tmp(in);
+    for (int col=0; col < ncol; ++col) {
+      // M_eo_in = M_eo * in 
+      QPhiXEOClov->M_offdiag(M_eo_in->getCB(col,EVEN).get(), in.getCB(col,ODD).get(), 1, EVEN);
+      // M_ee_inv_M_eo_in = M_ee^{-1} * M_eo * in
+      QPhiXEOClov->M_diag_inv(M_ee_inv_M_eo_in->getCB(col,EVEN).get(), M_eo_in->getCB(col,EVEN).get(), 1);
+      // tmp = M_oe * M_ee_inv_M_eo_in
+      QPhiXEOClov->M_offdiag(tmp->getCB(col,ODD).get(), M_ee_inv_M_eo_in->getCB(col,EVEN).get(), 1, ODD);
+      // M_oo_in = M_oo * in
+      QPhiXEOClov->M_diag(M_oo_in->get(col),in.get(col),1,ODD);
+    }
+    // M_oo_in -= tmp
+    YmeqXVec(*tmp, *M_oo_in, SUBSET_ODD);    
+    // tmp = precM * in
+    this->operator()(*tmp, in);
+    std::vector<double> n0 = Norm2Vec(*tmp);
+    // M_oo_in -= tmp
+    YmeqXVec(*tmp, *M_oo_in, SUBSET_ODD);
+    std::vector<double> n1 = Norm2Vec(*M_oo_in);
+    for (int col=0; col < ncol; ++col) {
+      MasterLog(INFO,"QPhiXWilsonCloverEOLinearOperator: Operator error: %g", n0[col] > 0 ? n1[col]/n0[col] : n1[col]);
+    }
+  }
 
   void leftOp(Spinor& out, const Spinor& in) const override{
 
@@ -273,7 +303,7 @@ public:
       QPhiXEOClov->M_diag_inv(out.getCB(col,EVEN).get(),in.getCB(col,EVEN).get(),isign);
     }
 
-  void M_diag(Spinor& out, const Spinor& in, int cb) const override {
+ void M_diag(Spinor& out, const Spinor& in, int cb) const override {
     assert(out.GetNCol() == in.GetNCol());
     IndexType ncol = out.GetNCol();
     for (int col=0; col < ncol; ++col)
