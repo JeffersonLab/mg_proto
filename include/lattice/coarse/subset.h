@@ -15,6 +15,13 @@ namespace MG
 		IndexType start;
 		IndexType end;
 
+		bool operator==(const CBSubset& t) const {
+			return ((empty() && t.empty()) || (start == t.start && end == t.end));
+		}
+
+		bool empty() const {
+			return start == end;
+		}
 	};
 
 	constexpr CBSubset SUBSET_EVEN = {0,1};

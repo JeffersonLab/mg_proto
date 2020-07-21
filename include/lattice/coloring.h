@@ -44,7 +44,7 @@ namespace MG {
 			 *  other nodes up to distance k.
 			 */
 
-			Coloring(const std::shared_ptr<LatticeInfo> info, unsigned int distance);
+			Coloring(const std::shared_ptr<LatticeInfo> info, unsigned int distance, CBSubset subset);
 
 			/** Return probing vectors starting from the given color and spin-color component
 			 *  \param out: returned probing vectors
