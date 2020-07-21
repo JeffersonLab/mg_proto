@@ -199,7 +199,7 @@ Coors neighbors_upto_distance(unsigned int dist, const CoorType& dim) {
 // * First color even vertices with greedy coloring
 // * Then color odd vertices copying the coloring of the even vertices
 
-std::vector<unsigned int> get_motive(unsigned int dist, const CoorType& dim, unsigned int& num_colors) {
+std::vector<unsigned int> get_motive(unsigned int dist, const CoorType& dim, unsigned int& num_colors, CBSubset subset) {
 	dist = dist/2*2;
 	Coors neighbors_rel = neighbors_upto_distance(dist, dim);
 
@@ -208,12 +208,13 @@ std::vector<unsigned int> get_motive(unsigned int dist, const CoorType& dim, uns
 
 	// First color even vertices with greedy coloring
 	num_colors = 0;
+	unsigned int evenodd = (subset == SUBSET_ODD ? 1 : 0);
 	for (unsigned int i=0; i<vol; i++) {
 		// Get coordinates of vertex with index i
 		CoorType c = index2coor(Indices(1, i), dim)[0]; 
 
 		// Only process even vertices: mod(sum(c),2) == 0
-		if (std::accumulate(c.begin(), c.end(), 0) % 2 != 0) continue;
+		if (std::accumulate(c.begin(), c.end(), 0) % 2 != evenodd) continue;
 
 		// Get neighbors of c
 		Indices c_neighbors = coor2index(plus(c, neighbors_rel, dim), dim);
@@ -235,20 +236,22 @@ std::vector<unsigned int> get_motive(unsigned int dist, const CoorType& dim, uns
 		num_colors = std::max(num_colors, color[i]);
 	}
 
-	// Color odd vertices as the color of the forward neighbor on
-	// the first direction
-	for (unsigned int i=0; i<vol; i++) {
-		// Get coordinates of vertex i
-		CoorType c = index2coor(Indices(1, i), dim)[0];
+	if (subset == SUBSET_ALL) {
+		// Color odd vertices as the color of the forward neighbor on
+		// the first direction
+		for (unsigned int i=0; i<vol; i++) {
+			// Get coordinates of vertex i
+			CoorType c = index2coor(Indices(1, i), dim)[0];
 
-		// Only process odd vertices
-		if (std::accumulate(c.begin(), c.end(), 0) % 2 != 1) continue;
+			// Only process odd vertices
+			if (std::accumulate(c.begin(), c.end(), 0) % 2 != 1-evenodd) continue;
 
-		// Get the color of the forward neighbor at the first direction
-		c[0]++;
-		color[i] = color[coor2index(Coors(1, c), dim)[0]] + num_colors;
+			// Get the color of the forward neighbor at the first direction
+			c[0]++;
+			color[i] = color[coor2index(Coors(1, c), dim)[0]] + num_colors;
+		}
+		num_colors *= 2;
 	}
-	num_colors *= 2;
 
 	// Make zero the first color index
 	for (unsigned int i=0; i<vol; i++) color[i]--;
@@ -268,7 +271,7 @@ std::vector<unsigned int> get_motive(unsigned int dist, const CoorType& dim, uns
 // * First color a tile of dimension 2^dist
 // * Then color the lattice following the tile
 
-Indices get_colors(unsigned int dist, const CoorType& dim, unsigned int& num_colors) {
+Indices get_colors(unsigned int dist, const CoorType& dim, unsigned int& num_colors, CBSubset subset) {
 	// The tile has dimension 2^dist if 2^dist is divisible by the original lattice
 	// dimension; otherwise the tile is as large as the lattice dimension 
 	CoorType dim_motive;
@@ -277,7 +280,7 @@ Indices get_colors(unsigned int dist, const CoorType& dim, unsigned int& num_col
 		dim_motive[i] = (dim[i] % d == 0 ? d : dim[i]);
 
 	// dist-coloring the tile
-	std::vector<unsigned int> color_motive = get_motive(dist, dim_motive, num_colors);
+	std::vector<unsigned int> color_motive = get_motive(dist, dim_motive, num_colors, subset);
 
 	// Color the original lattice following the coloring of the tile
 	const unsigned int vol = volume(dim);
@@ -310,7 +313,7 @@ bool check_coloring(const Indices& color, unsigned int dist, const CoorType& dim
 }
 
 // Construct a k-distance coloring
-Coloring::Coloring(const std::shared_ptr<LatticeInfo> info, unsigned int distance)
+Coloring::Coloring(const std::shared_ptr<LatticeInfo> info, unsigned int distance, CBSubset subset)
 		: _info(info)
 {
 	// Get lattice dimensions
@@ -320,7 +323,7 @@ Coloring::Coloring(const std::shared_ptr<LatticeInfo> info, unsigned int distanc
 	_info->LocalDimsToGlobalDims(global_lattice_dims, lattice_dims);
 
 	// Get colors for all nodes
-	Indices colors = get_colors(distance, global_lattice_dims, _num_colors);
+	Indices colors = get_colors(distance, global_lattice_dims, _num_colors, subset);
 
 	// Store the colors of the local nodes
 	_local_colors[0].resize(_info->GetNumSites()/2);
@@ -328,10 +331,9 @@ Coloring::Coloring(const std::shared_ptr<LatticeInfo> info, unsigned int distanc
 
 	// Loop over the sites and sum up the norm
 	IndexType num_cbsites = _info->GetNumCBSites();
-	CBSubset subset = SUBSET_ALL;
 
 #pragma omp parallel for collapse(2) schedule(static)
-	for(int cb=subset.start; cb < subset.end; ++cb ) {
+	for(int cb=0; cb < 2; ++cb ) {
 		for(int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
 			IndexArray local_coor, global_coor;
 			CBIndexToCoords(cbsite, cb, lattice_dims, cborig, local_coor);
