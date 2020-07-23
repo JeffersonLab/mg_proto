@@ -22,6 +22,11 @@ namespace MG
 		bool empty() const {
 			return start == end;
 		}
+
+		CBSubset complementary() const {
+			if (empty()) return CBSubset{0,2};
+			return ((*this) == CBSubset{0,1} ? CBSubset{1,2} : CBSubset{0,1});
+		}
 	};
 
 	constexpr CBSubset SUBSET_EVEN = {0,1};
