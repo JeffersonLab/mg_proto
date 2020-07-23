@@ -91,14 +91,17 @@ namespace MG {
 			ALIPrec(const std::shared_ptr<LatticeInfo> info, const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> M_fine,
 			        SetupParams defl_p, LinearSolverParamsBase defl_solver_params, EigsParams defl_eigs_params, SetupParams prec_p,
 			        std::vector<MG::VCycleParams> prec_vcycle_params, LinearSolverParamsBase prec_solver_params,
-			        unsigned int K_distance, unsigned int probing_distance, const CBSubset subset) :
-				_info(info), _M_fine(M_fine), _K_distance(K_distance), _op(*info), _subset(subset)
+			        unsigned int K_distance, unsigned int probing_distance, const CBSubset subset, unsigned int mode=0) :
+				_info(info), _M_fine(M_fine), _K_distance(K_distance), _op(*info), _subset(subset), _mode(mode)
 			{
+				MasterLog(INFO,"ALI Solver constructor: mode= %d BEGIN", _mode);
+				
 				// Create projector
 				_mg_deflation = std::make_shared<MGDeflation>(_info, _M_fine, defl_p, defl_solver_params, defl_eigs_params);
 
 				// Build K
 				build_K(prec_p, prec_vcycle_params, prec_solver_params, K_distance, probing_distance);
+				MasterLog(INFO,"ALI Solver constructor: END", _mode);
 			}
 
 			/*
@@ -109,57 +112,14 @@ namespace MG {
 			 *
 			 * It applies the deflation on the input vectors and return the results on 'out'.
 			 *
-			 *    out = [M^{-1}_oo*M_oo * Q + K * (I-Q)] * in,
+			 *    out = [M^{-1}*Q + K*(I-Q)] * in,
 			 *
 			 * where Q = M_oo^{-1}*P*M_oo, P is a projector on M, and K approximates M^{-1}_oo*M_oo.
 			 */
 
-			// std::vector<LinearSolverResults> operator()(QPhiXSpinor& out, const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE) const override {
-			// 	(void)resid_type;
-
-			// 	// // TEMP!!!
-			// 	// double norm2_cb0 = sqrt(Norm2Vec(in, SUBSET_EVEN)[0]);
-			// 	// double norm2_cb1 = sqrt(Norm2Vec(in, SUBSET_ODD)[0]);
-			// 	// MasterLog(INFO,"MG Level 0: ALI Solver operator(): || v_e ||=%16.8e || v_o ||=%16.8e", norm2_cb0, norm2_cb1);
-
-			// 	assert(out.GetNCol() == in.GetNCol());
-			// 	IndexType ncol = out.GetNCol();
-
-			// 	std::shared_ptr<QPhiXSpinorF> in_f = AuxQF::tmp(*_info, ncol);
-			// 	ZeroVec(*in_f, SUBSET_EVEN);
-			// 	ConvertSpinor(in, *in_f, SUBSET_ODD);
-
-			// 	// I_Q_in = (I-Q)*in = in - L^{-1} * P * in
-			// 	std::shared_ptr<QPhiXSpinorF> P_in_f = AuxQF::tmp(*_info, ncol);
-			// 	_mg_deflation->AVV(*P_in_f, *in_f);
-			// 	std::shared_ptr<QPhiXSpinorF> L_P_in_f = AuxQF::tmp(*_info, ncol);
-			// 	_M_fine->leftInvOp(*L_P_in_f, *P_in_f);
-			// 	P_in_f.reset();
-			// 	std::shared_ptr<QPhiXSpinorF> I_Q_in_f = AuxQF::tmp(*_info, ncol);
-			// 	CopyVec(*I_Q_in_f, *in_f, SUBSET_ODD);
-			// 	YmeqXVec(*L_P_in_f, *I_Q_in_f, SUBSET_ODD);
-			// 	L_P_in_f.reset();
-			// 
-			// 	// out_f = K * (I-Q)*in
-			// 	std::shared_ptr<QPhiXSpinorF> out_f = AuxQF::tmp(*_info, ncol);
-			// 	applyK(*out_f, *I_Q_in_f);
-			// 	I_Q_in_f.reset();
-
-			// 	// Minv_Q_in = M^{-1}_oo * L^{-1} * P * L * in
-			// 	std::shared_ptr<QPhiXSpinorF> Minv_Q_in_f = AuxQF::tmp(*_info, ncol);
-			// 	_mg_deflation->VV(*Minv_Q_in_f, *in_f);
-			// 	in_f.reset();
-
-			// 	// out += Minv_M_oo_Q_in
-			// 	YpeqXVec(*Minv_Q_in_f, *out_f);
-			// 	ZeroVec(out, SUBSET_EVEN);
-			// 	ConvertSpinor(*out_f, out, SUBSET_ODD);
-
-			// 	return std::vector<LinearSolverResults>(ncol, LinearSolverResults());
-			// }
-
 			std::vector<LinearSolverResults> operator()(QPhiXSpinor& out, const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE) const override {
 				(void)resid_type;
+				//test_defl(in);
 
 				// // TEMP!!!
 				// double norm2_cb0 = sqrt(Norm2Vec(in, SUBSET_EVEN)[0]);
@@ -170,21 +130,27 @@ namespace MG {
 				IndexType ncol = out.GetNCol();
 
 				std::shared_ptr<QPhiXSpinorF> in_f = AuxQF::tmp(*_info, ncol);
-				ZeroVec(*in_f, SUBSET_EVEN);
-				ConvertSpinor(in, *in_f, SUBSET_ODD);
+				ZeroVec(*in_f);
+				ConvertSpinor(in, *in_f, _subset);
 
+				// I_Q_in = (I-Q)*in
+				std::shared_ptr<QPhiXSpinorF> I_Q_in_f = AuxQF::tmp(*_info, ncol);
+				std::shared_ptr<QPhiXSpinorF> VV_in_f = AuxQF::tmp(*_info, ncol);
+				apply_complQ(*I_Q_in_f, *in_f, VV_in_f.get());
+				in_f.reset();
+			
 				// out_f = K * (I-Q)*in
 				std::shared_ptr<QPhiXSpinorF> out_f = AuxQF::tmp(*_info, ncol);
-				applyK(*out_f, *in_f);
-				in_f.reset();
-				Gamma5Vec(*out_f);
+				applyK(*out_f, *I_Q_in_f);
+				I_Q_in_f.reset();
 
-				ZeroVec(out, SUBSET_EVEN);
-				ConvertSpinor(*out_f, out, SUBSET_ODD);
+				// out += VV_in
+				YpeqXVec(*VV_in_f, *out_f, _subset);
+				ZeroVec(out);
+				ConvertSpinor(*out_f, out, _subset);
 
 				return std::vector<LinearSolverResults>(ncol, LinearSolverResults());
 			}
-
 
 			/**
 			 * Return M^{-1}_oo * Q * in
@@ -200,56 +166,10 @@ namespace MG {
 				int ncol = in.GetNCol();
 
 				Spinor in0(*_info, ncol);
-				ZeroVec(in0, SUBSET_ALL);
-				CopyVec(in0, in, SUBSET_ODD);
+				ZeroVec(in0);
+				CopyVec(in0, in, _subset);
 				_mg_deflation->VV(out, in0);
-				ZeroVec(out, SUBSET_EVEN);
-			}
-
-			void apply_defl(QPhiXSpinor& out, const QPhiXSpinor& in) const {
-				assert(out.GetNCol() == in.GetNCol());
-				IndexType ncol = out.GetNCol();
-
-				std::shared_ptr<QPhiXSpinorF> in_f = AuxQF::tmp(*_info, ncol);
-				ZeroVec(*in_f, SUBSET_EVEN);
-				ConvertSpinor(in, *in_f, SUBSET_ODD);
-
-				// I_Q_in = (I-Q)*in = in - L^{-1} * P * in
-				std::shared_ptr<QPhiXSpinorF> P_in_f = AuxQF::tmp(*_info, ncol);
-				_mg_deflation->VV(*P_in_f, *in_f);
-				std::shared_ptr<QPhiXSpinorF> M_P_in_f = AuxQF::tmp(*_info, ncol);
-				(*_M_fine)(*M_P_in_f, *P_in_f);
-				P_in_f.reset();
-				std::shared_ptr<QPhiXSpinorF> I_Q_in_f = AuxQF::tmp(*_info, ncol);
-				CopyVec(*I_Q_in_f, *in_f, SUBSET_ODD);
-				YmeqXVec(*M_P_in_f, *I_Q_in_f, SUBSET_ODD);
-				M_P_in_f.reset();
-			
-				ZeroVec(out, SUBSET_EVEN);
-				ConvertSpinor(*I_Q_in_f, out, SUBSET_ODD);
-			}
-
-			void apply_defl_trad(QPhiXSpinor& out, const QPhiXSpinor& in) const {
-				assert(out.GetNCol() == in.GetNCol());
-				IndexType ncol = out.GetNCol();
-
-				std::shared_ptr<QPhiXSpinorF> in_f = AuxQF::tmp(*_info, ncol);
-				ZeroVec(*in_f, SUBSET_EVEN);
-				ConvertSpinor(in, *in_f, SUBSET_ODD);
-
-				// I_Q_in = (I-Q)*in = in - L^{-1} * P * in
-				std::shared_ptr<QPhiXSpinorF> P_in_f = AuxQF::tmp(*_info, ncol);
-				_mg_deflation->AVV(*P_in_f, *in_f);
-				std::shared_ptr<QPhiXSpinorF> L_P_in_f = AuxQF::tmp(*_info, ncol);
-				_M_fine->leftInvOp(*L_P_in_f, *P_in_f);
-				P_in_f.reset();
-				std::shared_ptr<QPhiXSpinorF> I_Q_in_f = AuxQF::tmp(*_info, ncol);
-				CopyVec(*I_Q_in_f, *in_f, SUBSET_ODD);
-				YmeqXVec(*L_P_in_f, *I_Q_in_f, SUBSET_ODD);
-				L_P_in_f.reset();
-			
-				ZeroVec(out, SUBSET_EVEN);
-				ConvertSpinor(*I_Q_in_f, out, SUBSET_ODD);
+				ZeroVec(out, _subset.complementary());
 			}
 
 			void test_defl(const QPhiXSpinor& in) const {
@@ -258,12 +178,12 @@ namespace MG {
 				// I_Q_in = (I-Q)*in = in - L^{-1} * P * in
 				std::shared_ptr<QPhiXSpinor> I_Q_in = AuxQ::tmp(*_info, ncol);
 				std::shared_ptr<QPhiXSpinor> invM_Q_in = AuxQ::tmp(*_info, ncol);
-				apply_defl(*I_Q_in, in);
+				apply_complQ(*I_Q_in, in);
 				apply_invM_Q(*invM_Q_in, in);
 
 				std::shared_ptr<QPhiXSpinorF> invM_Q_in_f = AuxQF::tmp(*_info, ncol);
-				ZeroVec(*invM_Q_in_f, SUBSET_EVEN);
-				ConvertSpinor(*invM_Q_in, *invM_Q_in_f, SUBSET_ODD);
+				ZeroVec(*invM_Q_in_f);
+				ConvertSpinor(*invM_Q_in, *invM_Q_in_f, _subset);
 				std::shared_ptr<QPhiXSpinorF> MinvM_Q_in_f = AuxQF::tmp(*_info, ncol);
 				(*_M_fine)(*MinvM_Q_in_f, *invM_Q_in_f);
 				std::shared_ptr<QPhiXSpinor> MinvM_Q_in = AuxQ::tmp(*_info, ncol);
@@ -278,48 +198,6 @@ namespace MG {
 				
 			}
 	
-			// Return (I-P)*M
-			std::shared_ptr<LinearOperator<QPhiXSpinor,QPhiXGauge>> DeflatedEO() const {
-				if (_deflatedEO) return _deflatedEO;
-
-				class EODefl : public LinearOperator<QPhiXSpinor,QPhiXGauge>, public AuxiliarySpinors<QPhiXSpinorF>
-				{
-					using AuxQ = AuxiliarySpinors<QPhiXSpinor>;
-					using AuxQF = AuxiliarySpinors<QPhiXSpinorF>;
-		
-					public:
-						EODefl(const ALIPrec& aliprec) : _aliprec(aliprec) {}
-
-						void operator()(QPhiXSpinor& out, const QPhiXSpinor& in, IndexType type = LINOP_OP) const override {
-							assert(type == LINOP_OP);
-							assert(out.GetNCol() == in.GetNCol());
-							IndexType ncol = out.GetNCol();
-
-							std::shared_ptr<QPhiXSpinorF> in_f = AuxQF::tmp(GetInfo(), ncol);
-							std::shared_ptr<QPhiXSpinorF> M_in_f = AuxQF::tmp(GetInfo(), ncol);
-							std::shared_ptr<QPhiXSpinor> M_in = AuxQ::tmp(GetInfo(), ncol);
-							ZeroVec(*in_f, SUBSET_EVEN);
-							ConvertSpinor(in, *in_f, SUBSET_ODD);
-							Gamma5Vec(*in_f);
-							(*_aliprec.GetM())(*M_in_f, *in_f);
-							ConvertSpinor(*M_in_f, *M_in, SUBSET_ODD);
-							_aliprec.apply_defl(out, *M_in);
-						}
-
-						~EODefl() override {}
-
-						int GetLevel(void) const override {return 0; }
-						const LatticeInfo& GetInfo() const override { return _aliprec.GetInfo(); }
-						const CBSubset& GetSubset() const override { return SUBSET_ODD; }
-
-					private:
-						const ALIPrec& _aliprec;
-				};
-
-				_deflatedEO = std::make_shared<EODefl>(*this);
-				return _deflatedEO;
-			}
-			
 			const LatticeInfo& GetInfo() const override { return *_info; }
 			const CBSubset& GetSubset() const override { return SUBSET_ALL; }
 
@@ -330,49 +208,66 @@ namespace MG {
 		private:
 
 			/**
-			 * Return K * (I-Q) * in
+			 * Return (I-Q) * in
 			 *
 			 * \param out: (out) output vector
 			 * \param in: input vector
+			 *
+			 * NOTE: Assuming 'in' is properly zeroed
 			 */
 
-			void apply_K_complQ(QPhiXSpinorF& out, const QPhiXSpinorF& in) {
+			void apply_complQ(QPhiXSpinor& out, const QPhiXSpinor& in) const {
 				assert(out.GetNCol() == in.GetNCol());
 				IndexType ncol = out.GetNCol();
 
-				// M_oo_in = M_oo * in
-				std::shared_ptr<QPhiXSpinorF> M_oo_in_f = AuxQF::tmp(*_info, ncol);
-				ZeroVec(*M_oo_in_f);
-				_M_fine->M_diag(*M_oo_in_f, in, ODD);
-
-				// I_Q_in = (I-Q)*in = in - M_oo^{-1} * P * M_oo *in
-				std::shared_ptr<QPhiXSpinorF> P_M_oo_in_f = AuxQF::tmp(*_info, ncol);
-				_mg_deflation->AVV(*P_M_oo_in_f, *M_oo_in_f);
-				ZeroVec(*P_M_oo_in_f, SUBSET_EVEN);
-				std::shared_ptr<QPhiXSpinorF> M_oo_inv_P_M_oo_in_f = AuxQF::tmp(*_info, ncol);
-				ZeroVec(*M_oo_inv_P_M_oo_in_f);
-				//_M_fine->M_oo_inv(*M_oo_inv_P_M_oo_in_f, *P_M_oo_in_f);
-				P_M_oo_in_f.reset();
-				std::shared_ptr<QPhiXSpinorF> I_Q_in_f = AuxQF::tmp(*_info, ncol);
-				CopyVec(*I_Q_in_f, in);
-				YmeqXVec(*M_oo_inv_P_M_oo_in_f, *I_Q_in_f);
-				M_oo_inv_P_M_oo_in_f.reset();
-			
-				// out_f = K * (I-Q)*in
+				std::shared_ptr<QPhiXSpinorF> in_f = AuxQF::tmp(*_info, ncol);
+				ZeroVec(*in_f);
+				ConvertSpinor(in, *in_f, _subset);
 				std::shared_ptr<QPhiXSpinorF> out_f = AuxQF::tmp(*_info, ncol);
-				applyK(*out_f, *I_Q_in_f);
-				I_Q_in_f.reset();
-
-				// Minv_M_oo_Q_in = M^{-1}_oo * M_oo * M_oo^{-1} * P * M_oo * in
-				std::shared_ptr<QPhiXSpinorF> Minv_M_oo_Q_in_f = AuxQF::tmp(*_info, ncol);
-				_mg_deflation->VV(*Minv_M_oo_Q_in_f, *M_oo_in_f);
-
-				// out += Minv_M_oo_Q_in
-				YpeqXVec(*Minv_M_oo_Q_in_f, *out_f);
-				ZeroVec(*out_f, SUBSET_EVEN);
-				ConvertSpinor(*out_f, out);
+				apply_complQ(*out_f, *in_f);
+				ZeroVec(out);
+				ConvertSpinor(*out_f, out, _subset);
 			}
 
+			void apply_complQ(QPhiXSpinorF& out, const QPhiXSpinorF& in, QPhiXSpinorF* VVin=nullptr) const {
+				assert(out.GetNCol() == in.GetNCol());
+				assert(!VVin || VVin->GetNCol() == in.GetNCol());
+				IndexType ncol = out.GetNCol();
+
+				if (_mode == 0) {
+					// Q = (I-P)
+					std::shared_ptr<QPhiXSpinorF> VVin0;
+					if (!VVin) {
+						VVin0 = AuxQF::tmp(*_info, ncol);
+						VVin = VVin0.get();
+					}
+					_mg_deflation->VV(*VVin, in);
+					std::shared_ptr<QPhiXSpinorF> AVVin = AuxQF::tmp(*_info, ncol);
+					_M_fine->unprecOp(*AVVin, *VVin);
+					VVin0.reset(); VVin = nullptr;
+					
+					ZeroVec(out);
+					CopyVec(out, in, _subset);
+					YmeqXVec(*AVVin, out, _subset);
+				} else if (_mode == 1) {
+					// Q = (I-L^{-1}*P*L)
+					std::shared_ptr<QPhiXSpinorF> VVin0;
+					if (!VVin) {
+						VVin0 = AuxQF::tmp(*_info, ncol);
+						VVin = VVin0.get();
+					}
+					_mg_deflation->VV(*VVin, in);
+					std::shared_ptr<QPhiXSpinorF> AVVin = AuxQF::tmp(*_info, ncol);
+					(*_M_fine)(*AVVin, *VVin);
+					VVin0.reset(); VVin = nullptr;
+					
+					ZeroVec(out);
+					CopyVec(out, in, _subset);
+					YmeqXVec(*AVVin, out, _subset);
+				} else {
+					assert(false);
+				}
+			}
 
 			/**
 			 * Return M^{-1}_oo * (I-Q) * in
@@ -382,23 +277,18 @@ namespace MG {
 			 * \param in: input vector
 			 */
 
-			void apply_invM_after_defl(const FGMRESSolverQPhiXF& eo_solver, QPhiXSpinorF& out, const QPhiXSpinorF& in) {
+			void apply_invM_after_defl(const FGMRESSolverQPhiXF& eo_solver, QPhiXSpinorF& out, const QPhiXSpinorF& in) const {
 				assert(in.GetNCol() == out.GetNCol());
 				int ncol = in.GetNCol();
 				
 				// I_Q_in = (I-Q)*in = in - M_oo^{-1} * P * in
-				std::shared_ptr<QPhiXSpinorF> P_in = AuxQF::tmp(*_info, ncol);
-				_mg_deflation->AVV(*P_in, in);
-				std::shared_ptr<QPhiXSpinorF> L_inv_P_in = AuxQF::tmp(*_info, ncol);
-				_M_fine->leftInvOp(*L_inv_P_in, *P_in);
-				P_in.reset();
+				std::shared_ptr<QPhiXSpinorF> in_f = AuxQF::tmp(*_info, ncol);
+				ZeroVec(*in_f);
+				ConvertSpinor(in, *in_f, _subset);
 				std::shared_ptr<QPhiXSpinorF> I_Q_in = AuxQF::tmp(*_info, ncol);
-				CopyVec(*I_Q_in, in);
-				YmeqXVec(*L_inv_P_in, *I_Q_in, SUBSET_ODD);
-				L_inv_P_in.reset();
-				ZeroVec(*I_Q_in, SUBSET_EVEN);
+				apply_complQ(*I_Q_in, *in_f);
 
-				// out = M^{-1}_oo * (I-Q) * in
+				// out = M^{-1} * (I-Q) * in
 				ZeroVec(out);
 				std::vector<MG::LinearSolverResults> res = eo_solver(out, *I_Q_in, RELATIVE);
 			}
@@ -621,7 +511,7 @@ namespace MG {
 
 				if (_K_distance == 0) {
 					// If no K, copy 'in' into 'out'
-					CopyVec(out, in, SUBSET_ODD);
+					CopyVec(out, in, _subset);
 
 				} else if (_K_distance == 1) {
 					// Apply the diagonal of K
@@ -663,7 +553,7 @@ namespace MG {
 			unsigned int _K_distance;
 			const CoarseDiracOp _op;
 			const CBSubset _subset;
-			mutable std::shared_ptr<LinearOperator<QPhiXSpinor,QPhiXGauge>> _deflatedEO;
+			const unsigned int _mode;
 	};
 }
 	
