@@ -78,6 +78,23 @@ namespace MG {
 		std::shared_ptr<Spinor> tmp(const Spinor& like_this) const {
 			return tmp(like_this.GetInfo(), like_this.GetNCol());
 		}
+
+		// Remove unused Spinors
+		void clear() const {
+			if (subrogate) return subrogate->clear();
+
+			// Remove spinors not being used
+			unsigned int n=0;
+			for (auto it=_tmp.begin(); it != _tmp.end(); it++) {
+				if (it->use_count() <= 1) {
+					it->reset();
+				} else {
+					_tmp[n++] = *it;
+				}
+			}
+			_tmp.resize(n);
+		}
+
 	private:
 		mutable std::vector<std::shared_ptr<Spinor>> _tmp;
 		const AuxiliarySpinors<Spinor>* subrogate;

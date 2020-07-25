@@ -125,6 +125,7 @@ namespace MG {
       }
     }
 
+    M_fine->clear();
   }
 
   template<typename SpinorT, typename SolverT, typename LinOpT, typename CoarseLevelT>

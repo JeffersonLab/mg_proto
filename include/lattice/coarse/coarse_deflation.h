@@ -197,6 +197,8 @@ namespace MG {
 			for (unsigned int i=0; i<nEv; i++)
 				assert(std::sqrt(resnorms2[i]) <= fabs(values[0]) * eigs_params.RsdTarget * 6);
 		}
+
+		M.clear();
 	}
 }
 

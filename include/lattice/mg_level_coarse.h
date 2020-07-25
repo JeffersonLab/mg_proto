@@ -86,6 +86,7 @@ namespace MG {
         ScaleVec(vals, *x);
       }
     }
+    M_fine->clear();
 
     // Generate individual vectors
     fine_level.null_vecs.resize(num_vecs);

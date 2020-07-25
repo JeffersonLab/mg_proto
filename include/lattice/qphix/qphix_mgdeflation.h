@@ -58,6 +58,8 @@ namespace MG {
 			MGDeflation(const std::shared_ptr<LatticeInfo> info, const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> M_fine, SetupParams p, LinearSolverParamsBase solver_params, EigsParams eigs_params)
 				: _info(info), _M_fine(M_fine)
 			{
+				AuxQ::subrogateTo(_M_fine.get());
+
 				// Setup multigrid
 				p.purpose = SetupParams::INVARIANT_SPACE;
 				SetupQPhiXMGLevels(p, _mg_levels, _M_fine);
@@ -93,6 +95,9 @@ namespace MG {
 				std::vector<double> rnorms2 = XmyNorm2Vec(Mg5eigenvector_lambda, *_eigenvectors);
 				for (unsigned int i=0; i<rnorms2.size(); ++i)
 					MasterLog(INFO, "Eigenpair error %d  %g", i, sqrt(rnorms2[i]));
+
+				AuxQ::clear();
+				AuxC::clear();
 			}
 
 			/*

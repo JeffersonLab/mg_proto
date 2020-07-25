@@ -94,6 +94,8 @@ namespace MG {
 			        unsigned int K_distance, unsigned int probing_distance, const CBSubset subset, unsigned int mode=0) :
 				_info(info), _M_fine(M_fine), _K_distance(K_distance), _op(*info), _subset(subset), _mode(mode)
 			{
+				AuxQF::subrogateTo(_M_fine.get());
+
 				MasterLog(INFO,"ALI Solver constructor: mode= %d BEGIN", _mode);
 				
 				// Create projector
@@ -102,6 +104,10 @@ namespace MG {
 				// Build K
 				build_K(prec_p, prec_vcycle_params, prec_solver_params, K_distance, probing_distance);
 				MasterLog(INFO,"ALI Solver constructor: END", _mode);
+
+				AuxQ::clear();
+				AuxQF::clear();
+				AuxC::clear();
 			}
 
 			/*
