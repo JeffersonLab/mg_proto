@@ -91,7 +91,7 @@ namespace MG {
 			ALIPrec(const std::shared_ptr<LatticeInfo> info, const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> M_fine,
 			        SetupParams defl_p, LinearSolverParamsBase defl_solver_params, EigsParams defl_eigs_params, SetupParams prec_p,
 			        std::vector<MG::VCycleParams> prec_vcycle_params, LinearSolverParamsBase prec_solver_params,
-			        unsigned int K_distance, unsigned int probing_distance, const CBSubset subset, unsigned int mode=0) :
+			        unsigned int K_distance, unsigned int probing_distance, const CBSubset subset, unsigned int mode=1) :
 				_info(info), _M_fine(M_fine), _K_distance(K_distance), _op(*info), _subset(subset), _mode(mode)
 			{
 				AuxQF::subrogateTo(_M_fine.get());
@@ -101,9 +101,17 @@ namespace MG {
 				// Create projector
 				_mg_deflation = std::make_shared<MGDeflation>(_info, _M_fine, defl_p, defl_solver_params, defl_eigs_params);
 
+				// Create Multigrid preconditioner
+				_mg_levels = std::make_shared<QPhiXMultigridLevelsEO>();
+				SetupQPhiXMGLevels(prec_p, *_mg_levels, _M_fine);
+				_vcycle = std::make_shared<VCycleRecursiveQPhiXEO2>(prec_vcycle_params, *_mg_levels);
+
 				// Build K
 				build_K(prec_p, prec_vcycle_params, prec_solver_params, K_distance, probing_distance);
 				MasterLog(INFO,"ALI Solver constructor: END", _mode);
+
+				// Hack vcycle
+				set_smoother();
 
 				AuxQ::clear();
 				AuxQF::clear();
@@ -126,7 +134,14 @@ namespace MG {
 			std::vector<LinearSolverResults> operator()(QPhiXSpinor& out, const QPhiXSpinor& in, ResiduumType resid_type = RELATIVE) const override {
 				(void)resid_type;
 				//test_defl(in);
+				//applyK(out, in);
+				(*_vcycle)(out, in);
+				IndexType ncol = out.GetNCol();
+				return std::vector<LinearSolverResults>(ncol, LinearSolverResults());
+			}
 
+			template<typename Spinor>
+			void apply_precon(Spinor& out, const Spinor& in, int recursive=0) const {
 				// // TEMP!!!
 				// double norm2_cb0 = sqrt(Norm2Vec(in, SUBSET_EVEN)[0]);
 				// double norm2_cb1 = sqrt(Norm2Vec(in, SUBSET_ODD)[0]);
@@ -144,7 +159,20 @@ namespace MG {
 				std::shared_ptr<QPhiXSpinorF> VV_in_f = AuxQF::tmp(*_info, ncol);
 				apply_complQ(*I_Q_in_f, *in_f, VV_in_f.get());
 				in_f.reset();
-			
+		
+				// M_oe*(M_ee^{-1}*M_eo*VV_in_o + VV_in_e)
+				if (_mode == 0) {
+					std::shared_ptr<QPhiXSpinorF> strange_VV_in_f = AuxQF::tmp(*_info, ncol);
+					_M_fine->strangeOp(*strange_VV_in_f, *VV_in_f);
+					if (recursive > 0) {
+						std::shared_ptr<QPhiXSpinorF> Minv_oo_strange_VV_in_f = AuxQF::tmp(*_info, ncol);
+						apply_precon(*Minv_oo_strange_VV_in_f, *strange_VV_in_f, recursive-1);
+						YpeqXVec(*Minv_oo_strange_VV_in_f, *VV_in_f, _subset);
+					} else {
+						YpeqXVec(*strange_VV_in_f, *I_Q_in_f, _subset);
+					}
+				}
+	
 				// out_f = K * (I-Q)*in
 				std::shared_ptr<QPhiXSpinorF> out_f = AuxQF::tmp(*_info, ncol);
 				applyK(*out_f, *I_Q_in_f);
@@ -154,8 +182,6 @@ namespace MG {
 				YpeqXVec(*VV_in_f, *out_f, _subset);
 				ZeroVec(out);
 				ConvertSpinor(*out_f, out, _subset);
-
-				return std::vector<LinearSolverResults>(ncol, LinearSolverResults());
 			}
 
 			/**
@@ -175,6 +201,19 @@ namespace MG {
 				ZeroVec(in0);
 				CopyVec(in0, in, _subset);
 				_mg_deflation->VV(out, in0);
+
+				// out_o + K * M_oe*(M_ee^{-1}*M_eo*out_o + out_e)
+				if (_mode == 0 && _K_vals) {
+					std::shared_ptr<QPhiXSpinorF> VV_in_f = AuxQF::tmp(*_info, ncol);
+					ConvertSpinor(out, *VV_in_f);
+					std::shared_ptr<QPhiXSpinorF> strange_VV_in_f = AuxQF::tmp(*_info, ncol);
+					_M_fine->strangeOp(*strange_VV_in_f, *VV_in_f);
+					std::shared_ptr<QPhiXSpinorF> K_f = AuxQF::tmp(*_info, ncol);
+					applyK(*K_f, *strange_VV_in_f);
+					YpeqXVec(*K_f, *VV_in_f, _subset);
+					ConvertSpinor(*VV_in_f, out, _subset);
+				}
+
 				ZeroVec(out, _subset.complementary());
 			}
 
@@ -212,6 +251,19 @@ namespace MG {
 
 
 		private:
+
+			void set_smoother() {
+
+				struct S : public Smoother<QPhiXSpinorF,QPhiXGaugeF> {
+					S(const ALIPrec& aliprec) : _aliprec(aliprec) {}
+					void operator()(QPhiXSpinorF& out, const QPhiXSpinorF& in) const override {
+						_aliprec.apply_precon(out, in);
+					}
+					const ALIPrec& _aliprec;
+				};
+				_antipostsmoother = std::make_shared<S>(*this);
+				_vcycle->SetAntePostSmoother(_antipostsmoother.get());
+			}
 
 			/**
 			 * Return (I-Q) * in
@@ -306,10 +358,7 @@ namespace MG {
 				if (K_distance > 1)
 					throw std::runtime_error("Not implemented 'K_distance' > 1");
 
-				QPhiXMultigridLevelsEO mg_levels;
-				SetupQPhiXMGLevels(p, mg_levels, _M_fine);
-				VCycleRecursiveQPhiXEO2 vcycle(vcycle_params, mg_levels);
-				FGMRESSolverQPhiXF eo_solver(*_M_fine, solver_params, &vcycle);
+				FGMRESSolverQPhiXF eo_solver(*_M_fine, solver_params, _vcycle.get());
 
 				std::shared_ptr<Coloring> coloring = get_good_coloring(eo_solver, probing_distance, solver_params.RsdTarget * 2);
 				unsigned int num_probing_vecs = coloring->GetNumSpinColorColors();
@@ -560,6 +609,9 @@ namespace MG {
 			const CoarseDiracOp _op;
 			const CBSubset _subset;
 			const unsigned int _mode;
+			std::shared_ptr<QPhiXMultigridLevelsEO> _mg_levels;
+			std::shared_ptr<VCycleRecursiveQPhiXEO2> _vcycle;
+			std::shared_ptr<Smoother<QPhiXSpinorF,QPhiXGaugeF>> _antipostsmoother;
 	};
 }
 	
