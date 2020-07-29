@@ -168,6 +168,8 @@ public:
              void operator()(QPhiXSpinorT<FT>& out,
                    const QPhiXSpinorT<FT>& in) const override
              {
+                if (_params.MaxIter <= 0) return;
+
                 const int isign= 1;
                 int n_iters;
                 unsigned long site_flops;
