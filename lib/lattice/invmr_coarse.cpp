@@ -322,7 +322,7 @@ MRSmootherCoarse::MRSmootherCoarse(const std::shared_ptr<const LinearOperator<Co
 void
 MRSmootherCoarse::operator()(CoarseSpinor& out, const CoarseSpinor& in) const {
 	InvMR_T(_M, in, out, _params.Omega, _params.RsdTarget,
-			_params.MaxIter, LINOP_OP,  ABSOLUTE, _params.VerboseP , true );
+			_params.MaxIter, LINOP_OP,  RELATIVE, _params.VerboseP , true );
 }
 
 } // Namespace
