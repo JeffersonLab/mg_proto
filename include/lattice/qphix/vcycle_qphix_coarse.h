@@ -283,6 +283,7 @@ class VCycleQPhiXCoarse2 :
 
     const LatticeInfo& GetInfo() const { return _M_fine.GetInfo(); }
     const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
+    void SetAntePostSmoother(Smoother<QPhiXSpinorF,QPhiXGaugeF>* s) { (void)s; throw std::runtime_error("Not supported!"); }
 
   private:
     const LatticeInfo _fine_info;
@@ -528,6 +529,7 @@ class VCycleQPhiXCoarseEO2 :
 
     const LatticeInfo& GetInfo() const { return _M_fine.GetInfo(); }
     const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
+    void SetAntePostSmoother(Smoother<QPhiXSpinorF,QPhiXGaugeF>* s) { (void)s; throw std::runtime_error("Not supported!"); }
 
   private:
     const LatticeInfo _fine_info;
@@ -727,6 +729,7 @@ class VCycleQPhiXCoarseEO3 :
         //postsmooth
         Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
         ZeroVec(delta,subset);
+        if (_antepost_smoother) (*_antepost_smoother)(delta, r);
         _post_smoother(delta,r);
         Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/postsmooth/level"+std::to_string(level));
 
@@ -792,7 +795,8 @@ class VCycleQPhiXCoarseEO3 :
       _post_smoother(post_smoother),
       _bottom_solver(bottom_solver),
       _param(param),
-      _Transfer(my_blocks,vecs) {
+      _Transfer(my_blocks,vecs),
+      _antepost_smoother(nullptr) {
       int level = _M_fine.GetLevel();
       Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/operator()/level"+std::to_string(level));
       Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/presmooth/level"+std::to_string(level));
@@ -805,6 +809,7 @@ class VCycleQPhiXCoarseEO3 :
 
     const LatticeInfo& GetInfo() const { return _M_fine.GetInfo(); }
     const CBSubset& GetSubset() const { return _M_fine.GetSubset(); }
+    void SetAntePostSmoother(Smoother<QPhiXSpinorF,QPhiXGaugeF>* s) { _antepost_smoother = s; }
 
   private:
     const LatticeInfo _fine_info;
@@ -817,12 +822,10 @@ class VCycleQPhiXCoarseEO3 :
     const LinearSolver<CoarseSpinor,CoarseGauge>& _bottom_solver;
     const LinearSolverParamsBase& _param;
     const QPhiXTransfer<QPhiXSpinorF> _Transfer;
-
+    Smoother<QPhiXSpinorF,QPhiXGaugeF>* _antepost_smoother;
 };
 
 
 }
-
-
 
 #endif /* INCLUDE_LATTICE_QPHIX_VCYCLE_QPHIX_COARSE_H_ */

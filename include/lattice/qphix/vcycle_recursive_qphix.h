@@ -130,7 +130,7 @@ public:
 		_pre_smoother = std::make_shared< const FineSmootherT >(_mg_levels.fine_level.M, _vcycle_params[0].pre_smoother_params);
 		_post_smoother = std::make_shared< const FineSmootherT >(_mg_levels.fine_level.M, _vcycle_params[0].post_smoother_params);
 		MasterLog(INFO,"Creating Toplevel VCycle");
-		_toplevel_vcycle = std::make_shared< const Fine2CoarseVCycleT >(
+		_toplevel_vcycle = std::make_shared< Fine2CoarseVCycleT >(
 		    *(_mg_levels.fine_level.info), // Fine Info
 		    *(_mg_levels.coarse_levels[0].info),  // Coarse info for first coarse level
 		    (_mg_levels.fine_level.blocklist),   // Block List
@@ -158,6 +158,7 @@ public:
 
 	const LatticeInfo& GetInfo() const { return *_mg_levels.fine_level.info; }
 	const CBSubset& GetSubset() const { return SUBSET_ALL; }
+	void SetAntePostSmoother(Smoother<QPhiXSpinorF,QPhiXGaugeF>* s) { _toplevel_vcycle->SetAntePostSmoother(s); }
 
 private:
 
@@ -166,7 +167,7 @@ private:
 
 	std::shared_ptr< const Smoother<QPhiXSpinorF,QPhiXGaugeF > > _pre_smoother;
 	std::shared_ptr< const Smoother<QPhiXSpinorF,QPhiXGaugeF> > _post_smoother;
-	std::shared_ptr< const Fine2CoarseVCycleT > _toplevel_vcycle;
+	std::shared_ptr< Fine2CoarseVCycleT > _toplevel_vcycle;
 
 	std::vector< std::shared_ptr< const Smoother< CoarseSpinor, CoarseGauge > > >       _coarse_presmoother;
 	std::vector< std::shared_ptr< const Smoother< CoarseSpinor, CoarseGauge > > >       _coarse_postsmoother;
