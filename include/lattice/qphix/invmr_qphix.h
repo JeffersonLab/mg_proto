@@ -200,7 +200,8 @@ public:
 
       const LinearSolverParamsBase& _params;
 
-      QPhiXMRSmootherT<FT> mr_smoother;
+      //QPhiXMRSmootherT<FT> mr_smoother;
+      QPhiXMRSolverT<FT> mr_smoother;
 
    };
 
