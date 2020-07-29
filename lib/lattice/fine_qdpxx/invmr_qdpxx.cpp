@@ -255,7 +255,7 @@ namespace MG  {
 	 MRSolverQDPXX::MRSolverQDPXX(const LinearOperator<QDP::LatticeFermion,
 			                        QDP::multi1d<QDP::LatticeColorMatrix> >& M,
 									const MG::LinearSolverParamsBase& params) : _M(M),
-	  _params(static_cast<const MRSolverParams&>(params)){}
+	  _params(params){}
 
 	  std::vector<LinearSolverResults>
 	  MRSolverQDPXX::operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in, ResiduumType resid_type) const {
@@ -267,7 +267,7 @@ namespace MG  {
 
 
 	  MRSmootherQDPXX::MRSmootherQDPXX(const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> > & M, const MG::LinearSolverParamsBase& params) : _M(M),
-	  _params(static_cast<const MRSolverParams&>(params)){}
+	  _params(params){}
 
 	  void
 	  MRSmootherQDPXX::operator()(QDP::LatticeFermion& out, const QDP::LatticeFermion& in) const {

@@ -25,7 +25,7 @@ namespace MG  {
 
   private:
 	  const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> >& _M;
-	  const MRSolverParams& _params;
+	  const LinearSolverParamsBase& _params;
 
   };
 
@@ -37,7 +37,7 @@ namespace MG  {
 
   private:
 	  const LinearOperator<QDP::LatticeFermion,QDP::multi1d<QDP::LatticeColorMatrix> >& _M;
-	  const MRSolverParams& _params;
+	  const LinearSolverParamsBase& _params;
 
   };
 }

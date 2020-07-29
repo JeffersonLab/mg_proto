@@ -10,13 +10,4 @@
 
 #include "lattice/solver.h"
 
-namespace MG {
-
-class MRSolverParams : public MG::LinearSolverParamsBase {
- public:
-	  double Omega; // OverRelaxation
-
-  };
-
-}
 #endif /* TEST_QDPXX_MR_PARAMS_H_ */

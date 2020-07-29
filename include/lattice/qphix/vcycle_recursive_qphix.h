@@ -17,6 +17,7 @@
 #include "lattice/qphix/mg_level_qphix.h"
 #include "lattice/qphix/invmr_qphix.h"
 #include "lattice/qphix/invfgmres_qphix.h"
+#include "lattice/qphix/invbicgstab_qphix.h"
 #include "lattice/coarse/invmr_coarse.h"
 #include "lattice/coarse/invfgmres_coarse.h"
 #include "lattice/coarse/coarse_deflation.h"
@@ -176,7 +177,7 @@ private:
 
 using VCycleRecursiveQPhiX = VCycleRecursiveQPhiXT<QPhiXMultigridLevels,VCycleQPhiXCoarse2, VCycleCoarse, MRSmootherQPhiXF, MRSmootherCoarse,FGMRESSolverCoarse>;
 using VCycleRecursiveQPhiXEO = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO2, VCycleCoarseEO, MRSmootherQPhiXF, UnprecMRSmootherCoarseWrapper, UnprecFGMRESSolverCoarseWrapper>;
-using VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, MRSmootherQPhiXEOF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>;
+using VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, BiCBStabSmootherQPhiXEOF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>;
 
 
 };

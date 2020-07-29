@@ -17,9 +17,9 @@ namespace MG {
 
 struct VCycleParams {
 	// Pre Smoother Params
-	MRSolverParams pre_smoother_params;
+	LinearSolverParamsBase pre_smoother_params;
 	LinearSolverParamsBase bottom_solver_params;
-	MRSolverParams post_smoother_params;
+	LinearSolverParamsBase post_smoother_params;
 	LinearSolverParamsBase cycle_params;
 };
 

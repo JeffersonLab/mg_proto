@@ -80,11 +80,13 @@ namespace MG {
 		int MaxIter;
 		bool VerboseP;
 		int NKrylov;
+	   double Omega; // OverRelaxation
 		LinearSolverParamsBase() {
 			RsdTarget = 0.0;
 			MaxIter=-1;
 			VerboseP=false;
 			NKrylov = 0;
+			Omega = 0.0;
 		}
 	};
 

@@ -301,7 +301,7 @@ InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 
 MRSolverCoarse::MRSolverCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
 		const MG::LinearSolverParamsBase& params) : _M(M),
-				_params(static_cast<const MRSolverParams&>(params)){}
+				_params(params){}
 
 std::vector<LinearSolverResults>
 MRSolverCoarse::operator()(CoarseSpinor& out,
@@ -314,15 +314,15 @@ MRSolverCoarse::operator()(CoarseSpinor& out,
 
 
 MRSmootherCoarse::MRSmootherCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
-		const MG::LinearSolverParamsBase& params) : _M(M), _params(static_cast<const MRSolverParams&>(params)) {}
+		const MG::LinearSolverParamsBase& params) : _M(M), _params(params) {}
 
 MRSmootherCoarse::MRSmootherCoarse(const std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M_ptr,
-			  	  	   const MG::LinearSolverParamsBase& params) : _M(*M_ptr), _params(static_cast<const MRSolverParams&>(params)) {}
+			  	  	   const MG::LinearSolverParamsBase& params) : _M(*M_ptr), _params(params) {}
 
 void
 MRSmootherCoarse::operator()(CoarseSpinor& out, const CoarseSpinor& in) const {
 	InvMR_T(_M, in, out, _params.Omega, _params.RsdTarget,
-			_params.MaxIter, LINOP_OP,  ABSOLUTE, _params.VerboseP , false );
+			_params.MaxIter, LINOP_OP,  ABSOLUTE, _params.VerboseP , true );
 }
 
 } // Namespace

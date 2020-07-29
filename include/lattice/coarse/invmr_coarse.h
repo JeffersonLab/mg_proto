@@ -27,7 +27,7 @@ namespace MG  {
 
   private:
 	  const LinearOperator<CoarseSpinor,CoarseGauge>& _M;
-	  const MRSolverParams& _params;
+	  const LinearSolverParamsBase& _params;
 
   };
 
@@ -46,7 +46,7 @@ namespace MG  {
 
   private:
 	  const LinearOperator<CoarseSpinor,CoarseGauge>& _M;
-	  const MRSolverParams& _params;
+	  const LinearSolverParamsBase& _params;
 
   };
   using UnprecMRSmootherCoarseWrapper = UnprecSmootherWrapper<CoarseSpinor,CoarseGauge,MRSmootherCoarse>;

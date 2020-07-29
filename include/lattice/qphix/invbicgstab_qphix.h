@@ -45,7 +45,7 @@ public:
    {}
   std::vector<LinearSolverResults> operator()(QPhiXSpinorT<FT>& out,
                                 const QPhiXSpinorT<FT>& in,
-                                ResiduumType resid_type = RELATIVE ) const
+                                ResiduumType resid_type = RELATIVE ) const override
   {
     const int isign= 1;
     int n_iters;
@@ -109,7 +109,7 @@ public:
 
     std::vector<LinearSolverResults> operator()(QPhiXSpinorT<FT>& out,
                                   const QPhiXSpinorT<FT>& in,
-                                  ResiduumType resid_type = RELATIVE ) const
+                                  ResiduumType resid_type = RELATIVE ) const override
     {
       const int isign= 1;
       int n_iters;
@@ -153,7 +153,53 @@ public:
     using BiCGStabSolverQPhiXEO = BiCGStabSolverQPhiXTEO<double>;
     using BiCGStabSolverQPhiXFEO = BiCGStabSolverQPhiXTEO<float>;
 
-}  // end namespace MGTEsting
+    template<typename FT>
+       class BiCBStabSmootherQPhiXTEO : public Smoother<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>> {
+          public:
+
+             BiCBStabSmootherQPhiXTEO(const QPhiXWilsonCloverEOLinearOperatorT<FT>& M,
+                   const LinearSolverParamsBase& params) : _params(params),
+             bicg_solver( M.getQPhiXOp(),params.MaxIter)     {}
+
+             BiCBStabSmootherQPhiXTEO(const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorT<FT>>& M,
+                   const LinearSolverParamsBase& params) : _params(params),
+             bicg_solver( M->getQPhiXOp(),params.MaxIter)     {}
+
+             void operator()(QPhiXSpinorT<FT>& out,
+                   const QPhiXSpinorT<FT>& in) const override
+             {
+                const int isign= 1;
+                int n_iters;
+                unsigned long site_flops;
+                unsigned long mv_apps;
+                assert(in.GetNCol() == out.GetNCol());
+                IndexType ncol = in.GetNCol();
+                std::vector<double> rsd_sq_final(ncol);
+
+                for (int col=0; col < ncol; ++col) {
+                   (bicg_solver)(out.getCB(col,ODD).get(),
+                         in.getCB(col,ODD).get(),
+                         _params.RsdTarget,
+                         n_iters,
+                         rsd_sq_final[col],
+                         site_flops,
+                         mv_apps,
+                         isign,
+                         _params.VerboseP,
+                         ODD,
+                         QPhiX::RELATIVE);
+                }
+             }
+
+          private:
+
+             const LinearSolverParamsBase& _params;
+             QPhiXBiCGStabT<FT> bicg_solver;
+       };
+
+    using BiCBStabSmootherQPhiXEO  = BiCBStabSmootherQPhiXTEO<double>;
+    using BiCBStabSmootherQPhiXEOF = BiCBStabSmootherQPhiXTEO<float>;
+}
 
 
 #endif /* INCLUDE_LATTICE_QPHIX_INVBICGSTAB_QPHIX_H_ */

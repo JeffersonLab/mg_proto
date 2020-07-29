@@ -255,6 +255,29 @@ public:
     }
 #endif
 
+  // out_o = M_oe*(M_ee^{-1}*M_eo*in_o + in_e)
+  void strangeOp(Spinor& out, const Spinor& in) const {
+
+    const int isign = 1;
+    assert(out.GetNCol() == in.GetNCol());
+    IndexType ncol = out.GetNCol();
+    std::shared_ptr<Spinor> tmp = this->tmp(in); 
+
+    // use odd cb of tmp1 as a temporary storage
+    // it is not really the odd checkerboardl
+    for (int col=0; col < ncol; ++col) {
+      QPhiXEOClov->M_offdiag(tmp->getCB(col,ODD).get(), in.getCB(col,ODD).get(), isign, EVEN);
+
+      // we will go from the odd into the final target.
+      QPhiXEOClov->M_diag_inv(tmp->getCB(col,EVEN).get(), tmp->getCB(col,ODD).get(), isign);
+    }
+    YpeqXVec(in, *tmp, SUBSET_EVEN);
+    for (int col=0; col < ncol; ++col) {
+      QPhiXEOClov->M_offdiag(out.getCB(col,ODD).get(), tmp->getCB(col,EVEN).get(), isign, ODD);
+    }
+    ZeroVec(out,SUBSET_EVEN);
+  }
+
   void rightOp(Spinor& out, const Spinor& in) const override {
 
     const int isign = 1;
