@@ -178,7 +178,8 @@ private:
 
 using VCycleRecursiveQPhiX = VCycleRecursiveQPhiXT<QPhiXMultigridLevels,VCycleQPhiXCoarse2, VCycleCoarse, MRSmootherQPhiXF, MRSmootherCoarse,FGMRESSolverCoarse>;
 using VCycleRecursiveQPhiXEO = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO2, VCycleCoarseEO, MRSmootherQPhiXF, UnprecMRSmootherCoarseWrapper, UnprecFGMRESSolverCoarseWrapper>;
-using VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, MRSmootherQPhiXEOF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>;
+using VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, FGMRESSmootherQPhiXF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>;
+//using VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, MRSmootherQPhiXEOF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>;
 //using VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, BiCBStabSmootherQPhiXEOF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>;
 
 

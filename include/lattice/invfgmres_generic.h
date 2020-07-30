@@ -14,6 +14,8 @@
 #include "lattice/solver.h"
 #include <complex>
 #include "lattice/array2d.h"
+#include <exception>
+#include <string>
 #include <vector>
 #include <cmath>
 #include <memory>
@@ -45,7 +47,7 @@ namespace {
 namespace FGMRESGeneric {
 
   inline void showConvergence(const std::vector<double>& residuals, const std::vector<double>& targets,
-      int level, int iter, int n_cycles=-1) {
+      std::string level, int iter, int n_cycles=-1) {
     const int ncol = residuals.size();
     int num_converged = 0;
     double avg_residual = 1.0, avg_target = 1;
@@ -57,10 +59,10 @@ namespace FGMRESGeneric {
     avg_residual = std::exp(avg_residual/ncol); 
     avg_target = std::exp(avg_target/ncol); 
     if (n_cycles < 0) {
-      MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Iter=%d avg || r ||=%4.2e converged=%d avg Target=%16.8e",level,
+      MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%s Iter=%d avg || r ||=%4.2e converged=%d avg Target=%16.8e",level.c_str(),
           iter, avg_residual,num_converged,avg_target);
     } else {
-      MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Cycles=%d Iter=%d avg || r ||=%4.2e converged=%d avg Target=%16.8e",level,
+      MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%s Cycles=%d Iter=%d avg || r ||=%4.2e converged=%d avg Target=%16.8e",level.c_str(),
           n_cycles, iter, avg_residual,num_converged,avg_target);
     }
   }
@@ -79,11 +81,11 @@ template<typename ST,typename GT>
      std::vector<std::vector<std::complex<double>>>& c,
      int& ndim_cycle,
      ResiduumType resid_type,
-     bool VerboseP )
+     bool VerboseP,
+     std::string level)
 
  {
    ndim_cycle = 0;
-   int level = A.GetLevel();
    const CBSubset& subset = A.GetSubset();
    IndexType ncol = V[0]->GetNCol();    
    assert(ncol == w.GetNCol());
@@ -92,7 +94,7 @@ template<typename ST,typename GT>
    assert((unsigned int)ncol == c.size());
 
    if( VerboseP ) {
-     MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Flexible Arnoldi Cycle: ",level);
+     MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%s Flexible Arnoldi Cycle: ",level.c_str());
    }
 
 
@@ -113,11 +115,11 @@ template<typename ST,typename GT>
            // But I will go through a tmpsolve temporary because
            // a proper unprec solver may overwrite the off checkerboard parts with a reconstruct etc.
            //
-           Timer::TimerAPI::startTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
+           Timer::TimerAPI::startTimer("FGMRESSolverGeneric/preconditioner/level"+level);
 
            (*M)( *Z[j], *(V[j]), resid_type );  // z_j = M^{-1} v_j
 
-           Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
+           Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/preconditioner/level"+level);
        }
        else {
            CopyVec(*(Z[j]), *(V[j]), subset);      // Vector assignment " copy "
@@ -125,13 +127,13 @@ template<typename ST,typename GT>
 
 #ifdef DEBUG_SOLVER
      {
-       MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%d norm of Z_j = %16.8e norm of V_j = %16.8e",level, Norm2Vec(*(Z[j]),subset), Norm2Vec(*(V[j]),subset));
+       MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%s norm of Z_j = %16.8e norm of V_j = %16.8e",level.c_str(), Norm2Vec(*(Z[j]),subset), Norm2Vec(*(V[j]),subset));
      }
 #endif
 
-     Timer::TimerAPI::startTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
+     Timer::TimerAPI::startTimer("FGMRESSolverGeneric/operatorA/level"+level);
      A( w, *(Z[j]), LINOP_OP);  // w  = A z_
-     Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
+     Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/operatorA/level"+level);
 
      // Fill out column j
      for(int i=0; i <= j ;  ++i ) {
@@ -145,7 +147,7 @@ template<typename ST,typename GT>
 
      std::vector<double> wnorm=aux::sqrt(Norm2Vec(w,subset));               //  NORM
 #ifdef DEBUG_SOLVER
-     for (int col=0; col < ncol; ++col) MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%d j=%d wnorm=%16.8e\n", level, j, wnorm[col]);
+     for (int col=0; col < ncol; ++col) MasterLog(DEBUG, "FLEXIBLE ARNOLDI: level=%s j=%d wnorm=%16.8e\n", level.c_str(), j, wnorm[col]);
 #endif
 
      for (int col=0; col < ncol; ++col) H[col](j,j+1) = std::complex<double>(wnorm[col],0);
@@ -158,7 +160,7 @@ template<typename ST,typename GT>
            // If wnorm = 0 exactly, then we have converged exactly
            // Replay Givens rots here, how to test?
            if( VerboseP ) {
-              MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%d Converged at iter = %d ",level, j+1);
+              MasterLog(INFO,"FLEXIBLE ARNOLDI: level=%s Converged at iter = %d ",level.c_str(), j+1);
            }
            ndim_cycle = j;
            return;
@@ -219,7 +221,7 @@ template<typename ST, typename GT>
      */
   FGMRESSolverGeneric(const LinearOperator<ST,GT>& A,
       const MG::LinearSolverParamsBase& params,
-      const LinearSolver<ST,GT>* M_prec=nullptr)  : _A(A), _info(A.GetInfo()),
+      const LinearSolver<ST,GT>* M_prec=nullptr, std::string prefix="")  : _A(A), _info(A.GetInfo()),
       _params(set_params_defaults(params)), _M_prec(M_prec)
   {
 
@@ -227,10 +229,10 @@ template<typename ST, typename GT>
 
     initialize(0);
 
-    int level = _A.GetLevel();
-    Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
-    Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operatorA/level"+std::to_string(level));
-    Timer::TimerAPI::addTimer("FGMRESSolverGeneric/preconditioner/level"+std::to_string(level));
+    _prefix = std::to_string(_A.GetLevel()) + prefix;
+    Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operator()/level"+_prefix);
+    Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operatorA/level"+_prefix);
+    Timer::TimerAPI::addTimer("FGMRESSolverGeneric/preconditioner/level"+_prefix);
   }
 
   const LatticeInfo& GetInfo() const { return _info; }
@@ -309,7 +311,7 @@ private:
 public:
   FGMRESSolverGeneric(const std::shared_ptr<const LinearOperator<ST,GT>> A,
         const MG::LinearSolverParamsBase& params,
-        const LinearSolver<ST,GT>* M_prec=nullptr)  : FGMRESSolverGeneric(*A,params,M_prec) {}
+        const LinearSolver<ST,GT>* M_prec=nullptr, std::string prefix="")  : FGMRESSolverGeneric(*A,params,M_prec,prefix) {}
 
   ~FGMRESSolverGeneric()
   {
@@ -318,14 +320,15 @@ public:
 
   std::vector<LinearSolverResults> operator()(ST& out, const ST& in, ResiduumType resid_type = RELATIVE) const override
   {
-      int level = _A.GetLevel();
-      Timer::TimerAPI::startTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
+      IndexType ncol = in.GetNCol();
+      if (_params.MaxIter <= 0) return std::vector<LinearSolverResults>(ncol, LinearSolverResults());
+
+      Timer::TimerAPI::startTimer("FGMRESSolverGeneric/operator()/level"+_prefix);
 
       assert(in.GetNCol() == out.GetNCol());
 
       const CBSubset& subset = _A.GetSubset();
 
-      IndexType ncol = in.GetNCol();
       initialize(ncol);
       std::vector<LinearSolverResults> res(ncol); // Value to return
       for (int col=0; col < ncol; ++col) res[col].resid_type = resid_type;
@@ -352,7 +355,7 @@ public:
       {
         std::vector<double> tmp_norm_r = sqrt(Norm2Vec(r,subset));
         for (int col=0; col < ncol; ++col) {
-           MasterLog(MG::DEBUG, "FGMRES: level=%d col=%d norm_rhs=%16.8e r_norm=%16.8e", level, col, norm_rhs[col], tmp_norm_r[col]);
+           MasterLog(MG::DEBUG, "FGMRES: level=%s col=%d norm_rhs=%16.8e r_norm=%16.8e", _prefix.c_str(), col, norm_rhs[col], tmp_norm_r[col]);
         }
       }
 #endif
@@ -363,7 +366,7 @@ public:
         std::vector<double> tmp_norm_r_in = aux::sqrt(Norm2Vec(in,subset));
         std::vector<double> tmp_norm_r = aux::sqrt(Norm2Vec(r,subset));
         for (int col=0; col < ncol; ++col) {
-           MasterLog(MG::DEBUG, "FGMRES: level=%d col=%d After copy: in_norm=%16.8e r_norm=%16.8e", level, col, tmp_norm_in[col], tmp_norm_r[col]);
+           MasterLog(MG::DEBUG, "FGMRES: level=%s col=%d After copy: in_norm=%16.8e r_norm=%16.8e", _prefix.c_str(), col, tmp_norm_in[col], tmp_norm_r[col]);
         }
       }
 #endif
@@ -378,7 +381,7 @@ public:
       // Initialize iterations
       int iters_total = 0;
       if ( _params.VerboseP ) {
-        showConvergence(r_norm, target, level, iters_total);
+        showConvergence(r_norm, target, _prefix, iters_total);
       }
 
       bool all_converged = true;
@@ -392,7 +395,7 @@ public:
       }
 
       if (all_converged) {
-            Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
+            Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/operator()/level"+_prefix);
             return res;
       }
 
@@ -452,7 +455,7 @@ public:
             givens_rots_,
             c_,
             dim,
-            resid_type);
+            resid_type, _prefix);
 
         int iters_this_cycle = dim;
         assert(dim > 0);
@@ -477,7 +480,7 @@ public:
         // Update total iters
         iters_total += iters_this_cycle;
         if ( _params.VerboseP ) {
-          showConvergence(r_norm, target, level, iters_total);
+          showConvergence(r_norm, target, _prefix, iters_total);
         }
 
         // Init matrices should've initialized this but just in case this is e.g. a second call or something.
@@ -500,7 +503,7 @@ public:
       } // Next Cycle...
 
       if ( _params.VerboseP ) {
-        showConvergence(r_norm, target, level, iters_total, n_cycles);
+        showConvergence(r_norm, target, _prefix, iters_total, n_cycles);
       }
 
       // Either we've exceeded max iters, or we have converged in either case set res:
@@ -511,7 +514,7 @@ public:
             res[col].resid /= norm_rhs[col];
          }
       }
-      Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/operator()/level"+std::to_string(level));
+      Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/operator()/level"+_prefix);
       return res;
     }
 
@@ -524,14 +527,14 @@ public:
              std::vector<std::vector<Givens* >>& givens_rots,
              std::vector<std::vector<std::complex<double>>>& c,
              int&  ndim_cycle,
-             ResiduumType resid_type) const
+             ResiduumType resid_type, std::string prefix) const
     {
 
       FlexibleArnoldiT<ST,GT>(n_krylov,
             rsd_target,
             _A,
             _M_prec,
-            V,Z,w, H,givens_rots,c, ndim_cycle, resid_type, _params.VerboseP);
+            V,Z,w, H,givens_rots,c, ndim_cycle, resid_type, _params.VerboseP, prefix);
     }
 
 
@@ -558,6 +561,7 @@ public:
     const LatticeInfo _info;
     const LinearSolverParamsBase _params;
     const LinearSolver<ST,GT>* _M_prec;
+    std::string _prefix;
 
     // These can become state variables, as they will need to be
     // handed around

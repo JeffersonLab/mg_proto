@@ -21,6 +21,21 @@ namespace MG {
   using FGMRESSolverQPhiX = FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor,QPhiXGauge>;
   using FGMRESSolverQPhiXF = FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorF,QPhiXGaugeF>;
 
+  template<typename FT>
+  class FGMRESSmootherQPhiXT : public FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>,
+                               public Smoother<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>
+  {
+    public:
+    FGMRESSmootherQPhiXT(const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorT<FT>>& M_fine, const LinearSolverParamsBase& params) :
+      FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>(M_fine, params, nullptr, "S") {}
+
+    void operator()(QPhiXSpinorT<FT>& out, const QPhiXSpinorT<FT>& in) const override {
+      FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>::operator()(out, in);
+    }
+  };
+
+  using FGMRESSmootherQPhiXF = FGMRESSmootherQPhiXT<float>;
+
   using UnprecFGMRESSolverQPhiXWrapper =  UnprecLinearSolverWrapper<QPhiXSpinor,QPhiXGauge,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor,QPhiXGauge>>;
   using UnprecFGMRESSolverQPhiXFWrapper =  UnprecLinearSolverWrapper<QPhiXSpinorF,QPhiXGaugeF,FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor,QPhiXGauge>>;
 
