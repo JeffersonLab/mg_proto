@@ -25,9 +25,16 @@ namespace MG {
   class FGMRESSmootherQPhiXT : public FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>,
                                public Smoother<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>
   {
+    static LinearSolverParamsBase setDefaults(LinearSolverParamsBase params) {
+      if (params.NKrylov == 0) {
+        params.NKrylov = params.MaxIter;
+      }
+      return params;
+    }
+
     public:
     FGMRESSmootherQPhiXT(const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorT<FT>>& M_fine, const LinearSolverParamsBase& params) :
-      FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>(M_fine, params, nullptr, "S") {}
+      FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>(M_fine, setDefaults(params), nullptr, "S") {}
 
     void operator()(QPhiXSpinorT<FT>& out, const QPhiXSpinorT<FT>& in) const override {
       FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>::operator()(out, in);
