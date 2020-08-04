@@ -444,7 +444,6 @@ namespace MG {
 						}
 					}
 				}
-				std::vector<IndexType> cbsites_dist_2 = Coloring::GetKDistNeighbors(site, 2, *_info);
 
 				// sol_e = inv(M_fine) * (I-P) * e
 				std::shared_ptr<QPhiXSpinorF> sol_e = AuxQF::tmp(*_info, _info->GetNumColorSpins());
