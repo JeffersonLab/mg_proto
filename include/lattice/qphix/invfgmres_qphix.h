@@ -39,6 +39,8 @@ namespace MG {
     void operator()(QPhiXSpinorT<FT>& out, const QPhiXSpinorT<FT>& in) const override {
       FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>::operator()(out, in);
     }
+
+    void setPrec(const LinearSolver<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>* M_prec) const override { FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>,QPhiXGaugeT<FT>>::setPrec(M_prec); }
   };
 
   using FGMRESSmootherQPhiXF = FGMRESSmootherQPhiXT<float>;
