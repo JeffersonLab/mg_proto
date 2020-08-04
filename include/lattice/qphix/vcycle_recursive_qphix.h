@@ -159,6 +159,7 @@ public:
 	const LatticeInfo& GetInfo() const { return *_mg_levels.fine_level.info; }
 	const CBSubset& GetSubset() const { return SUBSET_ALL; }
 	void SetAntePostSmoother(Smoother<QPhiXSpinorF,QPhiXGaugeF>* s) { _toplevel_vcycle->SetAntePostSmoother(s); }
+	const Smoother<QPhiXSpinorF,QPhiXGaugeF>* GetPostSmoother() const { return _post_smoother.get(); }
 
 private:
 

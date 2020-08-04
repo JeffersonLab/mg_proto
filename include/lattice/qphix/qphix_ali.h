@@ -252,17 +252,26 @@ namespace MG {
 
 		private:
 
-			void set_smoother() {
+			struct S : public Smoother<QPhiXSpinorF,QPhiXGaugeF>,
+			public LinearSolver<QPhiXSpinorF,QPhiXGaugeF> {
+				S(const ALIPrec& aliprec) : _aliprec(aliprec) {}
+				std::vector<LinearSolverResults> operator()(QPhiXSpinorF& out, const QPhiXSpinorF& in, ResiduumType resid_type = RELATIVE) const override {
+					(void)resid_type;
+					_aliprec.apply_precon(out, in);
+					return std::vector<LinearSolverResults>(in.GetNCol(), LinearSolverResults());
+				}
+				void operator()(QPhiXSpinorF& out, const QPhiXSpinorF& in) const override {
+					_aliprec.apply_precon(out, in);
+				}
+				const CBSubset& GetSubset() const override { return SUBSET_ODD; };
+				const LatticeInfo& GetInfo() const override { return _aliprec.GetInfo(); }
+				const ALIPrec& _aliprec;
+			};
 
-				struct S : public Smoother<QPhiXSpinorF,QPhiXGaugeF> {
-					S(const ALIPrec& aliprec) : _aliprec(aliprec) {}
-					void operator()(QPhiXSpinorF& out, const QPhiXSpinorF& in) const override {
-						_aliprec.apply_precon(out, in);
-					}
-					const ALIPrec& _aliprec;
-				};
+			void set_smoother() {
 				_antipostsmoother = std::make_shared<S>(*this);
-				_vcycle->SetAntePostSmoother(_antipostsmoother.get());
+				//_vcycle->SetAntePostSmoother(_antipostsmoother.get());
+				_vcycle->GetPostSmoother()->setPrec(_antipostsmoother.get());
 			}
 
 			/**
@@ -316,7 +325,7 @@ namespace MG {
 					}
 					_mg_deflation->VV(*VVin, in);
 					std::shared_ptr<QPhiXSpinorF> AVVin = AuxQF::tmp(*_info, ncol);
-					(*_M_fine)(*AVVin, *VVin);
+					_M_fine->unprecOp(*AVVin, *VVin);
 					VVin0.reset(); VVin = nullptr;
 					
 					ZeroVec(out);
@@ -435,6 +444,7 @@ namespace MG {
 						}
 					}
 				}
+				std::vector<IndexType> cbsites_dist_2 = Coloring::GetKDistNeighbors(site, 2, *_info);
 
 				// sol_e = inv(M_fine) * (I-P) * e
 				std::shared_ptr<QPhiXSpinorF> sol_e = AuxQF::tmp(*_info, _info->GetNumColorSpins());
@@ -566,7 +576,7 @@ namespace MG {
 
 				if (_K_distance == 0) {
 					// If no K, copy 'in' into 'out'
-					CopyVec(out, in, _subset);
+					ZeroVec(out, _subset);
 
 				} else if (_K_distance == 1) {
 					// Apply the diagonal of K
@@ -611,7 +621,7 @@ namespace MG {
 			const unsigned int _mode;
 			std::shared_ptr<QPhiXMultigridLevelsEO> _mg_levels;
 			std::shared_ptr<VCycleRecursiveQPhiXEO2> _vcycle;
-			std::shared_ptr<Smoother<QPhiXSpinorF,QPhiXGaugeF>> _antipostsmoother;
+			std::shared_ptr<S> _antipostsmoother;
 	};
 }
 	

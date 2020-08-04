@@ -11,6 +11,7 @@
 #include "lattice/lattice_info.h"
 #include "lattice/coarse/subset.h"
 #include "utils/auxiliary.h"
+#include <stdexcept>
 #include <vector>
 
 namespace MG {
@@ -28,6 +29,7 @@ namespace MG {
 		virtual std::vector<LinearSolverResults> operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const=0;
 		virtual const LatticeInfo& GetInfo() const = 0;
 		virtual const CBSubset& GetSubset() const = 0;
+		virtual void setPrec(const LinearSolver<Spinor,Gauge>*) const { throw std::runtime_error("Not implemented!"); }
 		virtual ~LinearSolver(){}
 	};
 
@@ -98,6 +100,7 @@ namespace MG {
 	public:
 		virtual void operator()(Spinor& out, const Spinor& in) const = 0;
 		virtual ~Smoother(){}
+		virtual void setPrec(const LinearSolver<Spinor,Gauge>*) const { throw std::runtime_error("Not implemented!"); }
 	};
 
 	// Base Parameter Struct

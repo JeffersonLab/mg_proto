@@ -50,7 +50,7 @@ namespace FGMRESGeneric {
       std::string level, int iter, int n_cycles=-1) {
     const int ncol = residuals.size();
     int num_converged = 0;
-    double avg_residual = 1.0, avg_target = 1;
+    double avg_residual = 0.0, avg_target = 0;
     for (int col=0; col < ncol; ++col) {
       avg_residual += std::log(residuals[col]);
       avg_target += std::log(targets[col]);
@@ -234,9 +234,18 @@ template<typename ST, typename GT>
     Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operatorA/level"+_prefix);
     Timer::TimerAPI::addTimer("FGMRESSolverGeneric/preconditioner/level"+_prefix);
   }
+  FGMRESSolverGeneric(const std::shared_ptr<const LinearOperator<ST,GT>> A,
+        const MG::LinearSolverParamsBase& params,
+        const LinearSolver<ST,GT>* M_prec=nullptr, std::string prefix="")  : FGMRESSolverGeneric(*A,params,M_prec,prefix) {}
+
+  ~FGMRESSolverGeneric()
+  {
+    destroy();
+  }
 
   const LatticeInfo& GetInfo() const { return _info; }
   const CBSubset& GetSubset() const { return _A.GetSubset(); }
+  void setPrec(const LinearSolver<ST,GT>* M_prec) const override { _M_prec = M_prec; }
 
 private:
 
@@ -309,15 +318,6 @@ private:
 
 
 public:
-  FGMRESSolverGeneric(const std::shared_ptr<const LinearOperator<ST,GT>> A,
-        const MG::LinearSolverParamsBase& params,
-        const LinearSolver<ST,GT>* M_prec=nullptr, std::string prefix="")  : FGMRESSolverGeneric(*A,params,M_prec,prefix) {}
-
-  ~FGMRESSolverGeneric()
-  {
-    destroy();
-  }
-
   std::vector<LinearSolverResults> operator()(ST& out, const ST& in, ResiduumType resid_type = RELATIVE) const override
   {
       IndexType ncol = in.GetNCol();
@@ -560,7 +560,7 @@ public:
     const LinearOperator<ST,GT>& _A;
     const LatticeInfo _info;
     const LinearSolverParamsBase _params;
-    const LinearSolver<ST,GT>* _M_prec;
+    mutable const LinearSolver<ST,GT>* _M_prec;
     std::string _prefix;
 
     // These can become state variables, as they will need to be
