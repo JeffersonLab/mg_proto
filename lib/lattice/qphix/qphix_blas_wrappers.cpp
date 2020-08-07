@@ -254,7 +254,6 @@ namespace MG {
         IndexType num_cbsites = info.GetNumCBSites();
         IndexType num_color = info.GetNumColors();
         IndexType num_spin = info.GetNumSpins();
-        IndexType num_colorspin = num_color * num_spin;
         IndexType ncol = in.GetNCol();
 
 #pragma omp parallel for collapse(3) schedule(static)
@@ -334,6 +333,7 @@ namespace MG {
         IndexType num_spin = x_info.GetNumSpins();
         IndexType num_colorspin = num_color * num_spin;
         IndexType ncol = x.GetNCol();
+        assert(size_t(num_cbsites * num_colorspin * (subset.end - subset.start) * n_complex) <= ld);
         int cb0 = subset.start;
 
 #pragma omp parallel for collapse(3) schedule(static)
@@ -375,6 +375,7 @@ namespace MG {
         IndexType num_spin = x_info.GetNumSpins();
         IndexType num_colorspin = num_color * num_spin;
         IndexType ncol = x.GetNCol();
+        assert(size_t(num_cbsites * num_colorspin * (subset.end - subset.start) * n_complex) <= ld);
         int cb0 = subset.start;
 
 #pragma omp parallel for collapse(3) schedule(static)
@@ -415,9 +416,7 @@ namespace MG {
         IndexType num_cbsites = x_info.GetNumCBSites();
         IndexType num_color = x_info.GetNumColors();
         IndexType num_spin = x_info.GetNumSpins();
-        IndexType num_colorspin = num_color * num_spin;
         IndexType ncol = x.GetNCol();
-        int cb0 = subset.start;
 
 #pragma omp parallel for collapse(3) schedule(static)
         for (int cb = subset.start; cb < subset.end; ++cb) {

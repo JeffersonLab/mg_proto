@@ -285,7 +285,7 @@ namespace MG {
         IndexType num_colorspin = x.GetNumColorSpin();
         IndexType xncol = x.GetNCol();
         IndexType yncol = y.GetNCol();
-        assert(xncol * yncol == ip.size());
+        assert(std::size_t(xncol * yncol) == ip.size());
 
         std::vector<std::complex<float>> ip_f(ip.size());
         for (unsigned int i = 0; i < ip.size(); ++i) ip_f[i] = std::complex<float>(ip[i]);
@@ -728,7 +728,8 @@ namespace MG {
         IndexType num_cbsites = x_info.GetNumCBSites();
         IndexType num_colorspin = x.GetNumColorSpin();
         IndexType ncol = x.GetNCol();
-        assert(ld >= n_complex * num_colorspin * num_cbsites * (subset.end - subset.start));
+        assert(ld >= (unsigned int)(n_complex * num_colorspin * num_cbsites *
+                                    (subset.end - subset.start)));
         int cb0 = subset.start;
 
 #pragma omp parallel for collapse(3) schedule(static)

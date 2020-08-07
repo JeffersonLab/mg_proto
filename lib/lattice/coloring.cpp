@@ -206,7 +206,7 @@ std::vector<unsigned int> get_motive(unsigned int dist, const CoorType &dim,
 
     // First color even vertices with greedy coloring
     num_colors = 0;
-    unsigned int evenodd = (subset == SUBSET_ODD ? 1 : 0);
+    int evenodd = (subset == SUBSET_ODD ? 1 : 0);
     for (unsigned int i = 0; i < vol; i++) {
         // Get coordinates of vertex with index i
         CoorType c = index2coor(Indices(1, i), dim)[0];
@@ -304,7 +304,7 @@ bool check_coloring(const Indices &color, unsigned int dist, const CoorType &dim
 
         // Check that c has different color than its neighbors
         for (unsigned int j = 0; j < c_neighbors.size(); ++j)
-            if (c_neighbors[j] != i && color[i] == color[c_neighbors[j]]) return false;
+            if ((unsigned int)c_neighbors[j] != i && color[i] == color[c_neighbors[j]]) return false;
     }
 
     return true;
