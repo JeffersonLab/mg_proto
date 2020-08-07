@@ -204,5 +204,5 @@ namespace MG {
     // VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3,
     // VCycleCoarseEO2, BiCBStabSmootherQPhiXEOF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>;
 
-};     // namespace MG
+}     // namespace MG
 #endif /* INCLUDE_LATTICE_QPHIX_VCYCLE_RECURSIVE_QPHIX_H_ */

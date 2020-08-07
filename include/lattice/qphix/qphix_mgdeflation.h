@@ -66,7 +66,7 @@ namespace MG {
 
             // Generate the prolongators and restrictiors
             _Transfer_coarse_level.resize(_mg_levels.coarse_levels.size() - 1);
-            for (int coarse_idx = _mg_levels.coarse_levels.size() - 2; coarse_idx >= 0;
+            for (int coarse_idx = (int)_mg_levels.coarse_levels.size() - 2; coarse_idx >= 0;
                  --coarse_idx) {
                 _Transfer_coarse_level[coarse_idx] = std::make_shared<CoarseTransfer>(
                     _mg_levels.coarse_levels[coarse_idx].blocklist,
@@ -89,17 +89,19 @@ namespace MG {
                              _eigenvectors, _eigenvalues);
 
             // Check eigendecomposition: (P^H * A *P) * \gamma_5 * _eigenvector[i] * _eigenvalue[i] == _eigenvector[i]
-            const LatticeInfo &Minfo = *_mg_levels.coarse_levels.back().info;
-            CoarseSpinor g5eigenvector(Minfo, _eigenvectors->GetNCol()),
-                Mg5eigenvector_lambda(Minfo, _eigenvectors->GetNCol());
-            CopyVec(g5eigenvector, *_eigenvectors);
-            Gamma5Vec(g5eigenvector);
-            ZeroVec(Mg5eigenvector_lambda);
-            this_level_linop->unprecOp(Mg5eigenvector_lambda, g5eigenvector);
-            ScaleVec(_eigenvalues, Mg5eigenvector_lambda);
-            std::vector<double> rnorms2 = XmyNorm2Vec(Mg5eigenvector_lambda, *_eigenvectors);
-            for (unsigned int i = 0; i < rnorms2.size(); ++i)
-                MasterLog(INFO, "Eigenpair error %d  %g", i, sqrt(rnorms2[i]));
+            if (0) {
+                const LatticeInfo &Minfo = *_mg_levels.coarse_levels.back().info;
+                CoarseSpinor g5eigenvector(Minfo, _eigenvectors->GetNCol()),
+                             Mg5eigenvector_lambda(Minfo, _eigenvectors->GetNCol());
+                CopyVec(g5eigenvector, *_eigenvectors);
+                Gamma5Vec(g5eigenvector);
+                ZeroVec(Mg5eigenvector_lambda);
+                this_level_linop->unprecOp(Mg5eigenvector_lambda, g5eigenvector);
+                ScaleVec(_eigenvalues, Mg5eigenvector_lambda);
+                std::vector<double> rnorms2 = XmyNorm2Vec(Mg5eigenvector_lambda, *_eigenvectors);
+                for (unsigned int i = 0; i < rnorms2.size(); ++i)
+                    MasterLog(INFO, "Eigenpair error %d  %g", i, sqrt(rnorms2[i]));
+            }
 
             AuxQ::clear();
             AuxC::clear();
@@ -218,7 +220,7 @@ namespace MG {
             Ain_f.reset();
 
             // Transfer to the deepest level
-            for (int coarse_idx = 1; coarse_idx < _mg_levels.coarse_levels.size(); coarse_idx++) {
+            for (int coarse_idx = 1; coarse_idx < (int)_mg_levels.coarse_levels.size(); coarse_idx++) {
                 std::shared_ptr<CoarseSpinor> in_level =
                     AuxC::tmp(*_mg_levels.coarse_levels[coarse_idx].info, ncol);
                 _Transfer_coarse_level[coarse_idx - 1]->R(*coarse_in, *in_level);
@@ -232,7 +234,7 @@ namespace MG {
             coarse_in.reset();
 
             // Transfer to the first coarse level
-            for (int coarse_idx = _mg_levels.coarse_levels.size() - 2; coarse_idx >= 0;
+            for (int coarse_idx = (int)_mg_levels.coarse_levels.size() - 2; coarse_idx >= 0;
                  coarse_idx--) {
                 std::shared_ptr<CoarseSpinor> out_level =
                     AuxC::tmp(*_mg_levels.coarse_levels[coarse_idx].info, ncol);
@@ -270,7 +272,7 @@ namespace MG {
             CopyVec(*coarse_out, 0, ncol, *_eigenvectors, i);
 
             // Transfer to the first coarse level
-            for (int coarse_idx = _mg_levels.coarse_levels.size() - 2; coarse_idx >= 0;
+            for (int coarse_idx = (int)_mg_levels.coarse_levels.size() - 2; coarse_idx >= 0;
                  coarse_idx--) {
                 std::shared_ptr<CoarseSpinor> out_level =
                     AuxC::tmp(*_mg_levels.coarse_levels[coarse_idx].info, ncol);
@@ -304,7 +306,7 @@ namespace MG {
             Gamma5Vec(*coarse_out);
 
             // Transfer to the first coarse level
-            for (int coarse_idx = _mg_levels.coarse_levels.size() - 2; coarse_idx >= 0;
+            for (int coarse_idx = (int)_mg_levels.coarse_levels.size() - 2; coarse_idx >= 0;
                  coarse_idx--) {
                 std::shared_ptr<CoarseSpinor> out_level =
                     AuxC::tmp(*_mg_levels.coarse_levels[coarse_idx].info, ncol);
@@ -358,7 +360,7 @@ namespace MG {
 
         void project_coarse_level(CoarseSpinor &out, const CoarseSpinor &in) const {
             assert(out.GetNCol() == in.GetNCol());
-            IndexType ncol = out.GetNCol();
+            unsigned int ncol = (unsigned int)out.GetNCol();
 
             // Do ip = X' * in
             unsigned int nEv = _eigenvectors->GetNCol();
@@ -384,7 +386,7 @@ namespace MG {
 
             // Transfer to the first coarse level
             std::shared_ptr<CoarseSpinor> coarse_out = x;
-            for (int coarse_idx = _mg_levels.coarse_levels.size() - 2; coarse_idx >= 0;
+            for (int coarse_idx = (int)_mg_levels.coarse_levels.size() - 2; coarse_idx >= 0;
                  coarse_idx--) {
                 std::shared_ptr<CoarseSpinor> out_level =
                     AuxC::tmp(*_mg_levels.coarse_levels[coarse_idx].info, ncol);
@@ -410,7 +412,7 @@ namespace MG {
             Ax.reset();
 
             // Transfer to the deepest level
-            for (int coarse_idx = 1; coarse_idx < _mg_levels.coarse_levels.size(); coarse_idx++) {
+            for (unsigned int coarse_idx = 1; coarse_idx < _mg_levels.coarse_levels.size(); coarse_idx++) {
                 std::shared_ptr<CoarseSpinor> in_level =
                     AuxC::tmp(*_mg_levels.coarse_levels[coarse_idx].info, ncol);
                 _Transfer_coarse_level[coarse_idx - 1]->R(*coarse_in, *in_level);
