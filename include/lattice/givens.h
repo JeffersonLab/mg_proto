@@ -6,41 +6,35 @@
  */
 #pragma once
 #ifndef INCLUDE_LATTICE_GIVENS_H_
-#define INCLUDE_LATTICE_GIVENS_H_
-#include "lattice/array2d.h"
-#include <complex>
+#    define INCLUDE_LATTICE_GIVENS_H_
+#    include "lattice/array2d.h"
+#    include <complex>
 namespace MG {
-namespace FGMRESGeneric {
+    namespace FGMRESGeneric {
 
-  class Givens {
-  public:
-
-
-    Givens(int col, const Array2d<std::complex<double>>& H);
-    /*! Apply the rotation to column col of the matrix H. The
+        class Givens {
+        public:
+            Givens(int col, const Array2d<std::complex<double>> &H);
+            /*! Apply the rotation to column col of the matrix H. The
      *  routine affects col and col+1.
      *
      *  \param col  the columm
      *  \param  H   the matrix
      */
 
-    void operator()(int col,  Array2d<std::complex<double>>& H);
+            void operator()(int col, Array2d<std::complex<double>> &H);
 
-    /*! Apply rotation to Column Vector v */
-    void operator()(std::vector<std::complex<double>>& v);
+            /*! Apply rotation to Column Vector v */
+            void operator()(std::vector<std::complex<double>> &v);
 
-  private:
-    int col_;
-    std::complex<double> s_;
-    std::complex<double> c_;
-    std::complex<double> r_;
-  };
+        private:
+            int col_;
+            std::complex<double> s_;
+            std::complex<double> c_;
+            std::complex<double> r_;
+        };
 
-
-
-  } // Namespace FGMRES
+    } // Namespace FGMRES
 } // Namespace MG
-
-
 
 #endif /* INCLUDE_LATTICE_GIVENS_H_ */

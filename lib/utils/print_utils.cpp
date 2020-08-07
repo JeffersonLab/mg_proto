@@ -1,24 +1,23 @@
 #include "utils/print_utils.h"
 #include "MG_config.h"
 #include "utils/initialize.h"
-#include <string>
-#include <cstdlib>
 #include <cstdarg>
+#include <cstdlib>
+#include <string>
 
 #ifdef MG_QMP_COMMS
-#include "qmp.h"
+#    include "qmp.h"
 #endif
 
 namespace MG {
 
-	/* Current Log Level */
-	static volatile LogLevel current_log_level = MG_DEFAULT_LOGLEVEL;
+    /* Current Log Level */
+    static volatile LogLevel current_log_level = MG_DEFAULT_LOGLEVEL;
 
-	/* An array holding strings corresponding to log levels */
-	static std::string log_string_array[] = {"ERROR", "INFO", "DEBUG", "DEBUG2", "DEBUG3"};
+    /* An array holding strings corresponding to log levels */
+    static std::string log_string_array[] = {"ERROR", "INFO", "DEBUG", "DEBUG2", "DEBUG3"};
 
-
-	/**
+    /**
 	 * SetLogLevel -- set the log level
 	 *
 	 * \param level  -- The LogLevel to set. LogMessages with levels <= level will be printed
@@ -31,17 +30,14 @@ namespace MG {
 	 * an OMP Criticla section
 	 *
 	 */
-	void SetLogLevel(LogLevel level)
-	{
+    void SetLogLevel(LogLevel level){
 #pragma omp master
-		{
-			current_log_level = level;
-		}
+        {current_log_level = level;
+}
 #pragma omp barrier
+}
 
-	}
-
-	/**
+/**
 	 * SetLogLevel - get the log level
 	 *
 	 * \returns  The current log level
@@ -49,12 +45,9 @@ namespace MG {
 	 * NB: The design is for the loglevel to be kept on each MPI process. This function only
 	 * reads the loglevel value, so no races can occur.
 	 */
-	LogLevel GetLogLevel(void) {
-		return current_log_level;
-	}
+LogLevel GetLogLevel(void) { return current_log_level; }
 
-
-	/**
+/**
 	 * 	LocalLog - Local process performs logging
 	 * 	\param level -- if the level is <= the current log level, a message will be printed
 	 * 	\param format_string
@@ -62,36 +55,32 @@ namespace MG {
 	 *
 	 * 	Current definition is that only the master thread on each nodes logs
 	 */
-	void LocalLog(LogLevel level, const char*  format,...)
-	{
-		va_list args;
-		va_start(args,format);
+void LocalLog(LogLevel level, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
 #pragma omp master
-		{
-			if( level <= current_log_level ) {
+    {
+        if (level <= current_log_level) {
 #ifdef MG_QMP_COMMS
-				int size = QMP_get_number_of_nodes();
-				int rank = QMP_get_node_number();
+            int size = QMP_get_number_of_nodes();
+            int rank = QMP_get_node_number();
 #else
-				int size = 1;
-				int rank = 0;
+            int size = 1;
+            int rank = 0;
 #endif
-				printf("%s: Rank %d of %d: ", log_string_array[level].c_str(), rank, size);
+            printf("%s: Rank %d of %d: ", log_string_array[level].c_str(), rank, size);
 
-				vprintf(format, args);
+            vprintf(format, args);
 
-				printf("\n");
-			}	/* end If */
-		 	va_end(args);
-			/* If the level is error than we should abort */
-			if( level == ERROR ) {
-				MG::abort();
-			} /* if level == ERROR */
-		}
-	}
+            printf("\n");
+        } /* end If */
+        va_end(args);
+        /* If the level is error than we should abort */
+        if (level == ERROR) { MG::abort(); } /* if level == ERROR */
+    }
+}
 
-
-	/**
+/**
 	 * 	MasterlLog - Master  process performs logging
 	 * 	\param level -- if the level is <= the current log level, a message will be printed
 	 * 	\param format_string
@@ -99,36 +88,32 @@ namespace MG {
 	 *
 	 * 	Current definition is that only the master thread on each nodes logs
 	 */
-    void MasterLog(LogLevel level, const char *format, ...)
-    {
-			va_list args;
-			va_start(args,format);
+void MasterLog(LogLevel level, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
 #pragma omp master
-    	{
+    {
 
 #ifdef MG_QMP_COMMS
-    		if ( QMP_is_primary_node() )  {
+        if (QMP_is_primary_node()) {
 #endif
-    			if( level <= current_log_level ) {
+            if (level <= current_log_level) {
 
-    				printf("%s: ", log_string_array[level].c_str());
+                printf("%s: ", log_string_array[level].c_str());
 
-    				vprintf(format, args);
+                vprintf(format, args);
 
-    				printf("\n");
-    			}	/* en	d If */
+                printf("\n");
+            } /* en	d If */
 
-    				/* If the level is error than we should abort */
-    			if( level == ERROR ) {
-    				MG::abort();
-    			} /* if level == ERROR */
+            /* If the level is error than we should abort */
+            if (level == ERROR) { MG::abort(); } /* if level == ERROR */
 
 #ifdef MG_QMP_COMMS
-    		} /* if ( QMP_is_primary_node())  */
+        } /* if ( QMP_is_primary_node())  */
 #endif
-    	} /* End OMP MASTER REGION */
-    	va_end(args);
-    }
-
+    } /* End OMP MASTER REGION */
+    va_end(args);
+}
 
 } /* End Namespace MGUtils */

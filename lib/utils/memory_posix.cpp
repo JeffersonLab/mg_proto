@@ -5,36 +5,26 @@
  *      Author: bjoo
  */
 
-
 #include <stdlib.h>
 
-namespace MG
-{
-	int regular_alloc(void **ptr, size_t size, size_t alignment)
-	{
-		int ret_val = posix_memalign(ptr, alignment, size);
-		return ret_val;
-	}
+namespace MG {
+    int regular_alloc(void **ptr, size_t size, size_t alignment) {
+        int ret_val = posix_memalign(ptr, alignment, size);
+        return ret_val;
+    }
 
-	void regular_free(void *ptr, size_t size)
-	{
-		(void)size;
-		free(ptr);
-	}
+    void regular_free(void *ptr, size_t size) {
+        (void)size;
+        free(ptr);
+    }
 
-	int fast_alloc(void **ptr, size_t size, size_t alignment)
-	{
-		int ret_val = posix_memalign(ptr, alignment, size);
-		return ret_val;
-	}
+    int fast_alloc(void **ptr, size_t size, size_t alignment) {
+        int ret_val = posix_memalign(ptr, alignment, size);
+        return ret_val;
+    }
 
-	void fast_free(void *ptr, size_t size)
-	{
-		(void)size;
-		free(ptr);
-	}
-
+    void fast_free(void *ptr, size_t size) {
+        (void)size;
+        free(ptr);
+    }
 }
-
-
-

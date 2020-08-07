@@ -14,15 +14,14 @@
 
 namespace MG {
 
-	//! Params for eigensolvers
-	/*! \ingroup eigensolver */
-	struct EigsParams : public MG::LinearSolverParamsBase {
-		public:
-			int MaxRestartSize; // Maximum rank of the search subspace
-			int MaxNumEvals;    // Maximum number of eigenvalues to find
-			EigsParams() : MaxRestartSize(0), MaxNumEvals(0) {}
-	};
-
+    //! Params for eigensolvers
+    /*! \ingroup eigensolver */
+    struct EigsParams : public MG::LinearSolverParamsBase {
+    public:
+        int MaxRestartSize; // Maximum rank of the search subspace
+        int MaxNumEvals;    // Maximum number of eigenvalues to find
+        EigsParams() : MaxRestartSize(0), MaxNumEvals(0) {}
+    };
 }
 
 #endif

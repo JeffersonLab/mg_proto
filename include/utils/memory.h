@@ -19,47 +19,36 @@
 
 namespace MG {
 
-	// We typically have notions of slow and fast memory.
-	// For sake of argument: on GPU Fast memory may be GPU memory
-	// Slow memory may be CPU memory
-	// On future GPU, fast memory may be on package memory
-	// On Xeon Phi Fast memory may be HBM
+    // We typically have notions of slow and fast memory.
+    // For sake of argument: on GPU Fast memory may be GPU memory
+    // Slow memory may be CPU memory
+    // On future GPU, fast memory may be on package memory
+    // On Xeon Phi Fast memory may be HBM
 
-	// These simple allocators can be used to build cache
-	// abstractions
+    // These simple allocators can be used to build cache
+    // abstractions
 
-	enum MemorySpace { REGULAR, FAST };
+    enum MemorySpace { REGULAR, FAST };
 
-	// These are totally Opaque, and can consist of anything from
-	void InitMemory(int *argc, char ***argv);
-	void FinalizeMemory(void);
+    // These are totally Opaque, and can consist of anything from
+    void InitMemory(int *argc, char ***argv);
+    void FinalizeMemory(void);
 
-	void*
-	MemoryAllocate(std::size_t num_bytes, const MemorySpace space=REGULAR);
+    void *MemoryAllocate(std::size_t num_bytes, const MemorySpace space = REGULAR);
 
-	void
-	MemoryFree(void *ptr);
+    void MemoryFree(void *ptr);
 
-	std::size_t
-	GetCurrentRegularMemoryUsage(void);
+    std::size_t GetCurrentRegularMemoryUsage(void);
 
-	std::size_t
-	GetMaxRegularMemoryUsage(void);
+    std::size_t GetMaxRegularMemoryUsage(void);
 
-	std::size_t
-	GetCurrentFastMemoryUsage(void);
+    std::size_t GetCurrentFastMemoryUsage(void);
 
-	std::size_t
-	GetMaxFastMemoryUsage(void);
+    std::size_t GetMaxFastMemoryUsage(void);
 
-	std::size_t
-	GetMemoryAlignment(void);
+    std::size_t GetMemoryAlignment(void);
 
-	// Should I have CopyFastToSlow and CopySlowToFast ?
-
+    // Should I have CopyFastToSlow and CopySlowToFast ?
 }
-
-
-
 
 #endif /* INCLUDE_UTILS_MEMORY_H_ */

@@ -1,21 +1,21 @@
-#ifndef  INCLUDE_LATTICE_PRINT_UTILS_H
-#define  INCLUDE_LATTICE_PRINT_UTILS_H
+#ifndef INCLUDE_LATTICE_PRINT_UTILS_H
+#define INCLUDE_LATTICE_PRINT_UTILS_H
 
 namespace MG {
-	     /*! some log levels */
-         enum LogLevel { ERROR=0, INFO, DEBUG, DEBUG2, DEBUG3 };
+    /*! some log levels */
+    enum LogLevel { ERROR = 0, INFO, DEBUG, DEBUG2, DEBUG3 };
 
-        /*! Only Master Process Performs Logging */
-         void MasterLog(LogLevel level, const char *, ...);
+    /*! Only Master Process Performs Logging */
+    void MasterLog(LogLevel level, const char *, ...);
 
-         /*! All Nodes Perform Logging */
-         void LocalLog(LogLevel level, const char *, ...);
+    /*! All Nodes Perform Logging */
+    void LocalLog(LogLevel level, const char *, ...);
 
-         /*! Set the log level */
-         void SetLogLevel(LogLevel level);
+    /*! Set the log level */
+    void SetLogLevel(LogLevel level);
 
-         /*! Get the current log level */
-         LogLevel GetLogLevel(void);
+    /*! Get the current log level */
+    LogLevel GetLogLevel(void);
 }
 
 #endif

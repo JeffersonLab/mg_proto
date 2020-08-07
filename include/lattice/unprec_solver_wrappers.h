@@ -8,96 +8,80 @@
 #ifndef INCLUDE_LATTICE_UNPREC_WRAPPER_H_
 #define INCLUDE_LATTICE_UNPREC_WRAPPER_H_
 
-#include "lattice/solver.h"
 #include "lattice/linear_operator.h"
+#include "lattice/solver.h"
 #include <memory>
 
-namespace MG
-{
-	template<typename Spinor, typename Gauge, typename EOSolver>
-	class UnprecLinearSolverWrapper: public  UnprecLinearSolver<Spinor,Gauge,EOSolver> {
-	public:
-		UnprecLinearSolverWrapper(const std::shared_ptr<const EOSolver>& eo_solver,
-					  const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>>& M)
-		: _EOSolver(eo_solver), _EOOperator(M) {}
+namespace MG {
+    template <typename Spinor, typename Gauge, typename EOSolver>
+    class UnprecLinearSolverWrapper : public UnprecLinearSolver<Spinor, Gauge, EOSolver> {
+    public:
+        UnprecLinearSolverWrapper(const std::shared_ptr<const EOSolver> &eo_solver,
+                                  const std::shared_ptr<const EOLinearOperator<Spinor, Gauge>> &M)
+            : _EOSolver(eo_solver), _EOOperator(M) {}
 
-		UnprecLinearSolverWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
-				const LinearSolverParamsBase& params) :
-			_EOSolver(std::make_shared<EOSolver>(*M,params)), _EOOperator(M) {}
+        UnprecLinearSolverWrapper(const std::shared_ptr<const EOLinearOperator<Spinor, Gauge>> M,
+                                  const LinearSolverParamsBase &params)
+            : _EOSolver(std::make_shared<EOSolver>(*M, params)), _EOOperator(M) {}
 
-		UnprecLinearSolverWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
-				const LinearSolverParamsBase& params,
-				const LinearSolver<Spinor,Gauge>* M_prec) :
-					_EOSolver(std::make_shared<EOSolver>(*M,params,M_prec)), _EOOperator(M) {}
+        UnprecLinearSolverWrapper(const std::shared_ptr<const EOLinearOperator<Spinor, Gauge>> M,
+                                  const LinearSolverParamsBase &params,
+                                  const LinearSolver<Spinor, Gauge> *M_prec)
+            : _EOSolver(std::make_shared<EOSolver>(*M, params, M_prec)), _EOOperator(M) {}
 
-		void SourcePrepare(Spinor& new_source, const Spinor& original_source) const override
-		{
-			_EOOperator->leftInvOp(new_source,original_source);
-		}
+        void SourcePrepare(Spinor &new_source, const Spinor &original_source) const override {
+            _EOOperator->leftInvOp(new_source, original_source);
+        }
 
-		void ResultReconstruct(Spinor& new_result, const Spinor& original_result) const override
-		{
-			_EOOperator->rightInvOp(new_result,original_result);
+        void ResultReconstruct(Spinor &new_result, const Spinor &original_result) const override {
+            _EOOperator->rightInvOp(new_result, original_result);
+        }
+        void InitGuessPrepare(Spinor &new_guess, const Spinor &original_guess) const override {
+            _EOOperator->rightOp(new_guess, original_guess);
+        }
+        void OtherSubsetSolve(Spinor &new_guess, const Spinor &original_guess) const override {
+            _EOOperator->M_ee_inv(new_guess, original_guess, LINOP_OP);
+        }
 
-		}
-		void InitGuessPrepare(Spinor& new_guess, const Spinor& original_guess) const override
-		{
-			_EOOperator->rightOp(new_guess,original_guess);
-		}
-		void OtherSubsetSolve(Spinor& new_guess, const Spinor& original_guess) const override
-		{
-			_EOOperator->M_ee_inv(new_guess, original_guess, LINOP_OP);
-		}
+        const EOSolver &GetEOSolver() const override { return *_EOSolver; }
 
-		const EOSolver& GetEOSolver() const override {
-			return *_EOSolver;
-		}
-		
-	private:
+    private:
+        const std::shared_ptr<const EOSolver> _EOSolver;
+        const std::shared_ptr<const EOLinearOperator<Spinor, Gauge>> _EOOperator;
+    };
 
-		const std::shared_ptr<const EOSolver> _EOSolver;
-		const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> _EOOperator;
-	};
+    template <typename Spinor, typename Gauge, typename EOSmoother>
+    class UnprecSmootherWrapper : public UnprecSmoother<Spinor, Gauge, EOSmoother> {
+    public:
+        UnprecSmootherWrapper(const std::shared_ptr<const EOSmoother> &eo_smoother,
+                              const std::shared_ptr<const EOLinearOperator<Spinor, Gauge>> &linop)
+            : _EOSmoother(eo_smoother), _EOOperator(linop) {}
 
-	template<typename Spinor, typename Gauge,  typename EOSmoother>
-	class UnprecSmootherWrapper: public  UnprecSmoother<Spinor,Gauge, EOSmoother> {
-	public:
-		UnprecSmootherWrapper(const std::shared_ptr<const EOSmoother>& eo_smoother,
-				const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>>& linop) :
-					_EOSmoother(eo_smoother), _EOOperator(linop) {}
+        UnprecSmootherWrapper(const std::shared_ptr<const EOLinearOperator<Spinor, Gauge>> M,
+                              const LinearSolverParamsBase &params)
+            : _EOSmoother(std::make_shared<EOSmoother>(*M, params)), _EOOperator(M) {}
 
-		UnprecSmootherWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
-				const LinearSolverParamsBase& params) :
-					_EOSmoother(std::make_shared<EOSmoother>(*M,params)), _EOOperator(M) {}
+        UnprecSmootherWrapper(const std::shared_ptr<const EOLinearOperator<Spinor, Gauge>> M,
+                              const LinearSolverParamsBase &params,
+                              const LinearSolver<Spinor, Gauge> *M_prec)
+            : _EOSmoother(std::make_shared<EOSmoother>(*M, params, M_prec)), _EOOperator(M) {}
 
-		UnprecSmootherWrapper( const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> M,
-				const LinearSolverParamsBase& params,
-				const LinearSolver<Spinor,Gauge>* M_prec) :
-					_EOSmoother(std::make_shared<EOSmoother>(*M,params,M_prec)), _EOOperator(M) {}
+        void SourcePrepare(Spinor &new_source, const Spinor &original_source) const override {
+            _EOOperator->leftInvOp(new_source, original_source);
+        }
 
-		void SourcePrepare(Spinor& new_source, const Spinor& original_source) const override
-		{
-			_EOOperator->leftInvOp(new_source,original_source);
-		}
+        void ResultReconstruct(Spinor &new_result, const Spinor &original_result) const override {
+            _EOOperator->rightInvOp(new_result, original_result);
+        }
 
-		void ResultReconstruct(Spinor& new_result, const Spinor& original_result) const override
-		{
-			_EOOperator->rightInvOp(new_result,original_result);
+        void InitGuessPrepare(Spinor &new_guess, const Spinor &original_guess) const override {
+            _EOOperator->rightOp(new_guess, original_guess);
+        }
+        void OtherSubsetSolve(Spinor &new_guess, const Spinor &original_guess) const override {
+            _EOOperator->M_ee_inv(new_guess, original_guess, LINOP_OP);
+        }
 
-		}
-
-		void InitGuessPrepare(Spinor& new_guess, const Spinor& original_guess) const override
-		{
-			_EOOperator->rightOp(new_guess,original_guess);
-		}
-		void OtherSubsetSolve(Spinor& new_guess, const Spinor& original_guess) const override
-		{
-			_EOOperator->M_ee_inv(new_guess, original_guess, LINOP_OP);
-		}
-
-		const EOSmoother& GetEOSmoother() const override {
-			return *_EOSmoother;
-		}
+        const EOSmoother &GetEOSmoother() const override { return *_EOSmoother; }
 #if 0
 		void operator()(Spinor& out, const Spinor& in) const override {
 
@@ -128,12 +112,10 @@ namespace MG
 		}
 #endif
 
-	private:
-
-		const std::shared_ptr<const EOSmoother> _EOSmoother;
-		const std::shared_ptr<const EOLinearOperator<Spinor,Gauge>> _EOOperator;
-	};
+    private:
+        const std::shared_ptr<const EOSmoother> _EOSmoother;
+        const std::shared_ptr<const EOLinearOperator<Spinor, Gauge>> _EOOperator;
+    };
 }
-
 
 #endif /* INCLUDE_LATTICE_UNPREC_SOLVER_WRAPPER_H_ */

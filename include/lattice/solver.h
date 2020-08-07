@@ -8,144 +8,145 @@
 #ifndef INCLUDE_LATTICE_SOLVER_H_
 #define INCLUDE_LATTICE_SOLVER_H_
 
-#include "lattice/lattice_info.h"
 #include "lattice/coarse/subset.h"
+#include "lattice/lattice_info.h"
 #include "utils/auxiliary.h"
 #include <stdexcept>
 #include <vector>
 
 namespace MG {
-	enum ResiduumType { ABSOLUTE, RELATIVE, INVALID};
+    enum ResiduumType { ABSOLUTE, RELATIVE, INVALID };
 
-	struct LinearSolverResults {
-		ResiduumType resid_type;
-		int n_count;
-		double resid;
-	};
+    struct LinearSolverResults {
+        ResiduumType resid_type;
+        int n_count;
+        double resid;
+    };
 
-	template<typename Spinor, typename Gauge>
-	class LinearSolver : public AuxiliarySpinors<Spinor> {
-	public:
-		virtual std::vector<LinearSolverResults> operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE ) const=0;
-		virtual const LatticeInfo& GetInfo() const = 0;
-		virtual const CBSubset& GetSubset() const = 0;
-		virtual void setPrec(const LinearSolver<Spinor,Gauge>*) const { throw std::runtime_error("Not implemented!"); }
-		virtual ~LinearSolver(){}
-	};
+    template <typename Spinor, typename Gauge>
+    class LinearSolver : public AuxiliarySpinors<Spinor> {
+    public:
+        virtual std::vector<LinearSolverResults>
+        operator()(Spinor &out, const Spinor &in, ResiduumType resid_type = RELATIVE) const = 0;
+        virtual const LatticeInfo &GetInfo() const = 0;
+        virtual const CBSubset &GetSubset() const = 0;
+        virtual void setPrec(const LinearSolver<Spinor, Gauge> *) const {
+            throw std::runtime_error("Not implemented!");
+        }
+        virtual ~LinearSolver() {}
+    };
 
-	/** A solver that solves the unpreconditioned systems */
-	template<typename Spinor, typename Gauge, typename EOSolver>
-	class UnprecLinearSolver : public LinearSolver<Spinor,Gauge> {
-	public:
-		virtual void SourcePrepare(Spinor& new_source, const Spinor& original_source) const = 0;
-		virtual void InitGuessPrepare(Spinor& new_guess, const Spinor& original_guess) const = 0;
-		virtual void OtherSubsetSolve(Spinor& new_guess, const Spinor& original_guess) const = 0;
-		virtual void ResultReconstruct(Spinor& new_result, const Spinor& original_result) const = 0;
-		virtual ~UnprecLinearSolver() {}
-		virtual const EOSolver& GetEOSolver() const = 0;
+    /** A solver that solves the unpreconditioned systems */
+    template <typename Spinor, typename Gauge, typename EOSolver>
+    class UnprecLinearSolver : public LinearSolver<Spinor, Gauge> {
+    public:
+        virtual void SourcePrepare(Spinor &new_source, const Spinor &original_source) const = 0;
+        virtual void InitGuessPrepare(Spinor &new_guess, const Spinor &original_guess) const = 0;
+        virtual void OtherSubsetSolve(Spinor &new_guess, const Spinor &original_guess) const = 0;
+        virtual void ResultReconstruct(Spinor &new_result, const Spinor &original_result) const = 0;
+        virtual ~UnprecLinearSolver() {}
+        virtual const EOSolver &GetEOSolver() const = 0;
 
-		std::vector<LinearSolverResults> operator()(Spinor& out, const Spinor& in, ResiduumType resid_type = RELATIVE) const override {
-			std::vector<LinearSolverResults> ret_val;
-			std::shared_ptr<Spinor> tmp_src = this->tmp(in); 
-			std::shared_ptr<Spinor> tmp_out = this->tmp(in); 
+        std::vector<LinearSolverResults>
+        operator()(Spinor &out, const Spinor &in,
+                   ResiduumType resid_type = RELATIVE) const override {
+            std::vector<LinearSolverResults> ret_val;
+            std::shared_ptr<Spinor> tmp_src = this->tmp(in);
+            std::shared_ptr<Spinor> tmp_out = this->tmp(in);
 
-			// Prepare the source: L^{-1} in
-			// In principle, this may change both even and odd parts,
-			// Depending on the preconditioning style.
-			// So worth preserving the prepped source.
-			SourcePrepare(*tmp_src,in);
+            // Prepare the source: L^{-1} in
+            // In principle, this may change both even and odd parts,
+            // Depending on the preconditioning style.
+            // So worth preserving the prepped source.
+            SourcePrepare(*tmp_src, in);
 
-			// Solve odd part with Krylov solver
-			// Zero out the Even part of tmp_src for this
-			// It is assumed that the solver will not touch the EVEN part.
-			InitGuessPrepare(*tmp_out,out);
+            // Solve odd part with Krylov solver
+            // Zero out the Even part of tmp_src for this
+            // It is assumed that the solver will not touch the EVEN part.
+            InitGuessPrepare(*tmp_out, out);
 
-			ret_val = (GetEOSolver())(*tmp_out, *tmp_src, resid_type);
+            ret_val = (GetEOSolver())(*tmp_out, *tmp_src, resid_type);
 
-			OtherSubsetSolve(*tmp_out,*tmp_src);
+            OtherSubsetSolve(*tmp_out, *tmp_src);
 
-			// Reconstruct the result
-			ResultReconstruct(out,*tmp_out);
-			return ret_val;
-		}
+            // Reconstruct the result
+            ResultReconstruct(out, *tmp_out);
+            return ret_val;
+        }
 
-		const CBSubset& GetSubset() const override { return SUBSET_ALL; }
+        const CBSubset &GetSubset() const override { return SUBSET_ALL; }
 
-		const LatticeInfo& GetInfo() const override { return GetEOSolver().GetInfo(); }
-	};
+        const LatticeInfo &GetInfo() const override { return GetEOSolver().GetInfo(); }
+    };
 
+    // Base Parameter Struct
+    class LinearSolverParamsBase {
+    public:
+        double RsdTarget;
+        int MaxIter;
+        bool VerboseP;
+        int NKrylov;
+        double Omega; // OverRelaxation
+        LinearSolverParamsBase() {
+            RsdTarget = 0.0;
+            MaxIter = -1;
+            VerboseP = false;
+            NKrylov = 0;
+            Omega = 0.0;
+        }
+    };
 
-	// Base Parameter Struct
-	class LinearSolverParamsBase {
-	public:
-		double RsdTarget;
-		int MaxIter;
-		bool VerboseP;
-		int NKrylov;
-	   double Omega; // OverRelaxation
-		LinearSolverParamsBase() {
-			RsdTarget = 0.0;
-			MaxIter=-1;
-			VerboseP=false;
-			NKrylov = 0;
-			Omega = 0.0;
-		}
-	};
+    // A Smoother Is much like a solver, but there are some 'don't care'-s
+    // E.g. I may not care about the residua, and the iteration count may
+    // be fixed.
+    template <typename Spinor, typename Gauge> class Smoother {
+    public:
+        virtual void operator()(Spinor &out, const Spinor &in) const = 0;
+        virtual ~Smoother() {}
+        virtual void setPrec(const LinearSolver<Spinor, Gauge> *) const {
+            throw std::runtime_error("Not implemented!");
+        }
+    };
 
-	// A Smoother Is much like a solver, but there are some 'don't care'-s
-	// E.g. I may not care about the residua, and the iteration count may
-	// be fixed.
-	template<typename Spinor, typename Gauge>
-	class Smoother {
-	public:
-		virtual void operator()(Spinor& out, const Spinor& in) const = 0;
-		virtual ~Smoother(){}
-		virtual void setPrec(const LinearSolver<Spinor,Gauge>*) const { throw std::runtime_error("Not implemented!"); }
-	};
+    // Base Parameter Struct
+    class SmootherParamsBase {
+    public:
+        int MaxIter;
+        bool VerboseP;
+        SmootherParamsBase() {
+            MaxIter = -1;
+            VerboseP = false;
+        }
+    };
 
-	// Base Parameter Struct
-		class SmootherParamsBase {
-		public:
-			int MaxIter;
-			bool VerboseP;
-			SmootherParamsBase() {
-				MaxIter = -1;
-				VerboseP=false;
+    /** A solver that solves the unpreconditioned systems */
+    template <typename Spinor, typename Gauge, typename EOSmoother>
+    class UnprecSmoother : public Smoother<Spinor, Gauge>, public AuxiliarySpinors<Spinor> {
+    public:
+        virtual void SourcePrepare(Spinor &new_source, const Spinor &original_source) const = 0;
+        virtual void ResultReconstruct(Spinor &new_result, const Spinor &original_result) const = 0;
+        virtual void InitGuessPrepare(Spinor &new_guess, const Spinor &original_guess) const = 0;
+        virtual void OtherSubsetSolve(Spinor &new_guess, const Spinor &original_guess) const = 0;
+        virtual ~UnprecSmoother() {}
+        virtual const EOSmoother &GetEOSmoother() const = 0;
+        void operator()(Spinor &out, const Spinor &in) const override {
 
-			}
-		};
+            std::shared_ptr<Spinor> tmp_src = this->tmp(in);
+            std::shared_ptr<Spinor> tmp_out = this->tmp(in);
 
-		/** A solver that solves the unpreconditioned systems */
-		template<typename Spinor, typename Gauge, typename EOSmoother>
-		class UnprecSmoother : public Smoother<Spinor,Gauge>, public AuxiliarySpinors<Spinor> {
-		public:
-			virtual void SourcePrepare(Spinor& new_source, const Spinor& original_source) const = 0;
-			virtual void ResultReconstruct(Spinor& new_result, const Spinor& original_result) const = 0;
-			virtual void InitGuessPrepare(Spinor& new_guess, const Spinor& original_guess) const = 0;
-			virtual void OtherSubsetSolve(Spinor& new_guess, const Spinor& original_guess) const = 0;
-			virtual ~UnprecSmoother() {}
-			virtual const EOSmoother& GetEOSmoother() const = 0;
-			void operator()(Spinor& out, const Spinor& in) const override {
+            SourcePrepare(*tmp_src, in);
+            InitGuessPrepare(*tmp_out, out);
 
-				std::shared_ptr<Spinor> tmp_src = this->tmp(in); 
-				std::shared_ptr<Spinor> tmp_out = this->tmp(in); 
+            // Solve on odd part
+            (GetEOSmoother())(*tmp_out, *tmp_src);
 
-				SourcePrepare(*tmp_src,in);
-				InitGuessPrepare(*tmp_out,out);
+            // Solve even part directly
+            OtherSubsetSolve(*tmp_out, *tmp_src);
 
-				// Solve on odd part
-				(GetEOSmoother())(*tmp_out, *tmp_src);
-
-				// Solve even part directly
-				OtherSubsetSolve(*tmp_out, *tmp_src);
-
-				// Reconstruct the result
-				ResultReconstruct(out,*tmp_out);
-			}
-		};
+            // Reconstruct the result
+            ResultReconstruct(out, *tmp_out);
+        }
+    };
 }
-
-
-
 
 #endif /* INCLUDE_LATTICE_SOLVER_H_ */
