@@ -23,6 +23,8 @@ namespace MG {
         // Auxiliary function for global sum reduction
         void globalSumDouble(void *sendBuf, void *recvBuf, int *count, primme_params *primme,
                              int *ierr) {
+            (void)primme;
+
             double *x = (double *)sendBuf, *y = (double *)recvBuf;
             if (x != y) {
                 for (int i = 0, count_ = *count; i < count_; i++) y[i] = x[i];
@@ -148,19 +150,20 @@ namespace MG {
 
         if (nEv > 0) {
             int ret = cprimme(evals, evecs, rnorms, &primme);
+            assert(ret == 0);
 
             if (1) {
-                MasterLog(INFO, "Converged pairs       using PRIMME  = %d\n", primme.initSize);
-                MasterLog(INFO, "Time to solve problem               = %e\n",
+                MasterLog(INFO, "Converged pairs       using PRIMME  = %d", primme.initSize);
+                MasterLog(INFO, "Time to solve problem               = %e",
                           primme.stats.elapsedTime);
-                MasterLog(INFO, "Time spent in matVec                = %e  %.1f%%\n",
+                MasterLog(INFO, "Time spent in matVec                = %e  %.1f%%",
                           primme.stats.timeMatvec,
                           100 * primme.stats.timeMatvec / primme.stats.elapsedTime);
                 MasterLog(
-                    INFO, "Time spent in orthogonalization     = %e  %.1f%% (%.1f GFLOPS)\n",
+                    INFO, "Time spent in orthogonalization     = %e  %.1f%% (%.1f GFLOPS)",
                     primme.stats.timeOrtho, 100 * primme.stats.timeOrtho / primme.stats.elapsedTime,
                     primme.stats.numOrthoInnerProds * primme.n / primme.stats.timeOrtho / 1e9);
-                MasterLog(INFO, "Time spent in dense operations      = %e  %.1f%% (%.1f GFLOPS)\n",
+                MasterLog(INFO, "Time spent in dense operations      = %e  %.1f%% (%.1f GFLOPS)",
                           primme.stats.timeDense,
                           100 * primme.stats.timeDense / primme.stats.elapsedTime,
                           primme.stats.flopsDense / primme.stats.timeDense / 1e9);
