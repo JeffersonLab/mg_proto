@@ -38,7 +38,8 @@ namespace MG {
     };
 
     // Used in tests.
-    //  using MGLevelQPhiXF = MGLevelQPhiXT<QPhiXSpinorF, BiCGStabSolverQPhiXF,QPhiXWilsonCloverLinearOperatorF >;
+    //  using MGLevelQPhiXF = MGLevelQPhiXT<QPhiXSpinorF,
+    //  BiCGStabSolverQPhiXF,QPhiXWilsonCloverLinearOperatorF >;
 
     template <typename SpinorT, typename NullSolverT, typename LinOpFT, typename CoarseLevelT>
     struct QPhiXMultigridLevelsT {
@@ -90,14 +91,15 @@ namespace MG {
                 double norm2_cb0 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_EVEN)[0]);
                 double norm2_cb1 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_ODD)[0]);
 
-                MasterLog(INFO,
-                          "MG Level 0: BiCGStab Solver Took: %d iterations: || v_e ||=%16.8e || "
-                          "v_o ||=%16.8e",
-                          res[0].n_count, norm2_cb0, norm2_cb1);
+                MasterLog(
+                    INFO,
+                    "MG Level 0: BiCGStab Solver Took: %d iterations: || v_e ||=%16.8e || v_o "
+                    "||=%16.8e",
+                    res[0].n_count, norm2_cb0, norm2_cb1);
             }
         } else {
             params.RsdTarget = fabs(params.RsdTarget);
-            NullSolverFGMRES<LinOpT> null_solver(M_fine, params);
+            NullSolverFGMRES<LinOpT> null_solver(*M_fine, params);
             std::vector<float> vals;
             EigsParams eigs_params;
             eigs_params.MaxIter = 0;
@@ -112,10 +114,11 @@ namespace MG {
                 double norm2_cb0 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_EVEN)[0]);
                 double norm2_cb1 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_ODD)[0]);
 
-                MasterLog(INFO,
-                          "MG Level 0: BiCGStab Solver Took: %d iterations: || v_e ||=%16.8e || "
-                          "v_o ||=%16.8e",
-                          -1, norm2_cb0, norm2_cb1);
+                MasterLog(
+                    INFO,
+                    "MG Level 0: BiCGStab Solver Took: %d iterations: || v_e ||=%16.8e || v_o "
+                    "||=%16.8e",
+                    -1, norm2_cb0, norm2_cb1);
             }
         }
 
@@ -165,14 +168,13 @@ namespace MG {
         // Function of the M
         coarse_level.info =
             std::make_shared<const LatticeInfo>(blocked_lattice_orig, blocked_lattice_dims, 2,
-                                                num_vecs, fine_level.info->GetNodeInfo());
+                                                num_vecs, fine_level.info->GetNodeInfo(), 1);
 
         coarse_level.gauge = std::make_shared<CoarseGauge>(*(coarse_level.info));
 
         M_fine->generateCoarse(fine_level.blocklist, fine_level.null_vecs, *(coarse_level.gauge));
 
-        coarse_level.M =
-            std::make_shared<const typename CoarseLevelT::LinOp>(coarse_level.gauge, 1);
+        coarse_level.M = std::make_shared<const typename CoarseLevelT::LinOp>(coarse_level.gauge);
 
         const char *coarse_prefix_name = std::getenv("MG_COARSE_FILENAME");
         if (coarse_prefix_name != nullptr && std::strlen(coarse_prefix_name) > 0) {
@@ -247,6 +249,7 @@ namespace MG {
     void
     SetupQPhiXMGLevels(const SetupParams &p, QPhiXMultigridLevelsEO &mg_levels,
                        const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> &M_fine);
-}
+
+} // namespace MG
 
 #endif /* INCLUDE_LATTICE_QPHIX_MG_LEVEL_QPHIX_H_ */

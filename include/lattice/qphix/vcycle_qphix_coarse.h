@@ -26,20 +26,21 @@
 
 namespace MG {
 
-    class VCycleQPhiXCoarse2 : public LinearSolver<QPhiXSpinor, QPhiXGauge>,
-                               public LinearSolver<QPhiXSpinorF, QPhiXGaugeF> {
+    class VCycleQPhiXCoarse2 : public LinearSolver<QPhiXSpinorF> {
         using AuxQF = AuxiliarySpinors<QPhiXSpinorF>;
 
     public:
         std::vector<LinearSolverResults>
-        operator()(QPhiXSpinor &out, const QPhiXSpinor &in,
-                   ResiduumType resid_type = RELATIVE) const override {
+        operator()(QPhiXSpinor &out, const QPhiXSpinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const {
+            (void)guess;
             return apply(out, in, resid_type);
         }
 
         std::vector<LinearSolverResults>
-        operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in,
-                   ResiduumType resid_type = RELATIVE) const override {
+        operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
+            (void)guess;
             return apply(out, in, resid_type);
         }
 
@@ -251,12 +252,13 @@ namespace MG {
         VCycleQPhiXCoarse2(const LatticeInfo &fine_info, const LatticeInfo &coarse_info,
                            const std::vector<Block> &my_blocks,
                            const std::vector<std::shared_ptr<QPhiXSpinorF>> &vecs,
-                           const LinearOperator<QPhiXSpinorF, QPhiXGaugeF> &M_fine,
-                           const Smoother<QPhiXSpinorF, QPhiXGaugeF> &pre_smoother,
-                           const Smoother<QPhiXSpinorF, QPhiXGaugeF> &post_smoother,
-                           const LinearSolver<CoarseSpinor, CoarseGauge> &bottom_solver,
+                           const LinearOperator<QPhiXSpinorF> &M_fine,
+                           const LinearSolver<QPhiXSpinorF> &pre_smoother,
+                           const LinearSolver<QPhiXSpinorF> &post_smoother,
+                           const LinearSolver<CoarseSpinor> &bottom_solver,
                            const LinearSolverParamsBase &param)
-            : _fine_info(fine_info),
+            : LinearSolver<QPhiXSpinorF>(M_fine, param),
+              _fine_info(fine_info),
               _coarse_info(coarse_info),
               _my_blocks(my_blocks),
               _vecs(vecs),
@@ -275,9 +277,7 @@ namespace MG {
             Timer::TimerAPI::addTimer("VCycleQPhiXCoarse2/P()/level0");
         }
 
-        const LatticeInfo &GetInfo() const { return _M_fine.GetInfo(); }
-        const CBSubset &GetSubset() const { return _M_fine.GetSubset(); }
-        void SetAntePostSmoother(Smoother<QPhiXSpinorF, QPhiXGaugeF> *s) {
+        void SetAntePostSmoother(LinearSolver<QPhiXSpinorF> *s) {
             (void)s;
             throw std::runtime_error("Not supported!");
         }
@@ -287,10 +287,10 @@ namespace MG {
         const LatticeInfo _coarse_info;
         const std::vector<Block> &_my_blocks;
         const std::vector<std::shared_ptr<QPhiXSpinorF>> &_vecs;
-        const LinearOperator<QPhiXSpinorF, QPhiXGaugeF> &_M_fine;
-        const Smoother<QPhiXSpinorF, QPhiXGaugeF> &_pre_smoother;
-        const Smoother<QPhiXSpinorF, QPhiXGaugeF> &_post_smoother;
-        const LinearSolver<CoarseSpinor, CoarseGauge> &_bottom_solver;
+        const LinearOperator<QPhiXSpinorF> &_M_fine;
+        const LinearSolver<QPhiXSpinorF> &_pre_smoother;
+        const LinearSolver<QPhiXSpinorF> &_post_smoother;
+        const LinearSolver<CoarseSpinor> &_bottom_solver;
         const LinearSolverParamsBase &_param;
         const QPhiXTransfer<QPhiXSpinorF> _Transfer;
     };
@@ -300,18 +300,19 @@ namespace MG {
     // an even odd operator, so we need to call its unprecOp operator.
     //
 
-    class VCycleQPhiXCoarseEO2 : public LinearSolver<QPhiXSpinor, QPhiXGauge>,
-                                 public LinearSolver<QPhiXSpinorF, QPhiXGaugeF> {
+    class VCycleQPhiXCoarseEO2 : public LinearSolver<QPhiXSpinorF> {
     public:
         std::vector<LinearSolverResults>
-        operator()(QPhiXSpinor &out, const QPhiXSpinor &in,
-                   ResiduumType resid_type = RELATIVE) const override {
+        operator()(QPhiXSpinor &out, const QPhiXSpinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const {
+            (void)guess;
             return apply(out, in, resid_type);
         }
 
         std::vector<LinearSolverResults>
-        operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in,
-                   ResiduumType resid_type = RELATIVE) const override {
+        operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
+            (void)guess;
             return apply(out, in, resid_type);
         }
 
@@ -501,12 +502,13 @@ namespace MG {
         VCycleQPhiXCoarseEO2(const LatticeInfo &fine_info, const LatticeInfo &coarse_info,
                              const std::vector<Block> &my_blocks,
                              const std::vector<std::shared_ptr<QPhiXSpinorF>> &vecs,
-                             const EOLinearOperator<QPhiXSpinorF, QPhiXGaugeF> &M_fine,
-                             const Smoother<QPhiXSpinorF, QPhiXGaugeF> &pre_smoother,
-                             const Smoother<QPhiXSpinorF, QPhiXGaugeF> &post_smoother,
-                             const LinearSolver<CoarseSpinor, CoarseGauge> &bottom_solver,
+                             const EOLinearOperator<QPhiXSpinorF> &M_fine,
+                             const LinearSolver<QPhiXSpinorF> &pre_smoother,
+                             const LinearSolver<QPhiXSpinorF> &post_smoother,
+                             const LinearSolver<CoarseSpinor> &bottom_solver,
                              const LinearSolverParamsBase &param)
-            : _fine_info(fine_info),
+            : LinearSolver<QPhiXSpinorF>(M_fine, param),
+              _fine_info(fine_info),
               _coarse_info(coarse_info),
               _my_blocks(my_blocks),
               _vecs(vecs),
@@ -517,9 +519,7 @@ namespace MG {
               _param(param),
               _Transfer(my_blocks, vecs) {}
 
-        const LatticeInfo &GetInfo() const { return _M_fine.GetInfo(); }
-        const CBSubset &GetSubset() const { return _M_fine.GetSubset(); }
-        void SetAntePostSmoother(Smoother<QPhiXSpinorF, QPhiXGaugeF> *s) {
+        void SetAntePostSmoother(LinearSolver<QPhiXSpinorF> *s) {
             (void)s;
             throw std::runtime_error("Not supported!");
         }
@@ -529,32 +529,32 @@ namespace MG {
         const LatticeInfo _coarse_info;
         const std::vector<Block> &_my_blocks;
         const std::vector<std::shared_ptr<QPhiXSpinorF>> &_vecs;
-        const EOLinearOperator<QPhiXSpinorF, QPhiXGaugeF> &_M_fine;
-        const Smoother<QPhiXSpinorF, QPhiXGaugeF> &_pre_smoother;
-        const Smoother<QPhiXSpinorF, QPhiXGaugeF> &_post_smoother;
-        const LinearSolver<CoarseSpinor, CoarseGauge> &_bottom_solver;
+        const EOLinearOperator<QPhiXSpinorF> &_M_fine;
+        const LinearSolver<QPhiXSpinorF> &_pre_smoother;
+        const LinearSolver<QPhiXSpinorF> &_post_smoother;
+        const LinearSolver<CoarseSpinor> &_bottom_solver;
         const LinearSolverParamsBase &_param;
         const QPhiXTransfer<QPhiXSpinorF> _Transfer;
     };
 
-    class VCycleQPhiXCoarseEO3 : public LinearSolver<QPhiXSpinor, QPhiXGauge>,
-                                 public LinearSolver<QPhiXSpinorF, QPhiXGaugeF> {
+    class VCycleQPhiXCoarseEO3 : public LinearSolver<QPhiXSpinorF> {
     public:
         std::vector<LinearSolverResults>
-        operator()(QPhiXSpinor &out, const QPhiXSpinor &in,
-                   ResiduumType resid_type = RELATIVE) const override {
-            return apply(out, in, resid_type);
+        operator()(QPhiXSpinor &out, const QPhiXSpinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const {
+            return apply(out, in, resid_type, guess);
         }
 
         std::vector<LinearSolverResults>
-        operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in,
-                   ResiduumType resid_type = RELATIVE) const override {
-            return apply(out, in, resid_type);
+        operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
+            return apply(out, in, resid_type, guess);
         }
 
         template <class Spinor>
         std::vector<LinearSolverResults> apply(Spinor &out, const Spinor &in,
-                                               ResiduumType resid_type = RELATIVE) const {
+                                               ResiduumType resid_type = RELATIVE,
+                                               InitialGuess guess = InitialGuessNotGiven) const {
             assert(out.GetNCol() == in.GetNCol());
             IndexType ncol = out.GetNCol();
 
@@ -630,23 +630,25 @@ namespace MG {
             while (iter < _param.MaxIter) {
                 ++iter;
 
-                Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/presmooth/level" +
-                                            std::to_string(level));
-                ZeroVec(delta, subset);
-                // Smoother does not compute a residuum
-                _pre_smoother(delta, r);
-                Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/presmooth/level" +
-                                           std::to_string(level));
+                if (_pre_smoother._params.MaxIter > 0) {
+                    Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/presmooth/level" +
+                                                std::to_string(level));
+                    ZeroVec(delta, subset);
+                    // Smoother does not compute a residuum
+                    _pre_smoother(delta, r);
+                    Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/presmooth/level" +
+                                               std::to_string(level));
 
-                // Update solution
-                Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level" +
-                                            std::to_string(level));
-                YpeqXVec(delta, out_f, subset);
-                // Update residuum: even odd matrix
-                _M_fine(tmp, delta, LINOP_OP);
-                YmeqXVec(tmp, r, subset);
-                Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level" +
-                                           std::to_string(level));
+                    // Update solution
+                    Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level" +
+                                                std::to_string(level));
+                    YpeqXVec(delta, out_f, subset);
+                    // Update residuum: even odd matrix
+                    _M_fine(tmp, delta, LINOP_OP);
+                    YmeqXVec(tmp, r, subset);
+                    Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level" +
+                                               std::to_string(level));
+                }
 
                 if (_param.VerboseP) {
                     std::vector<double> norm_pre_presmooth = aux::sqrt(Norm2Vec(r));
@@ -725,12 +727,12 @@ namespace MG {
                     }
                 }
 
-                //postsmooth
+                // postsmooth
                 Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/postsmooth/level" +
                                             std::to_string(level));
                 ZeroVec(delta, subset);
                 if (_antepost_smoother) (*_antepost_smoother)(delta, r);
-                _post_smoother(delta, r);
+                _post_smoother(delta, r, RELATIVE, _antepost_smoother ? InitialGuessGiven : InitialGuessNotGiven);
                 Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/postsmooth/level" +
                                            std::to_string(level));
 
@@ -785,12 +787,13 @@ namespace MG {
         VCycleQPhiXCoarseEO3(const LatticeInfo &fine_info, const LatticeInfo &coarse_info,
                              const std::vector<Block> &my_blocks,
                              const std::vector<std::shared_ptr<QPhiXSpinorF>> &vecs,
-                             const EOLinearOperator<QPhiXSpinorF, QPhiXGaugeF> &M_fine,
-                             const Smoother<QPhiXSpinorF, QPhiXGaugeF> &pre_smoother,
-                             const Smoother<QPhiXSpinorF, QPhiXGaugeF> &post_smoother,
-                             const LinearSolver<CoarseSpinor, CoarseGauge> &bottom_solver,
+                             const EOLinearOperator<QPhiXSpinorF> &M_fine,
+                             const LinearSolver<QPhiXSpinorF> &pre_smoother,
+                             const LinearSolver<QPhiXSpinorF> &post_smoother,
+                             const LinearSolver<CoarseSpinor> &bottom_solver,
                              const LinearSolverParamsBase &param)
-            : _fine_info(fine_info),
+            : LinearSolver<QPhiXSpinorF>(M_fine, param),
+              _fine_info(fine_info),
               _coarse_info(coarse_info),
               _my_blocks(my_blocks),
               _vecs(vecs),
@@ -817,23 +820,22 @@ namespace MG {
             Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/update/level" + std::to_string(level));
         }
 
-        const LatticeInfo &GetInfo() const { return _M_fine.GetInfo(); }
-        const CBSubset &GetSubset() const { return _M_fine.GetSubset(); }
-        void SetAntePostSmoother(Smoother<QPhiXSpinorF, QPhiXGaugeF> *s) { _antepost_smoother = s; }
+        void SetAntePostSmoother(LinearSolver<QPhiXSpinorF> *s) { _antepost_smoother = s; }
 
     private:
         const LatticeInfo _fine_info;
         const LatticeInfo _coarse_info;
         const std::vector<Block> &_my_blocks;
         const std::vector<std::shared_ptr<QPhiXSpinorF>> &_vecs;
-        const EOLinearOperator<QPhiXSpinorF, QPhiXGaugeF> &_M_fine;
-        const Smoother<QPhiXSpinorF, QPhiXGaugeF> &_pre_smoother;
-        const Smoother<QPhiXSpinorF, QPhiXGaugeF> &_post_smoother;
-        const LinearSolver<CoarseSpinor, CoarseGauge> &_bottom_solver;
+        const EOLinearOperator<QPhiXSpinorF> &_M_fine;
+        const LinearSolver<QPhiXSpinorF> &_pre_smoother;
+        const LinearSolver<QPhiXSpinorF> &_post_smoother;
+        const LinearSolver<CoarseSpinor> &_bottom_solver;
         const LinearSolverParamsBase &_param;
         const QPhiXTransfer<QPhiXSpinorF> _Transfer;
-        Smoother<QPhiXSpinorF, QPhiXGaugeF> *_antepost_smoother;
+        LinearSolver<QPhiXSpinorF> *_antepost_smoother;
     };
-}
+
+} // namespace MG
 
 #endif /* INCLUDE_LATTICE_QPHIX_VCYCLE_QPHIX_COARSE_H_ */

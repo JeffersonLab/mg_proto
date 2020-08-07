@@ -30,8 +30,7 @@ namespace MG {
 
     template <typename FT>
 
-    class QPhiXWilsonCloverLinearOperatorT
-        : public LinearOperator<QPhiXSpinorT<FT>, QPhiXGaugeT<FT>> {
+    class QPhiXWilsonCloverLinearOperatorT : public LinearOperator<QPhiXSpinorT<FT>> {
     public:
         using QDPGauge = QDP::multi1d<QDP::LatticeColorMatrix>;
         using Spinor = QPhiXSpinorT<FT>;
@@ -189,8 +188,6 @@ namespace MG {
             for (int col = 0; col < ncol; ++col)
                 QPhiXEOClov->M_diag_inv(out.getCB(col, 0).get(), in.getCB(col, 0).get(), isign);
         }
-
-        int GetLevel(void) const override { return 0; }
 
         const CBSubset &GetSubset() const override { return SUBSET_ALL; }
 

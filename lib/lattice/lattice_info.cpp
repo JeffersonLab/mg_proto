@@ -17,12 +17,13 @@ namespace MG {
 
     LatticeInfo::LatticeInfo(const IndexArray &lat_origin, // Global Origin
                              const IndexArray &lat_dims, IndexType n_spin, IndexType n_color,
-                             const NodeInfo &node)
+                             const NodeInfo &node, int level)
         : _lat_origin(lat_origin),
           _lat_dims(lat_dims),
           _n_color{n_color},
           _n_spin{n_spin},
-          _node_info{node} {
+          _node_info{node},
+          _level(level) {
 
         /* Sanity check the volume. Right now I have the requirement that
 	 * at least 2 dimensions be even for checkerboarding with equal
@@ -76,9 +77,9 @@ namespace MG {
     }
 
     LatticeInfo::LatticeInfo(const IndexArray &lat_dims, const IndexType n_spin,
-                             const IndexType n_color, const NodeInfo &node)
+                             const IndexType n_color, const NodeInfo &node, int level)
         : LatticeInfo::LatticeInfo(ComputeOriginCoords(lat_dims, node), lat_dims, n_spin, n_color,
-                                   node) {}
+                                   node, level) {}
 
     /** Destructor for the lattice class
  */

@@ -54,10 +54,10 @@ namespace MG {
         //   else the formulae we computed.
 
         /*! Given  a marix H, construct the rotator so that H(row,col) = r and H(row+1,col) = 0
- 	  *
- 	  *  \param col  the column Input
- 	  *  \param  H   the Matrix Input
- 	  */
+ *
+ *  \param col  the column Input
+ *  \param  H   the Matrix Input
+ */
 
         Givens::Givens(int col, const multi2d<DComplex> &H) : col_(col) {
             DComplex f = H(col_, col_);
@@ -87,11 +87,11 @@ namespace MG {
         }
 
         /*! Apply the rotation to column col of the matrix H. The
- 	  *  routine affects col and col+1.
- 	  *
- 	  *  \param col  the columm
- 	  *  \param  H   the matrix
- 	  */
+ *  routine affects col and col+1.
+ *
+ *  \param col  the columm
+ *  \param  H   the matrix
+ */
 
         void Givens::operator()(int col, multi2d<DComplex> &H) {
             if (col == col_) {
@@ -115,15 +115,16 @@ namespace MG {
             v(col_ + 1) = -s_ * a + c_ * b;
         }
 
-        void FlexibleArnoldiT(
-            int n_krylov, const Real &rsd_target,
-            const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>> &A, // Operator
-            const LinearSolver<LatticeFermion, multi1d<LatticeColorMatrix>> *M,   // Preconditioner
-            multi1d<LatticeFermion> &V, multi1d<LatticeFermion> &Z, multi2d<DComplex> &H,
-            multi1d<Givens *> &givens_rots, multi1d<DComplex> &c, int &ndim_cycle,
-            ResiduumType resid_type, bool VerboseP)
+        void FlexibleArnoldiT(int n_krylov, const Real &rsd_target,
+                              const LinearOperator<LatticeFermion> &A, // Operator
+                              const LinearOperator<LatticeFermion> *M, // Preconditioner
+                              multi1d<LatticeFermion> &V, multi1d<LatticeFermion> &Z,
+                              multi2d<DComplex> &H, multi1d<Givens *> &givens_rots,
+                              multi1d<DComplex> &c, int &ndim_cycle, ResiduumType resid_type,
+                              bool VerboseP)
 
         {
+            (void)resid_type;
             const Subset &s = QDP::all; // Linear Operator Subset
             ndim_cycle = 0;
 
@@ -136,7 +137,7 @@ namespace MG {
                 // Here we have an opportunity to not precondition...
                 // If M is a nullpointer.
                 if (M != nullptr) {
-                    (*M)(Z[j], V[j], resid_type); // z_j = M^{-1} v_j
+                    (*M)(Z[j], V[j]); // z_j = M^{-1} v_j
                 } else {
                     Z[j] = V[j]; // Vector assignment " copy "
                 }
@@ -191,13 +192,12 @@ namespace MG {
                 if (toBool(accum_resid <= rsd_target)) { return; }
             }
         }
-    } //namespace fgmres
+    } // namespace QDPFGMRES
 
-    FGMRESSolverQDPXX::FGMRESSolverQDPXX(
-        const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>> &A,
-        const MG::LinearSolverParamsBase &params,
-        const LinearSolver<LatticeFermion, multi1d<LatticeColorMatrix>> *M_prec)
-        : _A(A), _params(params), _M_prec(M_prec) {
+    FGMRESSolverQDPXX::FGMRESSolverQDPXX(const LinearOperator<LatticeFermion> &M,
+                                         const MG::LinearSolverParamsBase &params,
+                                         const LinearOperator<LatticeFermion> *prec)
+        : LinearSolver<LatticeFermion>(M, params, prec) {
         // Initialize stuff
         InitMatrices();
     }
@@ -229,11 +229,15 @@ namespace MG {
         for (int row = 0; row < _params.NKrylov; row++) { eta_[row] = zero; }
     }
 
-    std::vector<LinearSolverResults> FGMRESSolverQDPXX::
-    operator()(LatticeFermion &out, const LatticeFermion &in, ResiduumType resid_type) const {
+    std::vector<LinearSolverResults> FGMRESSolverQDPXX::operator()(LatticeFermion &out,
+                                                                   const LatticeFermion &in,
+                                                                   ResiduumType resid_type,
+                                                                   InitialGuess guess) const {
+        (void)guess;
+
         LinearSolverResults res; // Value to return
         res.resid_type = resid_type;
-        int level = _A.GetLevel();
+        int level = _M.GetLevel();
 
         const Subset s = QDP::all;
 
@@ -248,7 +252,7 @@ namespace MG {
         LatticeFermion r = zero;   // BLAS: ZERO
         LatticeFermion tmp = zero; // BLAS: COPY
         r[s] = in;
-        (_A)(tmp, out, LINOP_OP);
+        (_M)(tmp, out, LINOP_OP);
         r[s] -= tmp; // BLAS: X=X-Y
 
         // The current residuum
@@ -274,10 +278,11 @@ namespace MG {
             } else {
                 res.resid /= toDouble(norm_rhs);
                 if (_params.VerboseP) {
-                    MasterLog(INFO,
-                              "FGMRES: level=%d Solve Converged: iters=%d  Final (relative) || r "
-                              "||/|| b ||=%16.8e",
-                              level, res.resid);
+                    MasterLog(
+                        INFO,
+                        "FGMRES: level=%d Solve Converged: iters=%d  Final (relative) || r ||/|| "
+                        "b ||=%16.8e",
+                        level, res.resid);
                 }
             }
             return std::vector<LinearSolverResults>(1, res);
@@ -340,7 +345,7 @@ namespace MG {
 
             // Recompute r
             r[s] = in; // BLAS: COPY
-            (_A)(tmp, out, LINOP_OP);
+            (_M)(tmp, out, LINOP_OP);
             r[s] -= tmp; // This 'r' will be used in next cycle as the || rhs ||: Y=Y-X
 
             // Recompute true norm
@@ -356,7 +361,8 @@ namespace MG {
             // Check if we are done either via convergence, or runnign out of iterations
             finished = toBool(r_norm <= target) || (iters_total >= _params.MaxIter);
 
-            // Init matrices should've initialized this but just in case this is e.g. a second call or something.
+            // Init matrices should've initialized this but just in case this is e.g. a second call or
+            // something.
             for (int j = 0; j < _params.NKrylov; ++j) {
                 if (givens_rots_[j] != nullptr) {
                     delete givens_rots_[j];
@@ -388,7 +394,7 @@ namespace MG {
                                             multi1d<DComplex> &c, int &ndim_cycle,
                                             ResiduumType resid_type) const {
 
-        QDPFGMRES::FlexibleArnoldiT(n_krylov, rsd_target, _A, _M_prec, V, Z, H, givens_rots, c,
+        QDPFGMRES::FlexibleArnoldiT(n_krylov, rsd_target, _M, _prec, V, Z, H, givens_rots, c,
                                     ndim_cycle, resid_type, _params.VerboseP);
     }
 

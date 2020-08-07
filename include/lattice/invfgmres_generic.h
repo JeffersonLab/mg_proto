@@ -33,9 +33,9 @@ namespace MG {
 
     namespace {
         /** negate
-	 *
-	 * 	Flip sign on all elements
-	 */
+ *
+ * 	Flip sign on all elements
+ */
         template <typename T>
         std::vector<std::complex<float>> negate(const std::vector<std::complex<T>> &x) {
             std::vector<std::complex<float>> r(x.size());
@@ -43,7 +43,7 @@ namespace MG {
                            [](const std::complex<T> &f) { return -f; });
             return r;
         }
-    }
+    } // namespace
 
     namespace FGMRESGeneric {
 
@@ -68,16 +68,17 @@ namespace MG {
             } else {
                 MasterLog(INFO,
                           "FLEXIBLE ARNOLDI: level=%s Cycles=%d Iter=%d avg || r ||=%4.2e "
-                          "converged=%d avg Target=%16.8e",
+                          "converged=%d avg "
+                          "Target=%16.8e",
                           level.c_str(), n_cycles, iter, avg_residual, num_converged, avg_target);
             }
         }
 
-        template <typename ST, typename GT>
+        template <typename ST>
         void FlexibleArnoldiT(
             int n_krylov, const std::vector<double> &rsd_target,
-            const LinearOperator<ST, GT> &A, // Operator
-            const LinearSolver<ST, GT> *M,   // Preconditioner
+            const LinearOperator<ST> &A, // Operator
+            const LinearOperator<ST> *M, // Preconditioner
             std::vector<ST *>
                 &V, // Nuisance: Need constructor free way to make these. Init functions?
             std::vector<ST *> &Z, ST &w, std::vector<Array2d<std::complex<double>>> &H,
@@ -86,6 +87,8 @@ namespace MG {
             ResiduumType resid_type, bool VerboseP, std::string level)
 
         {
+            (void)resid_type;
+
             ndim_cycle = 0;
             const CBSubset &subset = A.GetSubset();
             IndexType ncol = V[0]->GetNCol();
@@ -114,11 +117,12 @@ namespace MG {
                     // The V_js are only changed on the subset so off-subset should be zeroed
                     // non-subset part.
                     // But I will go through a tmpsolve temporary because
-                    // a proper unprec solver may overwrite the off checkerboard parts with a reconstruct etc.
+                    // a proper unprec solver may overwrite the off checkerboard parts with a reconstruct
+                    // etc.
                     //
                     Timer::TimerAPI::startTimer("FGMRESSolverGeneric/preconditioner/level" + level);
 
-                    (*M)(*Z[j], *(V[j]), resid_type); // z_j = M^{-1} v_j
+                    (*M)(*Z[j], *(V[j])); // z_j = M^{-1} v_j
 
                     Timer::TimerAPI::stopTimer("FGMRESSolverGeneric/preconditioner/level" + level);
                 } else {
@@ -209,40 +213,34 @@ namespace MG {
             } // while
         }     // function
 
-        template <typename ST, typename GT>
-        class FGMRESSolverGeneric : public LinearSolver<ST, GT> {
+        template <typename ST> class FGMRESSolverGeneric : public LinearSolver<ST> {
         public:
-            //! Constructor
-            /*!
-     * \param A_        Linear operator ( Read )
-     * \param invParam  inverter parameters ( Read )
-     */
-            FGMRESSolverGeneric(const LinearOperator<ST, GT> &A,
-                                const MG::LinearSolverParamsBase &params,
-                                const LinearSolver<ST, GT> *M_prec = nullptr,
-                                std::string prefix = "")
-                : _A(A), _info(A.GetInfo()), _params(set_params_defaults(params)), _M_prec(M_prec) {
+            using LinearSolver<ST>::_M;
+            using LinearSolver<ST>::_params;
+            using LinearSolver<ST>::_prec;
+            using AuxiliarySpinors<ST>::tmp;
 
-                const CBSubset &subset = A.GetSubset();
+            /**
+             * Constructor
+             *
+             * \param M: operator
+             * \param params: linear solver params
+             * \param prec: preconditioner
+             */
+
+            FGMRESSolverGeneric(const LinearOperator<ST> &M, const LinearSolverParamsBase &params,
+                                const LinearOperator<ST> *prec = nullptr, std::string prefix = "")
+                : LinearSolver<ST>(M, set_params_defaults(params), prec) {
 
                 initialize(0);
 
-                _prefix = std::to_string(_A.GetLevel()) + prefix;
+                _prefix = std::to_string(M.GetLevel()) + prefix;
                 Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operator()/level" + _prefix);
                 Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operatorA/level" + _prefix);
                 Timer::TimerAPI::addTimer("FGMRESSolverGeneric/preconditioner/level" + _prefix);
             }
-            FGMRESSolverGeneric(const std::shared_ptr<const LinearOperator<ST, GT>> A,
-                                const MG::LinearSolverParamsBase &params,
-                                const LinearSolver<ST, GT> *M_prec = nullptr,
-                                std::string prefix = "")
-                : FGMRESSolverGeneric(*A, params, M_prec, prefix) {}
 
             ~FGMRESSolverGeneric() { destroy(); }
-
-            const LatticeInfo &GetInfo() const { return _info; }
-            const CBSubset &GetSubset() const { return _A.GetSubset(); }
-            void setPrec(const LinearSolver<ST, GT> *M_prec) const override { _M_prec = M_prec; }
 
         private:
             static LinearSolverParamsBase
@@ -268,8 +266,8 @@ namespace MG {
                 Z_.resize(_params.NKrylov + 1);
 
                 for (int i = 0; i < _params.NKrylov + 1; ++i) {
-                    V_[i] = new ST(_info, ncol);
-                    Z_[i] = new ST(_info, ncol);
+                    V_[i] = new ST(_M.GetInfo(), ncol);
+                    Z_[i] = new ST(_M.GetInfo(), ncol);
                 }
 
                 for (int row = 0; row < _params.NKrylov + 1; row++) {
@@ -314,7 +312,9 @@ namespace MG {
 
         public:
             std::vector<LinearSolverResults>
-            operator()(ST &out, const ST &in, ResiduumType resid_type = RELATIVE) const override {
+            operator()(ST &out, const ST &in, ResiduumType resid_type = RELATIVE,
+                       InitialGuess guess = InitialGuessNotGiven) const override {
+
                 IndexType ncol = in.GetNCol();
                 if (_params.MaxIter <= 0)
                     return std::vector<LinearSolverResults>(ncol, LinearSolverResults());
@@ -323,14 +323,14 @@ namespace MG {
 
                 assert(in.GetNCol() == out.GetNCol());
 
-                const CBSubset &subset = _A.GetSubset();
+                const CBSubset &subset = _M.GetSubset();
 
                 initialize(ncol);
                 std::vector<LinearSolverResults> res(ncol); // Value to return
                 for (int col = 0; col < ncol; ++col) res[col].resid_type = resid_type;
 
                 std::vector<double> norm_rhs =
-                    aux::sqrt(Norm2Vec(in, subset)); //  || b ||                      BLAS: NORM2
+                    aux::sqrt(Norm2Vec(in, subset)); //  || b || BLAS: NORM2
                 std::vector<double> target(ncol, _params.RsdTarget);
 
                 if (resid_type == RELATIVE) {
@@ -340,47 +340,30 @@ namespace MG {
 
                 const LatticeInfo &in_info = in.GetInfo();
                 const LatticeInfo &out_info = out.GetInfo();
-                AssertCompatible(in_info, _A.GetInfo());
-                AssertCompatible(out_info, _A.GetInfo());
+                AssertCompatible(in_info, _M.GetInfo());
+                AssertCompatible(out_info, _M.GetInfo());
 
                 // Temporaries - passed into flexible Arnoldi
-                ST w(in_info, ncol);
+                std::shared_ptr<ST> w = tmp(in_info, ncol);
 
                 // Compute ||r||
-                ST r(in_info, ncol);
-                ZeroVec(r, subset); // BLAS: ZERO
-#ifdef DEBUG_SOLVER
-                {
-                    std::vector<double> tmp_norm_r = sqrt(Norm2Vec(r, subset));
-                    for (int col = 0; col < ncol; ++col) {
-                        MasterLog(MG::DEBUG,
-                                  "FGMRES: level=%s col=%d norm_rhs=%16.8e r_norm=%16.8e",
-                                  _prefix.c_str(), col, norm_rhs[col], tmp_norm_r[col]);
-                    }
-                }
-#endif
-                ST tmp(in_info, ncol);
-                ZeroVec(tmp, subset); // BLAS: COPY
-                CopyVec(r, in, subset);
-#ifdef DEBUG_SOLVER
-                {
-                    std::vector<double> tmp_norm_r_in = aux::sqrt(Norm2Vec(in, subset));
-                    std::vector<double> tmp_norm_r = aux::sqrt(Norm2Vec(r, subset));
-                    for (int col = 0; col < ncol; ++col) {
-                        MasterLog(
-                            MG::DEBUG,
-                            "FGMRES: level=%s col=%d After copy: in_norm=%16.8e r_norm=%16.8e",
-                            _prefix.c_str(), col, tmp_norm_in[col], tmp_norm_r[col]);
-                    }
-                }
-#endif
+                std::shared_ptr<ST> r = tmp(in_info, ncol);
+                ZeroVec(*r, subset); // BLAS: ZERO
+                std::shared_ptr<ST> t = tmp(in_info, ncol);
+                ZeroVec(*t, subset); // BLAS: COPY
+                CopyVec(*r, in, subset);
 
-                (_A)(tmp, out, LINOP_OP);
+                std::vector<double> r_norm;
+                if (guess == InitialGuessGiven) {
+                    (_M)(*t, out, LINOP_OP);
 
-                // r[s] -=tmp;                                                            // BLAS: X=X-Y
-                // The current residuum
-                //      Double r_norm = sqrt(norm2(r,s));                                      // BLAS: NORM
-                std::vector<double> r_norm = aux::sqrt(XmyNorm2Vec(r, tmp, subset));
+                    // r[s] -=t
+                    // r_norm = sqrt(norm2(r,s))
+                    r_norm = aux::sqrt(XmyNorm2Vec(*r, *t, subset));
+                } else {
+                    r_norm = norm_rhs;
+                    ZeroVec(out, subset);
+                }
 
                 // Initialize iterations
                 int iters_total = 0;
@@ -436,7 +419,7 @@ namespace MG {
                     for (int col = 0; col < ncol; ++col) beta_inv[col] = 1.0 / r_norm[col];
                     //  V_[0] = beta_inv * r;                       // BLAS: VSCAL
                     ZeroVec(*(V_[0]), subset);
-                    AxpyVec(beta_inv, r, *(V_[0]), subset);
+                    AxpyVec(beta_inv, *r, *(V_[0]), subset);
 
                     // Carry out Flexible Arnoldi process for the cycle
 
@@ -445,7 +428,7 @@ namespace MG {
                     // NB: We recompute a true 'r' after every cycle
                     // So in the cycle we could in principle
                     // use reduced precision... TBInvestigated.
-                    FlexibleArnoldi(n_krylov, target, V_, Z_, w, H_, givens_rots_, c_, dim,
+                    FlexibleArnoldi(n_krylov, target, V_, Z_, *w, H_, givens_rots_, c_, dim,
                                     resid_type, _prefix);
 
                     int iters_this_cycle = dim;
@@ -456,7 +439,7 @@ namespace MG {
                                               dim); // Solve Least Squares System
 
                     // Compute the correction dx = sum_j  eta_j Z_j
-                    //LatticeFermion dx = zero;                         // BLAS: ZERO
+                    // LatticeFermion dx = zero;                         // BLAS: ZERO
                     for (int j = 0; j < dim; ++j) {
 
                         std::vector<std::complex<float>> alpha(ncol);
@@ -466,16 +449,20 @@ namespace MG {
                         AxpyVec(alpha, *(Z_[j]), out, subset); // Y = Y + AX => BLAS AXPY
                     }
 
-                    // Recompute r
-                    CopyVec(r, in, subset); // BLAS: COPY
-                    (_A)(tmp, out, LINOP_OP);
-                    r_norm = aux::sqrt(XmyNorm2Vec(r, tmp, subset));
-
                     // Update total iters
                     iters_total += iters_this_cycle;
+
+                    // Recompute r
+                    if (iters_total < _params.MaxIter || _params.RsdTarget > 0.0) {
+                        CopyVec(*r, in, subset);
+                        (_M)(*t, out, LINOP_OP);
+                        r_norm = aux::sqrt(XmyNorm2Vec(*r, *t, subset));
+                    }
+
                     if (_params.VerboseP) { showConvergence(r_norm, target, _prefix, iters_total); }
 
-                    // Init matrices should've initialized this but just in case this is e.g. a second call or something.
+                    // Init matrices should've initialized this but just in case this is e.g. a second call
+                    // or something.
                     for (int col = 0; col < ncol; ++col) {
                         for (int j = 0; j < _params.NKrylov; ++j) {
                             if (givens_rots_[col][j] != nullptr) {
@@ -514,16 +501,16 @@ namespace MG {
                                  std::vector<std::vector<std::complex<double>>> &c, int &ndim_cycle,
                                  ResiduumType resid_type, std::string prefix) const {
 
-                FlexibleArnoldiT<ST, GT>(n_krylov, rsd_target, _A, _M_prec, V, Z, w, H, givens_rots,
-                                         c, ndim_cycle, resid_type, _params.VerboseP, prefix);
+                FlexibleArnoldiT<ST>(n_krylov, rsd_target, _M, _prec, V, Z, w, H, givens_rots, c,
+                                     ndim_cycle, resid_type, _params.VerboseP, prefix);
             }
 
             void LeastSquaresSolve(const Array2d<std::complex<double>> &H,
                                    const std::vector<std::complex<double>> &rhs,
                                    std::vector<std::complex<double>> &eta, int n_cols) const {
                 /* Assume here we have a square matrix with an extra row.
-           Hence the loop counters are the columns not the rows.
-           NB: For an augmented system this will change */
+             Hence the loop counters are the columns not the rows.
+             NB: For an augmented system this will change */
                 eta[n_cols - 1] = rhs[n_cols - 1] / H(n_cols - 1, n_cols - 1);
                 for (int row = n_cols - 2; row >= 0; --row) {
                     eta[row] = rhs[row];
@@ -535,10 +522,6 @@ namespace MG {
             }
 
         private:
-            const LinearOperator<ST, GT> &_A;
-            const LatticeInfo _info;
-            const LinearSolverParamsBase _params;
-            mutable const LinearSolver<ST, GT> *_M_prec;
             std::string _prefix;
 
             // These can become state variables, as they will need to be

@@ -79,7 +79,7 @@ namespace MG {
             auto this_level_linop = _mg_levels.coarse_levels.back().M;
             solver_params.RsdTarget =
                 std::min(solver_params.RsdTarget, eigs_params.RsdTarget * 0.6);
-            UnprecFGMRESSolverCoarseWrapper solver(this_level_linop, solver_params, nullptr);
+            UnprecFGMRESSolverCoarseWrapper solver(*this_level_linop, solver_params, nullptr);
             test_coarse_solver(solver);
 
             // Compute the largest right singular vectors of inv(P^H * A * P), that is,

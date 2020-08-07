@@ -45,9 +45,9 @@ namespace MG {
     }
 
     std::vector<LinearSolverResults>
-    InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor, CoarseGauge> &A, const CoarseSpinor &chi,
+    InvBiCGStabCoarse_a(const LinearOperator<CoarseSpinor> &A, const CoarseSpinor &chi,
                         CoarseSpinor &psi, const double &RsdTarget, int MaxIter, IndexType OpType,
-                        ResiduumType resid_type, bool VerboseP)
+                        ResiduumType resid_type, bool VerboseP, InitialGuess guess)
 
     {
 
@@ -87,7 +87,11 @@ namespace MG {
         CoarseSpinor r0(info, ncol);
 
         // Get A psi, use r0 as a temporary
-        A(r0, psi, OpType);
+        if (guess == InitialGuessGiven) {
+            A(r0, psi, OpType);
+        } else {
+            ZeroVec(r0, subset);
+        }
 
         // now work out r= chi - Apsi = chi - r0
         //r[s] = chi - r0;
@@ -290,17 +294,12 @@ namespace MG {
         return ret;
     }
 
-    BiCGStabSolverCoarse::BiCGStabSolverCoarse(const LinearOperator<CoarseSpinor, CoarseGauge> &M,
-                                               const LinearSolverParamsBase &params)
-        : _M(M), _params(params) {}
-    BiCGStabSolverCoarse::BiCGStabSolverCoarse(
-        const std::shared_ptr<const LinearOperator<CoarseSpinor, CoarseGauge>> M,
-        const LinearSolverParamsBase &params)
-        : _M(*M), _params(params) {}
-    std::vector<LinearSolverResults> BiCGStabSolverCoarse::
-    operator()(CoarseSpinor &out, const CoarseSpinor &in, ResiduumType resid_type) const {
+    std::vector<LinearSolverResults> BiCGStabSolverCoarse::operator()(CoarseSpinor &out,
+                                                                      const CoarseSpinor &in,
+                                                                      ResiduumType resid_type,
+                                                                      InitialGuess guess) const {
         return InvBiCGStabCoarse_a(_M, in, out, _params.RsdTarget, _params.MaxIter, LINOP_OP,
-                                   resid_type, _params.VerboseP);
+                                   resid_type, _params.VerboseP, guess);
     }
 
 } // end namespace MGTEsting

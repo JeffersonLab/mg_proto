@@ -23,11 +23,11 @@
 
 namespace MG {
 
-    class CoarseEOWilsonCloverLinearOperator : public EOLinearOperator<CoarseSpinor, CoarseGauge> {
+    class CoarseEOWilsonCloverLinearOperator : public EOLinearOperator<CoarseSpinor> {
     public:
         // Hardwire n_smt=1 for now.
-        CoarseEOWilsonCloverLinearOperator(const std::shared_ptr<Gauge> &gauge_in, int level)
-            : _u(gauge_in), _the_op(gauge_in->GetInfo(), 1), _level(level) {
+        CoarseEOWilsonCloverLinearOperator(const std::shared_ptr<CoarseGauge> &gauge_in)
+            : _u(gauge_in), _the_op(gauge_in->GetInfo(), 1) {
             subrogateTo(&_the_op);
             MasterLog(INFO, "Creating Coarse CoarseEOWilsonCloverLinearOperator LinOp");
         }
@@ -37,12 +37,12 @@ namespace MG {
         const CBSubset &GetSubset() const override { return SUBSET_ODD; }
 
         /**
-	 * y_o = dagger(I - M_oo^{-1} * M_oe * M_ee^{-1} * M_eo) * x_o
-	 *
-	 * \param out: (in/out) return vector
-	 * \param in: input vector
-	 * \param type: apply direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
-	 */
+     * y_o = dagger(I - M_oo^{-1} * M_oe * M_ee^{-1} * M_eo) * x_o
+     *
+     * \param out: (in/out) return vector
+     * \param in: input vector
+     * \param type: apply direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+     */
 
         void operator()(Spinor &out, const Spinor &in, IndexType type = LINOP_OP) const override {
             _the_op.EOPrecOp(out,   // Output Spinor
@@ -129,16 +129,13 @@ namespace MG {
             multInvClovOffDiagRight(u_coarse);
         }
 
-        int GetLevel(void) const override { return _level; }
-
         const LatticeInfo &GetInfo(void) const override { return _u->GetInfo(); }
 
     private:
-        const std::shared_ptr<Gauge> _u;
+        const std::shared_ptr<CoarseGauge> _u;
         const CoarseDiracOp _the_op;
-
-        const int _level;
     };
-}
+
+} // namespace MG
 
 #endif /* TEST_QDPXX_COARSE_WILSON_CLOVER_LINEAR_OPERATOR_H_ */

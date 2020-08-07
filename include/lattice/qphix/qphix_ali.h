@@ -40,25 +40,26 @@ namespace MG {
 #else
         void GlobalSum(double &array) {}
 #endif
-    }
+    } // namespace GlobalComm
 
     template <typename T> inline double sum(const std::vector<T> &v) {
         return std::accumulate(v.begin(), v.end(), 0.0);
     }
 
     /*
-	 * Solve a linear system using the Approximate Lattice Inverse as a preconditioner
-	 *
-	 * If K is the ALI preconditioner and P is an approximate projector on the lower part of A's spectrum,
-	 * then the linear system A*x = b is solved as x = y + A^{-1}*P*b where K*A*y = K*(I-P)*b. The preconditioner
-	 * K approximates the links of A^{-1} for near neighbor sites. The approach is effective if |[(I-P)*A^{-1}]_ij|
-	 * decays quickly as i and j are further apart sites.
-	 *
-	 * The projector is built using multigrid deflation (see MGDeflation) and K is reconstructed with probing based
-	 * on coloring the graph lattice.
-	 */
+     * Solve a linear system using the Approximate Lattice Inverse as a preconditioner
+     *
+     * If K is the ALI preconditioner and P is an approximate projector on the lower part of A's
+     * spectrum, then the linear system A*x = b is solved as x = y + A^{-1}*P*b where K*A*y =
+     * K*(I-P)*b. The preconditioner K approximates the links of A^{-1} for near neighbor sites. The
+     * approach is effective if |[(I-P)*A^{-1}]_ij| decays quickly as i and j are further apart
+     * sites.
+     *
+     * The projector is built using multigrid deflation (see MGDeflation) and K is reconstructed
+     * with probing based on coloring the graph lattice.
+     */
 
-    class ALIPrec : public LinearSolver<QPhiXSpinor, QPhiXGauge>,
+    class ALIPrec : public ImplicitLinearSolver<QPhiXSpinor>,
                     public AuxiliarySpinors<QPhiXSpinorF>,
                     public AuxiliarySpinors<CoarseSpinor> {
         using AuxQ = AuxiliarySpinors<QPhiXSpinor>;
@@ -67,21 +68,21 @@ namespace MG {
 
     public:
         /*
-			 * Constructor
-			 *
-			 * \param info: lattice info
-			 * \param M_fine: linear system operator (A)
-			 * \param defl_p: Multigrid parameters used to build the multgrid deflation
-			 * \param defl_solver_params: linear system parameters to build the multigrid deflation
-			 * \param defl_eigs_params: eigensolver parameters to build the multigrid deflation
-			 * \param prec_p: Multigrid parameters used to build the preconditioner
-			 * \param K_distance: maximum distance of the approximated links
-			 * \param probing_distance: maximum distance for probing
-			 *
-			 * The parameters defl_p, defl_solver_params and defl_eigs_params are passed to MGDeflation to build
-			 * the projector P. The interesting values of (I-P)*A^{-1} are reconstructed with a probing scheme
-			 * that remove contributions from up to 'probing_distance' sites.
-			 */
+         * Constructor
+         *
+         * \param info: lattice info
+         * \param M_fine: linear system operator (A)
+         * \param defl_p: Multigrid parameters used to build the multgrid deflation
+         * \param defl_solver_params: linear system parameters to build the multigrid deflation
+         * \param defl_eigs_params: eigensolver parameters to build the multigrid deflation
+         * \param prec_p: Multigrid parameters used to build the preconditioner
+         * \param K_distance: maximum distance of the approximated links
+         * \param probing_distance: maximum distance for probing
+         *
+         * The parameters defl_p, defl_solver_params and defl_eigs_params are passed to MGDeflation
+         * to build the projector P. The interesting values of (I-P)*A^{-1} are reconstructed with a
+         * probing scheme that remove contributions from up to 'probing_distance' sites.
+         */
 
         ALIPrec(const std::shared_ptr<LatticeInfo> info,
                 const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> M_fine,
@@ -90,7 +91,8 @@ namespace MG {
                 std::vector<MG::VCycleParams> prec_vcycle_params,
                 LinearSolverParamsBase prec_solver_params, unsigned int K_distance,
                 unsigned int probing_distance, const CBSubset subset, unsigned int mode = 1)
-            : _info(info),
+            : ImplicitLinearSolver<QPhiXSpinor>(*info, subset, prec_solver_params),
+              _info(info),
               _M_fine(M_fine),
               _K_distance(K_distance),
               _op(*info),
@@ -122,25 +124,25 @@ namespace MG {
         }
 
         /*
-			 * Apply the preconditioner onto 'in'.
-			 *
-			 * \param out: returned vectors
-			 * \param in: input vectors
-			 *
-			 * It applies the deflation on the input vectors and return the results on 'out'.
-			 *
-			 *    out = [M^{-1}*Q + K*(I-Q)] * in,
-			 *
-			 * where Q = M_oo^{-1}*P*M_oo, P is a projector on M, and K approximates M^{-1}_oo*M_oo.
-			 */
+         * Apply the preconditioner onto 'in'.
+         *
+         * \param out: returned vectors
+         * \param in: input vectors
+         *
+         * It applies the deflation on the input vectors and return the results on 'out'.
+         *
+         *    out = [M^{-1}*Q + K*(I-Q)] * in,
+         *
+         * where Q = M_oo^{-1}*P*M_oo, P is a projector on M, and K approximates M^{-1}_oo*M_oo.
+         */
 
         std::vector<LinearSolverResults>
-        operator()(QPhiXSpinor &out, const QPhiXSpinor &in,
-                   ResiduumType resid_type = RELATIVE) const override {
+        operator()(QPhiXSpinor &out, const QPhiXSpinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
             (void)resid_type;
-            //test_defl(in);
-            //applyK(out, in);
-            (*_vcycle)(out, in);
+            // test_defl(in);
+            // applyK(out, in);
+            (*_vcycle)(out, in, resid_type, guess);
             IndexType ncol = out.GetNCol();
             return std::vector<LinearSolverResults>(ncol, LinearSolverResults());
         }
@@ -150,7 +152,8 @@ namespace MG {
             // // TEMP!!!
             // double norm2_cb0 = sqrt(Norm2Vec(in, SUBSET_EVEN)[0]);
             // double norm2_cb1 = sqrt(Norm2Vec(in, SUBSET_ODD)[0]);
-            // MasterLog(INFO,"MG Level 0: ALI Solver operator(): || v_e ||=%16.8e || v_o ||=%16.8e", norm2_cb0, norm2_cb1);
+            // MasterLog(INFO,"MG Level 0: ALI Solver operator(): || v_e ||=%16.8e || v_o
+            // ||=%16.8e", norm2_cb0, norm2_cb1);
 
             assert(out.GetNCol() == in.GetNCol());
             IndexType ncol = out.GetNCol();
@@ -191,12 +194,12 @@ namespace MG {
         }
 
         /**
-			 * Return M^{-1}_oo * Q * in
-			 *
-			 * \param eo_solver: invertor on _M_fine
-			 * \param out: (out) output vector
-			 * \param in: input vector
-			 */
+         * Return M^{-1}_oo * Q * in
+         *
+         * \param eo_solver: invertor on _M_fine
+         * \param out: (out) output vector
+         * \param in: input vector
+         */
 
         template <typename Spinor> void apply_invM_Q(Spinor &out, const Spinor &in) const {
             assert(in.GetNCol() == out.GetNCol());
@@ -248,47 +251,44 @@ namespace MG {
                           sqrt(n_diff[col] / n_in[col]));
         }
 
-        const LatticeInfo &GetInfo() const override { return *_info; }
-        const CBSubset &GetSubset() const override { return SUBSET_ALL; }
-
         const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorF> GetM() const {
             return _M_fine;
         }
         const std::shared_ptr<MGDeflation> GetMGDeflation() const { return _mg_deflation; }
 
     private:
-        struct S : public Smoother<QPhiXSpinorF, QPhiXGaugeF>,
-                   public LinearSolver<QPhiXSpinorF, QPhiXGaugeF> {
-            S(const ALIPrec &aliprec) : _aliprec(aliprec) {}
+        struct S : public ImplicitLinearSolver<QPhiXSpinorF> {
+            S(const ALIPrec &aliprec)
+                : ImplicitLinearSolver<QPhiXSpinorF>(aliprec.GetInfo(), aliprec.GetSubset()),
+                  _aliprec(aliprec) {}
+
             std::vector<LinearSolverResults>
             operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in,
-                       ResiduumType resid_type = RELATIVE) const override {
+                       ResiduumType resid_type = RELATIVE,
+                       InitialGuess guess = InitialGuessNotGiven) const override {
                 (void)resid_type;
+                (void)guess;
                 _aliprec.apply_precon(out, in);
                 return std::vector<LinearSolverResults>(in.GetNCol(), LinearSolverResults());
             }
-            void operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in) const override {
-                _aliprec.apply_precon(out, in);
-            }
-            const CBSubset &GetSubset() const override { return SUBSET_ODD; };
-            const LatticeInfo &GetInfo() const override { return _aliprec.GetInfo(); }
+
             const ALIPrec &_aliprec;
         };
 
         void set_smoother() {
-            _antipostsmoother = std::make_shared<S>(*this);
+            _antipostsmoother = std::make_shared<const S>(*this);
             //_vcycle->SetAntePostSmoother(_antipostsmoother.get());
-            _vcycle->GetPostSmoother()->setPrec(_antipostsmoother.get());
+            _vcycle->GetPostSmoother()->SetPrec(_antipostsmoother.get());
         }
 
         /**
-			 * Return (I-Q) * in
-			 *
-			 * \param out: (out) output vector
-			 * \param in: input vector
-			 *
-			 * NOTE: Assuming 'in' is properly zeroed
-			 */
+         * Return (I-Q) * in
+         *
+         * \param out: (out) output vector
+         * \param in: input vector
+         *
+         * NOTE: Assuming 'in' is properly zeroed
+         */
 
         void apply_complQ(QPhiXSpinor &out, const QPhiXSpinor &in) const {
             assert(out.GetNCol() == in.GetNCol());
@@ -347,12 +347,12 @@ namespace MG {
         }
 
         /**
-			 * Return M^{-1}_oo * (I-Q) * in
-			 *
-			 * \param eo_solver: invertor on _M_fine
-			 * \param out: (out) output vector
-			 * \param in: input vector
-			 */
+         * Return M^{-1}_oo * (I-Q) * in
+         *
+         * \param eo_solver: invertor on _M_fine
+         * \param out: (out) output vector
+         * \param in: input vector
+         */
 
         void apply_invM_after_defl(const FGMRESSolverQPhiXF &eo_solver, QPhiXSpinorF &out,
                                    const QPhiXSpinorF &in) const {
@@ -426,7 +426,8 @@ namespace MG {
                                                           col_color);
                         unsigned int colorj = coloring.GetColorCBIndex(cb, cbsite);
 
-                        // Process this site if its color is the same as the color of the probing vector
+                        // Process this site if its color is the same as the color of the probing
+                        // vector
                         if (colorj != node_color) continue;
 
                         // Get diag
@@ -556,8 +557,8 @@ namespace MG {
 
                 MasterLog(INFO,
                           "K probing error with %d distance coloring: "
-                          "||M^{-1}_00-K_00||_F/||M^{-1}_00||_F= %g "
-                          "||M^{-1}_0-K_0||_F/||M^{-1}_0||_F= %g   ||M*K-I||= %g",
+                          "||M^{-1}_00-K_00||_F/||M^{-1}_00||_F= "
+                          "%g ||M^{-1}_0-K_0||_F/||M^{-1}_0||_F= %g   ||M*K-I||= %g",
                           probing_distance, norm_diff / norm_sol_e, sqrt(diff_F / sol_F), norm_F);
 
                 if (diff_F <= sol_F * tol * tol) break;
@@ -584,7 +585,7 @@ namespace MG {
 
             // sol_e = inv(M_fine) * (I-Q) * e
             std::shared_ptr<QPhiXSpinorF> sol_e = AuxQF::tmp(*_info, nc);
-            //apply_invM_after_defl(eo_solver, *sol_e, *e);
+            // apply_invM_after_defl(eo_solver, *sol_e, *e);
             eo_solver(*sol_e, *e);
 
             // sol_p \approx inv(M_fine) * (I-Q) * e
@@ -601,11 +602,11 @@ namespace MG {
         }
 
         /*
-			 * Apply K. out = K * in.
-			 *
-			 * \param out: returned vectors
-			 * \param in: input vectors
-			 */
+         * Apply K. out = K * in.
+         *
+         * \param out: returned vectors
+         * \param in: input vectors
+         */
 
         template <typename Spinor> void applyK(Spinor &out, const Spinor &in) const {
             assert(out.GetNCol() == in.GetNCol());
@@ -658,8 +659,8 @@ namespace MG {
         const unsigned int _mode;
         std::shared_ptr<QPhiXMultigridLevelsEO> _mg_levels;
         std::shared_ptr<VCycleRecursiveQPhiXEO2> _vcycle;
-        std::shared_ptr<S> _antipostsmoother;
+        std::shared_ptr<const S> _antipostsmoother;
     };
-}
+} // namespace MG
 
 #endif // INCLUDE_LATTICE_QPHIX_QPHIX_ALI_H_

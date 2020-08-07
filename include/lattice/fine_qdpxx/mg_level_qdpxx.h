@@ -26,8 +26,7 @@ namespace MG {
     struct MGLevelQDPXX {
         std::shared_ptr<const LatticeInfo> info;
         QDP::multi1d<QDP::LatticeFermion> null_vecs;
-        std::shared_ptr<
-            const LinearSolver<QDP::LatticeFermion, QDP::multi1d<QDP::LatticeColorMatrix>>>
+        std::shared_ptr<const LinearSolver<QDP::LatticeFermion>>
             null_solver; // Solver for NULL on this level
         std::shared_ptr<const QDPWilsonCloverLinearOperator> M;
         std::vector<Block> blocklist;

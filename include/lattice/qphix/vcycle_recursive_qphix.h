@@ -27,8 +27,8 @@ using namespace QDP;
 namespace MG {
     template <typename QPhiXMGLevelsT, typename Fine2CoarseVCycleT, typename Coarse2CoarseVCycleT,
               typename FineSmootherT, typename CoarseSmootherT, typename BottomSolverT>
-    class VCycleRecursiveQPhiXT : public LinearSolver<QPhiXSpinor, QPhiXGauge>,
-                                  public LinearSolver<QPhiXSpinorF, QPhiXGaugeF>
+    class VCycleRecursiveQPhiXT : public ImplicitLinearSolver<QPhiXSpinor>,
+                                  public LinearSolver<QPhiXSpinorF>
 
     {
     public:
@@ -65,7 +65,11 @@ namespace MG {
 
         VCycleRecursiveQPhiXT(const std::vector<VCycleParams> &vcycle_params0,
                               const QPhiXMGLevelsT &mg_levels)
-            : _vcycle_params(hackVcycle(vcycle_params0)), _mg_levels(mg_levels) {
+            : ImplicitLinearSolver<QPhiXSpinor>(*mg_levels.fine_level.info,
+                                                mg_levels.fine_level.M->GetSubset()),
+              LinearSolver<QPhiXSpinorF>(*mg_levels.fine_level.M, LinearSolverParamsBase()),
+              _vcycle_params(hackVcycle(vcycle_params0)),
+              _mg_levels(mg_levels) {
 
             MasterLog(INFO, "Constructing Recursive EvenOdd VCycle");
 
@@ -91,24 +95,25 @@ namespace MG {
 
                     // Bottom level There is only a bottom solver.
                     _bottom_solver[coarse_idx] = std::make_shared<const BottomSolverT>(
-                        this_level_linop, _vcycle_params[coarse_idx].bottom_solver_params, nullptr);
+                        *this_level_linop, _vcycle_params[coarse_idx].bottom_solver_params,
+                        nullptr);
 
                     MasterLog(INFO, "Computing deflation for level %d", coarse_idx);
-                    //CoarseSpinor defl(this_level_linop->GetInfo(), 512);
-                    //computeDeflation(defl, *this_level_linop);
+                    // CoarseSpinor defl(this_level_linop->GetInfo(), 512);
+                    // computeDeflation(defl, *this_level_linop);
                 } else {
 
                     MasterLog(INFO, "Creating PreSmoother on Level %d using VCycleParams[%d]",
                               coarse_idx + 1, coarse_idx + 1);
                     // This becomes a wrapper
                     _coarse_presmoother[coarse_idx] = std::make_shared<const CoarseSmootherT>(
-                        this_level_linop, _vcycle_params[coarse_idx + 1].pre_smoother_params);
+                        *this_level_linop, _vcycle_params[coarse_idx + 1].pre_smoother_params);
 
                     MasterLog(INFO, "Creating PreSmoother on Level %d using VCycleParams[%d]",
                               coarse_idx + 1, coarse_idx + 1);
                     // This becomes a wrapper
                     _coarse_postsmoother[coarse_idx] = std::make_shared<const CoarseSmootherT>(
-                        this_level_linop, _vcycle_params[coarse_idx + 1].post_smoother_params);
+                        *this_level_linop, _vcycle_params[coarse_idx + 1].post_smoother_params);
 
                     MasterLog(INFO,
                               "Creating VCycle Between Levels: %d -> %d using VCycleParams[%d]",
@@ -122,13 +127,14 @@ namespace MG {
                         (*(_bottom_solver[coarse_idx + 1])),
                         (_vcycle_params[coarse_idx + 1].cycle_params));
 
-                    MasterLog(INFO,
-                              "Creating Bottom Solver For level: %d, using VCycle Preconditioner "
-                              "from level %d",
-                              coarse_idx + 1, coarse_idx + 1);
+                    MasterLog(
+                        INFO,
+                        "Creating Bottom Solver For level: %d, using VCycle Preconditioner from "
+                        "level %d",
+                        coarse_idx + 1, coarse_idx + 1);
                     // This becomes a wrapper
                     _bottom_solver[coarse_idx] = std::make_shared<const BottomSolverT>(
-                        this_level_linop, _vcycle_params[coarse_idx].bottom_solver_params,
+                        *this_level_linop, _vcycle_params[coarse_idx].bottom_solver_params,
                         _coarse_vcycle[coarse_idx].get());
                 }
             }
@@ -136,9 +142,9 @@ namespace MG {
             MasterLog(INFO, "Creating Toplevel Smoothers");
             // The QPhiX Smoothers are already preconditioned so leave this as is.
             _pre_smoother = std::make_shared<const FineSmootherT>(
-                _mg_levels.fine_level.M, _vcycle_params[0].pre_smoother_params);
+                *_mg_levels.fine_level.M, _vcycle_params[0].pre_smoother_params);
             _post_smoother = std::make_shared<const FineSmootherT>(
-                _mg_levels.fine_level.M, _vcycle_params[0].post_smoother_params);
+                *_mg_levels.fine_level.M, _vcycle_params[0].post_smoother_params);
             MasterLog(INFO, "Creating Toplevel VCycle");
             _toplevel_vcycle = std::make_shared<Fine2CoarseVCycleT>(
                 *(_mg_levels.fine_level.info),       // Fine Info
@@ -150,52 +156,53 @@ namespace MG {
                 (*_post_smoother), (*(_bottom_solver[0])), (_vcycle_params[0].cycle_params));
         }
 
-        std::vector<LinearSolverResults> operator()(QPhiXSpinor &out, const QPhiXSpinor &in,
-                                                    ResiduumType resid_type = RELATIVE) const {
-            return (*_toplevel_vcycle)(out, in, resid_type);
+        std::vector<LinearSolverResults>
+        operator()(QPhiXSpinor &out, const QPhiXSpinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const {
+            return (*_toplevel_vcycle)(out, in, resid_type, guess);
         }
 
-        std::vector<LinearSolverResults> operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in,
-                                                    ResiduumType resid_type = RELATIVE) const {
-            return (*_toplevel_vcycle)(out, in, resid_type);
+        std::vector<LinearSolverResults>
+        operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const {
+            return (*_toplevel_vcycle)(out, in, resid_type, guess);
         }
 
-        const LatticeInfo &GetInfo() const { return *_mg_levels.fine_level.info; }
-        const CBSubset &GetSubset() const { return SUBSET_ALL; }
-        void SetAntePostSmoother(Smoother<QPhiXSpinorF, QPhiXGaugeF> *s) {
+        void SetAntePostSmoother(LinearSolver<QPhiXSpinorF> *s) {
             _toplevel_vcycle->SetAntePostSmoother(s);
         }
-        const Smoother<QPhiXSpinorF, QPhiXGaugeF> *GetPostSmoother() const {
-            return _post_smoother.get();
-        }
+        const LinearSolver<QPhiXSpinorF> *GetPostSmoother() const { return _post_smoother.get(); }
 
     private:
         const std::vector<VCycleParams> _vcycle_params;
         const QPhiXMGLevelsT &_mg_levels;
 
-        std::shared_ptr<const Smoother<QPhiXSpinorF, QPhiXGaugeF>> _pre_smoother;
-        std::shared_ptr<const Smoother<QPhiXSpinorF, QPhiXGaugeF>> _post_smoother;
+        std::shared_ptr<const LinearSolver<QPhiXSpinorF>> _pre_smoother;
+        std::shared_ptr<const LinearSolver<QPhiXSpinorF>> _post_smoother;
         std::shared_ptr<Fine2CoarseVCycleT> _toplevel_vcycle;
 
-        std::vector<std::shared_ptr<const Smoother<CoarseSpinor, CoarseGauge>>> _coarse_presmoother;
-        std::vector<std::shared_ptr<const Smoother<CoarseSpinor, CoarseGauge>>>
-            _coarse_postsmoother;
-        std::vector<std::shared_ptr<const LinearSolver<CoarseSpinor, CoarseGauge>>> _coarse_vcycle;
-        std::vector<std::shared_ptr<const LinearSolver<CoarseSpinor, CoarseGauge>>> _bottom_solver;
+        std::vector<std::shared_ptr<const LinearSolver<CoarseSpinor>>> _coarse_presmoother;
+        std::vector<std::shared_ptr<const LinearSolver<CoarseSpinor>>> _coarse_postsmoother;
+        std::vector<std::shared_ptr<const LinearSolver<CoarseSpinor>>> _coarse_vcycle;
+        std::vector<std::shared_ptr<const LinearSolver<CoarseSpinor>>> _bottom_solver;
     };
 
     using VCycleRecursiveQPhiX =
         VCycleRecursiveQPhiXT<QPhiXMultigridLevels, VCycleQPhiXCoarse2, VCycleCoarse,
-                              MRSmootherQPhiXF, MRSmootherCoarse, FGMRESSolverCoarse>;
+                              MRSmootherQPhiXF, MRSolverCoarse, FGMRESSolverCoarse>;
     using VCycleRecursiveQPhiXEO =
         VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO, VCycleQPhiXCoarseEO2, VCycleCoarseEO,
-                              MRSmootherQPhiXF, UnprecMRSmootherCoarseWrapper,
+                              MRSmootherQPhiXF, UnprecMRSolverCoarseWrapper,
                               UnprecFGMRESSolverCoarseWrapper>;
     using VCycleRecursiveQPhiXEO2 =
         VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO, VCycleQPhiXCoarseEO3, VCycleCoarseEO2,
-                              FGMRESSmootherQPhiXF, MRSmootherCoarse,
+                              FGMRESSmootherQPhiXF, MRSolverCoarse,
                               UnprecFGMRESSolverCoarseWrapper>;
-    //using VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, MRSmootherQPhiXEOF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>;
-    //using VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2, BiCBStabSmootherQPhiXEOF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>;
-};
+    // using VCycleRecursiveQPhiXEO2 =
+    // VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2,
+    // MRSmootherQPhiXEOF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>; using
+    // VCycleRecursiveQPhiXEO2 = VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3,
+    // VCycleCoarseEO2, BiCBStabSmootherQPhiXEOF, MRSmootherCoarse, UnprecFGMRESSolverCoarseWrapper>;
+
+};     // namespace MG
 #endif /* INCLUDE_LATTICE_QPHIX_VCYCLE_RECURSIVE_QPHIX_H_ */

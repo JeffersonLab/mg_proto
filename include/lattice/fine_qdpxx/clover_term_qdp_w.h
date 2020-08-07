@@ -671,10 +671,10 @@ namespace MG {
 
         int n = 2 * Nc;
 
-        RComplex<REALT>* cchi = (RComplex<REALT>*)&(chi.elem(site).elem(0).elem(0));
-        const RComplex<REALT>* ppsi = (const RComplex<REALT>*)&(psi.elem(site).elem(0).elem(0));
+        RComplex<REALT> *cchi = (RComplex<REALT> *)&(chi.elem(site).elem(0).elem(0));
+        const RComplex<REALT> *ppsi = (const RComplex<REALT> *)&(psi.elem(site).elem(0).elem(0));
 
-
+        // clang-format off
         cchi[ 0] = tri[site].diag[0][ 0]  * ppsi[ 0]
           +   conj(tri[site].offd[0][ 0]) * ppsi[ 1]
           +   conj(tri[site].offd[0][ 1]) * ppsi[ 2]
@@ -758,6 +758,7 @@ namespace MG {
           +        tri[site].offd[1][12]  * ppsi[ 8]
           +        tri[site].offd[1][13]  * ppsi[ 9]
           +        tri[site].offd[1][14]  * ppsi[10];
+        // clang-format on
     }
 
     //! Returns the appropriate clover coefficient for indices mu and nu

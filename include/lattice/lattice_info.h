@@ -8,33 +8,31 @@
 
 #include "utils/print_utils.h"
 
-using namespace MG;
-
 namespace MG {
 
     class LatticeInfo {
     public:
         /** Most General Constructor
-	 *  \param origin   is a vector containing the coordinates of the origin of the Lattice Block
-	 *  \param lat_dims is a vector containing the dimensions of the lattice block
-	 *  \param n_spin   is the number of spin components of the lattice block
-	 *  \param n_color  is the number of color components of the lattice block
-	 *  \param node     is the NodeInfo() object for the current node.
-	 */
+         *  \param origin:   vector containing the coordinates of the origin of the Lattice Block
+         *  \param lat_dims: vector containing the dimensions of the lattice block
+         *  \param n_spin:   number of spin components of the lattice block
+         *  \param n_color:  number of color components of the lattice block
+         *  \param node:     NodeInfo() object for the current node.
+         */
         LatticeInfo(const IndexArray &lat_origin, const IndexArray &lat_dims, IndexType n_spin,
-                    IndexType n_color, const NodeInfo &node);
+                    IndexType n_color, const NodeInfo &node, int level = 0);
 
-        /** DelegatingConstructor -- for when there is only one lattice block per node. Local origin assumed
-	 *   to be ( lat_dims[0]*node_coord[0], lat_dims[1]*node_coord[1], lat_dims[2]*node_coord[2], lat_dims[3]*node_coord[3] )
-	 *
-	 * \param lat_dims is a vector containing the dimensions of the lattice  in sites
-	 * \param n_spin is the number of spin components
-	 * \param n_colo is the number of color components
-	 * \param node_info has details about the node (to help work out origins
-	 *                              checkerboards etc.
-	 */
+        /** DelegatingConstructor -- for when there is only one lattice block per node. Local origin
+         * assumed to be ( lat_dims[0]*node_coord[0], lat_dims[1]*node_coord[1],
+         * lat_dims[2]*node_coord[2], lat_dims[3]*node_coord[3] )
+         *
+         * \param lat_dims: vector containing the dimensions of the lattice  in sites
+         * \param n_spin: number of spin components
+         * \param n_color: number of color components
+         * \param node_info: has details about the node (to help work out origins checkerboards etc.
+         */
         LatticeInfo(const IndexArray &lat_dims, IndexType n_spin, IndexType n_color,
-                    const NodeInfo &node);
+                    const NodeInfo &node, int level = 0);
 
         ~LatticeInfo();
 
@@ -60,6 +58,8 @@ namespace MG {
         inline IndexType GetCBOrigin(void) const { return _orig_cb; }
 
         inline const NodeInfo &GetNodeInfo(void) const { return _node_info; }
+
+        inline int GetLevel(void) const { return _level; }
 
         /*! Convenience function to convert Local Dims to Global dims based on Process grid */
         inline void LocalDimsToGlobalDims(IndexArray &global_dims,
@@ -116,6 +116,7 @@ namespace MG {
         IndexType _orig_cb;
 
         IndexArray _num_cb_surface_sites;
+        const int _level;
 
         /* Compute Origin from NodeInfo and NodeCoords */
         inline IndexArray ComputeOriginCoords(const IndexArray &lat_dims,

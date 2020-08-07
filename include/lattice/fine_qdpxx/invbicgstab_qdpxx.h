@@ -14,26 +14,35 @@ using namespace QDP;
 
 namespace MG {
 
-    class BiCGStabSolverQDPXX
-        : public LinearSolver<QDP::LatticeFermion, QDP::multi1d<QDP::LatticeColorMatrix>> {
+    class BiCGStabSolverQDPXX : public LinearSolverNoPrecon<QDP::LatticeFermion> {
     public:
         using Spinor = QDP::LatticeFermion;
-        using Gauge = QDP::multi1d<QDP::LatticeColorMatrix>;
-        BiCGStabSolverQDPXX(const LinearOperator<Spinor, Gauge> &M,
-                            const LinearSolverParamsBase &params)
-            : _M(M), _params(params) {}
 
-        std::vector<LinearSolverResults> operator()(Spinor &out, const Spinor &in,
-                                                    ResiduumType resid_type = RELATIVE) const;
+        /**
+         * Constructor
+         *
+         * \param M: operator
+         * \param params: linear solver params
+         * \param prec: preconditioner (should be nullptr)
+         */
 
-        const LatticeInfo &GetInfo() const { return _M.GetInfo(); }
-        const CBSubset &GetSubset() const { return _M.GetSubset(); }
+        BiCGStabSolverQDPXX(const LinearOperator<Spinor> &M, const LinearSolverParamsBase &params,
+                            const LinearOperator<Spinor> *prec = nullptr)
+            : LinearSolverNoPrecon<Spinor>(M, params, prec) {}
 
-    private:
-        const LinearOperator<Spinor, Gauge> &_M;
-        const LinearSolverParamsBase &_params;
+        /**
+         * Compute the solution.
+         *
+         * \param[out] out: solution vector
+         * \param in: input vector
+         * \param resid_type: stopping criterion (RELATIVE or ABSOLUTE)
+         * \param guess: Whether the initial is provided
+         */
+
+        std::vector<LinearSolverResults>
+        operator()(Spinor &out, const Spinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override;
     };
-
-} // end namespace MGTEsting
+}
 
 #endif /* TEST_QDPXX_INVBICGSTAB_H_ */

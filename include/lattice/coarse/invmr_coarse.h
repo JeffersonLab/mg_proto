@@ -14,39 +14,35 @@
 
 namespace MG {
 
-    class MRSolverCoarse : public LinearSolver<CoarseSpinor, CoarseGauge> {
+    class MRSolverCoarse : public LinearSolverNoPrecon<CoarseSpinor> {
     public:
-        MRSolverCoarse(const LinearOperator<CoarseSpinor, CoarseGauge> &M,
-                       const MG::LinearSolverParamsBase &params);
+        /**
+         * Constructor
+         *
+         * \param M: operator
+         * \param params: linear solver params
+         * \param prec: preconditioner (should be nullptr)
+         */
 
-        std::vector<LinearSolverResults> operator()(CoarseSpinor &out, const CoarseSpinor &in,
-                                                    ResiduumType resid_type = RELATIVE) const;
+        MRSolverCoarse(const LinearOperator<CoarseSpinor> &M, const LinearSolverParamsBase &params,
+                       const LinearOperator<CoarseSpinor> *prec = nullptr)
+            : LinearSolverNoPrecon<CoarseSpinor>(M, params, prec) {}
 
-    private:
-        const LinearOperator<CoarseSpinor, CoarseGauge> &_M;
-        const LinearSolverParamsBase &_params;
+        /**
+         * Compute the solution.
+         *
+         * \param[out] out: solution vector
+         * \param in: input vector
+         * \param resid_type: stopping criterion (RELATIVE or ABSOLUTE)
+         * \param guess: Whether the initial is provided
+         */
+
+        std::vector<LinearSolverResults>
+        operator()(Spinor &out, const Spinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override;
     };
 
-    using UnprecMRSolverCoarseWrapper =
-        UnprecLinearSolverWrapper<CoarseSpinor, CoarseGauge, MRSolverCoarse>;
-
-    class MRSmootherCoarse : public Smoother<CoarseSpinor, CoarseGauge> {
-    public:
-        MRSmootherCoarse(const LinearOperator<CoarseSpinor, CoarseGauge> &M,
-                         const MG::LinearSolverParamsBase &params);
-
-        MRSmootherCoarse(
-            const std::shared_ptr<const LinearOperator<CoarseSpinor, CoarseGauge>> M_ptr,
-            const MG::LinearSolverParamsBase &params);
-
-        void operator()(CoarseSpinor &out, const CoarseSpinor &in) const;
-
-    private:
-        const LinearOperator<CoarseSpinor, CoarseGauge> &_M;
-        const LinearSolverParamsBase &_params;
-    };
-    using UnprecMRSmootherCoarseWrapper =
-        UnprecSmootherWrapper<CoarseSpinor, CoarseGauge, MRSmootherCoarse>;
+    using UnprecMRSolverCoarseWrapper = UnprecLinearSolver<MRSolverCoarse>;
 }
 
 #endif /* TEST_QDPXX_INVMR_COARSE_H_ */

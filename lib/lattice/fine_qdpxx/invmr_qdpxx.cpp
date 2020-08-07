@@ -18,60 +18,60 @@ namespace MG {
 
     //! Minimal-residual (MR) algorithm for a generic Linear Operator
     /*! \ingroup invert
-   * This subroutine uses the Minimal Residual (MR) algorithm to determine
-   * the solution of the set of linear equations. Here we allow M to be nonhermitian.
-   *
-   *   	    Chi  =  M . Psi
-   *
-   * Algorithm:
-   *
-   *  Psi[0]                                      Argument
-   *  r[0]    :=  Chi  -  M . Psi[0] ;            Initial residual
-   *  IF |r[0]| <= RsdCG |Chi| THEN RETURN;       Converged?
-   *  FOR k FROM 1 TO MaxCG DO                    MR iterations
-   *      a[k-1]  := <M.r[k-1],r[k-1]> / <M.r[k-1],M.r[k-1]> ;
-   *      ap[k-1] := MRovpar * a[k] ;             Overrelaxtion step
-   *      Psi[k]  += ap[k-1] r[k-1] ;   	        New solution std::vector
-   *      r[k]    -= ap[k-1] A . r[k-1] ;         New residual
-   *      IF |r[k]| <= RsdCG |Chi| THEN RETURN;   Converged?
+ * This subroutine uses the Minimal Residual (MR) algorithm to determine
+ * the solution of the set of linear equations. Here we allow M to be nonhermitian.
+ *
+ *   	    Chi  =  M . Psi
+ *
+ * Algorithm:
+ *
+ *  Psi[0]                                      Argument
+ *  r[0]    :=  Chi  -  M . Psi[0] ;            Initial residual
+ *  IF |r[0]| <= RsdCG |Chi| THEN RETURN;       Converged?
+ *  FOR k FROM 1 TO MaxCG DO                    MR iterations
+ *      a[k-1]  := <M.r[k-1],r[k-1]> / <M.r[k-1],M.r[k-1]> ;
+ *      ap[k-1] := MRovpar * a[k] ;             Overrelaxtion step
+ *      Psi[k]  += ap[k-1] r[k-1] ;   	        New solution std::vector
+ *      r[k]    -= ap[k-1] A . r[k-1] ;         New residual
+ *      IF |r[k]| <= RsdCG |Chi| THEN RETURN;   Converged?
 
-   * Arguments:
+ * Arguments:
 
-   *  \param M       Linear Operator             (Read)
-   *  \param chi     Source                      (Read)
-   *  \param psi     Solution                    (Modify)
-   *  \param RsdCG   MR residual accuracy        (Read)
-   *  \param MRovpar Overrelaxation parameter    (Read)
-   *  \param MaxMR   Maximum MR iterations       (Read)
+ *  \param M       Linear Operator             (Read)
+ *  \param chi     Source                      (Read)
+ *  \param psi     Solution                    (Modify)
+ *  \param RsdCG   MR residual accuracy        (Read)
+ *  \param MRovpar Overrelaxation parameter    (Read)
+ *  \param MaxMR   Maximum MR iterations       (Read)
 
-   * Local Variables:
+ * Local Variables:
 
-   *  r   	Residual std::vector
-   *  cp  	| r[k] |**2
-   *  c   	| r[k-1] |**2
-   *  k   	MR iteration counter
-   *  a   	a[k]
-   *  d   	< M.r[k], M.r[k] >
-   *  R_Aux     Temporary for  M.Psi
-   *  Mr        Temporary for  M.r
+ *  r   	Residual std::vector
+ *  cp  	| r[k] |**2
+ *  c   	| r[k-1] |**2
+ *  k   	MR iteration counter
+ *  a   	a[k]
+ *  d   	< M.r[k], M.r[k] >
+ *  R_Aux     Temporary for  M.Psi
+ *  Mr        Temporary for  M.r
 
-   * Global Variables:
+ * Global Variables:
 
-   *  MaxMR       Maximum number of MR iterations allowed
-   *  RsdCG       Maximum acceptable MR residual (relative to source)
-   *
-   * Subroutines:
-   *
-   *  M           Apply matrix to std::vector
-   *
-   * @{
-   */
+ *  MaxMR       Maximum number of MR iterations allowed
+ *  RsdCG       Maximum acceptable MR residual (relative to source)
+ *
+ * Subroutines:
+ *
+ *  M           Apply matrix to std::vector
+ *
+ * @{
+ */
 
-    template <typename Spinor, typename Gauge>
-    LinearSolverResults InvMR_a(const LinearOperator<Spinor, Gauge> &M, const Spinor &chi,
-                                Spinor &psi, const Real &OmegaRelax, const Real &RsdTarget,
-                                int MaxIter, IndexType OpType, ResiduumType resid_type,
-                                bool VerboseP, bool TerminateOnResidua) {
+    template <typename Spinor>
+    LinearSolverResults InvMR_a(const LinearOperator<Spinor> &M, const Spinor &chi, Spinor &psi,
+                                const Real &OmegaRelax, const Real &RsdTarget, int MaxIter,
+                                IndexType OpType, ResiduumType resid_type, bool VerboseP,
+                                bool TerminateOnResidua) {
 
         int level = M.GetLevel();
         if (MaxIter < 0) {
@@ -144,10 +144,11 @@ namespace MG {
 
                     res.resid /= toDouble(sqrt(norm_chi_internal));
                     if (VerboseP) {
-                        MasterLog(INFO,
-                                  "MR: level=%d Final iters=0 || r ||/|| b ||_accum=16.8e || r "
-                                  "||/|| b ||_actual = %16.8e",
-                                  level, toDouble(sqrt(cp / norm_chi_internal)), res.resid);
+                        MasterLog(
+                            INFO,
+                            "MR: level=%d Final iters=0 || r ||/|| b ||_accum=16.8e || r ||/|| b "
+                            "||_actual = %16.8e",
+                            level, toDouble(sqrt(cp / norm_chi_internal)), res.resid);
                     }
                 }
 
@@ -155,8 +156,9 @@ namespace MG {
             }
         }
 
-        // TerminateOnResidua==true: if we met the residuum criterion we'd have terminated, safe to say no to terminate
-        // TerminateOnResidua==false: We need to do at least 1 iteration (otherwise we'd have exited)
+        // TerminateOnResidua==true: if we met the residuum criterion we'd have terminated, safe to say
+        // no to terminate TerminateOnResidua==false: We need to do at least 1 iteration (otherwise we'd
+        // have exited)
         bool continueP = true;
 
         /* Main iteration loop */
@@ -229,27 +231,13 @@ namespace MG {
         return res;
     }
 
-    MRSolverQDPXX::MRSolverQDPXX(
-        const LinearOperator<QDP::LatticeFermion, QDP::multi1d<QDP::LatticeColorMatrix>> &M,
-        const MG::LinearSolverParamsBase &params)
-        : _M(M), _params(params) {}
-
     std::vector<LinearSolverResults> MRSolverQDPXX::operator()(QDP::LatticeFermion &out,
                                                                const QDP::LatticeFermion &in,
-                                                               ResiduumType resid_type) const {
+                                                               ResiduumType resid_type,
+                                                               InitialGuess guess) const {
+        (void)guess;
         return std::vector<LinearSolverResults>(
             1, InvMR_a(_M, in, out, Real(_params.Omega), Real(_params.RsdTarget), _params.MaxIter,
-                       LINOP_OP, resid_type, _params.VerboseP, true));
-    }
-
-    MRSmootherQDPXX::MRSmootherQDPXX(
-        const LinearOperator<QDP::LatticeFermion, QDP::multi1d<QDP::LatticeColorMatrix>> &M,
-        const MG::LinearSolverParamsBase &params)
-        : _M(M), _params(params) {}
-
-    void MRSmootherQDPXX::operator()(QDP::LatticeFermion &out,
-                                     const QDP::LatticeFermion &in) const {
-        InvMR_a(_M, in, out, Real(_params.Omega), Real(_params.RsdTarget), _params.MaxIter,
-                LINOP_OP, ABSOLUTE, _params.VerboseP, false);
+                       LINOP_OP, resid_type, _params.VerboseP, _params.RsdTarget > 0.0));
     }
 }

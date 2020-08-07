@@ -49,33 +49,34 @@ namespace MG {
             DComplex r_;
         };
 
-        void FlexibleArnoldiT(
-            int n_krylov, const Real &rsd_target,
-            const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>> &A, // Operator
-            const LinearSolver<LatticeFermion, multi1d<LatticeColorMatrix>> *M,   // Preconditioner
-            multi1d<LatticeFermion> &V, multi1d<LatticeFermion> &Z, multi2d<DComplex> &H,
-            multi1d<Givens *> &givens_rots, multi1d<DComplex> &c, int &ndim_cycle,
-            ResiduumType resid_type, bool VerboseP);
+        void FlexibleArnoldiT(int n_krylov, const Real &rsd_target,
+                              const LinearOperator<LatticeFermion> &A, // Operator
+                              const LinearSolver<LatticeFermion> *M,   // Preconditioner
+                              multi1d<LatticeFermion> &V, multi1d<LatticeFermion> &Z,
+                              multi2d<DComplex> &H, multi1d<Givens *> &givens_rots,
+                              multi1d<DComplex> &c, int &ndim_cycle, ResiduumType resid_type,
+                              bool VerboseP);
 
     } // Namespace FGMRES
 
-    class FGMRESSolverQDPXX : public LinearSolver<LatticeFermion, multi1d<LatticeColorMatrix>> {
+    class FGMRESSolverQDPXX : public LinearSolver<LatticeFermion> {
     public:
         //! Constructor
         /*!
      * \param A_        Linear operator ( Read )
      * \param invParam  inverter parameters ( Read )
      */
-        FGMRESSolverQDPXX(
-            const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>> &A,
-            const MG::LinearSolverParamsBase &params,
-            const LinearSolver<LatticeFermion, multi1d<LatticeColorMatrix>> *M_prec = nullptr);
+        FGMRESSolverQDPXX(const LinearOperator<LatticeFermion> &A,
+                          const MG::LinearSolverParamsBase &params,
+                          const LinearOperator<LatticeFermion> *M_prec = nullptr);
 
         //! Initialize the internal matrices
         void InitMatrices();
 
-        std::vector<LinearSolverResults> operator()(LatticeFermion &out, const LatticeFermion &in,
-                                                    ResiduumType resid_type = RELATIVE) const;
+        std::vector<LinearSolverResults>
+        operator()(LatticeFermion &out, const LatticeFermion &in,
+                   ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const;
 
         void FlexibleArnoldi(int n_krylov, const Real &rsd_target, multi1d<LatticeFermion> &V,
                              multi1d<LatticeFermion> &Z, multi2d<DComplex> &H,
@@ -85,14 +86,7 @@ namespace MG {
         void LeastSquaresSolve(const multi2d<DComplex> &H, const multi1d<DComplex> &rhs,
                                multi1d<DComplex> &eta, int n_cols) const;
 
-        const LatticeInfo &GetInfo() const { return _A.GetInfo(); }
-        const CBSubset &GetSubset() const { return _A.GetSubset(); }
-
     private:
-        const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>> &_A;
-        const LinearSolverParamsBase _params;
-        const LinearSolver<LatticeFermion, multi1d<LatticeColorMatrix>> *_M_prec;
-
         // These can become state variables, as they will need to be
         // handed around
         mutable multi2d<DComplex> H_;       // The H matrix

@@ -21,25 +21,29 @@
 namespace MG {
 
     // Single Precision, for null space solving
-    template <typename FT>
-    class MRSolverQPhiXT : public LinearSolver<QPhiXSpinorT<FT>, QPhiXGaugeT<FT>> {
+    template <typename FT> class MRSolverQPhiXT : public LinearSolverNoPrecon<QPhiXSpinorT<FT>> {
     public:
-        MRSolverQPhiXT(QPhiXWilsonCloverLinearOperatorT<FT> &M,
+        MRSolverQPhiXT(const QPhiXWilsonCloverLinearOperatorT<FT> &M,
                        const LinearSolverParamsBase &params)
-            : _params(params),
+            : LinearSolverNoPrecon<QPhiXSpinorT<FT>>(M, params),
+              _params(params),
               mr_solver(M.getQPhiXOp(), params.MaxIter, params.Omega),
               solver_wrapper(mr_solver, M.getQPhiXOp()) {}
 
-        MRSolverQPhiXT(QPhiXWilsonCloverEOLinearOperatorT<FT> &M,
+        MRSolverQPhiXT(const QPhiXWilsonCloverEOLinearOperatorT<FT> &M,
                        const LinearSolverParamsBase &params)
-            : _params(params),
+            : LinearSolverNoPrecon<QPhiXSpinorT<FT>>(M, params),
+              _params(params),
               mr_solver(M.getQPhiXOp(), params.MaxIter, params.Omega),
               solver_wrapper(mr_solver, M.getQPhiXOp())
 
         {}
-        std::vector<LinearSolverResults> operator()(QPhiXSpinorT<FT> &out,
-                                                    const QPhiXSpinorT<FT> &in,
-                                                    ResiduumType resid_type = RELATIVE) const {
+        std::vector<LinearSolverResults>
+        operator()(QPhiXSpinorT<FT> &out, const QPhiXSpinorT<FT> &in,
+                   ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const {
+            (void)guess;
+
             const int isign = 1;
             int n_iters = 0;
             unsigned long site_flops = 0;
@@ -78,34 +82,29 @@ namespace MG {
     using MRSolverQPhiXF = MRSolverQPhiXT<float>;
 
     // Single Precision, for null space solving
-    template <typename FT>
-    class MRSmootherQPhiXT : public Smoother<QPhiXSpinorT<FT>, QPhiXGaugeT<FT>> {
+    template <typename FT> class MRSmootherQPhiXT : public LinearSolverNoPrecon<QPhiXSpinorT<FT>> {
     public:
-        MRSmootherQPhiXT(QPhiXWilsonCloverLinearOperatorT<FT> &M,
+        MRSmootherQPhiXT(const QPhiXWilsonCloverLinearOperatorT<FT> &M,
                          const LinearSolverParamsBase &params)
-            : _params(params),
+            : LinearSolverNoPrecon<QPhiXSpinorT<FT>>(M, params),
+              _params(params),
               mr_solver(M.getQPhiXOp(), params.MaxIter, params.Omega),
               solver_wrapper(mr_solver, M.getQPhiXOp()) {}
 
-        MRSmootherQPhiXT(const std::shared_ptr<const QPhiXWilsonCloverLinearOperatorT<FT>> &M,
+        MRSmootherQPhiXT(const QPhiXWilsonCloverEOLinearOperatorT<FT> &M,
                          const LinearSolverParamsBase &params)
-            : _params(params),
-              mr_solver(M->getQPhiXOp(), params.MaxIter, params.Omega),
-              solver_wrapper(mr_solver, M->getQPhiXOp()) {}
-
-        MRSmootherQPhiXT(QPhiXWilsonCloverEOLinearOperatorT<FT> &M,
-                         const LinearSolverParamsBase &params)
-            : _params(params),
+            : LinearSolverNoPrecon<QPhiXSpinorT<FT>>(M, params),
+              _params(params),
               mr_solver(M.getQPhiXOp(), params.MaxIter, params.Omega),
               solver_wrapper(mr_solver, M.getQPhiXOp()) {}
 
-        MRSmootherQPhiXT(const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorT<FT>> &M,
-                         const LinearSolverParamsBase &params)
-            : _params(params),
-              mr_solver(M->getQPhiXOp(), params.MaxIter, params.Omega),
-              solver_wrapper(mr_solver, M->getQPhiXOp()) {}
+        std::vector<LinearSolverResults>
+        operator()(QPhiXSpinorT<FT> &out, const QPhiXSpinorT<FT> &in,
+                   ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
+            (void)guess;
+            (void)resid_type;
 
-        void operator()(QPhiXSpinorT<FT> &out, const QPhiXSpinorT<FT> &in) const {
             const int isign = 1;
             int n_iters = 0;
             double rsd_sq_final = 0;
@@ -115,13 +114,19 @@ namespace MG {
             IndexType ncol = in.GetNCol();
 
             if (_params.MaxIter <= 0) {
-                CopyVec(out, in, SUBSET_ODD);
+                ZeroVec(out, SUBSET_ODD);
+                return std::vector<LinearSolverResults>(ncol, LinearSolverResults());
             } else {
+                std::vector<LinearSolverResults> res(ncol);
                 for (int col = 0; col < ncol; ++col) {
                     (solver_wrapper)(&(out.get(col)), &(in.get(col)), _params.RsdTarget, n_iters,
                                      rsd_sq_final, site_flops, mv_apps, isign, _params.VerboseP,
                                      ODD);
+                    res[col].n_count = n_iters;
+                    res[col].resid = sqrt(rsd_sq_final);
+                    res[col].resid_type = resid_type;
                 }
+                return res;
             }
         }
 
@@ -137,21 +142,26 @@ namespace MG {
 
     // Single Precision, for null space solving
     template <typename FT>
-    class MRSmootherQPhiXTEO : public Smoother<QPhiXSpinorT<FT>, QPhiXGaugeT<FT>> {
+    class MRSmootherQPhiXTEO : public LinearSolverNoPrecon<QPhiXSpinorT<FT>> {
     public:
         MRSmootherQPhiXTEO(QPhiXWilsonCloverLinearOperatorT<FT> &M,
                            const LinearSolverParamsBase &params)
-            : _params(params), mr_smoother(M.getQPhiXOp(), params.MaxIter, params.Omega) {}
+            : LinearSolverNoPrecon<QPhiXSpinorT<FT>>(M, params),
+              _params(params),
+              mr_smoother(M.getQPhiXOp(), params.MaxIter, params.Omega) {}
 
         MRSmootherQPhiXTEO(QPhiXWilsonCloverEOLinearOperatorT<FT> &M,
                            const LinearSolverParamsBase &params)
-            : _params(params), mr_smoother(M.getQPhiXOp(), params.MaxIter, params.Omega) {}
+            : LinearSolverNoPrecon<QPhiXSpinorT<FT>>(M, params),
+              _params(params),
+              mr_smoother(M.getQPhiXOp(), params.MaxIter, params.Omega) {}
 
-        MRSmootherQPhiXTEO(const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorT<FT>> M,
-                           const LinearSolverParamsBase &params)
-            : _params(params), mr_smoother(M->getQPhiXOp(), params.MaxIter, params.Omega) {}
+        void operator()(QPhiXSpinorT<FT> &out, const QPhiXSpinorT<FT> &in,
+                        ResiduumType resid_type = RELATIVE,
+                        InitialGuess guess = InitialGuessNotGiven) const {
+            (void)resid_type;
+            (void)guess;
 
-        void operator()(QPhiXSpinorT<FT> &out, const QPhiXSpinorT<FT> &in) const {
             const int isign = 1;
             int n_iters = 0;
             double rsd_sq_final = 0;
@@ -173,12 +183,12 @@ namespace MG {
     private:
         const LinearSolverParamsBase &_params;
 
-        //QPhiXMRSmootherT<FT> mr_smoother;
+        // QPhiXMRSmootherT<FT> mr_smoother;
         QPhiXMRSolverT<FT> mr_smoother;
     };
 
     using MRSmootherQPhiXEO = MRSmootherQPhiXTEO<double>;
     using MRSmootherQPhiXEOF = MRSmootherQPhiXTEO<float>;
-} // end namespace MGTEsting
+} // namespace MG
 
 #endif /* INCLUDE_LATTICE_QPHIX_INVMR_QPHIX_H_ */

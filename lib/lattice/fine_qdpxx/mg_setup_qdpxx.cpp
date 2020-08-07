@@ -111,7 +111,7 @@ namespace MG {
         M_fine->generateCoarse(fine_level.blocklist, fine_level.null_vecs, *(coarse_level.gauge));
 
         coarse_level.M =
-            std::make_shared<const CoarseWilsonCloverLinearOperator>(coarse_level.gauge, 1);
+            std::make_shared<const CoarseWilsonCloverLinearOperator>(coarse_level.gauge);
     }
 
     void SetupMGLevels(const SetupParams &p, MultigridLevels &mg_levels,

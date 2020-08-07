@@ -22,11 +22,11 @@
 
 namespace MG {
 
-    class CoarseWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor, CoarseGauge> {
+    class CoarseWilsonCloverLinearOperator : public LinearOperator<CoarseSpinor> {
     public:
         // Hardwire n_smt=1 for now.
-        CoarseWilsonCloverLinearOperator(const std::shared_ptr<Gauge> &gauge_in, int level)
-            : _u(gauge_in), _the_op(gauge_in->GetInfo(), 1), _level(level) {
+        CoarseWilsonCloverLinearOperator(const std::shared_ptr<CoarseGauge> &gauge_in)
+            : _u(gauge_in), _the_op(gauge_in->GetInfo(), 1) {
             subrogateTo(&_the_op);
 
             MasterLog(INFO, "Creating Coarse **NON-EO** CoarseWilsonCloverLinearOperator LinOp");
@@ -75,16 +75,14 @@ namespace MG {
             multInvClovOffDiagRight(u_coarse);
         }
 
-        int GetLevel(void) const override { return _level; }
-
         const LatticeInfo &GetInfo(void) const override { return _u->GetInfo(); }
 
     private:
-        const std::shared_ptr<Gauge> _u;
-        const std::shared_ptr<Gauge> _clovInvU;
+        const std::shared_ptr<CoarseGauge> _u;
+        const std::shared_ptr<CoarseGauge> _clovInvU;
         const CoarseDiracOp _the_op;
-        const int _level;
     };
-}
+
+} // namespace MG
 
 #endif /* TEST_QDPXX_COARSE_WILSON_CLOVER_LINEAR_OPERATOR_H_ */

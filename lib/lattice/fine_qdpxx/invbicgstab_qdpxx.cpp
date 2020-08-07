@@ -9,8 +9,8 @@
 
 namespace MG {
 
-    template <typename Spinor, typename Gauge>
-    LinearSolverResults InvBiCGStab_a(const LinearOperator<Spinor, Gauge> &A, const Spinor &chi,
+    template <typename Spinor>
+    LinearSolverResults InvBiCGStab_a(const LinearOperator<Spinor> &A, const Spinor &chi,
                                       Spinor &psi, const Real &RsdTarget, int MaxIter,
                                       IndexType OpType, ResiduumType resid_type, bool VerboseP)
 
@@ -61,18 +61,20 @@ namespace MG {
             ret.resid = toDouble(sqrt(r_norm));
             if (resid_type == ABSOLUTE) {
                 if (VerboseP) {
-                    MasterLog(INFO,
-                              "BiCGStab: level=%d  Final Absolute Residua: || r ||_accum=%16.8e || "
-                              "r ||_actual=%16.8e ",
-                              level, toDouble(sqrt(r_norm)), ret.resid);
+                    MasterLog(
+                        INFO,
+                        "BiCGStab: level=%d  Final Absolute Residua: || r ||_accum=%16.8e || r "
+                        "||_actual=%16.8e ",
+                        level, toDouble(sqrt(r_norm)), ret.resid);
                 }
             } else {
                 ret.resid /= toDouble(sqrt(chi_sq));
                 if (VerboseP) {
-                    MasterLog(INFO,
-                              "BiCGStab: level=%d Final Relative Residua: || r ||/|| b "
-                              "||_accum=%16.8e || r ||/|| b ||_actual=%16.8e ",
-                              level, toDouble(r_norm / chi_sq), ret.resid);
+                    MasterLog(
+                        INFO,
+                        "BiCGStab: level=%d Final Relative Residua: || r ||/|| b ||_accum=%16.8e "
+                        "|| r ||/|| b ||_actual=%16.8e ",
+                        level, toDouble(r_norm / chi_sq), ret.resid);
                 }
             }
             return ret;
@@ -205,10 +207,11 @@ namespace MG {
 
             ret.resid /= toDouble(sqrt(chi_sq));
             if (VerboseP) {
-                MasterLog(INFO,
-                          "BiCGStab: level=%d Final Relative Residua: || r ||/|| b ||_accum=%16.8e "
-                          " || r ||/|| b ||_actual=%16.8e ",
-                          level, toDouble(sqrt(r_norm / chi_sq)), ret.resid);
+                MasterLog(
+                    INFO,
+                    "BiCGStab: level=%d Final Relative Residua: || r ||/|| b ||_accum=%16.8e  || "
+                    "r ||/|| b ||_actual=%16.8e ",
+                    level, toDouble(sqrt(r_norm / chi_sq)), ret.resid);
             }
         }
 
@@ -216,10 +219,11 @@ namespace MG {
     }
 
     std::vector<LinearSolverResults> BiCGStabSolverQDPXX::
-    operator()(Spinor &out, const Spinor &in, ResiduumType resid_type) const {
+    operator()(Spinor &out, const Spinor &in, ResiduumType resid_type, InitialGuess guess) const {
+        (void)guess;
         return std::vector<LinearSolverResults>(1, InvBiCGStab_a(_M, in, out, _params.RsdTarget,
                                                                  _params.MaxIter, LINOP_OP,
                                                                  resid_type, _params.VerboseP));
     }
 
-} // Namespace
+} // namespace MG

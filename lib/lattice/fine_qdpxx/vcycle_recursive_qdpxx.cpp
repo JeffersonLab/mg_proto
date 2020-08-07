@@ -20,7 +20,9 @@ using std::vector;
 namespace MG {
     VCycleRecursiveQDPXX::VCycleRecursiveQDPXX(const std::vector<VCycleParams> &vcycle_params,
                                                const MultigridLevels &mg_levels)
-        : _vcycle_params(vcycle_params), _mg_levels(mg_levels) {
+        : LinearSolver<LatticeFermion>(*mg_levels.fine_level.M, LinearSolverParamsBase()),
+          _vcycle_params(vcycle_params),
+          _mg_levels(mg_levels) {
 
         MasterLog(INFO, "Constructing Recursive VCycle");
 
@@ -52,13 +54,13 @@ namespace MG {
 
                 MasterLog(INFO, "Creating PreSmoother on Level %d using VCycleParams[%d]",
                           coarse_idx + 1, coarse_idx + 1);
-                _coarse_presmoother[coarse_idx] = std::make_shared<const MRSmootherCoarse>(
+                _coarse_presmoother[coarse_idx] = std::make_shared<const MRSolverCoarse>(
                     *(_mg_levels.coarse_levels[coarse_idx].M),
                     _vcycle_params[coarse_idx + 1].pre_smoother_params);
 
                 MasterLog(INFO, "Creating PreSmoother on Level %d using VCycleParams[%d]",
                           coarse_idx + 1, coarse_idx + 1);
-                _coarse_postsmoother[coarse_idx] = std::make_shared<const MRSmootherCoarse>(
+                _coarse_postsmoother[coarse_idx] = std::make_shared<const MRSolverCoarse>(
                     *(_mg_levels.coarse_levels[coarse_idx].M),
                     _vcycle_params[coarse_idx + 1].post_smoother_params);
 
@@ -85,9 +87,9 @@ namespace MG {
         }
 
         MasterLog(INFO, "Creating Toplevel Smoothers");
-        _pre_smoother = std::make_shared<const MRSmootherQDPXX>(
+        _pre_smoother = std::make_shared<const MRSolverQDPXX>(
             *(_mg_levels.fine_level.M), _vcycle_params[0].pre_smoother_params);
-        _post_smoother = std::make_shared<const MRSmootherQDPXX>(
+        _post_smoother = std::make_shared<const MRSolverQDPXX>(
             *(_mg_levels.fine_level.M), _vcycle_params[0].post_smoother_params);
         MasterLog(INFO, "Creating Toplevel VCycle");
         _toplevel_vcycle = std::make_shared<const VCycleQDPCoarse2>(
@@ -99,8 +101,11 @@ namespace MG {
             (*_post_smoother), (*(_bottom_solver[0])), (_vcycle_params[0].cycle_params));
     }
 
-    std::vector<LinearSolverResults> VCycleRecursiveQDPXX::
-    operator()(LatticeFermion &out, const LatticeFermion &in, ResiduumType resid_type) const {
-        return (*_toplevel_vcycle)(out, in, resid_type);
+    std::vector<LinearSolverResults> VCycleRecursiveQDPXX::operator()(LatticeFermion &out,
+                                                                      const LatticeFermion &in,
+                                                                      ResiduumType resid_type,
+                                                                      InitialGuess guess) const {
+        return (*_toplevel_vcycle)(out, in, resid_type, guess);
     }
-}
+
+} // namespace MG

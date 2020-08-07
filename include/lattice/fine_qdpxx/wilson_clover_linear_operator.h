@@ -27,9 +27,10 @@ using namespace QDP;
 
 namespace MG {
 
-    class QDPWilsonCloverLinearOperator
-        : public LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>> {
+    class QDPWilsonCloverLinearOperator : public LinearOperator<LatticeFermion> {
     public:
+        using Gauge = multi1d<LatticeColorMatrix>;
+
         QDPWilsonCloverLinearOperator(double m_q, double c_sw, int t_bc, const Gauge &gauge_in)
             : _t_bc(t_bc) {
             _u.resize(Nd);
@@ -139,8 +140,6 @@ namespace MG {
             const int isign = (type == LINOP_OP) ? 1 : -1;
             _invclov.apply(out, in, isign, EVEN);
         }
-
-        int GetLevel(void) const override { return 0; }
 
         const CBSubset &GetSubset() const override { return SUBSET_ALL; }
 

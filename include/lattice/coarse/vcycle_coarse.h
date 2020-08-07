@@ -25,10 +25,13 @@
 
 namespace MG {
 
-    class VCycleCoarse : public LinearSolver<CoarseSpinor, CoarseGauge> {
+    class VCycleCoarse : public LinearSolver<CoarseSpinor> {
     public:
-        std::vector<LinearSolverResults> operator()(CoarseSpinor &out, const CoarseSpinor &in,
-                                                    ResiduumType resid_type = RELATIVE) const {
+        std::vector<LinearSolverResults>
+        operator()(CoarseSpinor &out, const CoarseSpinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
+            (void)guess;
+
             assert(out.GetNCol() == in.GetNCol());
             IndexType ncol = out.GetNCol();
 
@@ -205,7 +208,7 @@ namespace MG {
                 // out += delta;
                 YpeqxVec(delta, out);
                 _M_fine(tmp, delta, LINOP_OP);
-                //r -= tmp;
+                // r -= tmp;
                 YmeqxVec(tmp, r);
                 norm2_r = Norm2Vec(r);
                 Timer::TimerAPI::stopTimer("VCycleCoarse/update/level" + std::to_string(level));
@@ -245,12 +248,13 @@ namespace MG {
 
         VCycleCoarse(const LatticeInfo &coarse_info, const std::vector<Block> &my_blocks,
                      const std::vector<std::shared_ptr<CoarseSpinor>> &vecs,
-                     const LinearOperator<CoarseSpinor, CoarseGauge> &M_fine,
-                     const Smoother<CoarseSpinor, CoarseGauge> &pre_smoother,
-                     const Smoother<CoarseSpinor, CoarseGauge> &post_smoother,
-                     const LinearSolver<CoarseSpinor, CoarseGauge> &bottom_solver,
+                     const LinearOperator<CoarseSpinor> &M_fine,
+                     const LinearSolver<CoarseSpinor> &pre_smoother,
+                     const LinearSolver<CoarseSpinor> &post_smoother,
+                     const LinearSolver<CoarseSpinor> &bottom_solver,
                      const LinearSolverParamsBase &param)
-            : _coarse_info(coarse_info),
+            : LinearSolver<CoarseSpinor>(M_fine, param),
+              _coarse_info(coarse_info),
               _my_blocks(my_blocks),
               _vecs(vecs),
               _M_fine(M_fine),
@@ -260,26 +264,25 @@ namespace MG {
               _param(param),
               _Transfer(my_blocks, vecs) {}
 
-        const LatticeInfo &GetInfo() const { return _M_fine.GetInfo(); }
-        const CBSubset &GetSubset() const { return _M_fine.GetSubset(); }
-
     private:
         const LatticeInfo _coarse_info;
         const std::vector<Block> &_my_blocks;
         const std::vector<std::shared_ptr<CoarseSpinor>> &_vecs;
-        const LinearOperator<CoarseSpinor, CoarseGauge> &_M_fine;
-        const Smoother<CoarseSpinor, CoarseGauge> &_pre_smoother;
-        const Smoother<CoarseSpinor, CoarseGauge> &_post_smoother;
-        const LinearSolver<CoarseSpinor, CoarseGauge> &_bottom_solver;
+        const LinearOperator<CoarseSpinor> &_M_fine;
+        const LinearSolver<CoarseSpinor> &_pre_smoother;
+        const LinearSolver<CoarseSpinor> &_post_smoother;
+        const LinearSolver<CoarseSpinor> &_bottom_solver;
         const LinearSolverParamsBase &_param;
         const CoarseTransfer _Transfer;
     };
 
-    class VCycleCoarseEO : public LinearSolver<CoarseSpinor, CoarseGauge> {
+    class VCycleCoarseEO : public LinearSolver<CoarseSpinor> {
     public:
-        std::vector<LinearSolverResults> operator()(CoarseSpinor &out, const CoarseSpinor &in,
-                                                    ResiduumType resid_type = RELATIVE) const {
+        std::vector<LinearSolverResults>
+        operator()(CoarseSpinor &out, const CoarseSpinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
 
+            (void)guess;
             assert(out.GetNCol() == in.GetNCol());
             IndexType ncol = out.GetNCol();
 
@@ -450,7 +453,7 @@ namespace MG {
                 // out += delta;
                 YpeqxVec(delta, out);
                 _M_fine.unprecOp(tmp, delta, LINOP_OP);
-                //r -= tmp;
+                // r -= tmp;
                 YmeqxVec(tmp, r);
                 norm2_r = Norm2Vec(r);
 
@@ -492,12 +495,13 @@ namespace MG {
 
         VCycleCoarseEO(const LatticeInfo &coarse_info, const std::vector<Block> &my_blocks,
                        const std::vector<std::shared_ptr<CoarseSpinor>> &vecs,
-                       const EOLinearOperator<CoarseSpinor, CoarseGauge> &M_fine,
-                       const Smoother<CoarseSpinor, CoarseGauge> &pre_smoother,
-                       const Smoother<CoarseSpinor, CoarseGauge> &post_smoother,
-                       const LinearSolver<CoarseSpinor, CoarseGauge> &bottom_solver,
+                       const EOLinearOperator<CoarseSpinor> &M_fine,
+                       const LinearSolver<CoarseSpinor> &pre_smoother,
+                       const LinearSolver<CoarseSpinor> &post_smoother,
+                       const LinearSolver<CoarseSpinor> &bottom_solver,
                        const LinearSolverParamsBase &param)
-            : _coarse_info(coarse_info),
+            : LinearSolver<CoarseSpinor>(M_fine, param),
+              _coarse_info(coarse_info),
               _my_blocks(my_blocks),
               _vecs(vecs),
               _M_fine(M_fine),
@@ -507,25 +511,25 @@ namespace MG {
               _param(param),
               _Transfer(my_blocks, vecs) {}
 
-        const LatticeInfo &GetInfo() const { return _M_fine.GetInfo(); }
-        const CBSubset &GetSubset() const { return _M_fine.GetSubset(); }
-
     private:
         const LatticeInfo _coarse_info;
         const std::vector<Block> &_my_blocks;
         const std::vector<std::shared_ptr<CoarseSpinor>> &_vecs;
-        const EOLinearOperator<CoarseSpinor, CoarseGauge> &_M_fine;
-        const Smoother<CoarseSpinor, CoarseGauge> &_pre_smoother;
-        const Smoother<CoarseSpinor, CoarseGauge> &_post_smoother;
-        const LinearSolver<CoarseSpinor, CoarseGauge> &_bottom_solver;
+        const EOLinearOperator<CoarseSpinor> &_M_fine;
+        const LinearSolver<CoarseSpinor> &_pre_smoother;
+        const LinearSolver<CoarseSpinor> &_post_smoother;
+        const LinearSolver<CoarseSpinor> &_bottom_solver;
         const LinearSolverParamsBase &_param;
         const CoarseTransfer _Transfer;
     };
 
-    class VCycleCoarseEO2 : public LinearSolver<CoarseSpinor, CoarseGauge> {
+    class VCycleCoarseEO2 : public LinearSolver<CoarseSpinor> {
     public:
-        std::vector<LinearSolverResults> operator()(CoarseSpinor &out, const CoarseSpinor &in,
-                                                    ResiduumType resid_type = RELATIVE) const {
+        std::vector<LinearSolverResults>
+        operator()(CoarseSpinor &out, const CoarseSpinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
+
+            (void)guess;
             assert(out.GetNCol() == in.GetNCol());
             IndexType ncol = out.GetNCol();
 
@@ -715,7 +719,7 @@ namespace MG {
                 // out += delta;
                 YpeqxVec(delta, out, subset);
                 _M_fine(tmp, delta, LINOP_OP);
-                //r -= tmp;
+                // r -= tmp;
                 YmeqxVec(tmp, r, subset);
                 norm2_r = Norm2Vec(r, subset);
                 Timer::TimerAPI::stopTimer("VCycleCoarseEO2/update/level" + std::to_string(level));
@@ -759,12 +763,13 @@ namespace MG {
 
         VCycleCoarseEO2(const LatticeInfo &coarse_info, const std::vector<Block> &my_blocks,
                         const std::vector<std::shared_ptr<CoarseSpinor>> &vecs,
-                        const EOLinearOperator<CoarseSpinor, CoarseGauge> &M_fine,
-                        const Smoother<CoarseSpinor, CoarseGauge> &pre_smoother,
-                        const Smoother<CoarseSpinor, CoarseGauge> &post_smoother,
-                        const LinearSolver<CoarseSpinor, CoarseGauge> &bottom_solver,
+                        const EOLinearOperator<CoarseSpinor> &M_fine,
+                        const LinearSolver<CoarseSpinor> &pre_smoother,
+                        const LinearSolver<CoarseSpinor> &post_smoother,
+                        const LinearSolver<CoarseSpinor> &bottom_solver,
                         const LinearSolverParamsBase &param, bool apply_clover = true)
-            : _coarse_info(coarse_info),
+            : LinearSolver<CoarseSpinor>(M_fine, param),
+              _coarse_info(coarse_info),
               _my_blocks(my_blocks),
               _vecs(vecs),
               _M_fine(M_fine),
@@ -784,20 +789,18 @@ namespace MG {
             Timer::TimerAPI::addTimer("VCycleCoarseEO2/update/level" + std::to_string(level));
         }
 
-        const LatticeInfo &GetInfo() const { return _M_fine.GetInfo(); }
-        const CBSubset &GetSubset() const { return _M_fine.GetSubset(); }
-
     private:
         const LatticeInfo _coarse_info;
         const std::vector<Block> &_my_blocks;
         const std::vector<std::shared_ptr<CoarseSpinor>> &_vecs;
-        const EOLinearOperator<CoarseSpinor, CoarseGauge> &_M_fine;
-        const Smoother<CoarseSpinor, CoarseGauge> &_pre_smoother;
-        const Smoother<CoarseSpinor, CoarseGauge> &_post_smoother;
-        const LinearSolver<CoarseSpinor, CoarseGauge> &_bottom_solver;
+        const EOLinearOperator<CoarseSpinor> &_M_fine;
+        const LinearSolver<CoarseSpinor> &_pre_smoother;
+        const LinearSolver<CoarseSpinor> &_post_smoother;
+        const LinearSolver<CoarseSpinor> &_bottom_solver;
         const LinearSolverParamsBase &_param;
         const CoarseTransfer _Transfer;
     };
-}
+
+} // namespace MG
 
 #endif /* TEST_QDPXX_VCYCLE_QDPXX_COARSE_H_ */

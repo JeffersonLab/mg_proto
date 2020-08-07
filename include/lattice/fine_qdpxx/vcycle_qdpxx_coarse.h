@@ -22,10 +22,13 @@ using namespace MG;
 
 namespace MG {
 
-    class VCycleQDPCoarse2 : public LinearSolver<LatticeFermion, multi1d<LatticeColorMatrix>> {
+    class VCycleQDPCoarse2 : public LinearSolver<LatticeFermion> {
     public:
-        std::vector<LinearSolverResults> operator()(LatticeFermion &out, const LatticeFermion &in,
-                                                    ResiduumType resid_type = RELATIVE) const {
+        std::vector<LinearSolverResults>
+        operator()(LatticeFermion &out, const LatticeFermion &in,
+                   ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const {
+            (void)guess;
 
             LinearSolverResults res;
 
@@ -178,12 +181,13 @@ namespace MG {
 
         VCycleQDPCoarse2(const LatticeInfo &coarse_info, const std::vector<Block> &my_blocks,
                          const multi1d<LatticeFermion> &vecs,
-                         const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>> &M_fine,
-                         const Smoother<LatticeFermion, multi1d<LatticeColorMatrix>> &pre_smoother,
-                         const Smoother<LatticeFermion, multi1d<LatticeColorMatrix>> &post_smoother,
-                         const LinearSolver<CoarseSpinor, CoarseGauge> &bottom_solver,
+                         const LinearOperator<LatticeFermion> &M_fine,
+                         const LinearSolver<LatticeFermion> &pre_smoother,
+                         const LinearSolver<LatticeFermion> &post_smoother,
+                         const LinearSolver<CoarseSpinor> &bottom_solver,
                          const LinearSolverParamsBase &param)
-            : _coarse_info(coarse_info),
+            : LinearSolver<LatticeFermion>(M_fine, param),
+              _coarse_info(coarse_info),
               _my_blocks(my_blocks),
               _vecs(vecs),
               _M_fine(M_fine),
@@ -199,10 +203,10 @@ namespace MG {
         const LatticeInfo &_coarse_info;
         const std::vector<Block> &_my_blocks;
         const multi1d<LatticeFermion> &_vecs;
-        const LinearOperator<LatticeFermion, multi1d<LatticeColorMatrix>> &_M_fine;
-        const Smoother<LatticeFermion, multi1d<LatticeColorMatrix>> &_pre_smoother;
-        const Smoother<LatticeFermion, multi1d<LatticeColorMatrix>> &_post_smoother;
-        const LinearSolver<CoarseSpinor, CoarseGauge> &_bottom_solver;
+        const LinearOperator<LatticeFermion> &_M_fine;
+        const LinearSolver<LatticeFermion> &_pre_smoother;
+        const LinearSolver<LatticeFermion> &_post_smoother;
+        const LinearSolver<CoarseSpinor> &_bottom_solver;
         const LinearSolverParamsBase &_param;
     };
 }

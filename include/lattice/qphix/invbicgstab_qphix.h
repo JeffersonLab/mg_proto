@@ -22,11 +22,11 @@ namespace MG {
 
     // Single Precision, for null space solving
     template <typename FT>
-    class BiCGStabSolverQPhiXT : public LinearSolver<QPhiXSpinorT<FT>, QPhiXGaugeT<FT>> {
+    class BiCGStabSolverQPhiXT : public LinearSolverNoPrecon<QPhiXSpinorT<FT>> {
     public:
         BiCGStabSolverQPhiXT(const QPhiXWilsonCloverLinearOperatorT<FT> &M,
                              const LinearSolverParamsBase &params)
-            : _info(M.GetInfo()),
+            : LinearSolverNoPrecon<QPhiXSpinorT<FT>>(M, params),
               _params(params),
               bicg_solver(M.getQPhiXOp(), params.MaxIter),
               solver_wrapper(bicg_solver, M.getQPhiXOp())
@@ -35,7 +35,7 @@ namespace MG {
 
         BiCGStabSolverQPhiXT(const QPhiXWilsonCloverEOLinearOperatorT<FT> &M,
                              const LinearSolverParamsBase &params)
-            : _info(M.GetInfo()),
+            : LinearSolverNoPrecon<QPhiXSpinorT<FT>>(M, params),
               _params(params),
               bicg_solver(M.getQPhiXOp(), params.MaxIter),
               solver_wrapper(bicg_solver, M.getQPhiXOp())
@@ -43,7 +43,9 @@ namespace MG {
         {}
         std::vector<LinearSolverResults>
         operator()(QPhiXSpinorT<FT> &out, const QPhiXSpinorT<FT> &in,
-                   ResiduumType resid_type = RELATIVE) const override {
+                   ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
+            (void)guess;
             const int isign = 1;
             int n_iters;
             unsigned long site_flops;
@@ -68,11 +70,9 @@ namespace MG {
             return ret_val;
         }
 
-        const LatticeInfo &GetInfo() const { return _info; }
         const CBSubset &GetSubset() const { return SUBSET_ALL; }
 
     private:
-        const LatticeInfo _info;
         const LinearSolverParamsBase &_params;
         QPhiXBiCGStabT<FT> bicg_solver;
         QPhiXUnprecSolverT<FT> solver_wrapper;
@@ -82,19 +82,26 @@ namespace MG {
     using BiCGStabSolverQPhiXF = BiCGStabSolverQPhiXT<float>;
 
     template <typename FT>
-    class BiCGStabSolverQPhiXTEO : public LinearSolver<QPhiXSpinorT<FT>, QPhiXGaugeT<FT>> {
+    class BiCGStabSolverQPhiXTEO : public LinearSolverNoPrecon<QPhiXSpinorT<FT>> {
     public:
         BiCGStabSolverQPhiXTEO(const QPhiXWilsonCloverLinearOperatorT<FT> &M,
                                const LinearSolverParamsBase &params)
-            : _params(params), bicg_solver(M.getQPhiXOp(), params.MaxIter) {}
+            : LinearSolverNoPrecon<QPhiXSpinorT<FT>>(M, params),
+              _params(params),
+              bicg_solver(M.getQPhiXOp(), params.MaxIter) {}
 
         BiCGStabSolverQPhiXTEO(const QPhiXWilsonCloverEOLinearOperatorT<FT> &M,
                                const LinearSolverParamsBase &params)
-            : _params(params), bicg_solver(M.getQPhiXOp(), params.MaxIter) {}
+            : LinearSolverNoPrecon<QPhiXSpinorT<FT>>(M, params),
+              _params(params),
+              bicg_solver(M.getQPhiXOp(), params.MaxIter) {}
 
         std::vector<LinearSolverResults>
         operator()(QPhiXSpinorT<FT> &out, const QPhiXSpinorT<FT> &in,
-                   ResiduumType resid_type = RELATIVE) const override {
+                   ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
+            (void)guess;
+
             const int isign = 1;
             int n_iters;
             unsigned long site_flops;
@@ -119,6 +126,8 @@ namespace MG {
             return ret_val;
         }
 
+        const CBSubset &GetSubset() const { return SUBSET_ODD; }
+
     private:
         const LinearSolverParamsBase &_params;
         QPhiXBiCGStabT<FT> bicg_solver;
@@ -126,44 +135,6 @@ namespace MG {
 
     using BiCGStabSolverQPhiXEO = BiCGStabSolverQPhiXTEO<double>;
     using BiCGStabSolverQPhiXFEO = BiCGStabSolverQPhiXTEO<float>;
-
-    template <typename FT>
-    class BiCBStabSmootherQPhiXTEO : public Smoother<QPhiXSpinorT<FT>, QPhiXGaugeT<FT>> {
-    public:
-        BiCBStabSmootherQPhiXTEO(const QPhiXWilsonCloverEOLinearOperatorT<FT> &M,
-                                 const LinearSolverParamsBase &params)
-            : _params(params), bicg_solver(M.getQPhiXOp(), params.MaxIter) {}
-
-        BiCBStabSmootherQPhiXTEO(
-            const std::shared_ptr<const QPhiXWilsonCloverEOLinearOperatorT<FT>> &M,
-            const LinearSolverParamsBase &params)
-            : _params(params), bicg_solver(M->getQPhiXOp(), params.MaxIter) {}
-
-        void operator()(QPhiXSpinorT<FT> &out, const QPhiXSpinorT<FT> &in) const override {
-            if (_params.MaxIter <= 0) return;
-
-            const int isign = 1;
-            int n_iters;
-            unsigned long site_flops;
-            unsigned long mv_apps;
-            assert(in.GetNCol() == out.GetNCol());
-            IndexType ncol = in.GetNCol();
-            std::vector<double> rsd_sq_final(ncol);
-
-            for (int col = 0; col < ncol; ++col) {
-                (bicg_solver)(out.getCB(col, ODD).get(), in.getCB(col, ODD).get(),
-                              _params.RsdTarget, n_iters, rsd_sq_final[col], site_flops, mv_apps,
-                              isign, _params.VerboseP, ODD, QPhiX::RELATIVE);
-            }
-        }
-
-    private:
-        const LinearSolverParamsBase &_params;
-        QPhiXBiCGStabT<FT> bicg_solver;
-    };
-
-    using BiCBStabSmootherQPhiXEO = BiCBStabSmootherQPhiXTEO<double>;
-    using BiCBStabSmootherQPhiXEOF = BiCBStabSmootherQPhiXTEO<float>;
 }
 
 #endif /* INCLUDE_LATTICE_QPHIX_INVBICGSTAB_QPHIX_H_ */

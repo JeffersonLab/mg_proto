@@ -44,8 +44,7 @@ namespace MG {
         MGLevelCoarseT<UnprecBiCGStabSolverCoarseWrapper, CoarseEOWilsonCloverLinearOperator>;
 
     template <typename CoarseLevelT>
-    void SetupCoarseToCoarseT(const SetupParams &p,
-                              std::shared_ptr<const typename CoarseLevelT::LinOp> M_fine,
+    void SetupCoarseToCoarseT(const SetupParams &p, const typename CoarseLevelT::LinOp &M_fine,
                               int fine_level_id, CoarseLevelT &fine_level,
                               CoarseLevelT &coarse_level) {
         // Info should already be created
@@ -69,7 +68,7 @@ namespace MG {
 
             // Solve the linear systems
             std::vector<LinearSolverResults> res = (*(fine_level.null_solver))(*x, b, ABSOLUTE);
-            assert(res.size() == num_vecs);
+            assert(res.size() == (unsigned int)num_vecs);
             if (num_vecs > 0)
                 MasterLog(INFO, "Level %d: Solver Took: %d iterations", fine_level_id,
                           res[0].n_count);
@@ -86,7 +85,7 @@ namespace MG {
             computeDeflation(fine_info, *fine_level.null_solver, eigs_params, x, vals);
             if (p.purpose == SetupParams::INVERT) { ScaleVec(vals, *x); }
         }
-        M_fine->clear();
+        M_fine.clear();
 
         // Generate individual vectors
         fine_level.null_vecs.resize(num_vecs);
@@ -110,17 +109,15 @@ namespace MG {
         // Create the blocked Clover and Gauge Fields
         // This service needs the blocks, the vectors and is a convenience
         // Function of the M
-        coarse_level.info = std::make_shared<LatticeInfo>(
-            blocked_lattice_orig, blocked_lattice_dims, 2, num_vecs, fine_info.GetNodeInfo());
+        coarse_level.info =
+            std::make_shared<LatticeInfo>(blocked_lattice_orig, blocked_lattice_dims, 2, num_vecs,
+                                          fine_info.GetNodeInfo(), fine_level_id + 1);
 
         coarse_level.gauge = std::make_shared<CoarseGauge>(*(coarse_level.info));
 
-        M_fine->generateCoarse(fine_level.blocklist, fine_level.null_vecs, *(coarse_level.gauge));
+        M_fine.generateCoarse(fine_level.blocklist, fine_level.null_vecs, *(coarse_level.gauge));
 
-        //FIXME: Insert inversion of coarse level gauge links... here?
-
-        coarse_level.M = std::make_shared<const typename CoarseLevelT::LinOp>(coarse_level.gauge,
-                                                                              fine_level_id + 1);
+        coarse_level.M = std::make_shared<const typename CoarseLevelT::LinOp>(coarse_level.gauge);
 
         const char *coarse_prefix_name = std::getenv("MG_COARSE_FILENAME");
         if (coarse_prefix_name != nullptr && std::strlen(coarse_prefix_name) > 0) {
@@ -141,6 +138,7 @@ namespace MG {
                              std::shared_ptr<const CoarseEOWilsonCloverLinearOperator> M_fine,
                              int fine_level_id, MGLevelCoarseEO &fine_level,
                              MGLevelCoarseEO &coarse_level);
-}
+
+} // namespace MG
 
 #endif /* INCLUDE_LATTICE_MG_LEVEL_COARSE_H_ */
