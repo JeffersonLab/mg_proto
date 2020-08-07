@@ -24,7 +24,7 @@ namespace MG {
 
         Neigh_spinors get_neigh_spinors(const HaloContainer<CoarseSpinor> &halo,
                                         const CoarseSpinor &in, int target_cb, int cbsite) {
-            return GetNeighborDirs<CoarseSpinor, CoarseAccessor>(halo, in, target_cb, cbsite, true);
+            return GetNeighborDirs<CoarseSpinor, CoarseAccessor>(halo, in, target_cb, cbsite);
         }
 
         Gauge_links get_gauge_links(const CoarseGauge &in, int target_cb, int cbsite) {

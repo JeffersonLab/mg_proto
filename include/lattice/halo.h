@@ -197,8 +197,7 @@ namespace MG {
 
     template <typename T, template <typename> class Accessor>
     inline std::array<const float *, 8> GetNeighborDirs(const HaloContainer<T> &halo, const T &in,
-                                                        int target_cb, int cbsite,
-                                                        bool raw = false) {
+                                                        int target_cb, int cbsite) {
         // Local lattice size and its origin
         const IndexArray &lattice_dims = halo.GetInfo().GetLatticeDimensions();
         const IndexType cborig = halo.GetInfo().GetCBOrigin();
