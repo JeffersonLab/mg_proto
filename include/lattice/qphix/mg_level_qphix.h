@@ -84,8 +84,8 @@ namespace MG {
             fine_level.null_solver = std::make_shared<const SolverT>(*M_fine, params);
 
             for (int k = 0; k < num_vecs; ++k) {
-                std::vector<LinearSolverResults> res =
-                    (*(fine_level.null_solver))(*(fine_level.null_vecs[k]), b, ABSOLUTE);
+                std::vector<LinearSolverResults> res = (*(fine_level.null_solver))(
+                    *(fine_level.null_vecs[k]), b, ABSOLUTE, InitialGuessGiven);
                 assert(res.size() == 1);
 
                 double norm2_cb0 = sqrt(Norm2Vec(*(fine_level.null_vecs[k]), SUBSET_EVEN)[0]);
@@ -99,12 +99,12 @@ namespace MG {
             }
         } else {
             params.RsdTarget = fabs(params.RsdTarget);
-            NullSolverFGMRES<LinOpT> null_solver(*M_fine, params);
+            SolverT null_solver(*M_fine, params);
             std::vector<float> vals;
             EigsParams eigs_params;
             eigs_params.MaxIter = 0;
             eigs_params.MaxNumEvals = num_vecs;
-            eigs_params.RsdTarget = params.RsdTarget;
+            eigs_params.RsdTarget = (params.RsdTarget*3 <1 ? params.RsdTarget*3 : params.RsdTarget);
             eigs_params.VerboseP = true;
             std::shared_ptr<SpinorT> x;
             computeDeflation(*fine_level.info, null_solver, eigs_params, x, vals);

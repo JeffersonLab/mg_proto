@@ -65,9 +65,11 @@ namespace MG {
 
             fine_level.null_solver =
                 std::make_shared<typename CoarseLevelT::Solver>(M_fine, params);
+            assert(fine_level.null_solver->GetSubset() == SUBSET_ALL);
 
             // Solve the linear systems
-            std::vector<LinearSolverResults> res = (*(fine_level.null_solver))(*x, b, ABSOLUTE);
+            std::vector<LinearSolverResults> res =
+                (*(fine_level.null_solver))(*x, b, ABSOLUTE, InitialGuessGiven);
             assert(res.size() == (unsigned int)num_vecs);
             if (num_vecs > 0)
                 MasterLog(INFO, "Level %d: Solver Took: %d iterations", fine_level_id,
