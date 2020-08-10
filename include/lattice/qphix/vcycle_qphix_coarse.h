@@ -820,7 +820,7 @@ namespace MG {
             Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/update/level" + std::to_string(level));
         }
 
-        void SetAntePostSmoother(LinearSolver<QPhiXSpinorF> *s) { _antepost_smoother = s; }
+        void SetAntePostSmoother(const LinearSolver<QPhiXSpinorF> *s) { _antepost_smoother = s; }
 
     private:
         const LatticeInfo _fine_info;
@@ -833,7 +833,7 @@ namespace MG {
         const LinearSolver<CoarseSpinor> &_bottom_solver;
         const LinearSolverParamsBase &_param;
         const QPhiXTransfer<QPhiXSpinorF> _Transfer;
-        LinearSolver<QPhiXSpinorF> *_antepost_smoother;
+        const LinearSolver<QPhiXSpinorF> *_antepost_smoother;
     };
 
 } // namespace MG
