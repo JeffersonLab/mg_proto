@@ -168,7 +168,7 @@ namespace MG {
             return (*_toplevel_vcycle)(out, in, resid_type, guess);
         }
 
-        void SetAntePostSmoother(LinearSolver<QPhiXSpinorF> *s) {
+        void SetAntePostSmoother(const LinearSolver<QPhiXSpinorF> *s) {
             _toplevel_vcycle->SetAntePostSmoother(s);
         }
         const LinearSolver<QPhiXSpinorF> *GetPostSmoother() const { return _post_smoother.get(); }
