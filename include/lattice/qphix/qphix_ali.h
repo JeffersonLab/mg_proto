@@ -90,7 +90,7 @@ namespace MG {
                 EigsParams defl_eigs_params, SetupParams prec_p,
                 std::vector<MG::VCycleParams> prec_vcycle_params,
                 LinearSolverParamsBase prec_solver_params, unsigned int K_distance,
-                unsigned int probing_distance, const CBSubset subset, unsigned int mode = 1)
+                unsigned int probing_distance, const CBSubset subset, unsigned int mode = 2)
             : ImplicitLinearSolver<QPhiXSpinor>(*info, subset, prec_solver_params),
               _info(info),
               _M_fine(M_fine),
@@ -103,13 +103,25 @@ namespace MG {
             MasterLog(INFO, "ALI Solver constructor: mode= %d BEGIN", _mode);
 
             // Create projector
-            _mg_deflation = std::make_shared<MGDeflation>(_info, _M_fine, defl_p,
-                                                          defl_solver_params, defl_eigs_params);
+            if (_mode < 2) {
+                _mg_deflation = std::make_shared<MGDeflation>(_info, _M_fine, defl_p,
+                                                              defl_solver_params, defl_eigs_params);
+            }
 
             // Create Multigrid preconditioner
             _mg_levels = std::make_shared<QPhiXMultigridLevelsEO>();
             SetupQPhiXMGLevels(prec_p, *_mg_levels, _M_fine);
             _vcycle = std::make_shared<VCycleRecursiveQPhiXEO2>(prec_vcycle_params, *_mg_levels);
+
+            // Create a Multigrid without smoothers
+            if (_mode >= 2) {
+                std::vector<MG::VCycleParams> defl_vcycle_params(prec_vcycle_params);
+                defl_vcycle_params[0].cycle_params.MaxIter = 1;
+                defl_vcycle_params[0].pre_smoother_params.MaxIter = 0;
+                defl_vcycle_params[0].post_smoother_params.MaxIter = 0;
+                _vcycle_defl =
+                    std::make_shared<VCycleRecursiveQPhiXEO2>(defl_vcycle_params, *_mg_levels);
+            }
 
             // Build K
             build_K(prec_p, prec_vcycle_params, prec_solver_params, K_distance, probing_distance);
@@ -158,39 +170,45 @@ namespace MG {
             assert(out.GetNCol() == in.GetNCol());
             IndexType ncol = out.GetNCol();
 
-            std::shared_ptr<QPhiXSpinorF> in_f = AuxQF::tmp(*_info, ncol);
-            ZeroVec(*in_f);
-            ConvertSpinor(in, *in_f, _subset);
-
-            // I_Q_in = (I-Q)*in
-            std::shared_ptr<QPhiXSpinorF> I_Q_in_f = AuxQF::tmp(*_info, ncol);
-            std::shared_ptr<QPhiXSpinorF> VV_in_f = AuxQF::tmp(*_info, ncol);
-            apply_complQ(*I_Q_in_f, *in_f, VV_in_f.get());
-            in_f.reset();
-
-            // M_oe*(M_ee^{-1}*M_eo*VV_in_o + VV_in_e)
-            if (_mode == 0) {
-                std::shared_ptr<QPhiXSpinorF> strange_VV_in_f = AuxQF::tmp(*_info, ncol);
-                _M_fine->strangeOp(*strange_VV_in_f, *VV_in_f);
-                if (recursive > 0) {
-                    std::shared_ptr<QPhiXSpinorF> Minv_oo_strange_VV_in_f =
-                        AuxQF::tmp(*_info, ncol);
-                    apply_precon(*Minv_oo_strange_VV_in_f, *strange_VV_in_f, recursive - 1);
-                    YpeqXVec(*Minv_oo_strange_VV_in_f, *VV_in_f, _subset);
-                } else {
-                    YpeqXVec(*strange_VV_in_f, *I_Q_in_f, _subset);
-                }
+            if (_K_distance == 0 && (!_mg_deflation || _mg_deflation->GetRank() <= 0)) {
+                CopyVec(out, in, _subset);
+                return;
             }
+            applyK(out, in);
 
-            // out_f = K * (I-Q)*in
-            std::shared_ptr<QPhiXSpinorF> out_f = AuxQF::tmp(*_info, ncol);
-            applyK(*out_f, *I_Q_in_f);
-            I_Q_in_f.reset();
+            // std::shared_ptr<QPhiXSpinorF> in_f = AuxQF::tmp(*_info, ncol);
+            // ZeroVec(*in_f);
+            // ConvertSpinor(in, *in_f, _subset);
 
-            // out += VV_in
-            YpeqXVec(*VV_in_f, *out_f, _subset);
-            ZeroVec(out);
-            ConvertSpinor(*out_f, out, _subset);
+            // // I_Q_in = (I-Q)*in
+            // std::shared_ptr<QPhiXSpinorF> I_Q_in_f = AuxQF::tmp(*_info, ncol);
+            // std::shared_ptr<QPhiXSpinorF> VV_in_f = AuxQF::tmp(*_info, ncol);
+            // apply_complQ(*I_Q_in_f, *in_f, VV_in_f.get());
+            // in_f.reset();
+
+            // // M_oe*(M_ee^{-1}*M_eo*VV_in_o + VV_in_e)
+            // if (_mode == 0) {
+            //     std::shared_ptr<QPhiXSpinorF> strange_VV_in_f = AuxQF::tmp(*_info, ncol);
+            //     _M_fine->strangeOp(*strange_VV_in_f, *VV_in_f);
+            //     if (recursive > 0) {
+            //         std::shared_ptr<QPhiXSpinorF> Minv_oo_strange_VV_in_f =
+            //             AuxQF::tmp(*_info, ncol);
+            //         apply_precon(*Minv_oo_strange_VV_in_f, *strange_VV_in_f, recursive - 1);
+            //         YpeqXVec(*Minv_oo_strange_VV_in_f, *VV_in_f, _subset);
+            //     } else {
+            //         YpeqXVec(*strange_VV_in_f, *I_Q_in_f, _subset);
+            //     }
+            // }
+
+            // // out_f = K * (I-Q)*in
+            // std::shared_ptr<QPhiXSpinorF> out_f = AuxQF::tmp(*_info, ncol);
+            // applyK(*out_f, *I_Q_in_f);
+            // I_Q_in_f.reset();
+
+            // // out += VV_in
+            // YpeqXVec(*VV_in_f, *out_f, _subset);
+            // ZeroVec(out);
+            // ConvertSpinor(*out_f, out, _subset);
         }
 
         /**
@@ -205,10 +223,14 @@ namespace MG {
             assert(in.GetNCol() == out.GetNCol());
             int ncol = in.GetNCol();
 
-            Spinor in0(*_info, ncol);
-            ZeroVec(in0);
-            CopyVec(in0, in, _subset);
-            _mg_deflation->VV(out, in0);
+            if (_mode < 2) {
+                Spinor in0(*_info, ncol);
+                ZeroVec(in0);
+                CopyVec(in0, in, _subset);
+                _mg_deflation->VV(out, in0);
+            } else {
+                (*_vcycle_defl)(out, in);
+            }
 
             // out_o + K * M_oe*(M_ee^{-1}*M_eo*out_o + out_e)
             if (_mode == 0 && _K_vals) {
@@ -277,8 +299,8 @@ namespace MG {
 
         void set_smoother() {
             _antipostsmoother = std::make_shared<const S>(*this);
-            //_vcycle->SetAntePostSmoother(_antipostsmoother.get());
-            _vcycle->GetPostSmoother()->SetPrec(_antipostsmoother.get());
+            _vcycle->SetAntePostSmoother(_antipostsmoother.get());
+            //_vcycle->GetPostSmoother()->SetPrec(_antipostsmoother.get());
         }
 
         /**
@@ -334,7 +356,22 @@ namespace MG {
                 }
                 _mg_deflation->VV(*VVin, in);
                 std::shared_ptr<QPhiXSpinorF> AVVin = AuxQF::tmp(*_info, ncol);
-                _M_fine->unprecOp(*AVVin, *VVin);
+                (*_M_fine)(*AVVin, *VVin);
+                VVin0.reset();
+                VVin = nullptr;
+
+                ZeroVec(out);
+                CopyVec(out, in, _subset);
+                YmeqXVec(*AVVin, out, _subset);
+            } else if (_mode == 2) {
+                std::shared_ptr<QPhiXSpinorF> VVin0;
+                if (!VVin) {
+                    VVin0 = AuxQF::tmp(*_info, ncol);
+                    VVin = VVin0.get();
+                }
+                (*_vcycle_defl)(*VVin, in);
+                std::shared_ptr<QPhiXSpinorF> AVVin = AuxQF::tmp(*_info, ncol);
+                (*_M_fine)(*AVVin, *VVin);
                 VVin0.reset();
                 VVin = nullptr;
 
@@ -659,6 +696,7 @@ namespace MG {
         const unsigned int _mode;
         std::shared_ptr<QPhiXMultigridLevelsEO> _mg_levels;
         std::shared_ptr<VCycleRecursiveQPhiXEO2> _vcycle;
+        std::shared_ptr<VCycleRecursiveQPhiXEO2> _vcycle_defl;
         std::shared_ptr<const S> _antipostsmoother;
     };
 } // namespace MG
