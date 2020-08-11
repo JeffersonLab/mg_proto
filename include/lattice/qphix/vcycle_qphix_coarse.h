@@ -9,6 +9,7 @@
 #define INCLUDE_LATTICE_QPHIX_VCYCLE_QPHIX_COARSE_H_
 
 #include "MG_config.h"
+#include "lattice/coarse/coarse_op.h"
 #include "utils/auxiliary.h"
 #include "utils/timer.h"
 #include <algorithm>
@@ -18,6 +19,7 @@
 #include <lattice/qphix/qphix_transfer.h>
 #include <lattice/qphix/qphix_types.h>
 #include <lattice/solver.h>
+#include <memory>
 #include <stdexcept>
 
 #ifdef MG_ENABLE_TIMERS
@@ -542,44 +544,39 @@ namespace MG {
         std::vector<LinearSolverResults>
         operator()(QPhiXSpinor &out, const QPhiXSpinor &in, ResiduumType resid_type = RELATIVE,
                    InitialGuess guess = InitialGuessNotGiven) const {
-            return apply(out, in, resid_type, guess);
+            assert(out.GetNCol() == in.GetNCol());
+            std::shared_ptr<QPhiXSpinorF> in_f =
+                std::make_shared<QPhiXSpinorF>(_M_fine.GetInfo(), in.GetNCol());
+            std::shared_ptr<QPhiXSpinorF> out_f =
+                std::make_shared<QPhiXSpinorF>(_M_fine.GetInfo(), in.GetNCol());
+            ConvertSpinor(in, *in_f, _M_fine.GetSubset());
+            std::vector<LinearSolverResults> res = operator()(*out_f, *in_f, resid_type, guess);
+            ConvertSpinor(*out_f, out, _M_fine.GetSubset());
         }
 
         std::vector<LinearSolverResults>
-        operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in, ResiduumType resid_type = RELATIVE,
+        operator()(QPhiXSpinorF &out_f, const QPhiXSpinorF &in_f, ResiduumType resid_type = RELATIVE,
                    InitialGuess guess = InitialGuessNotGiven) const override {
-            return apply(out, in, resid_type, guess);
-        }
 
-        template <class Spinor>
-        std::vector<LinearSolverResults> apply(Spinor &out, const Spinor &in,
-                                               ResiduumType resid_type = RELATIVE,
-                                               InitialGuess guess = InitialGuessNotGiven) const {
-            assert(out.GetNCol() == in.GetNCol());
-            IndexType ncol = out.GetNCol();
+            assert(out_f.GetNCol() == in_f.GetNCol());
+            IndexType ncol = out_f.GetNCol();
 
             int level = _M_fine.GetLevel();
             Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/operator()/level" +
                                         std::to_string(level));
             std::vector<LinearSolverResults> res(ncol);
             auto &subset = _M_fine.GetSubset();
-            QPhiXSpinorF in_f(_fine_info, ncol);
-
-            ZeroVec(in_f, SUBSET_ALL);
-
-            ConvertSpinor(in, in_f, subset);
 
             // May want to do these in double later?
             // But this is just a preconditioner.
             // So try SP for now
-            QPhiXSpinorF r(_fine_info, ncol);
-            QPhiXSpinorF out_f(_fine_info, ncol);
+            std::shared_ptr<QPhiXSpinorF> r = std::make_shared<QPhiXSpinorF>(_fine_info, ncol);
 
             std::vector<double> norm_in(ncol), norm_r(ncol);
             ZeroVec(out_f);           // out_f = 0
-            CopyVec(r, in_f, subset); //  r  <- in_f
+            CopyVec(*r, in_f, subset); //  r  <- in_f
 
-            norm_r = aux::sqrt(Norm2Vec(r, subset));
+            norm_r = aux::sqrt(Norm2Vec(*r, subset));
             norm_in = norm_r;
 
             std::vector<double> target(ncol, _param.RsdTarget);
@@ -622,10 +619,12 @@ namespace MG {
             // At this point we have to do at least one iteration
             int iter = 0;
 
-            QPhiXSpinorF delta(_fine_info, ncol);
-            QPhiXSpinorF tmp(_fine_info, ncol);
-            CoarseSpinor coarse_in(_coarse_info, ncol);
-            CoarseSpinor coarse_delta(_coarse_info, ncol);
+            std::shared_ptr<QPhiXSpinorF> delta = std::make_shared<QPhiXSpinorF>(_fine_info, ncol);
+            std::shared_ptr<QPhiXSpinorF> tmp = std::make_shared<QPhiXSpinorF>(_fine_info, 1);
+            std::shared_ptr<CoarseSpinor> coarse_in =
+                std::make_shared<CoarseSpinor>(_coarse_info, ncol);
+            std::shared_ptr<CoarseSpinor> coarse_delta =
+                std::make_shared<CoarseSpinor>(_coarse_info, ncol);
 
             while (iter < _param.MaxIter) {
                 ++iter;
@@ -633,25 +632,29 @@ namespace MG {
                 if (_pre_smoother._params.MaxIter > 0) {
                     Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/presmooth/level" +
                                                 std::to_string(level));
-                    ZeroVec(delta, subset);
+                    ZeroVec(*delta, subset);
                     // Smoother does not compute a residuum
-                    _pre_smoother(delta, r);
+                    _pre_smoother(*delta, *r);
                     Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/presmooth/level" +
                                                std::to_string(level));
 
                     // Update solution
                     Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level" +
                                                 std::to_string(level));
-                    YpeqXVec(delta, out_f, subset);
+                    YpeqXVec(*delta, out_f, subset);
+
                     // Update residuum: even odd matrix
-                    _M_fine(tmp, delta, LINOP_OP);
-                    YmeqXVec(tmp, r, subset);
+                    for (IndexType col=0; col < delta->GetNCol(); ++col) {
+                        _M_fine(*tmp, QPhiXSpinorF(*delta, col, col+1), LINOP_OP);
+                        QPhiXSpinorF r_col(*r, col, col+1);
+                        YmeqXVec(*tmp, r_col, subset);
+                    }
                     Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level" +
                                                std::to_string(level));
                 }
 
                 if (_param.VerboseP) {
-                    std::vector<double> norm_pre_presmooth = aux::sqrt(Norm2Vec(r));
+                    std::vector<double> norm_pre_presmooth = aux::sqrt(Norm2Vec(*r));
                     for (int col = 0; col < ncol; ++col) {
                         if (resid_type == RELATIVE) {
                             MasterLog(INFO,
@@ -673,7 +676,7 @@ namespace MG {
                 // Coarsen r
 
 #if 1
-                _Transfer.R(r, ODD, coarse_in);
+                _Transfer.R(*r, ODD, *coarse_in);
 #else
                 // hit r with clover before coarsening
                 _M_fine.M_diag(tmp, r, ODD);
@@ -685,8 +688,8 @@ namespace MG {
 
                 Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/bottom_solve/level" +
                                             std::to_string(level));
-                ZeroVec(coarse_delta);
-                _bottom_solver(coarse_delta, coarse_in);
+                ZeroVec(*coarse_delta);
+                _bottom_solver(*coarse_delta, *coarse_in);
                 Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/bottom_solve/level" +
                                            std::to_string(level));
 
@@ -694,23 +697,29 @@ namespace MG {
                                             std::to_string(level));
 
                 // Reuse Smoothed Delta as temporary for prolongating coarse delta back to fine
-                _Transfer.P(coarse_delta, ODD, delta);
+                _Transfer.P(*coarse_delta, ODD, *delta);
+                YpeqXVec(*delta, out_f, subset);
 
                 Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/prolongateTo/level" +
                                            std::to_string(level));
 
                 // Update solution
-                Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level" +
-                                            std::to_string(level));
-                YpeqXVec(delta, out_f, subset);
-                // Update residuum
-                _M_fine(tmp, delta, LINOP_OP);
-                YmeqXVec(tmp, r, subset);
-                Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level" +
-                                           std::to_string(level));
+                if (iter < _param.MaxIter || _param.RsdTarget > 0.0 || _param.VerboseP ||
+                    _antepost_smoother || _post_smoother._params.MaxIter > 0) {
+                    Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level" +
+                                                std::to_string(level));
+                    // Update residuum
+                    for (IndexType col = 0; col < delta->GetNCol(); ++col) {
+                        _M_fine(*tmp, QPhiXSpinorF(*delta, col, col + 1), LINOP_OP);
+                        QPhiXSpinorF r_col(*r, col, col + 1);
+                        YmeqXVec(*tmp, r_col, subset);
+                    }
+                    Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level" +
+                                               std::to_string(level));
+                }
 
                 if (_param.VerboseP) {
-                    std::vector<double> norm_pre_postsmooth = aux::sqrt(Norm2Vec(r));
+                    std::vector<double> norm_pre_postsmooth = aux::sqrt(Norm2Vec(*r));
                     for (int col = 0; col < ncol; ++col) {
                         if (resid_type == RELATIVE) {
                             MasterLog(INFO,
@@ -728,38 +737,44 @@ namespace MG {
                 }
 
                 // postsmooth
-                Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/postsmooth/level" +
-                                            std::to_string(level));
-                ZeroVec(delta, subset);
-                if (_antepost_smoother) (*_antepost_smoother)(delta, r);
-                _post_smoother(delta, r, RELATIVE, _antepost_smoother ? InitialGuessGiven : InitialGuessNotGiven);
-                Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/postsmooth/level" +
-                                           std::to_string(level));
-
-                // Update full solution
-                if (iter < _param.MaxIter || _param.RsdTarget > 0.0 || _param.VerboseP) {
-                    Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level" +
+                if (_antepost_smoother || _post_smoother._params.MaxIter > 0) {
+                    Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/postsmooth/level" +
                                                 std::to_string(level));
-                    YpeqXVec(delta, out_f, subset);
-                    _M_fine(tmp, delta, LINOP_OP);
-                    norm_r = aux::sqrt(XmyNorm2Vec(r, tmp, subset));
-                    Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level" +
+                    ZeroVec(*delta, subset);
+                    if (_antepost_smoother) (*_antepost_smoother)(*delta, *r);
+                    _post_smoother(*delta, *r, RELATIVE,
+                                   _antepost_smoother ? InitialGuessGiven : InitialGuessNotGiven);
+                    YpeqXVec(*delta, out_f, subset);
+                    Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/postsmooth/level" +
                                                std::to_string(level));
-                }
 
-                if (_param.VerboseP) {
-                    for (int col = 0; col < ncol; ++col) {
-                        if (resid_type == RELATIVE) {
-                            MasterLog(INFO,
-                                      "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
-                                      "After Post-Smoothing || r ||/||b||=%16.8e Target=%16.8e",
-                                      level, col, iter, norm_r[col] / norm_in[col],
-                                      _param.RsdTarget);
-                        } else {
-                            MasterLog(INFO,
-                                      "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
-                                      "After Post-Smoothing || r ||=%16.8e Target=%16.8e",
-                                      level, col, iter, norm_r[col], _param.RsdTarget);
+                    // Update full solution
+                    if (iter < _param.MaxIter || _param.RsdTarget > 0.0 || _param.VerboseP) {
+                        Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level" +
+                                                    std::to_string(level));
+                        for (IndexType col = 0; col < delta->GetNCol(); ++col) {
+                            _M_fine(*tmp, QPhiXSpinorF(*delta, col, col + 1), LINOP_OP);
+                            QPhiXSpinorF r_col(*r, col, col + 1);
+                            norm_r[col] = aux::sqrt(XmyNorm2Vec(r_col, *tmp, subset))[0];
+                        }
+                        Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level" +
+                                                   std::to_string(level));
+                    }
+
+                    if (_param.VerboseP) {
+                        for (int col = 0; col < ncol; ++col) {
+                            if (resid_type == RELATIVE) {
+                                MasterLog(INFO,
+                                          "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
+                                          "After Post-Smoothing || r ||/||b||=%16.8e Target=%16.8e",
+                                          level, col, iter, norm_r[col] / norm_in[col],
+                                          _param.RsdTarget);
+                            } else {
+                                MasterLog(INFO,
+                                          "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
+                                          "After Post-Smoothing || r ||=%16.8e Target=%16.8e",
+                                          level, col, iter, norm_r[col], _param.RsdTarget);
+                            }
                         }
                     }
                 }
@@ -771,9 +786,6 @@ namespace MG {
                 if (!continueP) break;
             }
 
-            // Convert Back Up to DP only on the output subset.
-            ZeroVec(out, SUBSET_ALL);
-            ConvertSpinor(out_f, out, _M_fine.GetSubset());
             for (int col = 0; col < ncol; ++col) {
                 res[col].resid_type = resid_type;
                 res[col].n_count = iter;
