@@ -46,6 +46,21 @@ namespace MG {
         return std::accumulate(v.begin(), v.end(), 0.0);
     }
 
+    template <typename T> class vector3d : public std::vector<T> {
+    public:
+        vector3d(unsigned int m, unsigned int n, unsigned int o)
+            : std::vector<T>(m * n * o), _m(m), _n(n), _o(o) {}
+        const T &operator()(unsigned int i, unsigned int j, unsigned int k) const {
+            return std::vector<T>::operator[](i *_n *_o + j * _o + k);
+        }
+        T &operator()(unsigned int i, unsigned int j, unsigned int k) {
+            return std::vector<T>::operator[](i *_n *_o + j * _o + k);
+        }
+
+    private:
+        unsigned int _m, _n, _o;
+    };
+
     /*
      * Solve a linear system using the Approximate Lattice Inverse as a preconditioner
      *
@@ -60,7 +75,7 @@ namespace MG {
      */
 
     class ALIPrec : public ImplicitLinearSolver<QPhiXSpinor>,
-                    public AuxiliarySpinors<QPhiXSpinorF>,
+                    public LinearSolver<QPhiXSpinorF>,
                     public AuxiliarySpinors<CoarseSpinor> {
         using AuxQ = AuxiliarySpinors<QPhiXSpinor>;
         using AuxQF = AuxiliarySpinors<QPhiXSpinorF>;
@@ -92,13 +107,13 @@ namespace MG {
                 LinearSolverParamsBase prec_solver_params, unsigned int K_distance,
                 unsigned int probing_distance, const CBSubset subset, unsigned int mode = 2)
             : ImplicitLinearSolver<QPhiXSpinor>(*info, subset, prec_solver_params),
+              LinearSolver<QPhiXSpinorF>(*M_fine, prec_solver_params),
               _info(info),
               _M_fine(M_fine),
               _K_distance(K_distance),
               _op(*info),
               _subset(subset),
               _mode(mode) {
-            AuxQF::subrogateTo(_M_fine.get());
 
             MasterLog(INFO, "ALI Solver constructor: mode= %d BEGIN", _mode);
 
@@ -151,7 +166,29 @@ namespace MG {
         std::vector<LinearSolverResults>
         operator()(QPhiXSpinor &out, const QPhiXSpinor &in, ResiduumType resid_type = RELATIVE,
                    InitialGuess guess = InitialGuessNotGiven) const override {
-            (void)resid_type;
+            // test_defl(in);
+            // applyK(out, in);
+            (*_vcycle)(out, in, resid_type, guess);
+            IndexType ncol = out.GetNCol();
+            return std::vector<LinearSolverResults>(ncol, LinearSolverResults());
+        }
+
+        /*
+         * Apply the preconditioner onto 'in'.
+         *
+         * \param out: returned vectors
+         * \param in: input vectors
+         *
+         * It applies the deflation on the input vectors and return the results on 'out'.
+         *
+         *    out = [M^{-1}*Q + K*(I-Q)] * in,
+         *
+         * where Q = M_oo^{-1}*P*M_oo, P is a projector on M, and K approximates M^{-1}_oo*M_oo.
+         */
+
+        std::vector<LinearSolverResults>
+        operator()(QPhiXSpinorF &out, const QPhiXSpinorF &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override {
             // test_defl(in);
             // applyK(out, in);
             (*_vcycle)(out, in, resid_type, guess);
@@ -278,6 +315,18 @@ namespace MG {
         }
         const std::shared_ptr<MGDeflation> GetMGDeflation() const { return _mg_deflation; }
 
+        /**
+         * Return the lattice information
+         */
+
+        const LatticeInfo &GetInfo() const { return *_info; }
+
+        /**
+         * Return the support of the operator (SUBSET_EVEN, SUBSET_ODD, SUBSET_ALL)
+         */
+
+        const CBSubset &GetSubset() const { return _subset; }
+
     private:
         struct S : public ImplicitLinearSolver<QPhiXSpinorF> {
             S(const ALIPrec &aliprec)
@@ -298,6 +347,8 @@ namespace MG {
         };
 
         void set_smoother() {
+            if (_K_distance <= 0) return;
+
             _antipostsmoother = std::make_shared<const S>(*this);
             _vcycle->SetAntePostSmoother(_antipostsmoother.get());
             //_vcycle->GetPostSmoother()->SetPrec(_antipostsmoother.get());
@@ -496,31 +547,38 @@ namespace MG {
             // Returned coloring
             std::shared_ptr<Coloring> coloring;
 
-            // Build probing vectors to get the exact first columns for ODD site 0
+            // Build probing vectors to get the exact first columns for sites [1 0 0 0]
+            IndexArray site = {{1, 0, 0, 0}}; // This is an ODD site
             std::shared_ptr<QPhiXSpinorF> e = AuxQF::tmp(*_info, _info->GetNumColorSpins());
             ZeroVec(*e);
-            if (_info->GetNodeInfo().NodeID() == 0) {
+            std::vector<IndexType> the_cbsite = Coloring::GetKDistNeighbors(site, 0, *_info);
+            for (unsigned int i = 0; i < the_cbsite.size(); ++i) {
                 for (int color = 0; color < _info->GetNumColors(); ++color) {
                     for (int spin = 0; spin < _info->GetNumSpins(); ++spin) {
                         int sc = color * _info->GetNumSpins() + spin;
-                        (*e)(sc, ODD, 0, spin, color, 0) = 1.0;
+                        (*e)(sc, ODD, the_cbsite[i], spin, color, 0) = 1.0;
                     }
                 }
             }
+            std::vector<IndexType> cbsites_dist_k = Coloring::GetKDistNeighbors(site, _K_distance, *_info);
 
             // sol_e = inv(M_fine) * (I-P) * e
             std::shared_ptr<QPhiXSpinorF> sol_e = AuxQF::tmp(*_info, _info->GetNumColorSpins());
             apply_invM_after_defl(eo_solver, *sol_e, *e);
 
-            unsigned int probing_distance = 0;
+            unsigned int probing_distance = 1;
             while (probing_distance <= max_probing_distance) {
                 // Create coloring
                 coloring = std::make_shared<Coloring>(_info, probing_distance, SUBSET_ODD);
 
-                // Get the probing vectors for the ODD site 0
-                unsigned int color_node = coloring->GetColorCBIndex(ODD, 0);
+                // Get the probing vectors for "site" 
+                double color_node = 0;
+                if (the_cbsite.size() > 0)
+                    color_node = coloring->GetColorCBIndex(ODD, the_cbsite[0]);
+                GlobalComm::GlobalSum(color_node);
                 std::shared_ptr<QPhiXSpinorF> p = AuxQF::tmp(*_info, _info->GetNumColorSpins());
-                coloring->GetProbingVectors(*p, coloring->GetSpinColorColor(color_node, 0, 0));
+                coloring->GetProbingVectors(
+                    *p, coloring->GetSpinColorColor((unsigned int)color_node, 0, 0));
 
                 // sol_p = inv(M_fine) * (I-P) * p
                 std::shared_ptr<QPhiXSpinorF> sol_p = AuxQF::tmp(*_info, _info->GetNumColorSpins());
@@ -528,9 +586,9 @@ namespace MG {
 
                 // Compute ||sol[0] - K[0,0]||_F / ||sol[0]||_F
                 double sol_F = 0.0, diff_F = 0.0;
-                if (_info->GetNodeInfo().NodeID() == 0) {
-                    std::vector<std::complex<float>> sol_p_00(_info->GetNumColorSpins() *
-                                                              _info->GetNumColorSpins());
+                vector3d<std::complex<float>> sol_p_00(
+                    cbsites_dist_k.size(), _info->GetNumColorSpins(), _info->GetNumColorSpins());
+                for (unsigned int i = 0; i < cbsites_dist_k.size(); ++i) {
                     for (int colorj = 0; colorj < _info->GetNumColors(); ++colorj) {
                         for (int spinj = 0; spinj < _info->GetNumSpins(); ++spinj) {
                             int sc_e_j = colorj * _info->GetNumSpins() + spinj;
@@ -538,43 +596,40 @@ namespace MG {
                             for (int color = 0; color < _info->GetNumColors(); ++color) {
                                 for (int spin = 0; spin < _info->GetNumSpins(); ++spin) {
                                     std::complex<float> sol_e_ij(
-                                        (*sol_e)(sc_e_j, ODD, 0, spin, color, 0),
-                                        (*sol_e)(sc_e_j, ODD, 0, spin, color, 1));
+                                        (*sol_e)(sc_e_j, ODD, i, spin, color, 0),
+                                        (*sol_e)(sc_e_j, ODD, i, spin, color, 1));
                                     std::complex<float> sol_p_ij(
-                                        (*sol_p)(sc_p_j, ODD, 0, spin, color, 0),
-                                        (*sol_p)(sc_p_j, ODD, 0, spin, color, 1));
+                                        (*sol_p)(sc_p_j, ODD, i, spin, color, 0),
+                                        (*sol_p)(sc_p_j, ODD, i, spin, color, 1));
                                     sol_F += (sol_e_ij * std::conj(sol_e_ij)).real();
                                     std::complex<float> diff_ij = sol_e_ij - sol_p_ij;
                                     diff_F += (diff_ij * std::conj(diff_ij)).real();
 
                                     int sc_p_i = coloring->GetSpinColorColor(0, spin, color);
-                                    sol_p_00[sc_p_j * _info->GetNumColorSpins() + sc_p_i] =
-                                        sol_p_ij;
+                                    sol_p_00(i, sc_p_j, sc_p_i) = sol_p_ij;
                                 }
                             }
                         }
                     }
+                }
 
-                    ZeroVec(*sol_p, SUBSET_ALL);
+                ZeroVec(*sol_p, SUBSET_ALL);
 
+                for (unsigned int i = 0; i < cbsites_dist_k.size(); ++i) {
                     for (int colorj = 0; colorj < _info->GetNumColors(); ++colorj) {
                         for (int spinj = 0; spinj < _info->GetNumSpins(); ++spinj) {
                             int sc_p_j = coloring->GetSpinColorColor(0, spinj, colorj);
                             for (int color = 0; color < _info->GetNumColors(); ++color) {
                                 for (int spin = 0; spin < _info->GetNumSpins(); ++spin) {
                                     int sc_p_i = coloring->GetSpinColorColor(0, spin, color);
-                                    (*sol_p)(sc_p_j, ODD, 0, spin, color, 0) =
-                                        sol_p_00[sc_p_j * _info->GetNumColorSpins() + sc_p_i]
-                                            .real();
-                                    (*sol_p)(sc_p_j, ODD, 0, spin, color, 1) =
-                                        sol_p_00[sc_p_j * _info->GetNumColorSpins() + sc_p_i]
-                                            .imag();
+                                    (*sol_p)(sc_p_j, ODD, i, spin, color, 0) =
+                                        sol_p_00(i, sc_p_j, sc_p_i).real();
+                                    (*sol_p)(sc_p_j, ODD, i, spin, color, 1) =
+                                        sol_p_00(i, sc_p_j, sc_p_i).imag();
                                 }
                             }
                         }
                     }
-                } else {
-                    ZeroVec(*sol_p, SUBSET_ALL);
                 }
                 GlobalComm::GlobalSum(diff_F);
                 GlobalComm::GlobalSum(sol_F);
@@ -593,14 +648,17 @@ namespace MG {
                 double norm_F = sqrt(sum(Norm2Vec(*aux, SUBSET_ODD)));
 
                 MasterLog(INFO,
-                          "K probing error with %d distance coloring: "
+                          "K probing error with %d distance coloring: %d colors "
                           "||M^{-1}_00-K_00||_F/||M^{-1}_00||_F= "
                           "%g ||M^{-1}_0-K_0||_F/||M^{-1}_0||_F= %g   ||M*K-I||= %g",
-                          probing_distance, norm_diff / norm_sol_e, sqrt(diff_F / sol_F), norm_F);
+                          probing_distance, (int)coloring->GetNumSpinColorColors(),
+                          norm_diff / norm_sol_e, sqrt(diff_F / sol_F), norm_F);
 
                 if (diff_F <= sol_F * tol * tol) break;
 
                 probing_distance++;
+		// Coloring produces distinct coloring schemes for even distances only (excepting 1-distance)
+                if (probing_distance % 2 == 1) probing_distance++;
             }
 
             return coloring;
