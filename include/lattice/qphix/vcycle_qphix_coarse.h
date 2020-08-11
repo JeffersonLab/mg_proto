@@ -737,13 +737,15 @@ namespace MG {
                                            std::to_string(level));
 
                 // Update full solution
-                Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level" +
-                                            std::to_string(level));
-                YpeqXVec(delta, out_f, subset);
-                _M_fine(tmp, delta, LINOP_OP);
-                norm_r = aux::sqrt(XmyNorm2Vec(r, tmp, subset));
-                Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level" +
-                                           std::to_string(level));
+                if (iter < _param.MaxIter || _param.RsdTarget > 0.0 || _param.VerboseP) {
+                    Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/update/level" +
+                                                std::to_string(level));
+                    YpeqXVec(delta, out_f, subset);
+                    _M_fine(tmp, delta, LINOP_OP);
+                    norm_r = aux::sqrt(XmyNorm2Vec(r, tmp, subset));
+                    Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level" +
+                                               std::to_string(level));
+                }
 
                 if (_param.VerboseP) {
                     for (int col = 0; col < ncol; ++col) {
