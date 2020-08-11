@@ -118,6 +118,15 @@ namespace MG {
                 _data.emplace_back(new QPhiXFullSpinorT<FT>(MGQPhiX::GetGeom<FT>()));
         }
 
+        QPhiXSpinorT(const QPhiXSpinorT<FT> &spinor, unsigned int start, unsigned int end)
+            : _info(spinor._info)
+        {
+            assert(start <= spinor.GetNCol());
+            assert(end <= spinor.GetNCol());
+            for (unsigned int col = start; col < end; ++col)
+                _data.emplace_back(spinor._data[col]); 
+        }
+
         ~QPhiXSpinorT() {}
 
         QPhiXSpinorT<FT> *create_new() const { return new QPhiXSpinorT<FT>(_info, GetNCol()); }
@@ -171,7 +180,7 @@ namespace MG {
     private:
         const LatticeInfo _info;
 
-        std::vector<std::unique_ptr<QPhiXFullSpinorT<FT>>> _data;
+        std::vector<std::shared_ptr<QPhiXFullSpinorT<FT>>> _data;
     };
 
     using QPhiXSpinor = QPhiXSpinorT<double>;
