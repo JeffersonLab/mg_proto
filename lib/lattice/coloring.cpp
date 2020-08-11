@@ -341,6 +341,10 @@ Coloring::Coloring(const std::shared_ptr<LatticeInfo> info, unsigned int distanc
     }
 }
 
+// ICC 18.0.2 produces internal error on the next function
+#ifdef __INTEL_COMPILER
+#    pragma intel optimization_level 2
+#endif
 std::vector<IndexType> Coloring::GetKDistNeighbors(const IndexArray &coor, unsigned int k,
                                                    const LatticeInfo &info) {
     const IndexArray &lattice_dims = info.GetLatticeDimensions();
