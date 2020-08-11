@@ -340,3 +340,27 @@ Coloring::Coloring(const std::shared_ptr<LatticeInfo> info, unsigned int distanc
         }
     }
 }
+
+std::vector<IndexType> Coloring::GetKDistNeighbors(const IndexArray &coor, unsigned int k,
+                                                   const LatticeInfo &info) {
+    const IndexArray &lattice_dims = info.GetLatticeDimensions();
+    const IndexType cborig = info.GetCBOrigin();
+    IndexArray global_lattice_dims;
+
+    info.LocalDimsToGlobalDims(global_lattice_dims, lattice_dims);
+
+    Coors coors = neighbors(Coors(1, coor), global_lattice_dims);
+    std::vector<IndexType> cbsites;
+    for (unsigned int i = 0; i < coors.size(); ++i) {
+        IndexArray local_coor;
+        info.GlobalCoordToLocalCoord(local_coor, coors[i]);
+        if (info.LocalCoordIsLocal(local_coor)) {
+            IndexType cb, cbsite;
+            CoordsToCBIndex(local_coor, lattice_dims, cborig, cb, cbsite);
+            cbsites.push_back(cbsite);
+        }
+    }
+
+    return cbsites;
+}
+

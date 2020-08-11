@@ -1,7 +1,7 @@
 // -*- C++ -*-
-/*! \file                                                                    
+/*! \file
  * \brief Greedy coloring for Lattice probing
- *                                                                             
+ *
  */
 
 #ifndef INCLUDE_LATTICE_COLORING_H_
@@ -16,39 +16,42 @@
 
 namespace MG {
 
-    /** Computes k-distance coloring for toroidal lattices.
-	 *
-	 *  A k-distance coloring assigns a label (color) to each lattice's node so that
-	 *  all neighbors up to distance k of a node have different label than the node.
-	 *  The spin-color components are not considered on the distance, but every spin-
-	 *  color component on a node has a distinct color to the rest of spin-color
-	 *  components on the node.
-	 *
-	 *  The spin-color colors are the labels considering the spin-color components on
-	 *  each node. And, the node colors are the labels considering the nodes only.
-	 *  Each spin-color color has a node color associated.
-	 *
-	 *  The code uses greedy coloring to compute the k-distance coloring with a small
-	 *  number of distinct colors.
-	 */
+    /** 
+     * Computes k-distance coloring for toroidal lattices.
+     *
+     * A k-distance coloring assigns a label (color) to each lattice's node so that
+     * all neighbors up to distance k of a node have different label than the node.
+     * The spin-color components are not considered on the distance, but every spin-
+     * color component on a node has a distinct color to the rest of spin-color
+     * components on the node.
+     *
+     * The spin-color colors are the labels considering the spin-color components on
+     * each node. And, the node colors are the labels considering the nodes only.
+     * Each spin-color color has a node color associated.
+     *
+     * The code uses greedy coloring to compute the k-distance coloring with a small
+     * number of distinct colors.
+     */
 
     class Coloring {
     public:
-        /** Computes the k-distance coloring for a lattice of the given size
-			 *  \param info: lattice info
-			 *  \param distance: k-distance
-			 *
-			 *  Compute a k-distance coloring so that the spin-color components
-			 *  of a node have different color than spin-color components from
-			 *  other nodes up to distance k.
-			 */
+        /**
+         * Computes the k-distance coloring for a lattice of the given size
+         * \param info: lattice info
+         * \param distance: k-distance
+         *
+         * Compute a k-distance coloring so that the spin-color components
+         * of a node have different color than spin-color components from
+         * other nodes up to distance k.
+         */
 
         Coloring(const std::shared_ptr<LatticeInfo> info, unsigned int distance, CBSubset subset);
 
-        /** Return probing vectors starting from the given color and spin-color component
-			 *  \param out: returned probing vectors
-			 *  \param spincolorcolor0: the spin-color color index of the first probing vector
-			 */
+        /**
+         * Return probing vectors starting from the given color and spin-color component
+         * \param out: returned probing vectors
+         * \param spincolorcolor0: the spin-color color index of the first probing vector
+         */
 
         template <class Spinor>
         void GetProbingVectors(Spinor &out, unsigned int spincolorcolor0) const {
@@ -78,12 +81,13 @@ namespace MG {
             }
         }
 
-        /** Decompose a spin-color color index
-			 *  \param sp_color: spin-color color index
-			 *  \param node_color: (out) the node color
-			 *  \param col_spin: (out) the spin index
-			 *  \param col_color: (out) the color index
-			 */
+        /**
+         * Decompose a spin-color color index
+         * \param sp_color: spin-color color index
+         * \param node_color: (out) the node color
+         * \param col_spin: (out) the spin index
+         * \param col_color: (out) the color index
+         */
 
         void SpinColorColorComponents(unsigned int sp_color, IndexType &node_color,
                                       IndexType &col_spin, IndexType &col_color) const {
@@ -93,11 +97,12 @@ namespace MG {
             col_spin = colorspin % _info->GetNumSpins();
         }
 
-        /** Get spin-color color index from the color components
-			 *  \param node_color: the node color
-			 *  \param col_spin: the spin index
-			 *  \param col_color: the color index
-			 */
+        /**
+         * Get spin-color color index from the color components
+         * \param node_color: the node color
+         * \param col_spin: the spin index
+         * \param col_color: the color index
+         */
 
         unsigned int GetSpinColorColor(IndexType node_color, IndexType col_spin,
                                        IndexType col_color) const {
@@ -105,18 +110,45 @@ namespace MG {
                    col_spin;
         }
 
-        // Get color of a site
+        /**
+         * Get local nodes at distance k for the given global coordinate
+         * \param coor: the global coordinates of the node
+         * \param k: distance
+         * \param info: lattice info
+         */
+
+        static std::vector<IndexType> GetKDistNeighbors(const IndexArray &coor, unsigned int k,
+                                                        const LatticeInfo &info);
+
+        /**
+         * Get local nodes at distance k for the given global coordinate
+         * \param coor: the global coordinates of the node
+         * \param k: distance
+         */
+
+        std::vector<IndexType> GetKDistNeighbors(const IndexArray &coor, unsigned int k) const {
+            return GetKDistNeighbors(coor, k, *_info);
+        }
+
+        /**
+         * Get the color of a  node
+         * \param cb: even/odd
+         * \param cbsite: site index
+         */
+
         unsigned int GetColorCBIndex(IndexType cb, IndexType cbsite) const {
             return _local_colors[cb][cbsite];
         }
 
-        /** Return the number of node colors
-			 */
+        /**
+         * Return the number of node colors
+         */
 
         unsigned int GetNumNodeColors() const { return _num_colors; }
 
-        /** Return the number of spin-color colors
-			 */
+        /**
+         *Return the number of spin-color colors
+         */
 
         unsigned int GetNumSpinColorColors() const {
             return _num_colors * _info->GetNumColorSpins();

@@ -96,6 +96,17 @@ namespace MG {
                 local_coord[dim] = global_coord[dim] - _lat_origin[dim];
             }
         }
+
+        inline bool LocalCoordIsLocal(IndexArray &local_coord) const {
+            bool is_local = true;
+            for (int dim = 0; dim < n_dim; ++dim) {
+                if (local_coord[dim] < 0 || local_coord[dim] >= _lat_dims[dim]) {
+                    is_local = false;
+                }
+            }
+            return is_local;
+        }
+
         inline bool isCompatibleWith(const LatticeInfo &l) const {
             return GetNumColors() == l.GetNumColors() && GetNumSpins() == l.GetNumSpins() &&
                    GetNumSites() == l.GetNumSites() &&
