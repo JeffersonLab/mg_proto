@@ -353,7 +353,7 @@ std::vector<IndexType> Coloring::GetKDistNeighbors(const IndexArray &coor, unsig
 
     info.LocalDimsToGlobalDims(global_lattice_dims, lattice_dims);
 
-    Coors coors = neighbors(Coors(1, coor), global_lattice_dims);
+    Coors coors = plus(coor, neighbors_upto_distance(k, global_lattice_dims), global_lattice_dims);
     std::vector<IndexType> cbsites;
     for (unsigned int i = 0; i < coors.size(); ++i) {
         IndexArray local_coor;
