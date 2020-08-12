@@ -552,6 +552,7 @@ namespace MG {
             ConvertSpinor(in, *in_f, _M_fine.GetSubset());
             std::vector<LinearSolverResults> res = operator()(*out_f, *in_f, resid_type, guess);
             ConvertSpinor(*out_f, out, _M_fine.GetSubset());
+            return res;
         }
 
         std::vector<LinearSolverResults>
