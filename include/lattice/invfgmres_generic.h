@@ -248,7 +248,7 @@ namespace MG {
                 LinearSolverParamsBase p(params);
                 if (p.MaxIter < 0) p.MaxIter = 100;
                 if (p.NKrylov <= 0) p.NKrylov = 8;
-                if (p.RsdTarget <= 0) p.RsdTarget = 1e-3;
+                if (p.RsdTarget < 0) p.RsdTarget = 1e-3;
                 return p;
             }
 
