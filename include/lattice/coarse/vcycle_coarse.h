@@ -791,7 +791,8 @@ namespace MG {
               _post_smoother(post_smoother),
               _bottom_solver(bottom_solver),
               _param(param),
-              _Transfer(my_blocks, vecs) {
+              _Transfer(my_blocks, vecs),
+              _antepost_smoother(nullptr) {
             (void)apply_clover;
             int level = _M_fine.GetLevel();
         }
