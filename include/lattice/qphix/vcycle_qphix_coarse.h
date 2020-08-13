@@ -269,15 +269,7 @@ namespace MG {
               _post_smoother(post_smoother),
               _bottom_solver(bottom_solver),
               _param(param),
-              _Transfer(my_blocks, vecs) {
-
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarse2/M_fine()/level0");
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarse2/pre_smoother()/level0");
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarse2/post_smoother()/level0");
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarse2/bottom_solver()/level0");
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarse2/R()/level0");
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarse2/P()/level0");
-        }
+              _Transfer(my_blocks, vecs) {}
 
         void SetAntePostSmoother(LinearSolver<QPhiXSpinorF> *s) {
             (void)s;
@@ -820,19 +812,6 @@ namespace MG {
               _Transfer(my_blocks, vecs),
               _antepost_smoother(nullptr) {
             int level = _M_fine.GetLevel();
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/operator()/level" +
-                                      std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/presmooth/level" +
-                                      std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/restrictFrom/level" +
-                                      std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/prolongateTo/level" +
-                                      std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/postsmooth/level" +
-                                      std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/bottom_solve/level" +
-                                      std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleQPhiXCoarseEO3/update/level" + std::to_string(level));
         }
 
         void SetAntePostSmoother(const LinearSolver<QPhiXSpinorF> *s) { _antepost_smoother = s; }

@@ -780,13 +780,6 @@ namespace MG {
               _Transfer(my_blocks, vecs) {
             (void)apply_clover;
             int level = _M_fine.GetLevel();
-            Timer::TimerAPI::addTimer("VCycleCoarseEO2/operator()/level" + std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleCoarseEO2/restrictFrom/level" + std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleCoarseEO2/prolongateTo/level" + std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleCoarseEO2/presmooth/level" + std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleCoarseEO2/postsmooth/level" + std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleCoarseEO2/bottom_solve/level" + std::to_string(level));
-            Timer::TimerAPI::addTimer("VCycleCoarseEO2/update/level" + std::to_string(level));
         }
 
     private:

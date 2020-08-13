@@ -235,9 +235,6 @@ namespace MG {
                 initialize(0);
 
                 _prefix = std::to_string(M.GetLevel()) + prefix;
-                Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operator()/level" + _prefix);
-                Timer::TimerAPI::addTimer("FGMRESSolverGeneric/operatorA/level" + _prefix);
-                Timer::TimerAPI::addTimer("FGMRESSolverGeneric/preconditioner/level" + _prefix);
             }
 
             ~FGMRESSolverGeneric() { destroy(); }

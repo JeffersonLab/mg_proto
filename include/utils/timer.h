@@ -62,14 +62,6 @@ namespace MG {
 
         class TimerAPI {
         public:
-            static void addTimer(const std::string &key) {
-#ifdef MG_ENABLE_TIMERS
-                timers[key] = Timer();
-#else
-                (void)key;
-#endif
-            }
-
             static void startTimer(const std::string &key) {
 #ifdef MG_ENABLE_TIMERS
                 timers[key].Start();
