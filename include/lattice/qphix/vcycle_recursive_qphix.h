@@ -196,7 +196,7 @@ namespace MG {
                               UnprecFGMRESSolverCoarseWrapper>;
     using VCycleRecursiveQPhiXEO2 =
         VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO, VCycleQPhiXCoarseEO3, VCycleCoarseEO2,
-                              FGMRESSmootherQPhiXF, MRSolverCoarse,
+                              FGMRESSmootherQPhiXF, FGMRESSolverCoarse,
                               UnprecFGMRESSolverCoarseWrapper>;
     // using VCycleRecursiveQPhiXEO2 =
     // VCycleRecursiveQPhiXT<QPhiXMultigridLevelsEO,VCycleQPhiXCoarseEO3, VCycleCoarseEO2,

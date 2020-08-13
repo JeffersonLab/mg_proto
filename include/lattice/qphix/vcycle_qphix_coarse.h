@@ -531,16 +531,18 @@ namespace MG {
         const QPhiXTransfer<QPhiXSpinorF> _Transfer;
     };
 
-    class VCycleQPhiXCoarseEO3 : public LinearSolver<QPhiXSpinorF> {
+    class VCycleQPhiXCoarseEO3 : public LinearSolver<QPhiXSpinorF>,
+                                 public AuxiliarySpinors<CoarseSpinor> {
+        using AuxF = AuxiliarySpinors<QPhiXSpinorF>;
+        using AuxC = AuxiliarySpinors<CoarseSpinor>;
+
     public:
         std::vector<LinearSolverResults>
         operator()(QPhiXSpinor &out, const QPhiXSpinor &in, ResiduumType resid_type = RELATIVE,
                    InitialGuess guess = InitialGuessNotGiven) const {
             assert(out.GetNCol() == in.GetNCol());
-            std::shared_ptr<QPhiXSpinorF> in_f =
-                std::make_shared<QPhiXSpinorF>(_M_fine.GetInfo(), in.GetNCol());
-            std::shared_ptr<QPhiXSpinorF> out_f =
-                std::make_shared<QPhiXSpinorF>(_M_fine.GetInfo(), in.GetNCol());
+            std::shared_ptr<QPhiXSpinorF> in_f = AuxF::tmp(_M_fine.GetInfo(), in.GetNCol());
+            std::shared_ptr<QPhiXSpinorF> out_f = AuxF::tmp(_M_fine.GetInfo(), in.GetNCol());
             ConvertSpinor(in, *in_f, _M_fine.GetSubset());
             std::vector<LinearSolverResults> res = operator()(*out_f, *in_f, resid_type, guess);
             ConvertSpinor(*out_f, out, _M_fine.GetSubset());
@@ -563,7 +565,7 @@ namespace MG {
             // May want to do these in double later?
             // But this is just a preconditioner.
             // So try SP for now
-            std::shared_ptr<QPhiXSpinorF> r = std::make_shared<QPhiXSpinorF>(_fine_info, ncol);
+            std::shared_ptr<QPhiXSpinorF> r = AuxF::tmp(_fine_info, ncol);
 
             std::vector<double> norm_in(ncol), norm_r(ncol);
             ZeroVec(out_f);           // out_f = 0
@@ -612,12 +614,10 @@ namespace MG {
             // At this point we have to do at least one iteration
             int iter = 0;
 
-            std::shared_ptr<QPhiXSpinorF> delta = std::make_shared<QPhiXSpinorF>(_fine_info, ncol);
-            std::shared_ptr<QPhiXSpinorF> tmp = std::make_shared<QPhiXSpinorF>(_fine_info, 1);
-            std::shared_ptr<CoarseSpinor> coarse_in =
-                std::make_shared<CoarseSpinor>(_coarse_info, ncol);
-            std::shared_ptr<CoarseSpinor> coarse_delta =
-                std::make_shared<CoarseSpinor>(_coarse_info, ncol);
+            std::shared_ptr<QPhiXSpinorF> delta = AuxF::tmp(_fine_info, ncol);
+            std::shared_ptr<QPhiXSpinorF> tmp = AuxF::tmp(_fine_info, 1);
+            std::shared_ptr<CoarseSpinor> coarse_in = AuxC::tmp(_coarse_info, ncol);
+            std::shared_ptr<CoarseSpinor> coarse_delta = AuxC::tmp(_coarse_info, ncol);
 
             while (iter < _param.MaxIter) {
                 ++iter;
@@ -644,22 +644,23 @@ namespace MG {
                     }
                     Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/update/level" +
                                                std::to_string(level));
-                }
 
-                if (_param.VerboseP) {
-                    std::vector<double> norm_pre_presmooth = aux::sqrt(Norm2Vec(*r));
-                    for (int col = 0; col < ncol; ++col) {
-                        if (resid_type == RELATIVE) {
-                            MasterLog(INFO,
-                                      "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
-                                      "After Pre-Smoothing || r ||/||b||=%16.8e Target=%16.8e",
-                                      level, col, iter, norm_pre_presmooth[col] / norm_in[col],
-                                      _param.RsdTarget);
-                        } else {
-                            MasterLog(INFO,
-                                      "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
-                                      "After Pre-Smoothing || r ||=%16.8e Target=%16.8e",
-                                      level, col, iter, norm_pre_presmooth[col], _param.RsdTarget);
+                    if (_param.VerboseP) {
+                        std::vector<double> norm_pre_presmooth = aux::sqrt(Norm2Vec(*r));
+                        for (int col = 0; col < ncol; ++col) {
+                            if (resid_type == RELATIVE) {
+                                MasterLog(INFO,
+                                        "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
+                                        "After Pre-Smoothing || r ||/||b||=%16.8e Target=%16.8e",
+                                        level, col, iter, norm_pre_presmooth[col] / norm_in[col],
+                                        _param.RsdTarget);
+                            } else {
+                                MasterLog(INFO,
+                                          "VCYCLE (QPhiX->COARSE): level=%d iter=%d col=%d "
+                                          "After Pre-Smoothing || r ||=%16.8e Target=%16.8e",
+                                          level, col, iter, norm_pre_presmooth[col],
+                                          _param.RsdTarget);
+                            }
                         }
                     }
                 }
