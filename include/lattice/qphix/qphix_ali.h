@@ -560,11 +560,12 @@ namespace MG {
                     }
                 }
             }
-            std::vector<IndexType> cbsites_dist_k = Coloring::GetKDistNeighbors(site, _K_distance, *_info);
+            std::vector<IndexType> cbsites_dist_k = Coloring::GetKDistNeighbors(site, _K_distance-1, *_info);
 
             // sol_e = inv(M_fine) * (I-P) * e
             std::shared_ptr<QPhiXSpinorF> sol_e = AuxQF::tmp(*_info, _info->GetNumColorSpins());
             apply_invM_after_defl(eo_solver, *sol_e, *e);
+            ZeroVec(*sol_e, _subset.complementary());
 
             unsigned int probing_distance = 1;
             while (probing_distance <= max_probing_distance) {
@@ -584,7 +585,8 @@ namespace MG {
                 std::shared_ptr<QPhiXSpinorF> sol_p = AuxQF::tmp(*_info, _info->GetNumColorSpins());
                 apply_invM_after_defl(eo_solver, *sol_p, *p);
 
-                // Compute ||sol[0] - K[0,0]||_F / ||sol[0]||_F
+                // Compute sol_F = \sum |sol_e[i,j]|^2 over the K nonzero pattern.
+                // Compute diff_F = \sum |sol_e[i,j]-sol_p[i,j]|^2 over the K nonzero pattern.
                 double sol_F = 0.0, diff_F = 0.0;
                 vector3d<std::complex<float>> sol_p_00(
                     cbsites_dist_k.size(), _info->GetNumColorSpins(), _info->GetNumColorSpins());
@@ -613,8 +615,11 @@ namespace MG {
                     }
                 }
 
-                ZeroVec(*sol_p, SUBSET_ALL);
+                GlobalComm::GlobalSum(diff_F);
+                GlobalComm::GlobalSum(sol_F);
 
+                // Zero sol_p[i,j] that are not on the K nonzero pattern
+                ZeroVec(*sol_p, SUBSET_ALL);
                 for (unsigned int i = 0; i < cbsites_dist_k.size(); ++i) {
                     for (int colorj = 0; colorj < _info->GetNumColors(); ++colorj) {
                         for (int spinj = 0; spinj < _info->GetNumSpins(); ++spinj) {
@@ -631,33 +636,31 @@ namespace MG {
                         }
                     }
                 }
-                GlobalComm::GlobalSum(diff_F);
-                GlobalComm::GlobalSum(sol_F);
 
+                // Compute norm_sol_e = |sol_e|_F
                 std::shared_ptr<QPhiXSpinorF> aux = AuxQF::tmp(*_info, _info->GetNumColorSpins());
                 double norm_sol_e = sqrt(sum(Norm2Vec(*sol_e, SUBSET_ODD)));
+
+                // Compute norm_diff = |sol_p-sol_e|_F
                 CopyVec(*aux, *sol_e);
                 double norm_diff = sqrt(sum(XmyNorm2Vec(*aux, *sol_p, SUBSET_ODD)));
 
-                std::shared_ptr<QPhiXSpinorF> M_inv_oo_M_oo_P =
-                    AuxQF::tmp(*_info, _info->GetNumColorSpins());
-                apply_invM_Q(*M_inv_oo_M_oo_P, *e);
-                YpeqXVec(*M_inv_oo_M_oo_P, *sol_p, SUBSET_ODD);
-                (*_M_fine)(*aux, *sol_p);
-                YmeqXVec(*e, *aux, SUBSET_ODD);
-                double norm_F = sqrt(sum(Norm2Vec(*aux, SUBSET_ODD)));
+                // Compute norm_F = |A*(sol_p - sol_e)|_F
+                (*_M_fine)(*sol_p, *aux);
+                double norm_F = sqrt(sum(Norm2Vec(*sol_p, SUBSET_ODD)));
 
                 MasterLog(INFO,
                           "K probing error with %d distance coloring: %d colors "
                           "||M^{-1}_00-K_00||_F/||M^{-1}_00||_F= "
                           "%g ||M^{-1}_0-K_0||_F/||M^{-1}_0||_F= %g   ||M*K-I||= %g",
                           probing_distance, (int)coloring->GetNumSpinColorColors(),
-                          norm_diff / norm_sol_e, sqrt(diff_F / sol_F), norm_F);
+                          sqrt(diff_F / sol_F), norm_diff / norm_sol_e, norm_F);
 
                 if (diff_F <= sol_F * tol * tol) break;
 
                 probing_distance++;
-		// Coloring produces distinct coloring schemes for even distances only (excepting 1-distance)
+                // Coloring produces distinct coloring schemes for even distances only (excepting
+                // 1-distance)
                 if (probing_distance % 2 == 1) probing_distance++;
             }
 
