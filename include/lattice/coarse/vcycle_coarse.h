@@ -661,6 +661,17 @@ namespace MG {
                     }
                 }
 
+                if (_postpre_smoother) {
+                    Timer::TimerAPI::startTimer("VCycleCoarseEO2/presmooth/level" +
+                                                std::to_string(level));
+                    (*_postpre_smoother)(*delta, *r);
+                    _Transfer.R(*delta, ODD, *coarse_delta);
+                    Timer::TimerAPI::stopTimer("VCycleCoarseEO2/update/level" +
+                                               std::to_string(level));
+                } else {
+                    ZeroVec(*coarse_delta, SUBSET_ODD);
+                }
+
                 Timer::TimerAPI::startTimer("VCycleCoarseEO2/restrictFrom/level" +
                                             std::to_string(level));
                 _Transfer.R(*r, ODD, *coarse_in);
@@ -669,9 +680,9 @@ namespace MG {
 
                 Timer::TimerAPI::startTimer("VCycleCoarseEO2/bottom_solve/level" +
                                             std::to_string(level));
-                ZeroVec(*coarse_delta, SUBSET_ODD);
                 // Again, this is an unprec solve, tho it may be a wrapped even-odd
-                _bottom_solver(*coarse_delta, *coarse_in);
+                _bottom_solver(*coarse_delta, *coarse_in, RELATIVE,
+                               _postpre_smoother ? InitialGuessGiven : InitialGuessNotGiven);
                 Timer::TimerAPI::stopTimer("VCycleCoarseEO2/bottom_solve/level" +
                                            std::to_string(level));
 
@@ -792,12 +803,14 @@ namespace MG {
               _bottom_solver(bottom_solver),
               _param(param),
               _Transfer(my_blocks, vecs),
-              _antepost_smoother(nullptr) {
+              _antepost_smoother(nullptr),
+              _postpre_smoother(nullptr) {
             (void)apply_clover;
             int level = _M_fine.GetLevel();
         }
 
         void SetAntePostSmoother(const LinearSolver<CoarseSpinor> *s) { _antepost_smoother = s; }
+        void SetPostPreSmoother(const LinearSolver<CoarseSpinor> *s) { _postpre_smoother = s; }
 
     private:
         const LatticeInfo _coarse_info;
@@ -810,6 +823,7 @@ namespace MG {
         const LinearSolverParamsBase &_param;
         const CoarseTransfer _Transfer;
         const LinearSolver<CoarseSpinor> *_antepost_smoother;
+        const LinearSolver<CoarseSpinor> *_postpre_smoother;
     };
 
 } // namespace MG
