@@ -171,6 +171,9 @@ namespace MG {
         void SetAntePostSmoother(const LinearSolver<QPhiXSpinorF> *s) {
             _toplevel_vcycle->SetAntePostSmoother(s);
         }
+        void SetPostPreSmoother(const LinearSolver<QPhiXSpinorF> *s) {
+            _toplevel_vcycle->SetPostPreSmoother(s);
+        }
         const LinearSolver<QPhiXSpinorF> *GetPostSmoother() const { return _post_smoother.get(); }
 
     private:
