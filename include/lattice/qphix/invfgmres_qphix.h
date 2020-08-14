@@ -21,22 +21,20 @@ namespace MG {
     using FGMRESSolverQPhiX = FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor>;
     using FGMRESSolverQPhiXF = FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorF>;
 
-    template <typename FT>
-    class FGMRESSmootherQPhiXT : public FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>> {
+    template <typename Spinor>
+    class FGMRESSmoother : public FGMRESGeneric::FGMRESSolverGeneric<Spinor> {
         static LinearSolverParamsBase setDefaults(LinearSolverParamsBase params) {
             if (params.NKrylov == 0) { params.NKrylov = params.MaxIter; }
             return params;
         }
 
     public:
-        FGMRESSmootherQPhiXT(const QPhiXWilsonCloverEOLinearOperatorT<FT> &M_fine,
-                             const LinearSolverParamsBase &params,
-                             const LinearOperator<QPhiXSpinorT<FT>> *prec = nullptr)
-            : FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinorT<FT>>(M_fine, setDefaults(params),
-                                                                   prec, "S") {}
+        FGMRESSmoother(const LinearOperator<Spinor> &M_fine, const LinearSolverParamsBase &params,
+                       const LinearOperator<Spinor> *prec = nullptr)
+            : FGMRESGeneric::FGMRESSolverGeneric<Spinor>(M_fine, setDefaults(params), prec, "S") {}
     };
 
-    using FGMRESSmootherQPhiXF = FGMRESSmootherQPhiXT<float>;
+    using FGMRESSmootherQPhiXF = FGMRESSmoother<QPhiXSpinorF>;
 
     using UnprecFGMRESSolverQPhiXWrapper =
         UnprecLinearSolver<FGMRESGeneric::FGMRESSolverGeneric<QPhiXSpinor>>;
