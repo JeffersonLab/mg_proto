@@ -666,7 +666,7 @@ namespace MG {
                                                 std::to_string(level));
                     (*_postpre_smoother)(*delta, *r);
                     _Transfer.R(*delta, ODD, *coarse_delta);
-                    Timer::TimerAPI::stopTimer("VCycleCoarseEO2/update/level" +
+                    Timer::TimerAPI::stopTimer("VCycleCoarseEO2/presmooth/level" +
                                                std::to_string(level));
                 } else {
                     ZeroVec(*coarse_delta, SUBSET_ODD);
