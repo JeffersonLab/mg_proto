@@ -19,6 +19,8 @@
 #include "utils/timer.h"
 #include <cstdlib>
 #include <string>
+#include <cstdio>
+
 
 // Kokkos here:
 #ifdef MG_USE_KOKKOS
@@ -139,6 +141,7 @@ namespace MG {
     bool isInitialized(void) { return isInitializedP; }
 
     void abort(void) {
+        fflush(stdout);
         if (isInitializedP) {
             MG::FinalizeMemory();
 #if defined(MG_QMP_INIT)
