@@ -59,6 +59,7 @@ namespace MG {
                 _params.clovCoeffT = Real(c_sw);
                 tmp_clov.create(working_u, _params); // Make the clover term
                 tmp_invclov.create(working_u, _params, tmp_clov);
+                tmp_invclov.choles(ODD);
                 tmp_invclov.choles(EVEN);
                 QDPCloverTermToQPhiXClover(tmp_clov, tmp_invclov, _clov);
             }
@@ -73,8 +74,9 @@ namespace MG {
             qphix_clover[0] = _clov.getCB(0).get();
             qphix_clover[1] = _clov.getCB(1).get();
 
-            QPhiXEOClov.reset(new QPhiXClovOpT<FT>(qphix_gauge, qphix_clover, _clov.getInv().get(),
-                                                   &(MGQPhiX::GetGeom<FT>()), t_bcf, 1.0, 1.0));
+            QPhiXEOClov.reset(new QPhiXClovOpT<FT>(
+                qphix_gauge, qphix_clover, _clov.getInv(EVEN).get(), &(MGQPhiX::GetGeom<FT>()),
+                t_bcf, 1.0, 1.0, nullptr, nullptr, 0.0, _clov.getInv(ODD).get()));
         }
 
         QPhiXWilsonCloverEOLinearOperatorT(const LatticeInfo &info, double m_q, double u0,
@@ -113,6 +115,7 @@ namespace MG {
 
                 tmp_clov.create(working_u, _params); // Make the clover term
                 tmp_invclov.create(working_u, _params, tmp_clov);
+                tmp_invclov.choles(ODD);
                 tmp_invclov.choles(EVEN);
                 QDPCloverTermToQPhiXClover(tmp_clov, tmp_invclov, _clov);
             }
@@ -132,13 +135,12 @@ namespace MG {
             qphix_gauge[1] = _u.getCB(1).get();
             qphix_clover[0] = _clov.getCB(0).get();
             qphix_clover[1] = _clov.getCB(1).get();
-            QPhiXEOClov.reset(new QPhiXClovOpT<FT>(qphix_gauge, qphix_clover, _clov.getInv().get(),
-                                                   &(MGQPhiX::GetGeom<FT>()), t_bcf, anisoFacS,
-                                                   anisoFacT));
+            QPhiXEOClov.reset(new QPhiXClovOpT<FT>(
+                qphix_gauge, qphix_clover, _clov.getInv(EVEN).get(), &(MGQPhiX::GetGeom<FT>()),
+                t_bcf, anisoFacS, anisoFacT, nullptr, nullptr, 0.0, _clov.getInv(ODD).get()));
         }
 
         ~QPhiXWilsonCloverEOLinearOperatorT() {
-
             // The QPhiX op will delete when the smart pointer calls its destructor
         }
 
@@ -325,6 +327,15 @@ namespace MG {
             for (int col = 0; col < ncol; ++col)
                 QPhiXEOClov->M_diag_inv(out.getCB(col, EVEN).get(), in.getCB(col, EVEN).get(),
                                         isign);
+        }
+
+        void M_oo_inv(Spinor &out, const Spinor &in, IndexType type = LINOP_OP) const override {
+            const int isign = (type == LINOP_OP) ? 1 : -1;
+            assert(out.GetNCol() == in.GetNCol());
+            IndexType ncol = out.GetNCol();
+            for (int col = 0; col < ncol; ++col)
+                QPhiXEOClov->M_diag_inv(out.getCB(col, ODD).get(), in.getCB(col, ODD).get(),
+                                        isign, ODD);
         }
 
         void M_diag(Spinor &out, const Spinor &in, int cb) const override {

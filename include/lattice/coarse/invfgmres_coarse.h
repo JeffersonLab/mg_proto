@@ -16,8 +16,19 @@ namespace MG {
 
     using FGMRESSolverCoarse = FGMRESGeneric::FGMRESSolverGeneric<CoarseSpinor>;
 
-    using UnprecFGMRESSolverCoarseWrapper =
-        UnprecLinearSolver<FGMRESGeneric::FGMRESSolverGeneric<CoarseSpinor>>;
+    class UnprecFGMRESSolverCoarseWrapper
+        : public UnprecLinearSolver<FGMRESGeneric::FGMRESSolverGeneric<CoarseSpinor>> {
+    public:
+        UnprecFGMRESSolverCoarseWrapper(const EOLinearOperator<Spinor> &M_fine,
+                                        const LinearSolverParamsBase &params,
+                                        const LinearOperator<Spinor> *prec = nullptr)
+            : UnprecLinearSolver<FGMRESGeneric::FGMRESSolverGeneric<Spinor>>(
+                  M_fine, params, prec ? prec : (const LinearOperator<Spinor> *)&_op),
+              _op(M_fine) {}
+
+    private:
+        M_oo_inv<Spinor> _op;
+    };
 }
 
 #endif /* INCLUDE_LATTICE_COARSE_INVFGMRES_COARSE_H_ */

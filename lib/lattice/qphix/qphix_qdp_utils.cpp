@@ -74,8 +74,10 @@ namespace MG {
             // Loose const-ness on Geom due to QPhiX interface...
             QPhiX::qdp_pack_clover<>(clov, qphix_out.getCB(cb).get(), qphix_out.getGeom(), cb);
         }
-        // Loose const-ness on Geom due to QPhiX interface...
-        QPhiX::qdp_pack_clover<>(invclov, qphix_out.getInv().get(), qphix_out.getGeom(), EVEN);
+        for (int cb = 0; cb < 2; ++cb) {
+            // Loose const-ness on Geom due to QPhiX interface...
+            QPhiX::qdp_pack_clover<>(invclov, qphix_out.getInv(cb).get(), qphix_out.getGeom(), cb);
+        }
     }
 
     void QDPCloverTermToQPhiXClover(

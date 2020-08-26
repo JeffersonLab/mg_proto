@@ -67,9 +67,8 @@ namespace MG {
      * Abstract Even-Odd linear operator class
      *
      * \param Spinor_t: vector class
-     * \param Gauge_t: Gauge representation class
      *
-     * EOLinearOpeartor<V,G>::operator() usually represents the Schur complement of the original
+     * EOLinearOpeartor<V>::operator() usually represents the Schur complement of the original
      * operator (unprecOp).
      *
      * Given the original operator split into the even and odd sites, it is factorized as follows
@@ -148,6 +147,16 @@ namespace MG {
         virtual void rightInvOp(Spinor &out, const Spinor &in) const = 0;
 
         /**
+         * Apply M_oo^{-1}
+         *
+         * \param[out] out: the result of applying the operator on "in"
+         * \param in: the input vector
+         */
+
+        virtual void M_oo_inv(Spinor &out, const Spinor &in, IndexType type = LINOP_OP) const = 0;
+
+
+        /**
          * Apply M_ee^{-1}
          *
          * \param[out] out: the result of applying the operator on "in"
@@ -167,7 +176,7 @@ namespace MG {
         virtual void M_diag(Spinor &out, const Spinor &in, int cb) const = 0;
     };
 
-    /**
+     /**
      * Implicit linear operator class
      *
      * \param Spinor_t: vector class
@@ -222,6 +231,30 @@ namespace MG {
         const LatticeInfo _info;
         const CBSubset _subset;
     };
+
+    /**
+     * Linear operator for M_oo^{-1}
+     *
+     * \param Spinor_t: vector class
+     *
+     * EOLinearOpeartor<V>::operator() applies M_oo^{-1}
+     */
+
+    template <typename Spinor_t> class M_oo_inv : public ImplicitLinearOperator<Spinor_t> {
+    public:
+        using Spinor = Spinor_t;
+        M_oo_inv(const EOLinearOperator<Spinor_t> &op)
+            : ImplicitLinearOperator<Spinor_t>(op.GetInfo(), SUBSET_ODD), _op(op) {}
+
+        void operator()(Spinor &out, const Spinor &in, IndexType type = LINOP_OP) const {
+            if (type != LINOP_OP) throw std::runtime_error("type not supported");
+            _op.M_oo_inv(out, in);
+        }
+
+    private:
+        const EOLinearOperator<Spinor_t> &_op;
+};
+
 
 } // namespace MG
 

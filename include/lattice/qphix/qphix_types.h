@@ -239,7 +239,9 @@ namespace MG {
             }
 
             // Store the inverse
-            _inv.reset(new QPhiXCBCloverT<FT>(MGQPhiX::GetGeom<FT>()));
+            for (int cb = 0; cb < 2; ++cb) {
+                _inv[cb].reset(new QPhiXCBCloverT<FT>(MGQPhiX::GetGeom<FT>()));
+            }
         }
 
         ~QPhiXCloverT() {}
@@ -248,9 +250,9 @@ namespace MG {
 
         const QPhiXCBCloverT<FT> &getCB(int cb) const { return *(_data[cb]); }
 
-        QPhiXCBCloverT<FT> &getInv() { return *_inv; }
+        QPhiXCBCloverT<FT> &getInv(int cb) { return *_inv[cb]; }
 
-        const QPhiXCBCloverT<FT> &getInv() const { return *_inv; }
+        const QPhiXCBCloverT<FT> &getInv(int cb) const { return *_inv[cb]; }
 
         const GeomT &getGeom() const { return MGQPhiX::GetGeom<FT>(); }
 
@@ -265,7 +267,7 @@ namespace MG {
     private:
         const LatticeInfo _info;
         std::unique_ptr<QPhiXCBCloverT<FT>> _data[2];
-        std::unique_ptr<QPhiXCBCloverT<FT>> _inv;
+        std::unique_ptr<QPhiXCBCloverT<FT>> _inv[2];
     };
 
     using QPhiXClover = QPhiXCloverT<double>;

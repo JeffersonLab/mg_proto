@@ -134,7 +134,8 @@ namespace MG {
                     MasterLog(
                         DEBUG,
                         "FLEXIBLE ARNOLDI: level=%s norm of Z_j = %16.8e norm of V_j = %16.8e",
-                        level.c_str(), Norm2Vec(*(Z[j]), subset), Norm2Vec(*(V[j]), subset));
+                        level.c_str(), sqrt(Norm2Vec(*(Z[j]), subset)[0]),
+                        sqrt(Norm2Vec(*(V[j]), subset)[0]));
                 }
 #endif
 

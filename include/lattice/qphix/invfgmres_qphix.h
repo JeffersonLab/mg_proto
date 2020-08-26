@@ -29,9 +29,13 @@ namespace MG {
         }
 
     public:
-        FGMRESSmoother(const LinearOperator<Spinor> &M_fine, const LinearSolverParamsBase &params,
+        FGMRESSmoother(const EOLinearOperator<Spinor> &M_fine, const LinearSolverParamsBase &params,
                        const LinearOperator<Spinor> *prec = nullptr)
-            : FGMRESGeneric::FGMRESSolverGeneric<Spinor>(M_fine, setDefaults(params), prec, "S") {}
+            : FGMRESGeneric::FGMRESSolverGeneric<Spinor>(M_fine, setDefaults(params), &_op, "S"),
+              _op(M_fine) {}
+
+    private:
+        M_oo_inv<Spinor> _op;
     };
 
     using FGMRESSmootherQPhiXF = FGMRESSmoother<QPhiXSpinorF>;

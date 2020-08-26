@@ -62,7 +62,7 @@ namespace MG {
                                      const Neigh_spinors &neigh_spinors, IndexType ncol = 1) {
             // This is the same as for the dagger because we have G_5 I G_5 = G_5 G_5 I = I
             // D is the diagonal
-            if (initop == add) {
+            if (initop == add && output != spinor_cb) {
                 for (int i = 0; i < 2 * N_colorspin * ncol; ++i) { output[i] = spinor_cb[i]; }
             }
 
@@ -212,6 +212,34 @@ namespace MG {
         }
     }
 
+    void CoarseDiracOp::M_D_xpay_Mz(CoarseSpinor &spinor_out, const float alpha,
+                                    const CoarseGauge &gauge_in, const CoarseSpinor &spinor_in_cb,
+                                    const CoarseSpinor &spinor_in_od, const IndexType target_cb,
+                                    const IndexType dagger, const IndexType tid) const {
+        IndexType min_site = _thread_limits[tid].min_site;
+        IndexType max_site = _thread_limits[tid].max_site;
+
+        // 	Synchronous for now -- maybe change to comms compute overlap later
+        CommunicateHaloSyncInOMPParallel<CoarseSpinor, CoarseAccessor>(_halo, spinor_in_od,
+                                                                       target_cb);
+
+        IndexType ncol = spinor_in_cb.GetNCol();
+
+        // Site is output site
+        for (IndexType site = min_site; site < max_site; ++site) {
+
+            float *output = spinor_out.GetSiteDataPtr(0, target_cb, site);
+            const float *spinor_cb = spinor_in_cb.GetSiteDataPtr(0, target_cb, site);
+            const float *clov = gauge_in.GetSiteDiagDataPtr(target_cb, site);
+            siteApplyClover(GetNumColorSpin(), output, clov, spinor_cb, dagger, ncol);
+            const Gauge_links gauge_links = get_gauge_links(gauge_in, target_cb, site);
+            const Neigh_spinors neigh_spinors =
+                get_neigh_spinors(_halo, spinor_in_od, target_cb, site);
+            genericSiteOffDiagXPayz(GetNumColorSpin(), InitOp::add, output, alpha, gauge_links,
+                                    dagger, output, neigh_spinors, ncol);
+        }
+    }
+
     void CoarseDiracOp::M_DA_xpayz(CoarseSpinor &spinor_out, const float alpha,
                                    const CoarseGauge &gauge_clov_in, const CoarseSpinor &spinor_cb,
                                    const CoarseSpinor &spinor_in, const IndexType target_cb,
@@ -334,9 +362,9 @@ namespace MG {
             const float *gauge_link_dir = gauge_in.GetSiteDirDataPtr(target_cb, site, dir);
 
             /* The following case statement selects neighbors.
-		 *  It is culled from the full Dslash
-		 *  It of course would get complicated if some of the neighbors were in a halo
-		 */
+             *  It is culled from the full Dslash
+             *  It of course would get complicated if some of the neighbors were in a halo
+             */
 
             const float *neigh_spinor = GetNeighborDir<CoarseSpinor, CoarseAccessor>(
                 _halo, spinor_in, dir, target_cb, site);

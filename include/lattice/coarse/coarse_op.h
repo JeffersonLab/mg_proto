@@ -22,8 +22,8 @@
 namespace MG {
 
     /**
-	 * Operations with CoarseGauge and CoarseSpinor
-	 */
+     * Operations with CoarseGauge and CoarseSpinor
+     */
 
     class CoarseDiracOp : public AuxiliarySpinors<CoarseSpinor> {
     public:
@@ -40,143 +40,160 @@ namespace MG {
         //   so  e.g.  y_cb = M_(cb,cb) x_(cb) + M_(cb,1-cb) x_(1-cb)
 
         /**
-			 * y[cb] = dagger(M)[cb,cb] * x[cb] + dagger(M)[cb,1-cb] * x[1-cb]
-			 *
-			 * \param y: (out) return vector
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 * \param target_cb: CB index of the output vector
-			 * \param dagger: apply M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
-			 * \param tid: thread id
-			 */
+         * y[cb] = dagger(M)[cb,cb] * x[cb] + dagger(M)[cb,1-cb] * x[1-cb]
+         *
+         * \param y: (out) return vector
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         * \param target_cb: CB index of the output vector
+         * \param dagger: apply M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+         * \param tid: thread id
+         */
 
         void unprecOp(CoarseSpinor &y, const CoarseGauge &gauge, const CoarseSpinor &x,
                       const IndexType target_cb, const IndexType dagger, const IndexType tid) const;
 
         /**
-			 * y[cb] = dagger(M)[cb,cb] * x[cb]
-			 *
-			 * \param y: (out) return vector
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 * \param target_cb: CB index of the output vector
-			 * \param dagger: apply M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
-			 * \param tid: thread id
-			 */
+         * y[cb] = dagger(M)[cb,cb] * x[cb]
+         *
+         * \param y: (out) return vector
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         * \param target_cb: CB index of the output vector
+         * \param dagger: apply M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+         * \param tid: thread id
+         */
 
         void M_diag(CoarseSpinor &y, const CoarseGauge &gauge, const CoarseSpinor &x,
                     const IndexType target_cb, const IndexType dagger, const IndexType tid) const;
 
         /**
-			 * y[cb] = inv(dagger(M)[cb,cb]) * x[cb]
-			 *
-			 * \param y: (out) return vector
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 * \param target_cb: CB index of the output vector
-			 * \param dagger: apply M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
-			 * \param tid: thread id
-			 */
+         * y[cb] = inv(dagger(M)[cb,cb]) * x[cb]
+         *
+         * \param y: (out) return vector
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         * \param target_cb: CB index of the output vector
+         * \param dagger: apply M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+         * \param tid: thread id
+         */
 
         void M_diagInv(CoarseSpinor &y, const CoarseGauge &gauge, const CoarseSpinor &x,
                        const IndexType target_cb, const IndexType dagger,
                        const IndexType tid) const;
 
         /**
-			 * y[cb] = alpha * dagger(M)[cb,1-cb] * x[1-cb] + y[cb]
-			 *
-			 * \param y: (in/out) return vector
-			 * \param alpha: scalar
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 * \param target_cb: CB index of the output vector
-			 * \param dagger: apply M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
-			 * \param tid: thread id
-			 */
+         * y[cb] = alpha * dagger(M)[cb,1-cb] * x[1-cb] + y[cb]
+         *
+         * \param y: (in/out) return vector
+         * \param alpha: scalar
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         * \param target_cb: CB index of the output vector
+         * \param dagger: apply M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+         * \param tid: thread id
+         */
 
         void M_D_xpay(CoarseSpinor &y, const float alpha, const CoarseGauge &gauge,
                       const CoarseSpinor &x, const IndexType target_cb, const IndexType dagger,
                       const IndexType tid) const;
 
         /**
-			 * y[cb] = alpha * dagger(A * M)[cb,1-cb] * x[1-cb] + z[cb],
-			 * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
-			 *
-			 * \param y: (in/out) return vector
-			 * \param alpha: scalar
-			 * \param gauge: operator's (M) gauge field
-			 * \param z: input vector
-			 * \param x: input vector
-			 * \param target_cb: CB index of the output vector
-			 * \param dagger: apply A*M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
-			 * \param tid: thread id
-			 */
+         * y[cb] = alpha * dagger(A * M)[cb,1-cb] * x[1-cb] + z[cb],
+         * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
+         *
+         * \param y: (in/out) return vector
+         * \param alpha: scalar
+         * \param gauge: operator's (M) gauge field
+         * \param z: input vector
+         * \param x: input vector
+         * \param target_cb: CB index of the output vector
+         * \param dagger: apply A*M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+         * \param tid: thread id
+         */
 
         void M_AD_xpayz(CoarseSpinor &y, const float alpha, const CoarseGauge &gauge,
                         const CoarseSpinor &z, const CoarseSpinor &x, const IndexType target_cb,
                         const IndexType dagger, const IndexType tid) const;
 
         /**
-			 * y[cb] = alpha * dagger(M * A)[cb,1-cb] * x[1-cb] + z[cb],
-			 * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
-			 *
-			 * \param y: (in/out) return vector
-			 * \param alpha: scalar
-			 * \param gauge: operator's (M) gauge field
-			 * \param z: input vector
-			 * \param x: input vector
-			 * \param target_cb: CB index of the output vector
-			 * \param dagger: apply M*A direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
-			 * \param tid: thread id
-			 */
+         * y[cb] = alpha * dagger(M)[cb,1-cb] * x[1-cb] + M[cb,cb]*z[cb].
+         *
+         * \param y: (in/out) return vector
+         * \param alpha: scalar
+         * \param gauge: operator's (M) gauge field
+         * \param z: input vector
+         * \param x: input vector
+         * \param target_cb: CB index of the output vector
+         * \param dagger: apply A*M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+         * \param tid: thread id
+         */
+
+        void M_D_xpay_Mz(CoarseSpinor &y, const float alpha, const CoarseGauge &gauge,
+                         const CoarseSpinor &z, const CoarseSpinor &x, const IndexType target_cb,
+                         const IndexType dagger, const IndexType tid) const;
+
+        /**
+         * y[cb] = alpha * dagger(M * A)[cb,1-cb] * x[1-cb] + z[cb],
+         * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
+         *
+         * \param y: (in/out) return vector
+         * \param alpha: scalar
+         * \param gauge: operator's (M) gauge field
+         * \param z: input vector
+         * \param x: input vector
+         * \param target_cb: CB index of the output vector
+         * \param dagger: apply M*A direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+         * \param tid: thread id
+         */
 
         void M_DA_xpayz(CoarseSpinor &y, const float alpha, const CoarseGauge &gauge,
                         const CoarseSpinor &z, const CoarseSpinor &x, const IndexType target_cb,
                         const IndexType dagger, const IndexType tid) const;
 
         /**
-			 * y[cb] = dagger(A * M)[cb,1-cb] * x[1-cb]
-			 * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
-			 *
-			 * \param y: (in/out) return vector
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 * \param target_cb: CB index of the output vector
-			 * \param dagger: apply A*M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
-			 * \param tid: thread id
-			 */
+         * y[cb] = dagger(A * M)[cb,1-cb] * x[1-cb]
+         * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
+         *
+         * \param y: (in/out) return vector
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         * \param target_cb: CB index of the output vector
+         * \param dagger: apply A*M direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+         * \param tid: thread id
+         */
 
         void M_AD(CoarseSpinor &y, const CoarseGauge &gauge, const CoarseSpinor &x,
                   const IndexType target_cb, const IndexType dagger, const IndexType tid) const;
 
         /**
-			 * y[cb] = dagger(M * A)[cb,1-cb] * x[1-cb]
-			 * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
-			 *
-			 * \param y: (in/out) return vector
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 * \param target_cb: CB index of the output vector
-			 * \param dagger: apply M*A direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
-			 * \param tid: thread id
-			 */
+         * y[cb] = dagger(M * A)[cb,1-cb] * x[1-cb]
+         * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
+         *
+         * \param y: (in/out) return vector
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         * \param target_cb: CB index of the output vector
+         * \param dagger: apply M*A direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+         * \param tid: thread id
+         */
 
         void M_DA(CoarseSpinor &y, const CoarseGauge &gauge, const CoarseSpinor &x,
                   const IndexType target_cb, const IndexType dagger, const IndexType tid) const;
 
         /**
-			 * y[EVE] = x[EVE],
-			 * y[ODD] = (A * M)[ODD,EVE] * x[EVE] + x[ODD],
-			 * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
-			 *
-			 * \param y: (out) return vector
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 *
-			 * In matrix form,
-			 *   y = [ 1           0 ] * x
-			 *       [ A_oo*D_oe   1 ]
-			 */
+         * y[EVE] = x[EVE],
+         * y[ODD] = (A * M)[ODD,EVE] * x[EVE] + x[ODD],
+         * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
+         *
+         * \param y: (out) return vector
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         *
+         * In matrix form,
+         *   y = [ 1           0 ] * x
+         *       [ D_oe*A_ee   1 ]
+         */
 
         void L_matrix(CoarseSpinor &y, const CoarseGauge &gauge, const CoarseSpinor &x) const {
 
@@ -184,23 +201,23 @@ namespace MG {
 #pragma omp parallel
             {
                 int tid = omp_get_thread_num();
-                M_AD_xpayz(y, 1.0, gauge, y, x, ODD, LINOP_OP, tid);
-            } // omp parallel
+                M_DA_xpayz(y, 1.0, gauge, y, x, ODD, LINOP_OP, tid);
+            }
         }
 
         /**
-			 * y[EVE] = x[EVE],
-			 * y[ODD] = -(A * M)[ODD,EVE] * x[EVE] + x[ODD],
-			 * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
-			 *
-			 * \param y: (out) return vector
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 *
-			 * In matrix form,
-			 *   y = [  1           0 ] * x = [ 1           0 ]^{-1} * x
-			 *       [ -A_oo*D_oe   1 ]       [ A_oo*D_oe   1 ]
-			 */
+         * y[EVE] = x[EVE],
+         * y[ODD] = -(A * M)[ODD,EVE] * x[EVE] + x[ODD],
+         * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
+         *
+         * \param y: (out) return vector
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         *
+         * In matrix form,
+         *   y = [  1           0 ] * x = [ 1           0 ]^{-1} * x
+         *       [ -D_oe*A_ee   1 ]       [ D_oe*A_ee   1 ]
+         */
 
         void L_inv_matrix(CoarseSpinor &y, const CoarseGauge &gauge, const CoarseSpinor &x) const {
 
@@ -208,23 +225,23 @@ namespace MG {
 #pragma omp parallel
             {
                 int tid = omp_get_thread_num();
-                M_AD_xpayz(y, -1.0, gauge, y, x, ODD, LINOP_OP, tid);
-            } // omp parallel
+                M_DA_xpayz(y, -1.0, gauge, y, x, ODD, LINOP_OP, tid);
+            }
         }
 
         /**
-			 * y[EVE] = (A * M)[EVE,ODD] * x[ODD] + x[EVE],
-			 * y[ODD] = x[ODD],
-			 * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
-			 *
-			 * \param y: (out) return vector
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 *
-			 * In matrix form,
-			 *   y = [ 1   A_ee*D_oe ] * x
-			 *       [ 0           1 ] 
-			 */
+         * y[EVE] = (A * M)[EVE,ODD] * x[ODD] + x[EVE],
+         * y[ODD] = x[ODD],
+         * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
+         *
+         * \param y: (out) return vector
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         *
+         * In matrix form,
+         *   y = [ 1   A_ee*D_oe ] * x
+         *       [ 0           1 ]
+         */
 
         void R_matrix(CoarseSpinor &y, const CoarseGauge &gauge, const CoarseSpinor &x) const {
 
@@ -237,18 +254,18 @@ namespace MG {
         }
 
         /**
-			 * y[EVE] = -(A * M)[EVE,ODD] * x[ODD] + x[EVE],
-			 * y[ODD] = x[ODD],
-			 * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
-			 *
-			 * \param y: (out) return vector
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 *
-			 * In matrix form,
-			 *   y = [ 1  -A_ee*D_oe ] * x = [ 1   A_ee*D_oe ]^{-1} * x
-			 *       [ 0           1 ]       [ 0           1 ] 
-			 */
+         * y[EVE] = -(A * M)[EVE,ODD] * x[ODD] + x[EVE],
+         * y[ODD] = x[ODD],
+         * where A[cb,cb] = inv(M[cb,cb]), A[cb,1-cb] = 0.
+         *
+         * \param y: (out) return vector
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         *
+         * In matrix form,
+         *   y = [ 1  -A_ee*D_oe ] * x = [ 1   A_ee*D_oe ]^{-1} * x
+         *       [ 0           1 ]       [ 0           1 ]
+         */
 
         void R_inv_matrix(CoarseSpinor &y, const CoarseGauge &gauge, const CoarseSpinor &x) const {
 
@@ -261,14 +278,14 @@ namespace MG {
         }
 
         /**
-			 * y[cb] = dagger(I - M[cb,cb]^{-1} * M[cb,1-cb] * M[1-cb,1-cb]^{-1} * M[1-cb,cb]) * x[cb]
-			 *
-			 * \param y: (in/out) return vector
-			 * \param gauge: operator's (M) gauge field
-			 * \param x: input vector
-			 * \param target_cb: CB index of the output vector
-			 * \param dagger: apply direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
-			 */
+         * y[cb] = dagger(M[cb,cb] - M[cb,1-cb] * M[1-cb,1-cb]^{-1} * M[1-cb,cb]) * x[cb]
+         *
+         * \param y: (in/out) return vector
+         * \param gauge: operator's (M) gauge field
+         * \param x: input vector
+         * \param target_cb: CB index of the output vector
+         * \param dagger: apply direct (LINOP_OP) or conjugate-transposed (LINOP_DAGGER)
+         */
 
         void EOPrecOp(CoarseSpinor &spinor_out, const CoarseGauge &gauge_in,
                       const CoarseSpinor &spinor_in, const int target_cb,
@@ -278,18 +295,11 @@ namespace MG {
             {
                 int tid = omp_get_thread_num();
 
-                // dagger = LINOP_OP => tmp = A^{-1} D spinor_in
-                // dagger = LINOP_DAGGER => tmp = Gamma_c D A^{-1} Gamma_c spinor in
                 M_AD(*t, gauge_in, spinor_in, 1 - target_cb, dagger, tid);
 #pragma omp barrier
 
-                // dagger = LINOP_OP => out = spinor_in - A^{-1} D tmpvec = spinor_in - A^{-1} D A^{-1} D spinor_in
-                // dagger = LINOP_DAGGER => out = spinor_in - Gamma_c D A^{-1} Gamma_c tmpvec
-                //                              = spinor_in - Gamma_c D A^{-1} Gamma_c Gamma_c D A^{-1} Gamma_c spinor in
-                //                              = spinor_in - Gamma_c D A^{1} D A^{-1} Gamma_c spinor_in
-                //
-                M_AD_xpayz(spinor_out, -1.0, gauge_in, spinor_in, *t, target_cb, dagger, tid);
-            } // Parallel
+                M_D_xpay_Mz(spinor_out, -1.0, gauge_in, spinor_in, *t, target_cb, dagger, tid);
+            }
         }
 
         void CloverApply(CoarseSpinor &spinor_out, const CoarseGauge &gauge_clov_in,
