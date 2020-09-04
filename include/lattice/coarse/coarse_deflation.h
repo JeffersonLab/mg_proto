@@ -183,7 +183,7 @@ namespace MG {
 
         // Local clean-up
         delete[] rnorms;
-        delete evecs;
+        delete[] evecs;
         primme_free(&primme);
 
         // Check solution
