@@ -45,14 +45,7 @@ namespace MG {
          */
 
         void operator()(Spinor &out, const Spinor &in, IndexType type = LINOP_OP) const override {
-            std::shared_ptr<Spinor> t = tmp(in);
-#pragma omp parallel
-            {
-                int tid = omp_get_thread_num();
-                _the_op.M_diagInv(*t, *_u, in, EVEN, LINOP_OP, tid);
-                _the_op.M_diagInv(*t, *_u, in, ODD, LINOP_OP, tid);
-            }
-            _the_op.EOPrecOp(out, *_u, *t, ODD, type);
+            _the_op.EOPrecOp(out, *_u, in, ODD, type);
         }
 
         /**
@@ -123,14 +116,7 @@ namespace MG {
          */
 
         void rightOp(Spinor &out, const Spinor &in) const override {
-            std::shared_ptr<Spinor> t = tmp(in);
-            _the_op.R_matrix(*t, (*_u), in);
-#pragma omp parallel
-            {
-                int tid = omp_get_thread_num();
-                _the_op.M_diag(out, *_u, *t, EVEN, LINOP_OP, tid);
-                _the_op.M_diag(out, *_u, *t, ODD, LINOP_OP, tid);
-            }
+            _the_op.R_matrix(out, (*_u), in);
         }
 
         /**
@@ -145,14 +131,7 @@ namespace MG {
          */
 
         void rightInvOp(Spinor &out, const Spinor &in) const override {
-            std::shared_ptr<Spinor> t = tmp(in);
-#pragma omp parallel
-            {
-                int tid = omp_get_thread_num();
-                _the_op.M_diagInv(*t, *_u, in, EVEN, LINOP_OP, tid);
-                _the_op.M_diagInv(*t, *_u, in, ODD, LINOP_OP, tid);
-            }
-            _the_op.R_inv_matrix(out, *_u, *t);
+            _the_op.R_inv_matrix(out, *_u, in);
         }
 
         /**
