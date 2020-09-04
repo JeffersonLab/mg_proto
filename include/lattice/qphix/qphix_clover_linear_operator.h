@@ -197,10 +197,10 @@ namespace MG {
             assert(out.GetNCol() == in.GetNCol());
             IndexType ncol = out.GetNCol();
             for (int col = 0; col < ncol; ++col)
-                QPhiXEOClov->M_diag_inv(out.getCB(col, 0).get(), in.getCB(col, 0).get(), isign, ODD);
+                QPhiXEOClov->M_diag_inv(out.getCB(col, 1).get(), in.getCB(col, 1).get(), isign, ODD);
         }
 
-        const CBSubset &GetSubset() const override { return SUBSET_ALL; }
+        const CBSubset &GetSubset() const override { return SUBSET_ODD; }
 
         const LatticeInfo &GetInfo(void) const override { return _info; }
 
