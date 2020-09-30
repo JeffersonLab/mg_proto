@@ -327,6 +327,13 @@ namespace MG {
 
         // The opposite direction
         int opp_dir = dir / 2 * 2 + 1 - dir % 2;
+
+#pragma omp master
+        {
+            _halo.setNCols(spinor_in.GetNCol());
+        }
+#pragma omp barrier
+
         if (!_halo.LocalDir(dir / 2)) {
             // Prepost receive
 #pragma omp master
