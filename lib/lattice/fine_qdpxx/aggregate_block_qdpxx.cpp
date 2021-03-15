@@ -9,7 +9,7 @@
 #include "lattice/fine_qdpxx/transf.h"
 #include "lattice/constants.h"
 #include "lattice/geometry_utils.h"
-
+#include <cassert>
 
 using namespace QDP;
 
