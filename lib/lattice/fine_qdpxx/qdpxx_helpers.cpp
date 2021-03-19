@@ -8,6 +8,8 @@
 #include "lattice/fine_qdpxx/qdpxx_helpers.h"
 #include "lattice/lattice_info.h"
 #include <qdp.h>
+#include <cassert>
+
 using namespace QDP;
 
 namespace MG {

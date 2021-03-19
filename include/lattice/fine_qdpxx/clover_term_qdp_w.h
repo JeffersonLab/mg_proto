@@ -5,6 +5,7 @@
 #include "lattice/fine_qdpxx/clover_fermact_params_w.h"
 #include "lattice/fine_qdpxx/mesfield.h"
 #include <qdp.h>
+#include <cassert>
 
 namespace MG {
 
