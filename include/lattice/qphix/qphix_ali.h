@@ -36,9 +36,9 @@ namespace MG {
     namespace GlobalComm {
 
 #ifdef MG_QMP_COMMS
-        void GlobalSum(double &array) { QMP_sum_double_array(&array, 1); }
+        inline void GlobalSum(double &array) { QMP_sum_double_array(&array, 1); }
 #else
-        void GlobalSum(double &array) {}
+        inline void GlobalSum(double &array) {}
 #endif
     } // namespace GlobalComm
 
