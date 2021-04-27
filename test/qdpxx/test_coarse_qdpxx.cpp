@@ -270,8 +270,8 @@ TEST(TestCoarseQDPXXBlock, TestRestrictorTrivial)
 	for(int cb=0; cb < n_checkerboard; ++cb) {
 		for(int cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite) {
 
-			float* coarse_site_cursite = coarse_site.GetSiteDataPtr(cb,cbsite);
-			float* coarse_block_cursite = coarse_block.GetSiteDataPtr(cb,cbsite);
+			float* coarse_site_cursite = coarse_site.GetSiteDataPtr(0,cb,cbsite);
+			float* coarse_block_cursite = coarse_block.GetSiteDataPtr(0,cb,cbsite);
 			// Loop over the components - contiguous NumColorspin x n_complex
 			for(int comp = 0; comp < n_complex*coarse_block.GetNumColorSpin(); ++comp) {
 				QDPIO::cout << "cb="<< cb << " site=" <<  cbsite << " component = " << comp
@@ -713,7 +713,7 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseClov)
 
 	QDPIO::cout << "Checking Clov_c v_c = R Clov_f P v_c. " << std::endl;
 	// We should now compare out, with fake_out. For this we need an xmy
-	double norm_diff = sqrt(XmyNorm2Vec(fake_out,out));
+	double norm_diff = sqrt(XmyNorm2Vec(fake_out,out)[0]);
 	double norm_diff_per_site = norm_diff / (double)fake_out.GetInfo().GetNumSites();
 
 	MasterLog(INFO, "OP = %d", op);
@@ -1447,8 +1447,8 @@ TEST(TestCoarseQDPXXBlock, TestRestrictProlong)
 	restrictSpinorQDPXXFineToCoarse(my_blocks, vecs, intermediary, out);
 	for(int ccb=0; ccb < 2; ++ccb) {
 		for(int ccbsite=0; ccbsite < info.GetNumCBSites(); ++ccbsite) {
-			float *site_data = in.GetSiteDataPtr(ccb,ccbsite);
-			float *site_data2 = out.GetSiteDataPtr(ccb,ccbsite);
+			float *site_data = in.GetSiteDataPtr(0,ccb,ccbsite);
+			float *site_data2 = out.GetSiteDataPtr(0,ccb,ccbsite);
 			for(int cspin=0; cspin < out.GetNumColorSpin(); ++cspin) {
 //				QDPIO::cout << " in[cb="<< ccb<<"][csite=" << ccbsite <<"][cspin=" << cspin <<"]=("
 //						<< site_data[RE+cspin*n_complex] << ", " << site_data[IM + cspin*n_complex] << ")       "
@@ -1489,7 +1489,7 @@ void zeroImagPart(CoarseSpinor& spinor)
 	const int num_cbsites = info.GetNumCBSites();
 	for(int cb=0; cb < n_checkerboard;++cb) {
 		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
-			float* s_data = spinor.GetSiteDataPtr(cb,cbsite);
+			float* s_data = spinor.GetSiteDataPtr(0,cb,cbsite);
 			for(int cspin=0; cspin < spinor.GetNumColorSpin(); cspin++) {
 				s_data[IM + n_complex*cspin ] = 0;
 			}
@@ -1502,7 +1502,7 @@ void Fill(CoarseSpinor& spinor, const float re, const float im)
 	const int num_cbsites = info.GetNumCBSites();
 	for(int cb=0; cb < n_checkerboard;++cb) {
 		for(int cbsite=0; cbsite < num_cbsites; ++cbsite) {
-			float* s_data = spinor.GetSiteDataPtr(cb,cbsite);
+			float* s_data = spinor.GetSiteDataPtr(0,cb,cbsite);
 			for(int cspin=0; cspin < spinor.GetNumColorSpin(); cspin++) {
 				s_data[RE + n_complex*cspin ] = re - 0.2*cspin;
 				s_data[IM + n_complex*cspin ] = im + 0.05*cspin;
@@ -1540,7 +1540,7 @@ TEST(TestCoarseQDPXXBlock, TestCoarseDslashNeighbors)
 			ASSERT_EQ( coords[1], coords2[1] );
 			ASSERT_EQ( coords[2], coords2[2] );
 			ASSERT_EQ( coords[3], coords2[3] );
-			float* v_data = in.GetSiteDataPtr(cb,cbsites);
+			float* v_data = in.GetSiteDataPtr(0,cb,cbsites);
 			v_data[0] = (float)coords[0];
 			v_data[1] = (float)coords[1];
 			v_data[2] = (float)coords[2];
@@ -1577,7 +1577,7 @@ TEST(TestCoarseQDPXXBlock, TestCoarseDslashNeighbors)
 
 		for(int cb=0; cb < n_checkerboard; ++cb) {
 			for(int cbsites=0; cbsites < num_cbsites; ++cbsites) {
-				const float* out_data = out.GetSiteDataPtr(cb,cbsites);
+				const float* out_data = out.GetSiteDataPtr(0,cb,cbsites);
 				IndexArray my_coords={{0,0,0,0}};
 				CBIndexToCoords(cbsites,cb, latdims,info.GetLatticeOrigin(),my_coords); // Get My Coords
 				IndexArray expected = my_coords;
@@ -1701,7 +1701,7 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslashUnitGaugeDir6)
 	int num_coarse_colorspin = v_c.GetNumColorSpin();
 	for(int coarse_cb=0; coarse_cb < n_checkerboard; ++coarse_cb) {
 		for(int coarse_cbsite=0; coarse_cbsite < num_coarse_cbsites;++coarse_cbsite) {
-			float *vec_data =v_c.GetSiteDataPtr(coarse_cb,coarse_cbsite);
+			float *vec_data =v_c.GetSiteDataPtr(0,coarse_cb,coarse_cbsite);
 			int idx = coarse_cbsite + coarse_cb*num_coarse_cbsites;
 			IndexArray coords;
 			CBIndexToCoords(coarse_cbsite,coarse_cb,blocked_lattice_dims,info.GetLatticeOrigin(),coords);
@@ -1751,8 +1751,8 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslashUnitGaugeDir6)
 
 	for(int ccb=0; ccb < 2; ++ccb) {
 		for(int ccbsite=0; ccbsite < info.GetNumCBSites(); ++ccbsite) {
-			float *fake_data = fake_out.GetSiteDataPtr(ccb,ccbsite);
-			float *out_data = out.GetSiteDataPtr(ccb,ccbsite);
+			float *fake_data = fake_out.GetSiteDataPtr(0,ccb,ccbsite);
+			float *out_data = out.GetSiteDataPtr(0,ccb,ccbsite);
 			for(int cspin=0; cspin < out.GetNumColorSpin(); ++cspin) {
 				QDPIO::cout << " fake_out[cb="<< ccb<<"][csite=" << ccbsite <<"][cspin=" << cspin <<"]=("
 						<< fake_data[RE+cspin*n_complex] << ", " << fake_data[IM + cspin*n_complex] << ")       "
@@ -1873,8 +1873,8 @@ TEST(TestCoarseQDPXXBlock, TestFakeCoarseDslash)
 
 		for(int ccb=0; ccb < 2; ++ccb) {
 			for(int ccbsite=0; ccbsite < info.GetNumCBSites(); ++ccbsite) {
-				float *fake_data = fake_out.GetSiteDataPtr(ccb,ccbsite);
-				float *out_data = out.GetSiteDataPtr(ccb,ccbsite);
+				float *fake_data = fake_out.GetSiteDataPtr(0,ccb,ccbsite);
+				float *out_data = out.GetSiteDataPtr(0,ccb,ccbsite);
 				for(int cspin=0; cspin < out.GetNumColorSpin(); ++cspin) {
 
 					ASSERT_NEAR( fake_data[ RE + cspin*n_complex], out_data[ RE + cspin*n_complex], 5.0e-6);

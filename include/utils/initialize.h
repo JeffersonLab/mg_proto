@@ -10,22 +10,19 @@
 #include "MG_config.h"
 
 #ifdef MG_USE_QPHIX
-#include <qphix/qphix_cli_args.h>
-#include <memory>
+#    include <memory>
+#    include <qphix/qphix_cli_args.h>
 #endif
 namespace MG {
-	bool isInitialized(void);
-	void initialize(int *argc, char ***argv);  // Initialize our system
-	void finalize();                        // Finalize our system
-	void abort();                            // Abort the system
+    bool isInitialized(void);
+    void initialize(int *argc, char ***argv); // Initialize our system
+    void finalize();                          // Finalize our system
+    void abort();                             // Abort the system
 
 #ifdef MG_USE_QPHIX
-	QPhiX::QPhiXCLIArgs& getQPhiXCLIArgs(void);
-	void InitCLIArgs(int *argc, char ***argv);
+    QPhiX::QPhiXCLIArgs &getQPhiXCLIArgs(void);
+    void InitCLIArgs(int *argc, char ***argv);
 #endif
-
-};
-
-
+}
 
 #endif /* INCLUDE_UTILS_INITIALIZE_H_ */

@@ -9,8 +9,10 @@ LIST(APPEND library_source_list lattice/aggregate_block_coarse.cpp
 			   lattice/lattice_info.cpp
 			   lattice/mg_level_coarse.cpp
 			   lattice/nodeinfo.cpp
+			   lattice/coloring.cpp
 			   utils/initialize.cpp
 			   utils/print_utils.cpp
+			   utils/timer.cpp
 			   utils/memory.cpp)
 
 

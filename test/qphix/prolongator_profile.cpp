@@ -35,9 +35,12 @@
 
 #include <lattice/qphix/qphix_transfer.h>
 
+#include <utils/auxiliary.h>
+
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
+using namespace MG::aux;
 
 
 
@@ -93,37 +96,40 @@ TEST(Timing, ProlongatorProfile)
 
 	  QPhiXTransfer<QPhiXSpinorF> Transf(blocklist,null_vecs);
 
+  const int ncol = 1;
 	  {
 		  MasterLog(INFO, "Testing Prolongator");
-		  CoarseSpinor coarse(coarse_info);
+		  CoarseSpinor coarse(coarse_info, ncol);
 		  Gaussian(coarse);
 
-		  QPhiXSpinorF fine(fine_info);
-		  QPhiXSpinorF fine2(fine_info);
+		  QPhiXSpinorF fine(fine_info, ncol);
+		  QPhiXSpinorF fine2(fine_info, ncol);
 
 
 		  prolongateSpinor(blocklist, null_vecs, coarse, fine);
 
 		  Transf.P(coarse,fine2);
 
-		  double ref = Norm2Vec(fine);
-		  MasterLog(INFO,"Coarse Vector has norm=%lf", sqrt(ref));
-		  double ref2 = Norm2Vec(fine2);
-		  MasterLog(INFO,"Coarse Vector has norm=%lf", sqrt(ref2));
+		  std::vector<double> ref = Norm2Vec(fine);
+		  for (int col=0; col < ncol; ++col) MasterLog(INFO,"Coarse Vector has norm=%lf", sqrt(ref[col]));
+		  std::vector<double> ref2 = Norm2Vec(fine2);
+      for (int col=0; col < ncol; ++col) MasterLog(INFO,"Coarse Vector has norm=%lf", sqrt(ref2[col]));
 
-		  double norm_diff = sqrt(XmyNorm2Vec(fine,fine2));
-		  double rel_norm_diff = norm_diff/sqrt(ref);
-		  MasterLog(INFO, "norm_diff=%16.8e",norm_diff);
-		  MasterLog(INFO, "rel_norm_diff = %16.8e", rel_norm_diff);
-		  double tol=1.0e-6;
-		  ASSERT_LT( rel_norm_diff, tol );
-	  }
+      std::vector<double> norm_diff = sqrt(XmyNorm2Vec(fine,fine2));
+      for (int col=0; col < ncol; ++col){
+        double rel_norm_diff = norm_diff[col]/sqrt(ref[col]);
+        MasterLog(INFO, "norm_diff=%16.8e",norm_diff[col]);
+        MasterLog(INFO, "rel_norm_diff = %16.8e", rel_norm_diff);
+        double tol=1.0e-6;
+        ASSERT_LT( rel_norm_diff, tol );
+      }
+    }
 
 
 
 
-	  QPhiXSpinorF fine(fine_info);
-	  CoarseSpinor coarse(coarse_info);
+	  QPhiXSpinorF fine(fine_info, ncol);
+	  CoarseSpinor coarse(coarse_info, ncol);
 
 	  Gaussian(coarse);
 	  Gaussian(fine);

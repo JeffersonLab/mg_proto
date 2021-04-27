@@ -5,24 +5,45 @@
  *      Author: bjoo
  */
 
-#include <lattice/coarse/invmr_coarse.h>
+#include "lattice/coarse/coarse_l1_blas.h"
+#include "lattice/coarse/coarse_types.h"
 #include "lattice/constants.h"
 #include "lattice/linear_operator.h"
-#include "lattice/solver.h"
 #include "lattice/mr_params.h"
-#include "lattice/coarse/coarse_types.h"
-#include "lattice/coarse/coarse_l1_blas.h"
+#include "lattice/solver.h"
+#include <lattice/coarse/invmr_coarse.h>
 
 #include "utils/print_utils.h"
 
+#include <algorithm>
 #include <complex>
 
-namespace MG
-{
+namespace MG {
 
+    namespace {
+        /** all_false
+ *
+ * 	Returns true if all elements are false
+ */
+        bool all_false(const std::vector<bool> &x) {
+            return std::all_of(x.begin(), x.end(), [](bool b) { return !b; });
+        }
 
-//! Minimal-residual (MR) algorithm for a generic Linear Operator
-/*! \ingroup invert
+        /** negate
+ *
+ * 	Flip sign on all elements
+ */
+        template <typename T>
+        std::vector<std::complex<float>> negate(const std::vector<std::complex<T>> &x) {
+            std::vector<std::complex<float>> r(x.size());
+            std::transform(x.begin(), x.end(), r.begin(),
+                           [](const std::complex<T> &f) { return -f; });
+            return r;
+        }
+    } // namespace
+
+    //! Minimal-residual (MR) algorithm for a generic Linear Operator
+    /*! \ingroup invert
  * This subroutine uses the Minimal Residual (MR) algorithm to determine
  * the solution of the set of linear equations. Here we allow M to be nonhermitian.
  *
@@ -72,225 +93,210 @@ namespace MG
  * @{
  */
 
+    std::vector<LinearSolverResults>
+    InvMR_T(const LinearOperator<CoarseSpinor> &M, const CoarseSpinor &chi, CoarseSpinor &psi,
+            const double &OmegaRelax, const double &RsdTarget, int MaxIter, IndexType OpType,
+            ResiduumType resid_type, bool VerboseP, bool TerminateOnResidua, InitialGuess guess) {
 
-LinearSolverResults
-InvMR_T(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
-		const CoarseSpinor& chi,
-		CoarseSpinor& psi,
-		const double& OmegaRelax,
-		const double& RsdTarget,
-		int MaxIter,
-		IndexType OpType,
-		ResiduumType resid_type,
-		bool VerboseP,
-		bool TerminateOnResidua)
-{
-	const int level = M.GetLevel();
-	const CBSubset& subset = M.GetSubset();
+        const int level = M.GetLevel();
+        const CBSubset &subset = M.GetSubset();
+        IndexType ncol = psi.GetNCol();
 
-	const LatticeInfo& info = chi.GetInfo();
-	{
-		const LatticeInfo& M_info = M.GetInfo();
-		AssertCompatible( M_info, info );
-		const LatticeInfo& psi_info = psi.GetInfo();
-		AssertCompatible( psi_info, info );
-	}
+        const LatticeInfo &info = chi.GetInfo();
+        {
+            const LatticeInfo &M_info = M.GetInfo();
+            AssertCompatible(M_info, info);
+            const LatticeInfo &psi_info = psi.GetInfo();
+            AssertCompatible(psi_info, info);
+        }
 
-	if( MaxIter < 0 ) {
-		MasterLog(ERROR,"MR: level=%d Invalid Value: MaxIter < 0 ",level);
-	}
+        if (MaxIter < 0) { MasterLog(ERROR, "MR: level=%d Invalid Value: MaxIter < 0 ", level); }
 
-	LinearSolverResults res;
-	if ( MaxIter == 0 ) {
-		// No work to do -- likely only happens in the case of a smoother
-		res.resid_type=INVALID;
-		res.n_count = 0;
-		res.resid = -1;
-		return res;
-	}
+        if (MaxIter == 0) {
+            LinearSolverResults res;
+            // No work to do -- likely only happens in the case of a smoother
+            res.resid_type = INVALID;
+            res.n_count = 0;
+            res.resid = -1;
+            return std::vector<LinearSolverResults>(ncol, res);
+        }
 
-	res.resid_type = resid_type;
+        std::vector<LinearSolverResults> res(ncol);
 
-	CoarseSpinor Mr(info);
-	CoarseSpinor chi_internal(info);
+        for (int col = 0; col < ncol; ++col) res[col].resid_type = resid_type;
 
-	std::complex<double> a;
-	std::complex<double> c;
-	double d;
-	int k=0;
+        CoarseSpinor Mr(info, ncol);
+        CoarseSpinor chi_internal(info, ncol);
 
+        int k = 0;
 
-	// chi_internal[s] = chi;
-	// ZeroVec(chi_internal);
-	CopyVec(chi_internal, chi, subset);
+        // chi_internal[s] = chi;
+        // ZeroVec(chi_internal);
+        CopyVec(chi_internal, chi, subset);
 
-	/*  r[0]  :=  Chi - M . Psi[0] */
-	/*  r  :=  M . Psi  */
-	M(Mr, psi, OpType);
+        /*  r[0]  :=  Chi - M . Psi[0] */
+        /*  r  :=  M . Psi  */
+        if (guess == InitialGuessGiven) {
+            M(Mr, psi, OpType);
+        } else {
+            ZeroVec(Mr, subset);
+        }
 
-	CoarseSpinor r(info);
-	// r[s]= chi_internal - Mr;
-	XmyzVec(chi_internal,Mr,r,subset);
+        CoarseSpinor r(info, ncol);
+        // r[s]= chi_internal - Mr;
+        XmyzVec(chi_internal, Mr, r, subset);
 
+        std::vector<double> norm_chi_internal;
+        std::vector<double> rsd_sq(ncol, RsdTarget * RsdTarget);
+        std::vector<double> cp;
 
-	double norm_chi_internal;
-	double rsd_sq;
-	double cp;
+        // TerminateOnResidua==true: if we met the residuum criterion we'd have terminated, safe to say
+        // no to terminate TerminateOnResidua==false: We need to do at least 1 iteration (otherwise we'd
+        // have exited)
+        std::vector<bool> continueP(ncol, true);
 
-	if( TerminateOnResidua ) {
-		norm_chi_internal = Norm2Vec(chi_internal, subset);
-		rsd_sq = RsdTarget*RsdTarget;
+        if (TerminateOnResidua) {
+            norm_chi_internal = Norm2Vec(chi_internal, subset);
 
-		if( resid_type == RELATIVE ) {
-			rsd_sq *= norm_chi_internal;
-		}
+            if (resid_type == RELATIVE) {
+                for (int col = 0; col < ncol; ++col) rsd_sq[col] *= norm_chi_internal[col];
+            }
 
-		/*  Cp = |r[0]|^2 */
-		double cp = Norm2Vec(r,subset);                 /* 2 Nc Ns  flops */
+            /*  Cp = |r[0]|^2 */
+            cp = Norm2Vec(r, subset); /* 2 Nc Ns  flops */
 
-		if( VerboseP ) {
+            if (VerboseP) {
+                for (int col = 0; col < ncol; ++col) {
+                    MasterLog(INFO,
+                              "MR: col=%d, level=%d iter=%d || r ||^2 = %16.8e  Target || r ||^2 = "
+                              "%16.8e",
+                              col, level, k, cp[col], rsd_sq[col]);
+                }
+            }
 
-			MasterLog(INFO, "MR: level=%d iter=%d || r ||^2 = %16.8e  Target || r ||^2 = %16.8e",level,k,cp, rsd_sq);
+            /*  IF |r[0]| <= RsdMR |Chi| THEN RETURN; */
+            for (int col = 0; col < ncol; ++col) {
+                if (cp[col] <= rsd_sq[col]) {
+                    res[col].n_count = 0;
+                    res[col].resid = sqrt(cp[col]);
+                    if (resid_type == ABSOLUTE) {
+                        if (VerboseP) {
+                            MasterLog(
+                                INFO,
+                                "MR Solver: col=%d level=%d Final iters=0 || r ||_accum=16.8e || "
+                                "r ||_actual = %16.8e",
+                                col, level, sqrt(cp[col]), res[col].resid);
+                        }
+                    } else {
 
-		}
+                        res[col].resid /= sqrt(norm_chi_internal[col]);
+                        if (VerboseP) {
+                            MasterLog(
+                                INFO,
+                                "MR: col=%d level=%d Final iters=0 || r ||/|| b ||_accum=16.8e "
+                                "|| r ||/|| b ||_actual = %16.8e",
+                                col, level, sqrt(cp[col] / norm_chi_internal[col]), res[col].resid);
+                        }
+                    }
 
-		/*  IF |r[0]| <= RsdMR |Chi| THEN RETURN; */
-		if ( cp  <=  rsd_sq )
-		{
-			res.n_count = 0;
-			res.resid   = sqrt(cp);
-			if( resid_type == ABSOLUTE ) {
-				if( VerboseP ) {
-					MasterLog(INFO, "MR Solver: level=%d Final iters=0 || r ||_accum=16.8e || r ||_actual = %16.8e",level,
-							sqrt(cp), res.resid);
+                    continueP[col] = false;
+                }
+            }
+        }
 
-				}
-			}
-			else {
+        if (all_false(continueP)) return res;
 
-				res.resid /= sqrt(norm_chi_internal);
-				if( VerboseP ) {
-					MasterLog(INFO, "MR: level=%d Final iters=0 || r ||/|| b ||_accum=16.8e || r ||/|| b ||_actual = %16.8e",level,
-							sqrt(cp/norm_chi_internal), res.resid);
-				}
-			}
+        /* Main iteration loop */
+        while (!all_false(continueP) && k < MaxIter) {
+            ++k;
 
-			return res;
-		}
-	}
+            /*  a[k-1] := < M.r[k-1], r[k-1] >/ < M.r[k-1], M.r[k-1] > ; */
+            /*  Mr = M * r  */
+            M(Mr, r, OpType);
+            /*  c = < M.r, r > */
+            std::vector<std::complex<double>> c = InnerProductVec(Mr, r, subset);
 
-	// TerminateOnResidua==true: if we met the residuum criterion we'd have terminated, safe to say no to terminate
-	// TerminateOnResidua==false: We need to do at least 1 iteration (otherwise we'd have exited)
-	bool continueP = true;
+            /*  d = | M.r | ** 2  */
+            std::vector<double> d = Norm2Vec(Mr, subset);
 
-	/* Main iteration loop */
-	while( continueP )
-	{
-		++k;
+            /*  a = c / d */
+            std::vector<std::complex<float>> a(ncol);
+            for (int col = 0; col < ncol; ++col) a[col] = c[col] / d[col];
 
-		/*  a[k-1] := < M.r[k-1], r[k-1] >/ < M.r[k-1], M.r[k-1] > ; */
-		/*  Mr = M * r  */
-		M(Mr, r, OpType);
-		/*  c = < M.r, r > */
-		c = InnerProductVec(Mr, r,subset);
+            /*  a[k-1] *= MRovpar ; */
+            for (int col = 0; col < ncol; ++col)
+                a[col] = a[col] * std::complex<float>(OmegaRelax, 0);
 
-		/*  d = | M.r | ** 2  */
-		d = Norm2Vec(Mr,subset);
+            /*  Psi[k] += a[k-1] r[k-1] ; */
+            // psi[s] += r * a;
+            AxpyVec(a, r, psi, subset);
 
-		/*  a = c / d */
-		a = c / d;
+            /*  r[k] -= a[k-1] M . r[k-1] ; */
+            // r[s] -= Mr * a;
+            AxpyVec(negate(a), Mr, r, subset);
 
-		/*  a[k-1] *= MRovpar ; */
-		a = a * OmegaRelax;
+            if (TerminateOnResidua) {
 
-		/*  Psi[k] += a[k-1] r[k-1] ; */
-		//psi[s] += r * a;
-		std::complex<float> af( (float)a.real(), (float)a.imag() );
-		AxpyVec(af,r,psi,subset);
+                /*  cp  =  | r[k] |**2 */
+                cp = Norm2Vec(r, subset);
+                if (VerboseP) {
+                    for (int col = 0; col < ncol; ++col) {
+                        MasterLog(INFO,
+                                  "MR: level=%d iter=%d col=%d || r ||^2 = %16.8e  Target || r^2 "
+                                  "|| = %16.8e",
+                                  level, k, col, cp[col], rsd_sq[col]);
+                        if (continueP[col] && cp[col] <= rsd_sq[col]) {
+                            res[col].n_count = k;
+                            continueP[col] = false;
+                        }
+                    }
+                }
+            } else {
+                if (VerboseP) { MasterLog(INFO, "MR: level=%d iter=%d", level, k); }
+            }
+        }
+        for (int col = 0; col < ncol; ++col) {
+            if (continueP[col]) res[col].n_count = k;
+            res[col].resid = 0;
+        }
 
-		/*  r[k] -= a[k-1] M . r[k-1] ; */
-		// r[s] -= Mr * a;
-		std::complex<float> maf(-af.real(), -af.imag());
-		AxpyVec(maf,Mr,r,subset);
+        if (TerminateOnResidua) {
+            // Compute the actual residual
 
-		if( TerminateOnResidua ) {
+            M(Mr, psi, OpType);
+            // Double actual_res = norm2(chi_internal - Mr,s);
+            std::vector<double> actual_res = XmyNorm2Vec(chi_internal, Mr, subset);
+            for (int col = 0; col < ncol; ++col) res[col].resid = sqrt(actual_res[col]);
+            if (resid_type == ABSOLUTE) {
+                if (VerboseP) {
+                    for (int col = 0; col < ncol; ++col) {
+                        MasterLog(INFO,
+                                  "MR: level=%d col=%d Final iters=%d || r ||_accum=%16.8e || r "
+                                  "||_actual=%16.8e",
+                                  level, col, res[col].n_count, sqrt(cp[col]), res[col].resid);
+                    }
+                }
+            } else {
 
-			/*  cp  =  | r[k] |**2 */
-			cp = Norm2Vec(r,subset);
-			if( VerboseP ) {
-				MasterLog(INFO, "MR: level=%d iter=%d || r ||^2 = %16.8e  Target || r^2 || = %16.8e", level,
-						k, cp, rsd_sq );
-			}
-			continueP = (k < MaxIter) && (cp > rsd_sq);
-		}
-		else {
-			if( VerboseP ) {
-				MasterLog(INFO, "MR: level=%d iter=%d",level, k);
-			}
-			continueP =  (k < MaxIter);
-		}
+                for (int col = 0; col < ncol; ++col) res[col].resid /= sqrt(norm_chi_internal[col]);
+                if (VerboseP) {
+                    for (int col = 0; col < ncol; ++col) {
+                        MasterLog(INFO,
+                                  "MR: level=%d col=%d Final iters=%d || r ||_accum=%16.8e || r "
+                                  "||_actual=%16.8e",
+                                  level, res[col].n_count, sqrt(cp[col] / norm_chi_internal[col]),
+                                  res[col].resid);
+                    }
+                }
+            }
+        }
+        return res;
+    }
 
-	}
-	res.n_count = k;
-	res.resid = 0;
+    std::vector<LinearSolverResults> MRSolverCoarse::
+    operator()(Spinor &out, const Spinor &in, ResiduumType resid_type, InitialGuess guess) const {
+        return InvMR_T(_M, in, out, _params.Omega, _params.RsdTarget, _params.MaxIter, LINOP_OP,
+                       resid_type, _params.VerboseP, _params.RsdTarget > 0.0, guess);
+    }
 
-	if( TerminateOnResidua) {
-		// Compute the actual residual
-
-
-		M(Mr, psi, OpType);
-		//Double actual_res = norm2(chi_internal - Mr,s);
-		double actual_res = XmyNorm2Vec(chi_internal,Mr,subset);
-		res.resid = sqrt(actual_res);
-		if( resid_type == ABSOLUTE ) {
-			if( VerboseP ) {
-				MasterLog(INFO, "MR: level=%d Final iters=%d || r ||_accum=%16.8e || r ||_actual=%16.8e", level,
-						res.n_count, sqrt(cp), res.resid);
-			}
-		}
-		else {
-
-			res.resid /= sqrt(norm_chi_internal);
-			if( VerboseP ) {
-				MasterLog(INFO, "MR: level=%d Final iters=%d || r ||_accum=%16.8e || r ||_actual=%16.8e", level,
-						res.n_count, sqrt(cp/norm_chi_internal), res.resid);
-			}
-		}
-	}
-	return res;
-}
-
-
-
-
-MRSolverCoarse::MRSolverCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
-		const MG::LinearSolverParamsBase& params) : _M(M),
-				_params(static_cast<const MRSolverParams&>(params)){}
-
-LinearSolverResults
-MRSolverCoarse::operator()(CoarseSpinor& out,
-		const CoarseSpinor& in,
-		ResiduumType resid_type) const {
-	return  InvMR_T(_M, in, out, _params.Omega, _params.RsdTarget,
-			_params.MaxIter, LINOP_OP, resid_type, _params.VerboseP , true);
-
-}
-
-
-MRSmootherCoarse::MRSmootherCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M,
-		const MG::LinearSolverParamsBase& params) : _M(M), _params(static_cast<const MRSolverParams&>(params)) {}
-
-MRSmootherCoarse::MRSmootherCoarse(const std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M_ptr,
-			  	  	   const MG::LinearSolverParamsBase& params) : _M(*M_ptr), _params(static_cast<const MRSolverParams&>(params)) {}
-
-void
-MRSmootherCoarse::operator()(CoarseSpinor& out, const CoarseSpinor& in) const {
-	InvMR_T(_M, in, out, _params.Omega, _params.RsdTarget,
-			_params.MaxIter, LINOP_OP,  ABSOLUTE, _params.VerboseP , false );
-}
-
-}; // Namespace
-
-
-
-
+} // namespace MG

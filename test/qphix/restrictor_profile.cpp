@@ -97,36 +97,39 @@ TEST(Timing, RestrictorProfile)
   
   QPhiXTransfer<QPhiXSpinorF> Transf(blocklist,null_vecs,args.bthreads);
 
+  const int ncol = 1;
   {
     MasterLog(INFO, "Testing RestrictorArray");
-    QPhiXSpinorF fine(fine_info);
+    QPhiXSpinorF fine(fine_info, ncol);
     Gaussian(fine);
 
-    CoarseSpinor coarse(coarse_info);
-    CoarseSpinor coarse2(coarse_info);
+    CoarseSpinor coarse(coarse_info, ncol);
+    CoarseSpinor coarse2(coarse_info, ncol);
     
     restrictSpinor(blocklist, null_vecs, fine ,coarse);
     
     Transf.R(fine,coarse2);
     
-    double ref = Norm2Vec(coarse);
-    MasterLog(INFO,"Coarse Vector has norm=%lf", sqrt(ref));
-    double ref2 = Norm2Vec(coarse2);
-    MasterLog(INFO,"Coarse Vector has norm=%lf", sqrt(ref2));
-    
-    double norm_diff = sqrt(XmyNorm2Vec(coarse,coarse2));
-    double rel_norm_diff = norm_diff/sqrt(ref);
-    MasterLog(INFO, "norm_diff=%16.8e",norm_diff);
-    MasterLog(INFO, "rel_norm_diff = %16.8e", rel_norm_diff);
-    double tol=5.0e-6;
-    ASSERT_LT( rel_norm_diff, tol );
+    std::vector<double> ref = Norm2Vec(coarse);
+    std::vector<double> ref2 = Norm2Vec(coarse2);
+    std::vector<double> norm2_diff = XmyNorm2Vec(coarse,coarse2);
+    for (int col=0; col < ncol; ++col)  {
+      MasterLog(INFO,"Coarse Vector has norm=%lf", sqrt(ref[col]));
+      MasterLog(INFO,"Coarse Vector has norm=%lf", sqrt(ref2[col]));
+
+      double rel_norm_diff = sqrt(norm2_diff[col]/ref[col]);
+      MasterLog(INFO, "norm_diff=%16.8e",sqrt(norm2_diff[col]));
+      MasterLog(INFO, "rel_norm_diff = %16.8e", rel_norm_diff);
+      double tol=5.0e-6;
+      ASSERT_LT( rel_norm_diff, tol );
+    }
   }
 
 
   
   
-  QPhiXSpinorF fine(fine_info);
-  CoarseSpinor coarse(coarse_info);
+  QPhiXSpinorF fine(fine_info, ncol);
+  CoarseSpinor coarse(coarse_info, ncol);
   
   Gaussian(fine);
   Gaussian(coarse);
@@ -168,7 +171,7 @@ TEST(Timing, RestrictorProfile)
 
     //   #blocks * #sites_in_block = GetNumSites()
     //
-    double Gflops = (double)N_iters
+    double Gflops = (double)N_iters*ncol
       *(double)fine_info.GetNumSites()
       *(double)(2*3*(2*num_vecs)*8)/1.0E9;
     double Gflops_per_sec = Gflops/total_time;

@@ -5,33 +5,48 @@
 #ifndef INCLUDE_LATTICE_COARSE_INVBICGSTAB_COARSE_H_
 #define INCLUDE_LATTICE_COARSE_INVBICGSTAB_COARSE_H_
 
-#include <lattice/unprec_solver_wrappers.h>
+#include "lattice/coarse/coarse_types.h"
+#include "lattice/coarse/subset.h"
 #include "lattice/constants.h"
+#include "lattice/lattice_info.h"
 #include "lattice/linear_operator.h"
 #include "lattice/solver.h"
-#include "lattice/coarse/coarse_types.h"
+#include <lattice/unprec_solver_wrappers.h>
 #include <memory>
 
 namespace MG {
 
+    class BiCGStabSolverCoarse : public LinearSolverNoPrecon<CoarseSpinor> {
+    public:
+        /**
+         * Constructor
+         *
+         * \param M: operator
+         * \param params: linear solver params
+         * \param prec: preconditioner (should be nullptr)
+         */
 
+        BiCGStabSolverCoarse(const LinearOperator<CoarseSpinor> &M,
+                             const LinearSolverParamsBase &params,
+                             const LinearOperator<CoarseSpinor> *prec = nullptr)
+            : LinearSolverNoPrecon<CoarseSpinor>(M, params, prec) {}
 
-class BiCGStabSolverCoarse : public LinearSolver<CoarseSpinor,CoarseGauge> {
-public:
+        /**
+         * Compute the solution.
+         *
+         * \param[out] out: solution vector
+         * \param in: input vector
+         * \param resid_type: stopping criterion (RELATIVE or ABSOLUTE)
+         * \param guess: Whether the initial is provided
+         */
 
-	BiCGStabSolverCoarse(const LinearOperator<CoarseSpinor,CoarseGauge>& M, const LinearSolverParamsBase& params);
-	BiCGStabSolverCoarse(const std::shared_ptr<const LinearOperator<CoarseSpinor,CoarseGauge>> M, const LinearSolverParamsBase& params);
-	  LinearSolverResults operator()(CoarseSpinor& out, const CoarseSpinor& in, ResiduumType resid_type = RELATIVE ) const;
+        std::vector<LinearSolverResults>
+        operator()(Spinor &out, const Spinor &in, ResiduumType resid_type = RELATIVE,
+                   InitialGuess guess = InitialGuessNotGiven) const override;
+    };
 
- private:
-	  const LinearOperator<CoarseSpinor,CoarseGauge>& _M;
-	  const LinearSolverParamsBase& _params;
+    using UnprecBiCGStabSolverCoarseWrapper = UnprecLinearSolver<BiCGStabSolverCoarse>;
 
- };
-
-using UnprecBiCGStabSolverCoarseWrapper = UnprecLinearSolverWrapper<CoarseSpinor,CoarseGauge, BiCGStabSolverCoarse>;
-
-}  // end namespace MGTEsting
+} // namespace MG
 
 #endif /* TEST_QDPXX_INVBICGSTAB_H_ */
-

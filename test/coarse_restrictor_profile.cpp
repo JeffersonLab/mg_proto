@@ -44,6 +44,7 @@
 #include <lattice/coarse/coarse_l1_blas.h>
 #include <lattice/coarse/aggregate_block_coarse.h>
 #include <lattice/coarse/coarse_transfer.h>
+#include <utils/auxiliary.h>
 
 
 #include "vol_and_block_args.h"
@@ -51,6 +52,7 @@
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
+using namespace MG::aux;
 
 
 VolAndBlockArgs args({{4,4,4,4}},{{2,2,2,2}},24,24,1,10000);
@@ -107,38 +109,34 @@ TEST(Timing,RestrictorProfile)
 
 	  CoarseTransfer Transf(blocklist,null_vecs,args.bthreads);
 
+	  const int ncol = 3;
 	  {
 		  MasterLog(INFO, "Testing Restrictor");
-		  CoarseSpinor coarse(coarse_info);
-		  CoarseSpinor coarse2(coarse_info);
+		  CoarseSpinor coarse(coarse_info, ncol);
+		  CoarseSpinor coarse2(coarse_info, ncol);
 
-		  CoarseSpinor fine(fine_info);
+		  CoarseSpinor fine(fine_info, ncol);
 		  Gaussian(fine);
 
 		 restrictSpinor(blocklist, null_vecs, fine, coarse);
 
 		  Transf.R(fine,coarse2);
 
-		  double ref = Norm2Vec(coarse);
-		  MasterLog(INFO,"Coarse Vector has norm=%lf", std::sqrt(ref));
-		  double ref2 = Norm2Vec(coarse2);
-		  MasterLog(INFO,"Coarse Vector has norm=%lf", std::sqrt(ref2));
+		  std::vector<double> ref = Norm2Vec(coarse);
+		  std::vector<double> ref2 = Norm2Vec(coarse2);
+		  std::vector<double> norm_diff = aux::sqrt(XmyNorm2Vec(coarse,coarse2));
+		  std::vector<double> rel_norm_diff = norm_diff/aux::sqrt(ref);
+		  for (int col=0; col < ncol; ++col) {
+			MasterLog(INFO,"Coarse Vector %d has norm=%lf, and after, %1f", col, std::sqrt(ref[col]), std::sqrt(ref2[col]));
 
-		  double norm_diff = std::sqrt(XmyNorm2Vec(coarse,coarse2));
-		  double rel_norm_diff = norm_diff/std::sqrt(ref);
-		  MasterLog(INFO, "norm_diff=%16.8e",norm_diff);
-		  MasterLog(INFO, "rel_norm_diff = %16.8e", rel_norm_diff);
-		  double tol=1.0e-6;
-		  ASSERT_LT( rel_norm_diff, tol );
+		  	MasterLog(INFO, "                norm_diff=%16.8e rel_norm_diff = %16.8e",norm_diff[col], rel_norm_diff[col]);
+		  	double tol=1.0e-6;
+		  	ASSERT_LT( rel_norm_diff[col], tol );
+		}
 	  }
 
 
 
-
-	  CoarseSpinor fine(fine_info);
-	  CoarseSpinor coarse(coarse_info);
-
-	  Gaussian(fine);
 
 
 #if 0
@@ -163,10 +161,18 @@ TEST(Timing,RestrictorProfile)
 	  }
 
 #endif
+	  int N_iters=args.iter;
+	  MasterLog(INFO, "Timing Opt. Restrictor with %d iterations",N_iters);
 
-	  {
-	    int N_iters=args.iter;
-	    MasterLog(INFO, "Timing Opt. Restrictor with %d iterations",N_iters);
+	  std::vector<int> ncols = {1, 4, 16, 64, 256};
+	  for (int ncoli = 0; ncoli < ncols.size(); ncoli++) {
+	    int ncol = ncols[ncoli];
+	    MasterLog(INFO, "== Cols %d ==", ncol);
+
+	    CoarseSpinor fine(fine_info, ncol);
+	    CoarseSpinor coarse(coarse_info, ncol);
+
+	    Gaussian(fine);
 
 	    double start_time = omp_get_wtime();
 	    for(int i=0; i < N_iters; ++i ) {
@@ -177,7 +183,7 @@ TEST(Timing,RestrictorProfile)
 
 	    //   #blocks * #sites_in_block = GetNumSites()
 	    //
-	    double Gflops = (double)N_iters
+	    double Gflops = (double)N_iters*ncol
 	      *(double)fine_info.GetNumSites()
 	      *(double)(2*n_fine*num_vecs*8)/1.0E9;
 	    double Gflops_per_sec = Gflops/total_time;

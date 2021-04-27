@@ -7,8 +7,8 @@
 using namespace QDP;
 
 namespace MG {
-  //! Calculates the antihermitian field strength tensor  iF(mu,nu)
-  /* 
+    //! Calculates the antihermitian field strength tensor  iF(mu,nu)
+    /* 
    * \ingroup glue
    *
    *    F(mu,nu) =  (1/4) sum_p (1/2) [ U_p(x) - U^dag_p(x) ]
@@ -27,13 +27,9 @@ namespace MG {
    *  \param u   gauge field (Read)
    */
 
+    void mesField(multi1d<LatticeColorMatrixF> &f, const multi1d<LatticeColorMatrixF> &u);
 
-  void mesField(multi1d<LatticeColorMatrixF>& f,
-		const multi1d<LatticeColorMatrixF>& u);
-
-  void mesField(multi1d<LatticeColorMatrixD>& f,
-		const multi1d<LatticeColorMatrixD>& u);
-
+    void mesField(multi1d<LatticeColorMatrixD> &f, const multi1d<LatticeColorMatrixD> &u);
 }
 
 #endif /* TEST_QDPXX_MESFIELD_H_ */

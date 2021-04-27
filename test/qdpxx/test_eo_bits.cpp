@@ -88,7 +88,7 @@ protected:
 #pragma omp parallel for
 		for(int cb=subset.start; cb < subset.end; ++cb) {
 			for(int cbsite =0; cbsite < n_cbsites; ++cbsite) {
-				applyGammaSite( out.GetSiteDataPtr(cb,cbsite), in.GetSiteDataPtr(cb,cbsite), N_color);
+				applyGammaSite( out.GetSiteDataPtr(0,cb,cbsite), in.GetSiteDataPtr(0,cb,cbsite), N_color);
 			}
 		}
 
@@ -501,7 +501,7 @@ TEST_F(EOBitsTesting, TestOffDiagG5Herm)
 
 		applyGamma(y_dag2,gc_tmp2, RB[cb]);
 
-		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb]);
+		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb])[0];
 		MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
 		ASSERT_LT( norm_diff, 5.0e-9);
 	}
@@ -543,7 +543,7 @@ TEST_F(EOBitsTesting, TestGcHermDiagInv)
 		}
 		applyGamma(y_dag2,gc_tmp2, RB[cb]);
 
-		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb]);
+		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb])[0];
 		MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
 		ASSERT_LT( norm_diff, 5.0e-10);
 	}
@@ -584,7 +584,7 @@ TEST_F(EOBitsTesting, TestGcHermDiag)
 		}
 		applyGamma(y_dag2,gc_tmp2, RB[cb]);
 
-		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb]);
+		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb])[0];
 		MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
 		ASSERT_LT( norm_diff, 5.0e-10);
 	}
@@ -642,7 +642,7 @@ TEST_F(EOBitsTesting, TestADDagger)
 		// y_dag' + Gamma_c DA Gamma_c
 		applyGamma(y_dag2,gc_tmp2, RB[cb]);
 
-		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb]);
+		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb])[0];
 		MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
 		ASSERT_LT( norm_diff, 1.0e-9);
 
@@ -678,7 +678,7 @@ TEST_F(EOBitsTesting, TestADDagger)
 		}
 		applyGamma(y_dag2,gc_tmp2, RB[cb]);
 
-		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb]);
+		double norm_diff = XmyNorm2Vec(y_dag,y_dag2,RB[cb])[0];
 		MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
 		ASSERT_LT( norm_diff, 1.0e-9);
 	}
@@ -720,7 +720,7 @@ TEST_F(EOBitsTesting, TestADagDAinvDaggerEqDag)
 #pragma omp barrier
 				D.M_D_xpay(Ddag_x,1.0,coarse_links,x, cb,LINOP_DAGGER, tid);
 			}
-			double norm_diff = XmyNorm2Vec(Ddag_x, ADA_invdag_x ,RB[cb]);
+			double norm_diff = XmyNorm2Vec(Ddag_x, ADA_invdag_x ,RB[cb])[0];
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e",cb,norm_diff);
 			ASSERT_LT(norm_diff, 1.0e-8);
 		}
@@ -750,7 +750,7 @@ TEST_F(EOBitsTesting, TestADagDAinvDaggerEqDag)
 				// D_dag
 				D.M_D_xpay(Ddag_x,1.0,coarse_links,x, cb,LINOP_DAGGER, tid);
 			}
-			double norm_diff = XmyNorm2Vec(Ddag_x, AinvDdagAx ,RB[cb]);
+			double norm_diff = XmyNorm2Vec(Ddag_x, AinvDdagAx ,RB[cb])[0];
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e",cb,norm_diff);
 			ASSERT_LT(norm_diff, 1.0e-8);
 		}
@@ -801,7 +801,7 @@ TEST_F(EOBitsTesting, TestSchur)
 		}
 
 		for(int cb = 0; cb < 2; ++cb) {
-			double norm_diff = XmyNorm2Vec(Full, ALDRx,RB[cb]);
+			double norm_diff = XmyNorm2Vec(Full, ALDRx,RB[cb])[0];
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e",cb,norm_diff);
 			ASSERT_LT(norm_diff, 2.0e-8);
 		}
@@ -846,7 +846,7 @@ TEST_F(EOBitsTesting, Gamma5HermDiagEOPrecOp)
 	}
 	applyGamma(GcASymmPrecOpGcx,tmp1, SUBSET_ODD);
 
-	double norm_diff = XmyNorm2Vec(SymmPrecOpDagAdagx,GcASymmPrecOpGcx, SUBSET_ODD );
+	double norm_diff = XmyNorm2Vec(SymmPrecOpDagAdagx,GcASymmPrecOpGcx, SUBSET_ODD )[0];
 	MasterLog(INFO, "NormDiff=%16.8e",norm_diff);
 }
 
@@ -876,10 +876,10 @@ TEST_F(EOBitsTesting, TestCoarseInvDiag)
 		for(int cbsite=0; cbsite < num_coarse_cbsites; ++cbsite) {
 
 			// Get the original spinor
-			float *vsite_in = spinor.GetSiteDataPtr(cb,cbsite);
+			float *vsite_in = spinor.GetSiteDataPtr(0,cb,cbsite);
 
 			// This wil be: U x spinor
-			float *diag_out = diag_spinor.GetSiteDataPtr(cb,cbsite);
+			float *diag_out = diag_spinor.GetSiteDataPtr(0,cb,cbsite);
 
 			// Get the U
 			float *u_diag = coarse_links.GetSiteDiagDataPtr(cb,cbsite);
@@ -891,14 +891,14 @@ TEST_F(EOBitsTesting, TestCoarseInvDiag)
 			float *u_diag_inv = coarse_links.GetSiteInvDiagDataPtr(cb,cbsite);
 
 			// This will be U^{-1} U spinor
-			float *s_inv = spinor_inv.GetSiteDataPtr(cb,cbsite);
+			float *s_inv = spinor_inv.GetSiteDataPtr(0,cb,cbsite);
 
 			// Multiply
 			CMatMultNaive(s_inv,u_diag_inv,diag_out,num_colorspins);
 		}
 	}
 
-	double norm_diff = XmyNorm2Vec(spinor_inv,spinor);
+	double norm_diff = XmyNorm2Vec(spinor_inv,spinor)[0];
 	MasterLog(INFO, "NormDiff=%16.8e\n", norm_diff);
 
 }
@@ -935,7 +935,7 @@ TEST_F(EOBitsTesting, TestCoarse_M_diag_inv_diag)
 				D.M_diagInv(spinor_inv, coarse_links, diag_spinor, cb, LINOP_OP, tid );
 			}
 
-			double norm_diff = XmyNorm2Vec(spinor_inv,spinor,RB[cb]);
+			double norm_diff = XmyNorm2Vec(spinor_inv,spinor,RB[cb])[0];
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
 			ASSERT_LT( norm_diff, 5.0e-10);
 		}
@@ -983,7 +983,7 @@ TEST_F(EOBitsTesting, M_diag_x_M_invOffDiag_eq_M_OffDiag)
 
 
 
-			double norm_diff = XmyNorm2Vec(mInvOffx,offx,RB[cb]);
+			double norm_diff = XmyNorm2Vec(mInvOffx,offx,RB[cb])[0];
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
 			ASSERT_LT(norm_diff, 1.0e-9);
 		}
@@ -1030,7 +1030,7 @@ TEST_F(EOBitsTesting, TestADLinks )
 			}
 
 
-			double norm_diff = XmyNorm2Vec(mInvOffx,invOffx,RB[cb]);
+			double norm_diff = XmyNorm2Vec(mInvOffx,invOffx,RB[cb])[0];
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
 			ASSERT_LT(norm_diff, 1.0e-9);
 		}
@@ -1078,7 +1078,7 @@ TEST_F(EOBitsTesting, TestDALinks )
 			}
 
 
-			double norm_diff = XmyNorm2Vec(offInvx,offx,RB[cb]);
+			double norm_diff = XmyNorm2Vec(offInvx,offx,RB[cb])[0];
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e", cb, norm_diff);
 			ASSERT_LT(norm_diff, 1.0e-9);
 		}
@@ -1102,7 +1102,7 @@ TEST_F(EOBitsTesting, TestRMat1)
 		Gaussian(x);
 		D.R_matrix(Rx,coarse_links,x);
 		D.R_inv_matrix(RinvRx,coarse_links, Rx);
-		double norm_diff = XmyNorm2Vec(x,RinvRx);
+		double norm_diff = XmyNorm2Vec(x,RinvRx)[0];
 		MasterLog(INFO, "NormDiff=%16.8e",norm_diff);
 		ASSERT_LT(norm_diff, 1.0e-9);
 
@@ -1126,7 +1126,7 @@ TEST_F(EOBitsTesting, TestRMat2)
 		D.R_inv_matrix(Rinvx,coarse_links, x);
 		D.R_matrix(RRinvx,coarse_links,Rinvx);
 
-		double norm_diff = XmyNorm2Vec(x,RRinvx);
+		double norm_diff = XmyNorm2Vec(x,RRinvx)[0];
 		MasterLog(INFO, "NormDiff=%16.8e",norm_diff);
 		ASSERT_LT(norm_diff, 1.0e-9);
 
@@ -1150,7 +1150,7 @@ TEST_F(EOBitsTesting, TestLMat1)
 		D.L_matrix(Lx,coarse_links,x);
 		D.L_inv_matrix(LinvLx,coarse_links, Lx);
 		for(int cb = 0; cb < 2; ++cb) {
-			double norm_diff = XmyNorm2Vec(x,LinvLx,RB[cb]);
+			double norm_diff = XmyNorm2Vec(x,LinvLx,RB[cb])[0];
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e",cb,norm_diff);
 			ASSERT_LT(norm_diff, 1.0e-9);
 		}
@@ -1176,7 +1176,7 @@ TEST_F(EOBitsTesting, TestLMat2)
 		D.L_inv_matrix(Linvx,coarse_links,x);
 		D.L_matrix(LLinvx,coarse_links, Linvx);
 		for(int cb = 0; cb < 2; ++cb) {
-			double norm_diff = XmyNorm2Vec(x,LLinvx,RB[cb]);
+			double norm_diff = XmyNorm2Vec(x,LLinvx,RB[cb])[0];
 			MasterLog(INFO, "cb=%d NormDiff=%16.8e",cb,norm_diff);
 			ASSERT_LT(norm_diff, 1.0e-9);
 		}

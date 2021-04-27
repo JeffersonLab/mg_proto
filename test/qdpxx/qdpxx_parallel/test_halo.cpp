@@ -26,6 +26,7 @@ TEST(TestHalo, TestDiracOpFacePack)
 	LatticeInfo info(latdims,2,2,node);
 	initQDPXXLattice(latdims);
 
+	int ncol=3;	
 	CoarseSpinor spinor(info);
 	const IndexArray& cb_latdims = info.GetCBLatticeDimensions();
 	const IndexArray& origin = info.GetLatticeOrigin();
@@ -33,13 +34,15 @@ TEST(TestHalo, TestDiracOpFacePack)
 	// Fill the spinor with the GLOBAL coordinates:
 	for(int cb=0; cb < n_checkerboard; ++cb) {
 		for(int cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite) {
-			float* spinor_data = spinor.GetSiteDataPtr(cb,cbsite);
-			IndexArray coords;
-			CBIndexToCoords(cbsite,cb,latdims,origin,coords);
-			spinor_data[RE + n_complex*0]=(float)coords[0] +origin[0];
-			spinor_data[RE + n_complex*1]=(float)coords[1] +origin[1];
-			spinor_data[RE + n_complex*2]=(float)coords[2] +origin[2];
-			spinor_data[RE + n_complex*3]=(float)coords[3] +origin[3];
+			for(int col=0; col < ncol; ++col) {
+				float* spinor_data = spinor.GetSiteDataPtr(cb,cbsite,col);
+				IndexArray coords;
+				CBIndexToCoords(cbsite,cb,latdims,origin,coords);
+				spinor_data[RE + n_complex*0]=(float)coords[0] +origin[0];
+				spinor_data[RE + n_complex*1]=(float)coords[1] +origin[1];
+				spinor_data[RE + n_complex*2]=(float)coords[2] +origin[2];
+				spinor_data[RE + n_complex*3]=(float)coords[3] +origin[3];
+			}
 		}
 	}
 
@@ -169,20 +172,23 @@ TEST(TestHalo, TestDiracOpFaceTransf)
 	info.LocalDimsToGlobalDims(gdims,latdims);
 	initQDPXXLattice(latdims);
 
-	CoarseSpinor spinor(info);
+	int ncol=3;
+	CoarseSpinor spinor(info, ncol);
 	const IndexArray& cb_latdims = info.GetCBLatticeDimensions();
 	const IndexArray& origin = info.GetLatticeOrigin();
 
 	// Fill the spinor with the GLOBAL coordinates:
 	for(int cb=0; cb < n_checkerboard; ++cb) {
 		for(int cbsite=0; cbsite < info.GetNumCBSites(); ++cbsite) {
-			float* spinor_data = spinor.GetSiteDataPtr(cb,cbsite);
-			IndexArray coords;
-			CBIndexToCoords(cbsite,cb,latdims,origin,coords);
-			spinor_data[RE + n_complex*0]=(float)coords[0] +origin[0];
-			spinor_data[RE + n_complex*1]=(float)coords[1] +origin[1];
-			spinor_data[RE + n_complex*2]=(float)coords[2] +origin[2];
-			spinor_data[RE + n_complex*3]=(float)coords[3] +origin[3];
+			for(int col=0; col < ncol; ++col) {
+				float* spinor_data = spinor.GetSiteDataPtr(cb,cbsite,col);
+				IndexArray coords;
+				CBIndexToCoords(cbsite,cb,latdims,origin,coords);
+				spinor_data[RE + n_complex*0]=(float)coords[0] +origin[0];
+				spinor_data[RE + n_complex*1]=(float)coords[1] +origin[1];
+				spinor_data[RE + n_complex*2]=(float)coords[2] +origin[2];
+				spinor_data[RE + n_complex*3]=(float)coords[3] +origin[3];
+			}
 		}
 	}
 

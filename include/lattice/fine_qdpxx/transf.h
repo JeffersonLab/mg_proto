@@ -11,13 +11,9 @@
 #include <qdp.h>
 using namespace QDP;
 
-namespace MG  {
-void FermToProp(const LatticeFermion& a, LatticePropagator& b, int color_index,
-		int spin_index);
-void PropToFerm(const LatticePropagator& b, LatticeFermion& a, int color_index,
-		int spin_index);
+namespace MG {
+    void FermToProp(const LatticeFermion &a, LatticePropagator &b, int color_index, int spin_index);
+    void PropToFerm(const LatticePropagator &b, LatticeFermion &a, int color_index, int spin_index);
 }
-
-
 
 #endif /* TEST_QDPXX_TRANSF_H_ */

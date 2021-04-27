@@ -75,7 +75,7 @@ TEST(TestVCycle, TestVCycleApply)
 	multi1d<LatticeFermion> vecs(NumVecs);
 	for(int k=0; k < NumVecs; ++k) {
 		gaussian(vecs[k]);
-		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE);
+		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE)[0];
 		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
 				<< std::endl;
 	}
@@ -154,7 +154,7 @@ TEST(TestVCycle, TestVCycleApply)
 		gaussian(psi_in);
 		chi_out = zero;
 		QDPIO::cout << "psi_in has norm =" << sqrt(norm2(psi_in)) << std::endl;
-		LinearSolverResults res = vcycle(chi_out,psi_in);
+		LinearSolverResults res = vcycle(chi_out,psi_in)[0];
 		ASSERT_EQ( res.n_count, 1);
 		ASSERT_EQ( res.resid_type, RELATIVE );
 		ASSERT_LT( res.resid, 3.8e-1 );
@@ -200,7 +200,7 @@ TEST(TestVCycle, TestVCycleSolve)
 	multi1d<LatticeFermion> vecs(NumVecs);
 	for(int k=0; k < NumVecs; ++k) {
 		gaussian(vecs[k]);
-		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE);
+		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE)[0];
 		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
 				<< std::endl;
 	}
@@ -263,7 +263,7 @@ TEST(TestVCycle, TestVCycleSolve)
 		gaussian(psi_in);
 		chi_out = zero;
 		QDPIO::cout << "psi_in has norm =" << sqrt(norm2(psi_in)) << std::endl;
-		LinearSolverResults res = vcycle(chi_out,psi_in);
+		LinearSolverResults res = vcycle(chi_out,psi_in)[0];
 
 		LatticeFermion r=psi_in;
 		LatticeFermion tmp;
@@ -320,7 +320,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	multi1d<LatticeFermion> vecs(NumVecs);
 	for(int k=0; k < NumVecs; ++k) {
 		gaussian(vecs[k]);
-		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE);
+		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE)[0];
 		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
 				<< std::endl;
 	}
@@ -400,7 +400,7 @@ TEST(TestVCycle, TestVCyclePrec)
 	gaussian(psi_in);
 	chi_out = zero;
 	QDPIO::cout << "psi_in has norm =" << sqrt(norm2(psi_in)) << std::endl;
-	LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
+	LinearSolverResults res=FGMRESOuter(chi_out, psi_in)[0];
 	QDPIO::cout << "Returned residue = || r || / || b ||="<< res.resid<< std::endl;
 
 	LatticeFermion r=psi_in;
@@ -455,7 +455,7 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	multi1d<LatticeFermion> vecs(NumVecs);
 	for(int k=0; k < NumVecs; ++k) {
 		gaussian(vecs[k]);
-		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE);
+		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE)[0];
 		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
 				<< std::endl;
 	}
@@ -534,7 +534,7 @@ TEST(TestVCycle, TestVCyclePrec8888)
 	gaussian(psi_in);
 	chi_out = zero;
 	QDPIO::cout << "psi_in has norm =" << sqrt(norm2(psi_in)) << std::endl;
-	LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
+	LinearSolverResults res=FGMRESOuter(chi_out, psi_in)[0];
 	QDPIO::cout << "Returned residue = || r || / || b ||="<< res.resid<< std::endl;
 
 	LatticeFermion r=psi_in;
@@ -591,7 +591,7 @@ TEST(TestVCycle, TestVCycle2Level)
 	multi1d<LatticeFermion> vecs(NumVecs);
 	for(int k=0; k < NumVecs; ++k) {
 		gaussian(vecs[k]);
-		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE);
+		LinearSolverResults res = BiCGStab(vecs[k],b, ABSOLUTE)[0];
 		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
 				<< std::endl;
 	}
@@ -633,7 +633,7 @@ TEST(TestVCycle, TestVCycle2Level)
 	for(int k=0; k < NumVecs2; ++k) {
 		vecs_l2[k] = std::make_shared<CoarseSpinor>(info);
 		Gaussian( *(vecs_l2[k]) );
-		LinearSolverResults res = BiCGStabL1(*(vecs_l2[k]), zero_l2,ABSOLUTE);
+		LinearSolverResults res = BiCGStabL1(*(vecs_l2[k]), zero_l2,ABSOLUTE)[0];
 		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
 						<< std::endl;
 	}
@@ -742,7 +742,7 @@ TEST(TestVCycle, TestVCycle2Level)
 	gaussian(psi_in);
 	chi_out = zero;
 	QDPIO::cout << "psi_in has norm =" << sqrt(norm2(psi_in)) << std::endl;
-	LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
+	LinearSolverResults res=FGMRESOuter(chi_out, psi_in)[0];
 	QDPIO::cout << "Returned residue = || r || / || b ||="<< res.resid<< std::endl;
 
 	LatticeFermion r=psi_in;

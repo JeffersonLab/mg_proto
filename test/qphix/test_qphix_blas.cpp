@@ -36,13 +36,13 @@ TEST(TESTQPhiXBLAS, TestXmYNorm2Vec)
   QPhiXSpinor q_x(info);
   QPhiXSpinor q_y(info);
 
-  QDPSpinorToQPhiXSpinor(x,q_x);
-  QDPSpinorToQPhiXSpinor(y,q_y);
+  QDPSpinorToQPhiXSpinor(x,q_x,0);
+  QDPSpinorToQPhiXSpinor(y,q_y,0);
 
   x -= y;
   Double n = norm2(x);
 
-  double q_norm2 = XmyNorm2Vec(q_x,q_y);
+  double q_norm2 = XmyNorm2Vec(q_x,q_y)[0];
   DiffSpinor(x,q_x,1.0e-14);
   DiffSpinor(y,q_y,1.0e-14);
   double absdiff = std::abs(q_norm2 - toDouble(n));
@@ -62,10 +62,10 @@ TEST(TESTQPhiXBLAS, TestNorm2Vec)
      LatticeInfo info(latdims);
      QPhiXSpinor qphix_x(info);
 
-     QDPSpinorToQPhiXSpinor(x,qphix_x);
+     QDPSpinorToQPhiXSpinor(x,qphix_x,0);
 
      Double n = norm2(x);
-     double qphix_norm = Norm2Vec(qphix_x);
+     double qphix_norm = Norm2Vec(qphix_x)[0];
      double absdiff = std::abs(qphix_norm - toDouble(n));
      ASSERT_LT( absdiff, 1.0e-9);
 
@@ -84,12 +84,12 @@ TEST(TESTQPhiXBLAS, TestInnerProductVec)
      QPhiXSpinor q_x(info);
      QPhiXSpinor q_y(info);
 
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
 
      DComplex iprod = QDP::innerProduct(x,y);
 
-     std::complex<double> q_iprod = InnerProductVec(q_x,q_y);
+     std::complex<double> q_iprod = InnerProductVec(q_x,q_y)[0];
 
      double realnorm = std::abs ( std::real(q_iprod) - toDouble(real(iprod)) );
      double imnorm = std::abs ( std::imag(q_iprod) - toDouble(imag(iprod)) );
@@ -125,7 +125,7 @@ TEST(TESTQPhiXBLAS, TestCopyVec)
      LatticeInfo info(latdims);
      QPhiXSpinor q_in(info);
      QPhiXSpinor q_copy(info);
-     QDPSpinorToQPhiXSpinor(in, q_in);
+     QDPSpinorToQPhiXSpinor(in, q_in, 0);
 
      CopyVec(q_copy,q_in);
      DiffSpinor(in,q_copy, 1.0e-14);
@@ -146,9 +146,9 @@ TEST(TESTQPhiXBLAS, TestZAxpyVec)
      LatticeInfo info(latdims);
      QPhiXSpinor q_x(info);
      QPhiXSpinor q_y(info);
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
-     std::complex<double> alpha( toDouble(real(a)), toDouble(imag(a)));
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
+     std::vector<std::complex<double>> alpha(1, std::complex<double>(toDouble(real(a)), toDouble(imag(a))));
 
      // AXPY
      y += a*x;
@@ -177,9 +177,9 @@ TEST(TESTQPhiXBLAS, TestSAxpyVec)
      LatticeInfo info(latdims);
      QPhiXSpinor q_x(info);
      QPhiXSpinor q_y(info);
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
-     double alpha = toDouble(a);
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
+     std::vector<double> alpha(1, toDouble(a));
 
 
      // AXPY
@@ -206,9 +206,9 @@ TEST(TESTQPhiXBLAS, TestCAxpyVec)
      LatticeInfo info(latdims);
      QPhiXSpinor q_x(info);
      QPhiXSpinor q_y(info);
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
-     std::complex<float> alpha( toDouble(real(a)), toDouble(imag(a)));
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
+     std::vector<std::complex<double>> alpha(1, std::complex<double>(toDouble(real(a)), toDouble(imag(a))));
 
      // AXPY
      y += a*x;
@@ -252,8 +252,8 @@ TEST(TESTQPhiXBLAS, TestYPeqX)
      LatticeInfo info(latdims);
      QPhiXSpinor q_x(info);
      QPhiXSpinor q_y(info);
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
 
      YpeqXVec(q_x,q_y);
      y += x;
@@ -273,8 +273,8 @@ TEST(TESTQPhiXBLAS, TestYMeqX)
      LatticeInfo info(latdims);
      QPhiXSpinor q_x(info);
      QPhiXSpinor q_y(info);
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
 
      YmeqXVec(q_x,q_y);
      y -= x;
@@ -296,13 +296,13 @@ TEST(TESTQPhiXBLAS, TestXmYNorm2VecF)
   QPhiXSpinorF q_x(info);
   QPhiXSpinorF q_y(info);
 
-  QDPSpinorToQPhiXSpinor(x,q_x);
-  QDPSpinorToQPhiXSpinor(y,q_y);
+  QDPSpinorToQPhiXSpinor(x,q_x,0);
+  QDPSpinorToQPhiXSpinor(y,q_y,0);
 
   x -= y;
   Double n = norm2(x);
 
-  double q_norm2 = XmyNorm2Vec(q_x,q_y);
+  double q_norm2 = XmyNorm2Vec(q_x,q_y)[0];
   DiffSpinor(x,q_x,5.0e-5);
   DiffSpinor(y,q_y,5.0e-5);
   double absdiff = std::abs(q_norm2 - toDouble(n));
@@ -324,10 +324,10 @@ TEST(TESTQPhiXBLAS, TestNorm2VecF)
      LatticeInfo info(latdims);
      QPhiXSpinorF qphix_x(info);
 
-     QDPSpinorToQPhiXSpinor(x,qphix_x);
+     QDPSpinorToQPhiXSpinor(x,qphix_x,0);
 
      Double n = norm2(x);
-     double qphix_norm = Norm2Vec(qphix_x);
+     double qphix_norm = Norm2Vec(qphix_x)[0];
      double absdiff = std::abs(qphix_norm - toDouble(n));
      ASSERT_LT( absdiff, 5.0e-5);
 
@@ -347,12 +347,12 @@ TEST(TESTQPhiXBLAS, TestInnerProductVecF)
      QPhiXSpinorF q_x(info);
      QPhiXSpinorF q_y(info);
 
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
 
      DComplex iprod = QDP::innerProduct(x,y);
 
-     std::complex<double> q_iprod = InnerProductVec(q_x,q_y);
+     std::complex<double> q_iprod = InnerProductVec(q_x,q_y)[0];
 
      double realnorm = std::abs ( std::real(q_iprod) - toDouble(real(iprod)) );
      double imnorm = std::abs ( std::imag(q_iprod) - toDouble(imag(iprod)) );
@@ -389,7 +389,7 @@ TEST(TESTQPhiXBLAS, TestCopyVecF)
      LatticeInfo info(latdims);
      QPhiXSpinorF q_in(info);
      QPhiXSpinorF q_copy(info);
-     QDPSpinorToQPhiXSpinor(in, q_in);
+     QDPSpinorToQPhiXSpinor(in, q_in, 0);
 
      CopyVec(q_copy,q_in);
      DiffSpinor(in,q_copy, 5.0e-5);
@@ -411,9 +411,9 @@ TEST(TESTQPhiXBLAS, TestZAxpyVecF)
      LatticeInfo info(latdims);
      QPhiXSpinorF q_x(info);
      QPhiXSpinorF q_y(info);
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
-     std::complex<double> alpha( toDouble(real(a)), toDouble(imag(a)));
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
+     std::vector<std::complex<double>> alpha(1, std::complex<double>(toDouble(real(a)), toDouble(imag(a))));
 
      // AXPY
      y += a*x;
@@ -442,9 +442,9 @@ TEST(TESTQPhiXBLAS, TestSAxpyVecF)
      LatticeInfo info(latdims);
      QPhiXSpinorF q_x(info);
      QPhiXSpinorF q_y(info);
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
-     double alpha = toDouble(a);
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
+     std::vector<double> alpha(1, toDouble(a));
 
 
      // AXPY
@@ -471,9 +471,9 @@ TEST(TESTQPhiXBLAS, TestCAxpyVecF)
      LatticeInfo info(latdims);
      QPhiXSpinorF q_x(info);
      QPhiXSpinorF q_y(info);
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
-     std::complex<float> alpha( toDouble(real(a)), toDouble(imag(a)));
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
+     std::vector<std::complex<double>> alpha(1, std::complex<double>(toDouble(real(a)), toDouble(imag(a))));
 
      // AXPY
      y += a*x;
@@ -494,11 +494,11 @@ TEST(TESTQPhiXBLAS, TestAxVec)
       LatticeFermion x; gaussian(x);
       LatticeInfo info(latdims);
       QPhiXSpinor q_x(info);
-      QDPSpinorToQPhiXSpinor(x,q_x);
+      QDPSpinorToQPhiXSpinor(x,q_x,0);
 
-      double alpha = 3.2;
+      std::vector<double> alpha(1, 3.2);
       AxVec( alpha, q_x);
-      x *= Real(alpha);
+      x *= Real(alpha[0]);
       DiffSpinorPerSite(x,q_x,5.0e-14);
 
 
@@ -512,11 +512,11 @@ TEST(TESTQPhiXBLAS, TestAxVecF)
       LatticeFermion x; gaussian(x);
       LatticeInfo info(latdims);
       QPhiXSpinorF q_x(info);
-      QDPSpinorToQPhiXSpinor(x,q_x);
+      QDPSpinorToQPhiXSpinor(x,q_x,0);
 
-      double alpha = 3.2;
+      std::vector<double> alpha(1, 3.2);
       AxVec( alpha, q_x);
-      x *= Real(alpha);
+      x *= Real(alpha[0]);
       DiffSpinorPerSite(x,q_x,1.0e-6);
 
 
@@ -552,8 +552,8 @@ TEST(TESTQPhiXBLAS, TestYPeqXF)
      LatticeInfo info(latdims);
      QPhiXSpinorF q_x(info);
      QPhiXSpinorF q_y(info);
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
 
      YpeqXVec(q_x,q_y);
      y += x;
@@ -573,8 +573,8 @@ TEST(TESTQPhiXBLAS, TestYMeqXF)
      LatticeInfo info(latdims);
      QPhiXSpinorF q_x(info);
      QPhiXSpinorF q_y(info);
-     QDPSpinorToQPhiXSpinor(x,q_x);
-     QDPSpinorToQPhiXSpinor(y,q_y);
+     QDPSpinorToQPhiXSpinor(x,q_x,0);
+     QDPSpinorToQPhiXSpinor(y,q_y,0);
 
      YmeqXVec(q_x,q_y);
      y -= x;
@@ -592,7 +592,7 @@ TEST(TESTQPhiXBLAS, TestConvertRoutines)
 
   LatticeFermion x; gaussian(x);
   QPhiXSpinor spinor_d(info);
-  QDPSpinorToQPhiXSpinor(x,spinor_d);
+  QDPSpinorToQPhiXSpinor(x,spinor_d,0);
 
   QPhiXSpinorF spinor_f(info);
   ConvertSpinor(spinor_d,spinor_f);

@@ -16,6 +16,7 @@
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;
+using namespace MG::aux;
 
 
 
@@ -149,27 +150,29 @@ TEST(QPhiXTestRecursiveVCycle, TestLevelSetup2Level)
 
 	MasterLog(INFO, "*** Recursive VCycle Structure + Solver Created");
 
-	QPhiXSpinor psi_in(fine_info);
-	QPhiXSpinor chi_out(fine_info);
+  int ncol = 1;
+	QPhiXSpinor psi_in(fine_info, ncol);
+	QPhiXSpinor chi_out(fine_info, ncol);
 	Gaussian(psi_in);
 	ZeroVec(chi_out);
-	double psi_norm = sqrt(Norm2Vec(psi_in));
-	MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm);
+	std::vector<double> psi_norm = sqrt(Norm2Vec(psi_in));
+	for (int col=0; col < ncol; ++col) MasterLog(INFO, "psi_in has norm = %16.8e",psi_norm[col]);
 
-	LinearSolverResults res=FGMRESOuter(chi_out, psi_in);
+	std::vector<LinearSolverResults> res=FGMRESOuter(chi_out, psi_in);
 
 	// Compute true residuum
 	QPhiXSpinor Ax(fine_info);
 	M(Ax,chi_out,LINOP_OP);
-	double diff = sqrt(XmyNorm2Vec(psi_in,Ax));
-	double diff_rel = diff/psi_norm;
-	MasterLog(INFO,"|| b - A x || = %16.8e", diff);
-	MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
+	std::vector<double> diff = sqrt(XmyNorm2Vec(psi_in,Ax));
+  for (int col=0; col < ncol; ++col){
+    double diff_rel = diff[col]/psi_norm[col];
+    MasterLog(INFO,"|| b - A x || = %16.8e", diff[col]);
+    MasterLog(INFO,"|| b - A x ||/ || b || = %16.8e",diff_rel);
 
-	ASSERT_EQ( res.resid_type, RELATIVE);
-	ASSERT_LT( res.resid, 1.0e-13);
-	ASSERT_LT( toDouble(diff_rel), 1.0e-13);
-
+    ASSERT_EQ( res[col].resid_type, RELATIVE);
+    ASSERT_LT( res[col].resid, 1.0e-13);
+    ASSERT_LT( toDouble(diff_rel), 1.0e-13);
+  }
 }
 
 int main(int argc, char *argv[]) 

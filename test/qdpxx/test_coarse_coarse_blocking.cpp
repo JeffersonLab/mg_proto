@@ -80,7 +80,7 @@ namespace MGTesting
 					// Site data is now a flat pointer to num_colors * num_spins
 					// which should be equal to   n_per_chiral * 2
 					// with 2 chiralities
-					float *site_data = v.GetSiteDataPtr(cb,cbsite);
+					float *site_data = v.GetSiteDataPtr(0,cb,cbsite);
 
 					// Zero the site data: 2*n_per_chiral components=
 					for(int component = 0; component < num_colorspin; ++component ) {
@@ -342,7 +342,7 @@ TEST(TestCoarseCoarse, TestCoarseDslashDir2)
 			}
 		}
 
-		float alpha = 1;
+		std::vector<float> alpha(1, 1.0);
 		// Accumulate
 		AxpyVec(alpha, dslash_dir_out, dslash_dir_sum);
 	}
@@ -357,12 +357,12 @@ TEST(TestCoarseCoarse, TestCoarseDslashDir2)
 	}
 
 	// Accumulate
-	float alpha = 1;
+	std::vector<float> alpha(1, 1.0);
 	AxpyVec(alpha, dslash_dir_out, dslash_dir_sum);
 
 	// Now subtract away the result of the operator, from a self accumulated.
-	double d_out_norm = sqrt(Norm2Vec(coarse_d_out));
-	double diffnorm = sqrt(XmyNorm2Vec(dslash_dir_sum,coarse_d_out));
+	double d_out_norm = sqrt(Norm2Vec(coarse_d_out)[0]);
+	double diffnorm = sqrt(XmyNorm2Vec(dslash_dir_sum,coarse_d_out)[0]);
 
 	MasterLog(INFO, "|| direct - accumulated directions || = %16.8e", diffnorm);
 	ASSERT_NEAR( diffnorm, 0, 5.e-6 );
@@ -460,7 +460,7 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 	// Now Generate Eye:
 	GenerateEye( coarse_basis_vecs );
 	for(int i=0; i < 6; ++i) {
-		double normvec=Norm2Vec( *(coarse_basis_vecs[i]) );
+		double normvec=Norm2Vec( *(coarse_basis_vecs[i]) )[0];
 		double normvec_per_chiral = normvec/(2* info.GetNumSites() );
 
 		// MasterLog(INFO, "norm vec[%d]=%16.8e", i,normvec);
@@ -600,17 +600,17 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductDslashEyeTrivial)
 			}
 		} // cb
 
-		float alpha=1;
+		std::vector<float> alpha(1, 1.0);
 		// Accumulate: ass X psi onto the CoarseCoarse operator
 		AxpyVec(alpha, X_psi, D_cc_psi);
 
-		double norm_psi = sqrt(Norm2Vec(psi));
-		double norm_Dop = sqrt(Norm2Vec(D_c_psi));
-		double norm_Dc_op = sqrt(Norm2Vec(D_cc_psi));
+		double norm_psi = sqrt(Norm2Vec(psi)[0]);
+		double norm_Dop = sqrt(Norm2Vec(D_c_psi)[0]);
+		double norm_Dc_op = sqrt(Norm2Vec(D_cc_psi)[0]);
 
 		MasterLog( INFO, " || psi_in || = %16.8e  || D_op_psi_in || = %16.8e || D_op_coarse ||=%16.8e", norm_psi, norm_Dop, norm_Dc_op);
 
-		double norm_diff = sqrt(XmyNorm2Vec(D_cc_psi, D_c_psi));
+		double norm_diff = sqrt(XmyNorm2Vec(D_cc_psi, D_c_psi)[0]);
 
 		MasterLog(INFO, "Op=%d diff=%16.8e relative_diff=%16.8e",op,norm_diff, norm_diff/norm_Dop);
 		ASSERT_NEAR( norm_diff, 0, 6.0e-6);
@@ -790,9 +790,9 @@ TEST(TestCoarseCoarse, TestCoarseTripleProductCloverEyeTrivial)
 			}
 		} // cb
 
-		double norm_coarse_clov = sqrt(Norm2Vec(Clov_c_psi));
-		double norm_coarse_coarse_clov = sqrt(Norm2Vec(Clov_cc_psi));
-		double norm_diff = sqrt(XmyNorm2Vec(Clov_cc_psi, Clov_c_psi));
+		double norm_coarse_clov = sqrt(Norm2Vec(Clov_c_psi)[0]);
+		double norm_coarse_coarse_clov = sqrt(Norm2Vec(Clov_cc_psi)[0]);
+		double norm_diff = sqrt(XmyNorm2Vec(Clov_cc_psi, Clov_c_psi)[0]);
 
 		MasterLog(INFO, "Op=%d || Clov_c_psi || =%16.8e || Clov_cc_psi || = %16.8e diff=%16.8e relative_diff=%16.8e",op,norm_coarse_clov,norm_coarse_coarse_clov, norm_diff, norm_diff/norm_coarse_clov);
 		ASSERT_NEAR( norm_diff, 0, 1.0e-6);
@@ -848,9 +848,9 @@ TEST(TestCoarseCoarse, TestCoarseProlongRestrictTrivial)
 	restrictSpinor(my_blocks,vecs, psi, R_psi );
 	prolongateSpinor(my_blocks, vecs, R_psi, PR_psi);
 
-	double norm_psi = sqrt( Norm2Vec(psi) );
-	double norm_RPpsi = sqrt( Norm2Vec(PR_psi) );
-	double norm_diff = sqrt(XmyNorm2Vec(PR_psi,psi));
+	double norm_psi = sqrt( Norm2Vec(psi)[0] );
+	double norm_RPpsi = sqrt( Norm2Vec(PR_psi)[0] );
+	double norm_diff = sqrt(XmyNorm2Vec(PR_psi,psi)[0]);
 	MasterLog(INFO, " || (P R - 1) psi || = %16.8e", norm_diff);
 	MasterLog(INFO, " || (P R - 1) psi ||/site = %16.8e", norm_diff / info.GetNumSites());
 	ASSERT_LT( norm_diff, 8.0e-6);
@@ -907,9 +907,9 @@ TEST(TestCoarseCoarse, TestCoarseRestrictProlong)
 	restrictSpinor(my_blocks,vecs, P_psi, RP_psi );
 
 
-	double norm_psi = sqrt( Norm2Vec(psi) );
-	double norm_RPpsi = sqrt( Norm2Vec(RP_psi) );
-	double norm_diff = sqrt(XmyNorm2Vec(RP_psi,psi));
+	double norm_psi = sqrt( Norm2Vec(psi)[0] );
+	double norm_RPpsi = sqrt( Norm2Vec(RP_psi)[0] );
+	double norm_diff = sqrt(XmyNorm2Vec(RP_psi,psi)[0]);
 	MasterLog(INFO, " || (R P - 1) psi || = %16.8e", norm_diff);
 	MasterLog(INFO, " || (R P - 1) psi ||/site = %16.8e", norm_diff / info.GetNumSites());
 	ASSERT_LT( norm_diff, 2.0e-5);
@@ -991,12 +991,12 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 		D_fine(DP_psi,P_psi,LINOP_OP);
 		restrictSpinorQDPXXFineToCoarse( my_blocks, vecs,DP_psi,RDP_psi);
 
-		double norm_RDP_psi = sqrt(Norm2Vec(RDP_psi));
-		double norm_Dc_psi = sqrt(Norm2Vec(Dc_psi));
+		double norm_RDP_psi = sqrt(Norm2Vec(RDP_psi)[0]);
+		double norm_Dc_psi = sqrt(Norm2Vec(Dc_psi)[0]);
 		QDPIO::cout << " || RDP psi || = " << norm_RDP_psi << std::endl;
 		QDPIO::cout << " || Dc psi  || = " << norm_Dc_psi << std::endl;
 
-		double norm_diff = sqrt(XmyNorm2Vec( RDP_psi, Dc_psi ));
+		double norm_diff = sqrt(XmyNorm2Vec( RDP_psi, Dc_psi )[0]);
 
 		double norm_diff_per_site = norm_diff / info.GetNumSites();
 		QDPIO::cout << "|| (RDP - D_c) R_psi || =  " << norm_diff << std::endl;
@@ -1050,12 +1050,12 @@ TEST(TestCoarseCoarse, TestCoarseCoarseDslashClov)
 	D_coarse(DPpsi_2, Ppsi_2, LINOP_OP);
 	restrictSpinor(my_blocks_l2, vecs_l2, DPpsi_2, RDPpsi_2);
 
-	double norm2_Dcc_psi=Norm2Vec(out_2);
-	double norm2_RDcP_psi=Norm2Vec(RDPpsi_2);
+	double norm2_Dcc_psi=Norm2Vec(out_2)[0];
+	double norm2_RDcP_psi=Norm2Vec(RDPpsi_2)[0];
 	MasterLog(INFO, "|| D_cc psi || = %16.8e", sqrt(norm2_Dcc_psi));
 	MasterLog(INFO, "|| R D_c P psi || = %16.8e", sqrt(norm2_RDcP_psi));
 
-	double normDiff = sqrt(XmyNorm2Vec(RDPpsi_2,out_2));
+	double normDiff = sqrt(XmyNorm2Vec(RDPpsi_2,out_2)[0]);
 	MasterLog(INFO, "|| (D_cc - R D_c P) psi = %16.8e\n", normDiff);
 
 	double normDiffPerSite = normDiff/(info_l2.GetNumSites());

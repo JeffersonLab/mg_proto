@@ -262,19 +262,19 @@ TEST_P(CMatMultTime, TimeCMatMultCoeffAdd)
 		iters *= 2;
 		time -= omp_get_wtime();
 		for(int j=0; j < iters; ++j) {
-			CMatMultCoeffAddNaive(y,alpha,A,x,N );
+			CMatMultCoeffAddNaive(1.0,y,alpha,A,x,N );
 		}
 		time += omp_get_wtime();
 	}
 	while( time < 1.0);
 	MG::MasterLog(INFO, "Warming up");
 	for(int j=0; j < iters; ++j) {
-		CMatMultCoeffAddNaive(y,alpha,A,x,N );
+		CMatMultCoeffAddNaive(1.0,y,alpha,A,x,N );
 	}
 	MG::MasterLog(INFO, "Timing: %d iters", iters);
 	time -= omp_get_wtime();
 	for(int j=0; j < iters; ++j) {
-			CMatMultCoeffAddNaive(y,alpha,A,x,N );
+			CMatMultCoeffAddNaive(1.0,y,alpha,A,x,N );
 	}
 	time += omp_get_wtime();
 
@@ -317,19 +317,19 @@ TEST_P(CMatMultTime, TimeGcCMatMultGcCoeffAdd)
 		iters *= 2;
 		time -= omp_get_wtime();
 		for(int j=0; j < iters; ++j) {
-			GcCMatMultGcCoeffAddNaive(y,alpha,A,x,N );
+			GcCMatMultGcCoeffAddNaive(1.0,y,alpha,A,x,N );
 		}
 		time += omp_get_wtime();
 	}
 	while( time < 1.0);
 	MG::MasterLog(INFO, "Warming up");
 	for(int j=0; j < iters; ++j) {
-		GcCMatMultGcCoeffAddNaive(y,alpha,A,x,N );
+		GcCMatMultGcCoeffAddNaive(1.0,y,alpha,A,x,N );
 	}
 	MG::MasterLog(INFO, "Timing: %d iters", iters);
 	time -= omp_get_wtime();
 	for(int j=0; j < iters; ++j) {
-			GcCMatMultGcCoeffAddNaive(y,alpha,A,x,N );
+			GcCMatMultGcCoeffAddNaive(1.0,y,alpha,A,x,N );
 	}
 	time += omp_get_wtime();
 

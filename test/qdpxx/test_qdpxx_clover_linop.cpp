@@ -51,7 +51,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvMR)
 	QDPIO::cout << "|| b ||=  " << sqrt(norm2(b)) << std::endl;
 	QDPIO::cout << "|| x || = " << sqrt(norm2(x)) << std::endl;
 
-	LinearSolverResults res = MR(x,b);
+	LinearSolverResults res = MR(x,b)[0];
 	QDPIO::cout << "MR Solver Took: " << res.n_count << " iterations"
 			<< std::endl;
 	ASSERT_LT( res.resid, 0.02);
@@ -108,7 +108,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvBiCGStab)
 	QDPIO::cout << "|| b ||=  " << sqrt(norm2(b)) << std::endl;
 	QDPIO::cout << "|| x || = " << sqrt(norm2(x)) << std::endl;
 
-	LinearSolverResults res = BiCGStab(x,b);
+	LinearSolverResults res = BiCGStab(x,b)[0];
 	QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
 			<< std::endl;
 	ASSERT_EQ(res.resid_type, RELATIVE);
@@ -154,7 +154,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvBiCGStabZeroRHS)
 	for(int mu=0; mu < Nd; ++mu) {
 		gaussian(v[mu]);
 
-		LinearSolverResults res = BiCGStab(v[mu],b, ABSOLUTE);
+		LinearSolverResults res = BiCGStab(v[mu],b, ABSOLUTE)[0];
 		QDPIO::cout << "BiCGStab Solver Took: " << res.n_count << " iterations"
 				<< std::endl;
 
@@ -205,7 +205,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvUnprecFGMRES)
 	QDPIO::cout << "|| b ||=  " << sqrt(norm2(b)) << std::endl;
 	QDPIO::cout << "|| x || = " << sqrt(norm2(x)) << std::endl;
 
-	LinearSolverResults res = FGMRES(x,b);
+	LinearSolverResults res = FGMRES(x,b)[0];
 	QDPIO::cout << "FGMRES Solver Took: " << res.n_count << " iterations"
 			<< std::endl;
 	ASSERT_EQ(res.resid_type, RELATIVE);
@@ -260,7 +260,7 @@ TEST(TestQDPXX, TestQDPXXCloverOpInvRightPrecFGMRES)
 	QDPIO::cout << "|| b ||=  " << sqrt(norm2(b)) << std::endl;
 	QDPIO::cout << "|| x || = " << sqrt(norm2(x)) << std::endl;
 
-	LinearSolverResults res = FGMRES(x,b);
+	LinearSolverResults res = FGMRES(x,b)[0];
 	QDPIO::cout << "FGMRES Solver Took: " << res.n_count << " iterations"
 			<< std::endl;
 	ASSERT_EQ(res.resid_type, RELATIVE);
