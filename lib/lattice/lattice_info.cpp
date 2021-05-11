@@ -42,6 +42,10 @@ namespace MG {
 
                 // Count even dims
                 if (lat_dims[mu] % 2 == 0) even_mu++;
+
+		// Check that global dimension is even
+                if ((lat_dims[mu] * _node_info.NodeDims()[mu]) % 2 != 0)
+                    MasterLog(ERROR, "All grid and subgrid dimensions need to be even");
             }
 
             if (even_mu < 2) {

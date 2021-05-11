@@ -180,8 +180,7 @@ namespace MG {
         // Dimensions and origin of the face in direction 'dir'
         IndexArray face_dims(lattice_dims);
         face_dims[dir / 2] = 1;
-        IndexType face_cborig = cborig + global_lattice_dims[dir / 2] +
-                                lattice_dims[dir / 2] * (1 - dir % 2) - (dir % 2);
+        IndexType face_cborig = cborig + lattice_dims[dir / 2] * (1 - dir % 2) - (dir % 2);
 
         // Get coordinates of the site on the face
         coor[dir / 2] = 0;
@@ -238,8 +237,7 @@ namespace MG {
                 // Dimensions and origin of the face in direction 'dir'
                 IndexArray face_dims(lattice_dims);
                 face_dims[dir / 2] = 1;
-                IndexType face_cborig = cborig + global_lattice_dims[dir / 2] +
-                                        lattice_dims[dir / 2] * (1 - dir % 2) - (dir % 2);
+                IndexType face_cborig = cborig + lattice_dims[dir / 2] * (1 - dir % 2) - (dir % 2);
 
                 // Get coordinates of the site on the face
                 coor[dir / 2] = 0;
