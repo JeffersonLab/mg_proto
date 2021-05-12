@@ -21,6 +21,10 @@
 // for random numbers:
 #include <random>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace MG {
 
     namespace GlobalComm {
@@ -51,20 +55,41 @@ namespace MG {
 #endif
     }
 
-#pragma omp declare reduction(vec_double_plus : std::vector<double>* : \
-			(std::transform(omp_out->begin(), omp_out->end(), omp_in->begin(), omp_out->begin(), std::plus<double>()), \
-			 delete omp_in)) \
-			initializer(omp_priv = new std::vector<double>(omp_orig->size()))
+  template <typename T> class multivector {
+    const std::size_t n;
+    const int threads;
+    T* const v;
+    
+    public:
+    multivector(std::size_t n) : n(n), 
+#ifdef _OPENMP
+     threads(omp_get_max_threads()),
+#else
+     threads(1),
+#endif
+     v(new T[n * threads])
+    {
+       for (std::size_t i=0; i<n*threads; i++) v[i] = T{0};
+    }
 
-#pragma omp declare reduction(vec_cfloat_plus : std::vector<std::complex<float>>* : \
-			(std::transform(omp_out->begin(), omp_out->end(), omp_in->begin(), omp_out->begin(), std::plus<std::complex<float>>()), \
-			 delete omp_in)) \
-			initializer(omp_priv = new std::vector<std::complex<float>>(omp_orig->size()))
+    ~multivector() { delete [] v; }
 
-#pragma omp declare reduction(vec_cdouble_plus : std::vector<std::complex<double>>* : \
-			(std::transform(omp_out->begin(), omp_out->end(), omp_in->begin(), omp_out->begin(), std::plus<std::complex<double>>()), \
-			 delete omp_in)) \
-			initializer(omp_priv = new std::vector<std::complex<double>>(omp_orig->size()))
+    T* mine() const {
+#ifdef _OPENMP
+      int this_thread = 0;
+#else
+      int this_thread = omp_get_thread_num();
+#endif
+      return &v[this_thread * n];
+    }
+
+    std::vector<T> reduce() {
+       std::vector<T> r(n);
+       for (std::size_t i=0; i<n; i++)
+          for (int j=0; j<threads; j++) r[j] += v[i*threads + j];
+       return r;
+    }
+  };
 
     /** Performs:
  *  x <- x - y;
@@ -87,13 +112,14 @@ namespace MG {
         IndexType num_colorspin = x.GetNumColorSpin();
         IndexType ncol = x.GetNCol();
 
-        std::vector<double> norm_diff(ncol), *norm_diff_ptr = &norm_diff;
+        multivector<double> norm_diffm(ncol);
 
         // Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(3) reduction(vec_double_plus : norm_diff_ptr) schedule(static)
+#pragma omp parallel for collapse(3) schedule(static)
         for (int cb = subset.start; cb < subset.end; ++cb) {
             for (int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
                 for (int col = 0; col < ncol; ++col) {
+                    double *norm_diff_ptr = norm_diffm.mine();
 
                     // Identify the site and the column
                     float *x_site_data = x.GetSiteDataPtr(col, cb, cbsite);
@@ -112,10 +138,11 @@ namespace MG {
 
                         cspin_sum += diff_re * diff_re + diff_im * diff_im;
                     }
-                    (*norm_diff_ptr)[col] += cspin_sum;
+                    norm_diff_ptr[col] += cspin_sum;
                 }
             }
         } // End of Parallel for reduction
+	std::vector<double> norm_diff = norm_diffm.reduce();
 
         // I would probably need some kind of global reduction here  over the nodes which for now I will ignore.
         MG::GlobalComm::GlobalSum(norm_diff, x);
@@ -135,13 +162,15 @@ namespace MG {
         IndexType num_cbsites = x_info.GetNumCBSites();
         IndexType num_colorspin = x.GetNumColorSpin();
         IndexType ncol = x.GetNCol();
-        std::vector<double> norm_sq(x.GetNCol()), *norm_sq_ptr = &norm_sq;
+        multivector<double> norm_sqm(ncol);
 
         // Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(3) reduction(vec_double_plus : norm_sq_ptr) schedule(static)
+#pragma omp parallel for collapse(3) schedule(static)
         for (int cb = subset.start; cb < subset.end; ++cb) {
             for (int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
                 for (int col = 0; col < ncol; ++col) {
+
+                    double *norm_sq_ptr = norm_sqm.mine();
 
                     // Identify the site and the column
                     const float *x_site_data = x.GetSiteDataPtr(col, cb, cbsite);
@@ -155,10 +184,11 @@ namespace MG {
 
                         cspin_sum += x_re * x_re + x_im * x_im;
                     }
-                    (*norm_sq_ptr)[col] += cspin_sum;
+                    norm_sq_ptr[col] += cspin_sum;
                 }
             }
         } // End of Parallel for reduction
+	std::vector<double> norm_sq = norm_sqm.reduce();
 
         // I would probably need some kind of global reduction here  over the nodes which for now I will ignore.
         MG::GlobalComm::GlobalSum(norm_sq, x);
@@ -183,13 +213,15 @@ namespace MG {
         IndexType num_colorspin = x.GetNumColorSpin();
         IndexType ncol = x.GetNCol();
 
-        std::vector<std::complex<double>> ipprod(ncol), *ipprod_ptr = &ipprod;
+        multivector<std::complex<double>> ipprodm(ncol);
 
         // Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(3) reduction(vec_cdouble_plus : ipprod_ptr) schedule(static)
+#pragma omp parallel for collapse(3) schedule(static)
         for (int cb = subset.start; cb < subset.end; ++cb) {
             for (int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
                 for (int col = 0; col < ncol; ++col) {
+
+                    std::complex<double> *ipprod_ptr = ipprodm.mine();
 
                     // Identify the site and the column
                     const float *x_site_data = x.GetSiteDataPtr(col, cb, cbsite);
@@ -212,10 +244,11 @@ namespace MG {
                                           x_site_data[IM + n_complex * cspin] *
                                               y_site_data[RE + n_complex * cspin];
                     }
-                    (*ipprod_ptr)[col] += std::complex<double>(cspin_iprod_re, cspin_iprod_im);
+                    ipprod_ptr[col] += std::complex<double>(cspin_iprod_re, cspin_iprod_im);
                 }
             }
         } // End of Parallel for reduction
+	std::vector<std::complex<double>> ipprod = ipprodm.reduce();
 
         // Global Reduce
         MG::GlobalComm::GlobalSum(ipprod, x);
@@ -241,10 +274,10 @@ namespace MG {
         IndexType xncol = x.GetNCol();
         IndexType yncol = y.GetNCol();
 
-        std::vector<std::complex<float>> ipprod(xncol * yncol), *ipprod_ptr = &ipprod;
+        multivector<std::complex<float>> ipprodm(xncol * yncol);
 
         // Loop over the sites and sum up the norm
-#pragma omp parallel for collapse(2) reduction(vec_cfloat_plus : ipprod_ptr) schedule(static)
+#pragma omp parallel for collapse(2) schedule(static)
         for (int cb = subset.start; cb < subset.end; ++cb) {
             for (int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
 
@@ -252,12 +285,14 @@ namespace MG {
                     reinterpret_cast<const std::complex<float> *>(x.GetSiteDataPtr(0, cb, cbsite));
                 const std::complex<float> *y_site_data =
                     reinterpret_cast<const std::complex<float> *>(y.GetSiteDataPtr(0, cb, cbsite));
+                std::complex<float> *ipprod_ptr = ipprodm.mine();
 
                 // ipprod += x_site_data^* * y_site_data
                 XGEMM("C", "N", xncol, yncol, num_colorspin, 1.0, x_site_data, num_colorspin,
-                      y_site_data, num_colorspin, 1.0, ipprod_ptr->data(), xncol);
+                      y_site_data, num_colorspin, 1.0, ipprod_ptr, xncol);
             }
         }
+	std::vector<std::complex<float>> ipprod = ipprodm.reduce();
 
         // Global Reduce
         std::vector<std::complex<double>> ipprod_d(ipprod.size());

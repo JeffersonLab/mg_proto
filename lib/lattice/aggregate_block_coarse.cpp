@@ -13,7 +13,15 @@
 #include "lattice/lattice_info.h"
 #include <cassert>
 
+#if defined(__PGI) && defined(_OPENMP)
+#undef _OPENMP
+#else
+#error
+#endif
+
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 // Eigen Dense header
 #include <Eigen/Dense>
@@ -35,7 +43,9 @@ namespace MG {
         const int max_cspin = (aggr + 1) * n_per_chiral;
         assert(v.GetNCol() == 1);
 
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
         for (int site = 0; site < num_sites; ++site) {
             const CBSite &cbsite = block_sitelist[site];
             float *v_site_data = v.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
@@ -64,7 +74,9 @@ namespace MG {
         assert(x.GetNCol() == 1);
         assert(y.GetNCol() == 1);
 
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
         for (int site = 0; site < num_sites; ++site) {
             const CBSite &cbsite = block_sitelist[site];
             const float *x_site_data = x.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
@@ -96,7 +108,9 @@ namespace MG {
         double block_sum = 0;
         assert(v.GetNCol() == 1);
 
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : block_sum)
+#endif
         for (int site = 0; site < num_sites; ++site) {
             const CBSite &cbsite = block_sitelist[site];
             const float *v_site_data = v.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
@@ -133,7 +147,9 @@ namespace MG {
         double real_part = 0;
         double imag_part = 0;
 
+#ifdef _OPENMP
 #pragma omp parallel for reduction(+ : real_part) reduction(+ : imag_part)
+#endif
         for (int site = 0; site < num_sites; ++site) {
 
             const CBSite &cbsite = block_sitelist[site];
@@ -174,7 +190,9 @@ namespace MG {
         assert(target.GetNCol() == 1);
         assert(src.GetNCol() == 1);
 
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
         for (int site = 0; site < num_sites; ++site) {
             const CBSite &cbsite = block_sitelist[site];
             const float *src_site_data = src.GetSiteDataPtr(0, cbsite.cb, cbsite.site);
@@ -204,7 +222,9 @@ namespace MG {
 
         const int num_cbsites = info.GetNumCBSites();
 
+#ifdef _OPENMP
 #pragma omp parallel for collapse(2)
+#endif
         for (int cb = 0; cb < n_checkerboard; ++cb) {
             for (int site = 0; site < num_cbsites; ++site) {
 
@@ -225,7 +245,9 @@ namespace MG {
                                        const std::vector<Block> &block_list) {
         int num_blocks = block_list.size();
 
+#ifdef _OPENMP
 #pragma omp parallel for collapse(2)
+#endif
         for (int aggr = 0; aggr < 2; ++aggr) {
             for (int block_id = 0; block_id < num_blocks; block_id++) {
 
@@ -300,7 +322,9 @@ namespace MG {
         }
 
         // This will be a loop over blocks
+#ifdef _OPENMP
 #pragma omp parallel for collapse(4)
+#endif
         for (int block_cb = 0; block_cb < n_checkerboard; ++block_cb) {
             for (int block_cbsite = 0; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
                 for (int chiral = 0; chiral < 2; ++chiral) {
@@ -340,7 +364,9 @@ namespace MG {
                                 int min_fine_cspin = chiral * fine_n_per_chiral;
                                 int max_fine_cspin = (chiral + 1) * fine_n_per_chiral;
 
+#ifdef _OPENMP
 #pragma omp simd reduction(+ : iprod_re, iprod_im)
+#endif
                                 for (int fine_colorspin = min_fine_cspin;
                                      fine_colorspin < max_fine_cspin; ++fine_colorspin) {
 
@@ -412,7 +438,9 @@ namespace MG {
         // Loop over the coarse sites (blocks)
         // Do this with checkerboarding, because of checkerboarded index for
         // coarse spinor
+#ifdef _OPENMP
 #pragma omp parallel for collapse(4)
+#endif
         for (int block_cb = 0; block_cb < n_checkerboard; ++block_cb) {
             for (int block_cbsite = 0; block_cbsite < num_coarse_cbsites; ++block_cbsite) {
                 for (int chiral = 0; chiral < 2; ++chiral) {
@@ -441,7 +469,9 @@ namespace MG {
                                 float csum_re = 0;
                                 float csum_im = 0;
 
+#ifdef _OPENMP
 #pragma omp simd reduction(+ : csum_re, csum_im)
+#endif
                                 for (int coarse_color = 0; coarse_color < num_coarse_colors;
                                      coarse_color++) {
 
@@ -525,7 +555,9 @@ namespace MG {
                 extractAggregate(tmp, *(in_vecs[j]), chiral);
 
                 for (int cb = 0; cb < n_checkerboard; ++cb) {
+#ifdef _OPENMP
 #pragma omp parallel
+#endif
                     {
                         int tid = omp_get_thread_num();
                         D_op.DslashDir(out, u, tmp, cb, dir, tid);
@@ -778,236 +810,244 @@ namespace MG {
         }     // coarse_cb
     }
 
-    //! Coarsen the clover term (1 block = 1 site )
-    void clovTripleProduct(const CoarseDiracOp &D_op, const std::vector<Block> &blocklist,
-                           const CoarseGauge &fine_gauge_clov,
-                           const std::vector<std::shared_ptr<CoarseSpinor>> &in_fine_vecs,
-                           CoarseGauge &coarse_gauge_clov) {
-        // Clover Triple product in here
-        const IndexType num_coarse_colors = coarse_gauge_clov.GetNumColor();
-        const IndexType num_coarse_colorspin = coarse_gauge_clov.GetNumColorSpin();
+     //! Coarsen the clover term (1 block = 1 site )
+     void clovTripleProduct(const CoarseDiracOp &D_op, const std::vector<Block> &blocklist,
+                            const CoarseGauge &fine_gauge_clov,
+                            const std::vector<std::shared_ptr<CoarseSpinor>> &in_fine_vecs,
+                            CoarseGauge &coarse_gauge_clov) {
+         // Clover Triple product in here
+         const IndexType num_coarse_colors = coarse_gauge_clov.GetNumColor();
+         const IndexType num_coarse_colorspin = coarse_gauge_clov.GetNumColorSpin();
+ 
+         const IndexType num_chiral_components = 2;
+         const LatticeInfo &coarse_info = coarse_gauge_clov.GetInfo();
+         const IndexType num_coarse_cbsites = coarse_info.GetNumCBSites();
+ 
+         // in vecs has size num_coarse_colors = Ncolorspin_c/2
+         // But this mixes both upper and lower spins
+         // Once we deal with those separately we will need Ncolorspin_c results
+         // And we will need to apply the 'DslashDir' separately to each aggregate
+ 
+         assert(static_cast<IndexType>(in_fine_vecs.size()) == num_coarse_colors);
+         assert(num_chiral_components == 2);
+ 
+         const LatticeInfo &fine_info = in_fine_vecs[0]->GetInfo();
+         const int num_fine_colors = fine_info.GetNumColors();
+         const int num_fine_spins = fine_info.GetNumSpins();
+ 
+         const int num_spincolor_per_chiral =
+             (num_fine_spins == 4) ? 2 * num_fine_colors : num_fine_colors;
+ 
+         // out_vecs is the result of applying clover term to in_vecs
+         // NOTE!!!: Unlike with Dslash where (1 +/- gamma_mu) mixes the upper and lower spin components
+         // Clover *does not* do this. In this chiral basis that we use Clover is block diagonal
+         // So it acts independently on upper and lower spin components.
+         // This means Ncolor vectors are sufficient. The upper components will hold the results of
+         // clover_term applied to the upper components while the lower components will hold the results of
+         // clover_term applied to the lower components in the same way in_vector combines upper and lower
+         // components.
+         std::vector<std::shared_ptr<CoarseSpinor>> out_vecs(num_coarse_colorspin);
+ 
+         // Zero the output
+         for (int j = 0; j < num_coarse_colorspin; ++j) {
+             out_vecs[j] = std::make_shared<CoarseSpinor>(fine_info);
+             ZeroVec(*(out_vecs[j]));
+         }
+ 
+         for (int j = 0; j < num_coarse_colors; ++j) {
+             for (int chiral = 0; chiral < num_chiral_components; ++chiral) {
+ 
+                 // Extract the chiral component into a temporary
+                 CoarseSpinor tmp(fine_info);
+                 ZeroVec(tmp);
+                 extractAggregate(tmp, *(in_fine_vecs[j]), chiral);
+ #ifdef _OPENMP
+ #pragma omp parallel
+ #endif
+                 {
+                     int tid = omp_get_thread_num();
+                     for (int cb = 0; cb < 2; ++cb) {
+                         D_op.CloverApply(*(out_vecs[j + chiral * num_coarse_colors]),
+                                          fine_gauge_clov, tmp, cb, LINOP_OP, tid);
+                     }
+                 }
+             }
+         }
+ 
+         // Technically these outer loops should be over all the blocks.
+         for (int coarse_cb = 0; coarse_cb < n_checkerboard; ++coarse_cb) {
+             for (int coarse_cbsite = 0; coarse_cbsite < num_coarse_cbsites; ++coarse_cbsite) {
+ 
+                 // Convert the CB site into a block index
+                 int block_idx = coarse_cbsite + coarse_cb * num_coarse_cbsites;
+                 const Block &block = blocklist[block_idx];
+ 
+                 // Get the sitelist in the block (all sites)
+                 auto fine_sitelist = block.getCBSiteList();
+                 auto num_fine_sites = block.getNumSites();
+ 
+                 // Get the coarse clover -- this is the 'local' (dir=8) of the gauge field
+                 // Which is an N_colorspin x N_colorspin
+                 // Matrix. Caller must initialize this as both the Dslash Dir and this function
+                 // write into it.
+                 float *coarse_clov_data =
+                     coarse_gauge_clov.GetSiteDiagDataPtr(coarse_cb, coarse_cbsite);
+ 
+                 // Accumulate into a temporary and zero that out
+                 std::vector<double> tmp_result(n_complex * num_coarse_colorspin *
+                                                num_coarse_colorspin);
+                 for (int j = 0; j < n_complex * num_coarse_colorspin * num_coarse_colorspin; ++j) {
+                     tmp_result[j] = (double)0;
+                 }
+ 
+                 for (IndexType fine_site_idx = 0;
+                      fine_site_idx < static_cast<IndexType>(num_fine_sites); ++fine_site_idx) {
+ 
+                     auto fine_site = fine_sitelist[fine_site_idx];
+ 
+                     for (int aggr_row = 0; aggr_row < num_chiral_components; ++aggr_row) {
+                         for (int aggr_col = 0; aggr_col < num_chiral_components; ++aggr_col) {
+ 
+                             // This is an num_coarse_colors x num_coarse_colors matmul
+                             for (int matmul_row = 0; matmul_row < num_coarse_colors; ++matmul_row) {
+                                 for (int matmul_col = 0; matmul_col < num_coarse_colors;
+                                      ++matmul_col) {
+ 
+                                     // Offset by the aggr_row and aggr_column
+                                     int row = aggr_row * num_coarse_colors + matmul_row;
+                                     int col = aggr_col * num_coarse_colors + matmul_col;
+ 
+                                     //Index in coarse link
+                                     int coarse_link_index =
+                                         n_complex * (row + num_coarse_colorspin * col);
+ 
+                                     // Inner product loop
+                                     for (int k = 0; k < num_spincolor_per_chiral; ++k) {
+ 
+                                         int sc = k + aggr_row * num_spincolor_per_chiral;
+ 
+                                         const float *right_vector_data =
+                                             out_vecs[col]->GetSiteDataPtr(0, fine_site.cb,
+                                                                           fine_site.site);
+                                         const float right_r =
+                                             right_vector_data[RE + sc * n_complex];
+                                         const float right_i =
+                                             right_vector_data[IM + sc * n_complex];
+ 
+                                         // Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
+                                         //
+                                         // ie a compact storage
+                                         // rather than:
+                                         //
+                                         // [ V^H_upper   0      ]
+                                         // [  0       V^H_lower ]
+                                         //
+                                         // so index with row % num_coarse_colors = matmul_row
+                                         //float left_r = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).real());
+                                         //float left_i = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).imag());
+                                         const float *left_vector_data =
+                                             in_fine_vecs[matmul_row]->GetSiteDataPtr(
+                                                 0, fine_site.cb, fine_site.site);
+                                         const float left_r = left_vector_data[RE + sc * n_complex];
+                                         const float left_i = left_vector_data[IM + sc * n_complex];
+ 
+                                         // Accumulate inner product V^H_row A_column
+                                         tmp_result[RE + coarse_link_index] +=
+                                             (double)(left_r * right_r + left_i * right_i);
+                                         tmp_result[IM + coarse_link_index] +=
+                                             (double)(left_r * right_i - right_r * left_i);
+                                     } // k
+ 
+                                 } // matmul_col
+                             }     // matmul_row
+                         }         // aggr_col
+                     }             // aggr_row
+                 }                 // fine site idx
+ 
+                 for (int row = 0; row < num_coarse_colorspin; ++row) {
+                     for (int col = 0; col < num_coarse_colorspin; ++col) {
+                         int coarse_link_index = n_complex * (row + num_coarse_colorspin * col);
+                         coarse_clov_data[RE + coarse_link_index] +=
+                             (float)(tmp_result[RE + coarse_link_index]);
+                         coarse_clov_data[IM + coarse_link_index] +=
+                             (float)(tmp_result[IM + coarse_link_index]);
+ 
+                     } // rows
+                 }     // cols
+ 
+             } // coarse_site
+         }     // coarse_cb
+     }
+ 
+     // MatrixXcf is the Eigen Matrix class
+     // Invert the diagonal part of u, into eo_clov
+     using ComplexMatrix = Matrix<std::complex<float>, Dynamic, Dynamic, ColMajor>;
+     using ConstComplexMatrix = Matrix<const std::complex<float>, Dynamic, Dynamic, ColMajor>;
 
-        const IndexType num_chiral_components = 2;
-        const LatticeInfo &coarse_info = coarse_gauge_clov.GetInfo();
-        const IndexType num_coarse_cbsites = coarse_info.GetNumCBSites();
-
-        // in vecs has size num_coarse_colors = Ncolorspin_c/2
-        // But this mixes both upper and lower spins
-        // Once we deal with those separately we will need Ncolorspin_c results
-        // And we will need to apply the 'DslashDir' separately to each aggregate
-
-        assert(static_cast<IndexType>(in_fine_vecs.size()) == num_coarse_colors);
-        assert(num_chiral_components == 2);
-
-        const LatticeInfo &fine_info = in_fine_vecs[0]->GetInfo();
-        const int num_fine_colors = fine_info.GetNumColors();
-        const int num_fine_spins = fine_info.GetNumSpins();
-
-        const int num_spincolor_per_chiral =
-            (num_fine_spins == 4) ? 2 * num_fine_colors : num_fine_colors;
-
-        // out_vecs is the result of applying clover term to in_vecs
-        // NOTE!!!: Unlike with Dslash where (1 +/- gamma_mu) mixes the upper and lower spin components
-        // Clover *does not* do this. In this chiral basis that we use Clover is block diagonal
-        // So it acts independently on upper and lower spin components.
-        // This means Ncolor vectors are sufficient. The upper components will hold the results of
-        // clover_term applied to the upper components while the lower components will hold the results of
-        // clover_term applied to the lower components in the same way in_vector combines upper and lower
-        // components.
-        std::vector<std::shared_ptr<CoarseSpinor>> out_vecs(num_coarse_colorspin);
-
-        // Zero the output
-        for (int j = 0; j < num_coarse_colorspin; ++j) {
-            out_vecs[j] = std::make_shared<CoarseSpinor>(fine_info);
-            ZeroVec(*(out_vecs[j]));
-        }
-
-        for (int j = 0; j < num_coarse_colors; ++j) {
-            for (int chiral = 0; chiral < num_chiral_components; ++chiral) {
-
-                // Extract the chiral component into a temporary
-                CoarseSpinor tmp(fine_info);
-                ZeroVec(tmp);
-                extractAggregate(tmp, *(in_fine_vecs[j]), chiral);
-#pragma omp parallel
-                {
-                    int tid = omp_get_thread_num();
-                    for (int cb = 0; cb < 2; ++cb) {
-                        D_op.CloverApply(*(out_vecs[j + chiral * num_coarse_colors]),
-                                         fine_gauge_clov, tmp, cb, LINOP_OP, tid);
-                    }
-                }
-            }
-        }
-
-        // Technically these outer loops should be over all the blocks.
-        for (int coarse_cb = 0; coarse_cb < n_checkerboard; ++coarse_cb) {
-            for (int coarse_cbsite = 0; coarse_cbsite < num_coarse_cbsites; ++coarse_cbsite) {
-
-                // Convert the CB site into a block index
-                int block_idx = coarse_cbsite + coarse_cb * num_coarse_cbsites;
-                const Block &block = blocklist[block_idx];
-
-                // Get the sitelist in the block (all sites)
-                auto fine_sitelist = block.getCBSiteList();
-                auto num_fine_sites = block.getNumSites();
-
-                // Get the coarse clover -- this is the 'local' (dir=8) of the gauge field
-                // Which is an N_colorspin x N_colorspin
-                // Matrix. Caller must initialize this as both the Dslash Dir and this function
-                // write into it.
-                float *coarse_clov_data =
-                    coarse_gauge_clov.GetSiteDiagDataPtr(coarse_cb, coarse_cbsite);
-
-                // Accumulate into a temporary and zero that out
-                std::vector<double> tmp_result(n_complex * num_coarse_colorspin *
-                                               num_coarse_colorspin);
-                for (int j = 0; j < n_complex * num_coarse_colorspin * num_coarse_colorspin; ++j) {
-                    tmp_result[j] = (double)0;
-                }
-
-                for (IndexType fine_site_idx = 0;
-                     fine_site_idx < static_cast<IndexType>(num_fine_sites); ++fine_site_idx) {
-
-                    auto fine_site = fine_sitelist[fine_site_idx];
-
-                    for (int aggr_row = 0; aggr_row < num_chiral_components; ++aggr_row) {
-                        for (int aggr_col = 0; aggr_col < num_chiral_components; ++aggr_col) {
-
-                            // This is an num_coarse_colors x num_coarse_colors matmul
-                            for (int matmul_row = 0; matmul_row < num_coarse_colors; ++matmul_row) {
-                                for (int matmul_col = 0; matmul_col < num_coarse_colors;
-                                     ++matmul_col) {
-
-                                    // Offset by the aggr_row and aggr_column
-                                    int row = aggr_row * num_coarse_colors + matmul_row;
-                                    int col = aggr_col * num_coarse_colors + matmul_col;
-
-                                    //Index in coarse link
-                                    int coarse_link_index =
-                                        n_complex * (row + num_coarse_colorspin * col);
-
-                                    // Inner product loop
-                                    for (int k = 0; k < num_spincolor_per_chiral; ++k) {
-
-                                        int sc = k + aggr_row * num_spincolor_per_chiral;
-
-                                        const float *right_vector_data =
-                                            out_vecs[col]->GetSiteDataPtr(0, fine_site.cb,
-                                                                          fine_site.site);
-                                        const float right_r =
-                                            right_vector_data[RE + sc * n_complex];
-                                        const float right_i =
-                                            right_vector_data[IM + sc * n_complex];
-
-                                        // Left vector -- only num_coarse_colors components with [ V^H_upper V^H_lower ]
-                                        //
-                                        // ie a compact storage
-                                        // rather than:
-                                        //
-                                        // [ V^H_upper   0      ]
-                                        // [  0       V^H_lower ]
-                                        //
-                                        // so index with row % num_coarse_colors = matmul_row
-                                        //float left_r = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).real());
-                                        //float left_i = (float)(in_vecs[matmul_row].elem(qdp_site).elem(spin).elem(color).imag());
-                                        const float *left_vector_data =
-                                            in_fine_vecs[matmul_row]->GetSiteDataPtr(
-                                                0, fine_site.cb, fine_site.site);
-                                        const float left_r = left_vector_data[RE + sc * n_complex];
-                                        const float left_i = left_vector_data[IM + sc * n_complex];
-
-                                        // Accumulate inner product V^H_row A_column
-                                        tmp_result[RE + coarse_link_index] +=
-                                            (double)(left_r * right_r + left_i * right_i);
-                                        tmp_result[IM + coarse_link_index] +=
-                                            (double)(left_r * right_i - right_r * left_i);
-                                    } // k
-
-                                } // matmul_col
-                            }     // matmul_row
-                        }         // aggr_col
-                    }             // aggr_row
-                }                 // fine site idx
-
-                for (int row = 0; row < num_coarse_colorspin; ++row) {
-                    for (int col = 0; col < num_coarse_colorspin; ++col) {
-                        int coarse_link_index = n_complex * (row + num_coarse_colorspin * col);
-                        coarse_clov_data[RE + coarse_link_index] +=
-                            (float)(tmp_result[RE + coarse_link_index]);
-                        coarse_clov_data[IM + coarse_link_index] +=
-                            (float)(tmp_result[IM + coarse_link_index]);
-
-                    } // rows
-                }     // cols
-
-            } // coarse_site
-        }     // coarse_cb
-    }
-
-    // MatrixXcf is the Eigen Matrix class
-    // Invert the diagonal part of u, into eo_clov
-    using ComplexMatrix = Matrix<std::complex<float>, Dynamic, Dynamic, ColMajor>;
-
-    void invertCloverDiag(CoarseGauge &u) {
-        MasterLog(INFO, "Inverting Coarse Diagonal Term");
-
-        const LatticeInfo &info = u.GetInfo();
-        const int num_cbsites = info.GetNumCBSites();
-        const int num_colorspins = info.GetNumColorSpins();
-
-#pragma omp parallel for collapse(2)
-        for (int cb = 0; cb < n_checkerboard; ++cb) {
-            for (int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
-
-                // 0-7 are the off diags, 8 is the diag
-                float *diag_site_data = u.GetSiteDiagDataPtr(cb, cbsite);
-                float *invdiag_site_data = u.GetSiteInvDiagDataPtr(cb, cbsite);
-
-                Map<ComplexMatrix> in_mat(reinterpret_cast<std::complex<float> *>(diag_site_data),
-                                          num_colorspins, num_colorspins);
-                Map<ComplexMatrix> out_mat(
-                    reinterpret_cast<std::complex<float> *>(invdiag_site_data), num_colorspins,
-                    num_colorspins);
-
-                out_mat = in_mat.inverse();
-            } // sites
-        }     // checkerboards
-    }
-
-    // Multiply the inverse part of the clover into eo_clov
-    void multInvClovOffDiagLeft(CoarseGauge &u) {
-        MasterLog(INFO, "Computing A^{-1}D links");
-        const LatticeInfo &info = u.GetInfo();
-        const int num_cbsites = info.GetNumCBSites();
-        const int num_colorspins = info.GetNumColorSpins();
-
-#pragma omp parallel for collapse(2)
-        for (int cb = 0; cb < n_checkerboard; ++cb) {
-            for (int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
-
-                // 0-7 are the off diags, 8 is the diag
-                float *invdiag_site_data = u.GetSiteInvDiagDataPtr(cb, cbsite);
-                for (int mu = 0; mu < 8; ++mu) {
-                    float *resptr = u.GetSiteDirADDataPtr(cb, cbsite, mu);
-                    float *srcptr = u.GetSiteDirDataPtr(cb, cbsite, mu);
-
-                    Map<ComplexMatrix> invdiag_mat(
-                        reinterpret_cast<std::complex<float> *>(invdiag_site_data), num_colorspins,
-                        num_colorspins);
-
-                    Map<ComplexMatrix> srcmat(reinterpret_cast<std::complex<float> *>(srcptr),
-                                              num_colorspins, num_colorspins);
-
-                    Map<ComplexMatrix> resmat(reinterpret_cast<std::complex<float> *>(resptr),
-                                              num_colorspins, num_colorspins);
-
-                    resmat = invdiag_mat * srcmat;
-                }
-            } // sites
-        }     // checkerboards
-    }
-
+// FIX: fails with PGI compilers 
+//      void invertCloverDiag(CoarseGauge &u) {
+//          MasterLog(INFO, "Inverting Coarse Diagonal Term");
+//  
+//          const LatticeInfo &info = u.GetInfo();
+//          const int num_cbsites = info.GetNumCBSites();
+//          const int num_colorspins = info.GetNumColorSpins();
+//  
+//  #ifdef _OPENMP
+//  #pragma omp parallel for collapse(2)
+//  #endif
+//          for (int cb = 0; cb < n_checkerboard; ++cb) {
+//              for (int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
+//  
+//                  // 0-7 are the off diags, 8 is the diag
+//                  float *diag_site_data = u.GetSiteDiagDataPtr(cb, cbsite);
+//                  float *invdiag_site_data = u.GetSiteInvDiagDataPtr(cb, cbsite);
+//  
+//                  Map<ComplexMatrix> in_mat(reinterpret_cast<std::complex<float> *>(diag_site_data),
+//                                            num_colorspins, num_colorspins);
+//                  Map<ComplexMatrix> out_mat(
+//                      reinterpret_cast<std::complex<float> *>(invdiag_site_data), num_colorspins,
+//                      num_colorspins);
+//  
+//                  out_mat = in_mat.inverse();
+//              } // sites
+//          }     // checkerboards
+//      }
+// 
+//    // Multiply the inverse part of the clover into eo_clov
+//    void multInvClovOffDiagLeft(CoarseGauge &u) {
+//        MasterLog(INFO, "Computing A^{-1}D links");
+//        const LatticeInfo &info = u.GetInfo();
+//        const int num_cbsites = info.GetNumCBSites();
+//        const int num_colorspins = info.GetNumColorSpins();
+//
+//#ifdef _OPENMP
+//#pragma omp parallel for collapse(2)
+//#endif
+//        for (int cb = 0; cb < n_checkerboard; ++cb) {
+//            for (int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
+//
+//                // 0-7 are the off diags, 8 is the diag
+//                float *invdiag_site_data = u.GetSiteInvDiagDataPtr(cb, cbsite);
+//                for (int mu = 0; mu < 8; ++mu) {
+//                    float *resptr = u.GetSiteDirADDataPtr(cb, cbsite, mu);
+//                    float *srcptr = u.GetSiteDirDataPtr(cb, cbsite, mu);
+//
+//                    Map<ComplexMatrix> invdiag_mat(
+//                        reinterpret_cast<std::complex<float> *>(invdiag_site_data), num_colorspins,
+//                        num_colorspins);
+//
+//                    Map<ComplexMatrix> srcmat(reinterpret_cast<std::complex<float> *>(srcptr),
+//                                              num_colorspins, num_colorspins);
+//
+//                    Map<ComplexMatrix> resmat(reinterpret_cast<std::complex<float> *>(resptr),
+//                                              num_colorspins, num_colorspins);
+//
+//                    resmat = invdiag_mat * srcmat;
+//                }
+//            } // sites
+//        }     // checkerboards
+//    }
+// 
     template <typename T> struct InvDiagAccessor {
         static inline const float *get(const T &in, int cb, int cbsite);
     };
@@ -1040,7 +1080,9 @@ namespace MG {
         const int num_cbsites = info.GetNumCBSites();
         const int num_colorspins = info.GetNumColorSpins();
 
+#ifdef _OPENMP
 #pragma omp parallel for collapse(2)
+#endif
         for (int target_cb = 0; target_cb < n_checkerboard; ++target_cb) {
             for (int cbsite = 0; cbsite < num_cbsites; ++cbsite) {
 
@@ -1051,20 +1093,20 @@ namespace MG {
                     float *resptr = u.GetSiteDirDADataPtr(target_cb, cbsite, mu);
 
                     // The original link (the D part)
-                    const float *srcptr = u.GetSiteDirDataPtr(target_cb, cbsite, mu);
+                    float *srcptr = u.GetSiteDirDataPtr(target_cb, cbsite, mu);
 
                     // This should get the neighboring A from either u or the halos as needed
                     // It ought to have been already inverted by a previous call.
-                    const float *invdiag_ptr = GetNeighborDir<CoarseGauge, InvDiagAccessor>(
+                    float *invdiag_ptr = (float*)GetNeighborDir<CoarseGauge, InvDiagAccessor>(
                         *(halos[target_cb]), u, mu, target_cb, cbsite);
 
                     // Dress them up as eigen matrices.
-                    Map<const ComplexMatrix> invdiag_mat(
-                        reinterpret_cast<const std::complex<float> *>(invdiag_ptr), num_colorspins,
+                    Map<ComplexMatrix> invdiag_mat(
+                        reinterpret_cast<std::complex<float> *>(invdiag_ptr), num_colorspins,
                         num_colorspins);
 
-                    Map<const ComplexMatrix> srcmat(
-                        reinterpret_cast<const std::complex<float> *>(srcptr), num_colorspins,
+                    Map<ComplexMatrix> srcmat(
+                        reinterpret_cast<std::complex<float> *>(srcptr), num_colorspins,
                         num_colorspins);
 
                     Map<ComplexMatrix> resmat(reinterpret_cast<std::complex<float> *>(resptr),

@@ -12,17 +12,20 @@
 #include <complex>
 #include <iostream>
 
+#ifndef MGPROTO_USE_CBLAS
+        extern "C" void cgemm_(const char *transa, const char *transb, MG::LAPACK_BLASINT *m,
+                               MG::LAPACK_BLASINT *n, MG::LAPACK_BLASINT *k, std::complex<float> *alpha,
+                               const std::complex<float> *a, MG::LAPACK_BLASINT *lda,
+                               const std::complex<float> *b, MG::LAPACK_BLASINT *ldb,
+                               std::complex<float> *beta, std::complex<float> *c,
+                               MG::LAPACK_BLASINT *ldc);
+#endif
+
+
 namespace MG {
 
     namespace {
-#ifndef MGPROTO_USE_CBLAS
-        extern "C" void cgemm_(const char *transa, const char *transb, LAPACK_BLASINT *m,
-                               LAPACK_BLASINT *n, LAPACK_BLASINT *k, std::complex<float> *alpha,
-                               const std::complex<float> *a, LAPACK_BLASINT *lda,
-                               const std::complex<float> *b, LAPACK_BLASINT *ldb,
-                               std::complex<float> *beta, std::complex<float> *c,
-                               LAPACK_BLASINT *ldc);
-#else
+#ifdef MGPROTO_USE_CBLAS
 #    include <cblas.h>
         CBLAS_TRANSPOSE toTrans(const char *trans) {
             const char t = *trans;

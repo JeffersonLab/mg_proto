@@ -218,14 +218,13 @@ install (FILES "${PROJECT_BINARY_DIR}/MG_config.h" DESTINATION include)
 include_directories(include)
 include_directories("${PROJECT_BINARY_DIR}")
 
-include_directories(external)
-
 # Add the include subdirectory for installation processing
 add_subdirectory(include)
 
 # Add the lib subdirectory to make the lib
-add_subdirectory(external)
 add_subdirectory(lib)
 if(BUILD_TESTING)
+  include_directories(external)
+  add_subdirectory(external)
   add_subdirectory(test)
 endif()
