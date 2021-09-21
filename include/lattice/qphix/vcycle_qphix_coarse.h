@@ -536,6 +536,11 @@ namespace MG {
         using AuxF = AuxiliarySpinors<QPhiXSpinorF>;
         using AuxC = AuxiliarySpinors<CoarseSpinor>;
 
+        static unsigned int getRhsIndex() {
+            static unsigned int index = 0;
+            return index++;
+        }
+
     public:
         std::vector<LinearSolverResults>
         operator()(QPhiXSpinor &out, const QPhiXSpinor &in, ResiduumType resid_type = RELATIVE,
@@ -692,6 +697,15 @@ namespace MG {
                 Timer::TimerAPI::stopTimer("VCycleQPhiXCoarseEO3/restrictFrom/level" +
                                            std::to_string(level));
 
+                // Write the RHS
+                if (_rhs_prefix_name != nullptr && std::strlen(_rhs_prefix_name) > 0) {
+                    std::string filename = std::string(_rhs_prefix_name) + "_level0" + "_" +
+                                           std::to_string(getRhsIndex()) + ".bin";
+                    MasterLog(INFO, "VCycleQPhiXCoarseEO3: Writing rhs in %s",
+                              filename.c_str());
+                    write(*coarse_in, filename, SUBSET_ODD);
+                }
+
                 Timer::TimerAPI::startTimer("VCycleQPhiXCoarseEO3/bottom_solve/level" +
                                             std::to_string(level));
                 _bottom_solver(*coarse_delta, *coarse_in, RELATIVE,
@@ -824,7 +838,13 @@ namespace MG {
               _param(param),
               _Transfer(my_blocks, vecs),
               _antepost_smoother(nullptr),
-              _postpre_smoother(nullptr) {
+              _postpre_smoother(nullptr),
+#ifdef MG_WRITE_COARSE
+              _rhs_prefix_name(std::getenv("MG_RHS_FILENAME"))
+#else
+              _rhs_prefix_name(nullptr)
+#endif
+        {
             int level = _M_fine.GetLevel();
         }
 
@@ -844,6 +864,7 @@ namespace MG {
         const QPhiXTransfer<QPhiXSpinorF> _Transfer;
         const LinearSolver<QPhiXSpinorF> *_antepost_smoother;
         const LinearSolver<QPhiXSpinorF> *_postpre_smoother;
+        const char *_rhs_prefix_name;
     };
 
 } // namespace MG

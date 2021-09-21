@@ -23,6 +23,8 @@
 #include <lattice/coarse/invfgmres_coarse.h>
 #include <lattice/coarse/invmr_coarse.h>
 
+#include <map>
+
 namespace MG {
 
     class VCycleCoarse : public LinearSolver<CoarseSpinor> {
@@ -526,6 +528,14 @@ namespace MG {
     class VCycleCoarseEO2 : public LinearSolver<CoarseSpinor> {
         using AuxC = AuxiliarySpinors<CoarseSpinor>;
 
+    static unsigned int getRhsIndex(int level) {
+	static std::map<int,int> index;
+	auto it = index.find(level);
+	if (it != index.end()) return it->second++;
+	index[level] = 1;
+	return 0;
+    } 
+
     public:
         std::vector<LinearSolverResults>
         operator()(CoarseSpinor &out, const CoarseSpinor &in, ResiduumType resid_type = RELATIVE,
@@ -675,6 +685,17 @@ namespace MG {
                 Timer::TimerAPI::startTimer("VCycleCoarseEO2/restrictFrom/level" +
                                             std::to_string(level));
                 _Transfer.R(*r, ODD, *coarse_in);
+
+                // Write the RHS
+                if (_rhs_prefix_name != nullptr && std::strlen(_rhs_prefix_name) > 0) {
+                    std::string filename = std::string(_rhs_prefix_name) + "_level" +
+                                           std::to_string(_M_fine.GetLevel() + 1) + "_" +
+                                           std::to_string(getRhsIndex(_M_fine.GetLevel())) + ".bin";
+                    MasterLog(INFO, "VCycleCoarseEO2: Writing rhs in %s",
+                              filename.c_str());
+                    write(*coarse_in, filename, SUBSET_ODD);
+                }
+
                 Timer::TimerAPI::stopTimer("VCycleCoarseEO2/restrictFrom/level" +
                                            std::to_string(level));
 
@@ -804,7 +825,13 @@ namespace MG {
               _param(param),
               _Transfer(my_blocks, vecs),
               _antepost_smoother(nullptr),
-              _postpre_smoother(nullptr) {
+              _postpre_smoother(nullptr),
+#ifdef MG_WRITE_COARSE
+              _rhs_prefix_name(std::getenv("MG_RHS_FILENAME"))
+#else
+              _rhs_prefix_name(nullptr)
+#endif
+        {
             (void)apply_clover;
             int level = _M_fine.GetLevel();
         }
@@ -824,6 +851,7 @@ namespace MG {
         const CoarseTransfer _Transfer;
         const LinearSolver<CoarseSpinor> *_antepost_smoother;
         const LinearSolver<CoarseSpinor> *_postpre_smoother;
+        const char *_rhs_prefix_name;
     };
 
 } // namespace MG

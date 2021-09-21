@@ -60,6 +60,7 @@ namespace MG {
     void GetColumns(const CoarseSpinor &x, const CBSubset &subset, float *y, size_t ld);
     void PutColumns(const float *y, size_t ld, CoarseSpinor &x, const CBSubset &subset);
     void Gamma5Vec(CoarseSpinor &x, const CBSubset &subset = SUBSET_ALL);
+    void write(const CoarseSpinor &x, std::string &filename, const CBSubset &subset = SUBSET_ALL);
 }
 
 #endif /* TEST_QDPXX_COARSE_L1_BLAS_H_ */

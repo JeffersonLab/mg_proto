@@ -14,6 +14,11 @@
 
 //#include "../../include/lattice/thread_info.h.bak"
 #include "lattice/geometry_utils.h"
+
+#ifdef MG_WRITE_COARSE
+#    include <mpi.h>
+#endif
+
 namespace MG {
 
     namespace {
@@ -462,8 +467,6 @@ namespace MG {
     }
 
 #ifdef MG_WRITE_COARSE
-#    include <mpi.h>
-
     void CoarseDiracOp::write(const CoarseGauge &gauge, std::string &filename) {
         IndexType n_colorspin = gauge.GetNumColorSpin();
         IndexArray lattice_dims;

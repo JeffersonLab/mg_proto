@@ -8,6 +8,7 @@
 #include "lattice/cmat_mult.h"
 #include "lattice/constants.h"
 #include "lattice/lattice_info.h"
+#include "lattice//geometry_utils.h"
 #include "utils/timer.h"
 #include <algorithm>
 #include <cassert>
@@ -20,6 +21,10 @@
 #endif
 // for random numbers:
 #include <random>
+
+#ifdef MG_WRITE_COARSE
+#    include <mpi.h>
+#endif
 
 namespace MG {
 
@@ -826,6 +831,74 @@ namespace MG {
             }
         }
     }
+
+#ifdef MG_WRITE_COARSE
+    void write(const CoarseSpinor &x, std::string &filename, const CBSubset &subset) {
+        IndexType n_colorspin = x.GetNumColorSpin();
+        IndexArray lattice_dims;
+        x.GetInfo().LocalDimsToGlobalDims(lattice_dims, x.GetInfo().GetLatticeDimensions());
+        IndexType nxh = x.GetNxh();
+        IndexType nx = x.GetNx();
+        IndexType ny = x.GetNy();
+        IndexType nz = x.GetNz();
+        IndexType nt = x.GetNt();
+        IndexType ncol = x.GetNCol();
+        unsigned long num_sites = x.GetInfo().GetNumCBSites() * (subset.end - subset.start), offset;
+        MPI_Scan(&num_sites, &offset, 1, MPI_UNSIGNED_LONG, MPI_SUM, MPI_COMM_WORLD);
+        offset -= num_sites;
+        MPI_File fh;
+        MPI_File_delete(filename.c_str(), MPI_INFO_NULL);
+        MPI_File_open(MPI_COMM_WORLD, filename.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY,
+                      MPI_INFO_NULL, &fh);
+        if (offset == 0) {
+            float header[7] = {5,
+                               (float)lattice_dims[0],
+                               (float)lattice_dims[1],
+                               (float)lattice_dims[2],
+                               (float)lattice_dims[3],
+                               (float)ncol,
+                               (float)n_colorspin};
+            MPI_Status status;
+            MPI_File_write(fh, header, 7, MPI_FLOAT, &status);
+        }
+        MPI_File_set_view(fh, sizeof(float) * (7 + (n_complex * n_colorspin + 5) * offset),
+                          MPI_FLOAT, MPI_FLOAT, "native", MPI_INFO_NULL);
+
+        // Site is output site
+	IndexType n_sites_cb = x.GetInfo().GetNumCBSites();
+        for (IndexType site_cb = 0; site_cb < n_sites_cb; ++site_cb) {
+            for (int cb = subset.start; cb < subset.end; ++cb) {
+                for (int col = 0; col < ncol; ++col) {
+
+                    // Turn site into x,y,z,t coords
+                    IndexArray local_site_coor;
+                    CBIndexToCoords(site_cb, cb, x.GetInfo().GetLatticeDimensions(),
+                                    x.GetInfo().GetLatticeOrigin(), local_site_coor);
+
+                    // Compute global coordinate
+                    IndexArray global_site_coor;
+                    x.GetInfo().LocalCoordToGlobalCoord(global_site_coor, local_site_coor);
+
+                    float coords[5] = {(float)global_site_coor[0], (float)global_site_coor[1],
+                                       (float)global_site_coor[2], (float)global_site_coor[3],
+                                       (float)col};
+                    MPI_Status status;
+                    MPI_File_write(fh, coords, 5, MPI_FLOAT, &status);
+                    MPI_File_write(fh, x.GetSiteDataPtr(col, cb, site_cb), n_complex * n_colorspin,
+                                   MPI_FLOAT, &status);
+                }
+            }
+        }
+
+        MPI_File_close(&fh);
+    }
+#else
+    void write(const CoarseSpinor &x, std::string &filename, const CBSubset &subset) {
+        (void)x;
+        (void)filename;
+        (void)subset;
+    }
+#endif
 
     void ZeroGauge(CoarseGauge &gauge) {
         const LatticeInfo &info = gauge.GetInfo();
