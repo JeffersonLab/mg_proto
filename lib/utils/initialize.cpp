@@ -42,10 +42,12 @@ namespace MG
 #endif
 	}
 
+#ifdef MG_USE_QPHIX
 	void InitCLIArgs(int *argc, char ***argv)
 	{
 	  theCLIArgs.init(*argc,*argv);
 	}
+#endif
 
 	void initialize(int *argc, char ***argv)
 	{

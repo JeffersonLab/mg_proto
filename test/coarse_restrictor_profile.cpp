@@ -48,6 +48,7 @@
 
 #include "vol_and_block_args.h"
 
+#include "qdp.h"
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;

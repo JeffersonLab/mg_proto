@@ -30,7 +30,7 @@ FORCE_INLINE __m512 _mm512_set1_ps(float a) {
 
 FORCE_INLINE __m512
 _mm512_set_ps(float e15, float e14, float e13, float e12, float e11, float e10,
-              float e9, float e8, float e9, float e8, float e7, float e6,
+              float e9, float e8, float e7, float e6,
               float e5, float e4, float e3, float e2, float e1, float e0) {
   __m512 res;
 

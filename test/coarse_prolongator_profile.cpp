@@ -38,6 +38,7 @@
 #include <lattice/coarse/aggregate_block_coarse.h>
 #include <lattice/coarse/coarse_transfer.h>
 
+#include "qdp.h"
 using namespace MG;
 using namespace MGTesting;
 using namespace QDP;

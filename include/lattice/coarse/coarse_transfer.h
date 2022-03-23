@@ -20,9 +20,13 @@
 #endif
 
 #include "MG_config.h"
+#ifdef MG_USE_QPHIX
 #include <lattice/qphix/qphix_veclen.h>
-#include <lattice/coarse/coarse_types.h>
 #include "lattice/qphix/qphix_types.h"
+#else
+#define VECLEN_SP 4
+#endif
+#include <lattice/coarse/coarse_types.h>
 #include <lattice/coarse/block.h>
 #include <utils/print_utils.h>
 
