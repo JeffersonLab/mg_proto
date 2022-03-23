@@ -40,7 +40,11 @@
 #define VECLEN 4
 #define VECLEN2 (VECLEN/2)
 
-
+#ifdef MG_USE_NEON
+#define MG_USE_AVX512
+#pragma message("Port x86 AVX512 intrinsics to ARM NEON")
+#include "utils/avx512_to_neon.h"
+#endif
 
 namespace MG {
 

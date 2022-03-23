@@ -12,7 +12,11 @@
 
 #if defined MG_USE_AVX512
 #include <cstdio>
+#if defined MG_USE_NEON
+#include "utils/avx512_to_neon.h"
+#else
 #include <immintrin.h>
+#endif
 #endif
 
 #include "MG_config.h"

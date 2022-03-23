@@ -13,6 +13,7 @@
 #cmakedefine MG_USE_KOKKOS
 #cmakedefine MG_USE_QPHIX
 #cmakedefine MG_USE_AVX512
+#cmakedefine MG_USE_NEON
 
 #cmakedefine MG_KOKKOS_USE_FLAT_DISPATCH
 #cmakedefine MG_KOKKOS_USE_TEAM_DISPATCH

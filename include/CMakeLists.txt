@@ -36,7 +36,8 @@ install (FILES lattice/coarse/aggregate_block_coarse.h
 install (FILES utils/initialize.h
 			   utils/memory.h 
          utils/timer.h
-			   utils/print_utils.h 
+			   utils/print_utils.h
+			   utils/avx512_to_neon.h 
 		 DESTINATION include/utils)
 		 
 install (FILES lattice/fine_qdpxx/aggregate_block_qdpxx.h
