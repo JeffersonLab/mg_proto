@@ -150,19 +150,19 @@ FORCE_INLINE __m512 _mm512_addsub_ps(__m512 a, __m512 b)
 	__m128 temp1, temp2;
 	temp1 = vsubq_f32(a.vf32[0], b.vf32[0]);
 	temp2 = vaddq_f32(a.vf32[0], b.vf32[0]);
-	res.vf32[0] = vtrn2q_f32(vreinterpretq_f32_s32(vrev64q_s32(vreinterpretq_s32_f32(temp1))), temp2);
+	res.vf32[0] = vtrn2q_f32(vrev64q_f32(temp1), temp2);
 	
 	temp1 = vsubq_f32(a.vf32[1], b.vf32[1]);
 	temp2 = vaddq_f32(a.vf32[1], b.vf32[1]);
-	res.vf32[1] = vtrn2q_f32(vreinterpretq_f32_s32(vrev64q_s32(vreinterpretq_s32_f32(temp1))), temp2);
+	res.vf32[1] = vtrn2q_f32(vrev64q_f32(temp1), temp2);
 	
 	temp1 = vsubq_f32(a.vf32[2], b.vf32[2]);
 	temp2 = vaddq_f32(a.vf32[2], b.vf32[2]);
-	res.vf32[2] = vtrn2q_f32(vreinterpretq_f32_s32(vrev64q_s32(vreinterpretq_s32_f32(temp1))), temp2);
+	res.vf32[2] = vtrn2q_f32(vrev64q_f32(temp1), temp2);
 	
 	temp1 = vsubq_f32(a.vf32[3], b.vf32[3]);
 	temp2 = vaddq_f32(a.vf32[3], b.vf32[3]);
-	res.vf32[3] = vtrn2q_f32(vreinterpretq_f32_s32(vrev64q_s32(vreinterpretq_s32_f32(temp1))), temp2);
+	res.vf32[3] = vtrn2q_f32(vrev64q_f32(temp1), temp2);
 
 	return res;
 }
@@ -177,19 +177,19 @@ FORCE_INLINE __m512 _mm512_subadd_ps(__m512 a, __m512 b)
 	__m128 temp1, temp2;
 	temp1 = vaddq_f32(a.vf32[0], b.vf32[0]);
 	temp2 = vsubq_f32(a.vf32[0], b.vf32[0]);
-	res.vf32[0] = vtrn2q_f32(vreinterpretq_f32_s32(vrev64q_s32(vreinterpretq_s32_f32(temp1))), temp2);
+	res.vf32[0] = vtrn2q_f32(vrev64q_f32(temp1), temp2);
 	
 	temp1 = vaddq_f32(a.vf32[1], b.vf32[1]);
 	temp2 = vsubq_f32(a.vf32[1], b.vf32[1]);
-	res.vf32[1] = vtrn2q_f32(vreinterpretq_f32_s32(vrev64q_s32(vreinterpretq_s32_f32(temp1))), temp2);
+	res.vf32[1] = vtrn2q_f32(vrev64q_f32(temp1), temp2);
 	
 	temp1 = vaddq_f32(a.vf32[2], b.vf32[2]);
 	temp2 = vsubq_f32(a.vf32[2], b.vf32[2]);
-	res.vf32[2] = vtrn2q_f32(vreinterpretq_f32_s32(vrev64q_s32(vreinterpretq_s32_f32(temp1))), temp2);
+	res.vf32[2] = vtrn2q_f32(vrev64q_f32(temp1), temp2);
 	
 	temp1 = vaddq_f32(a.vf32[3], b.vf32[3]);
 	temp2 = vsubq_f32(a.vf32[3], b.vf32[3]);
-	res.vf32[3] = vtrn2q_f32(vreinterpretq_f32_s32(vrev64q_s32(vreinterpretq_s32_f32(temp1))), temp2);
+	res.vf32[3] = vtrn2q_f32(vrev64q_f32(temp1), temp2);
 
 	return res;
 }
