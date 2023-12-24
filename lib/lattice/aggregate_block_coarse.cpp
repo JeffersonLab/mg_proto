@@ -225,7 +225,6 @@ namespace MG {
                                        const std::vector<Block> &block_list) {
         int num_blocks = block_list.size();
 
-#pragma omp parallel for collapse(2)
         for (int aggr = 0; aggr < 2; ++aggr) {
             for (int block_id = 0; block_id < num_blocks; block_id++) {
 

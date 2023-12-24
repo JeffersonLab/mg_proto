@@ -86,7 +86,6 @@ namespace MG {
     inline void CommunicateHaloSyncInOMPParallel(HaloContainer<T> &halo, const T &in,
                                                  const int target_cb) {
 
-        if (halo.NumNonLocalDirs() > 0) {
 #pragma omp master
             {
                 Timer::TimerAPI::startTimer("CommunicateHaloSync/sp" +
@@ -119,7 +118,6 @@ namespace MG {
 
             // Barrier after comms to sync master with other threads
 #pragma omp barrier
-        }
     }
 
     template <typename T, template <typename> class Accessor>
